@@ -1,0 +1,16 @@
+/* App.css 파일에 추가 */
+
+/* 토글 스위치 배경 */
+input:checked + div {
+  background-color: #22c55e; /* green-500 */
+}
+
+/* 토글 스위치 점 이동 */
+input:checked + div + .dot {
+  transform: translateX(16px);
+}
+
+/* WebsiteCard의 기본 높이 설정 */
+.h-12 {
+  height: 48px;
+}
