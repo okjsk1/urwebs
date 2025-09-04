@@ -1,0 +1,54 @@
+/* 모달 오버레이 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* 이 값을 z-[9999] 보다는 낮게 유지합니다. */
+}
+
+/* UserGuide 모달 */
+.user-guide-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000; /* 이 값을 z-[9999] 보다는 낮게 유지합니다. */
+}
+
+/* 카테고리 카드 제목 (예: 📂 폴더, 📌 즐겨찾기) */
+.urwebs-category-card h3 {
+  font-size: 1rem;           /* 글자 크기 */
+  font-weight: 600;          /* 강조 */
+  letter-spacing: 0.5px;     /* 자간 */
+  color: var(--main-dark);   /* 사이트 톤과 맞춤 */
+}
+
+/* 개별 사이트 이름 (카드 안의 링크) */
+.urwebs-website-item a {
+  font-size: 0.9rem;          /* 글자 크기 */
+  font-weight: 500;
+  letter-spacing: 0.3px;      /* 자간 */
+  line-height: 1.4;
+  display: inline-block;      /* 잘림 방지 */
+  color: var(--main-dark);
+}
+
+/* 즐겨찾기 안의 사이트 이름 */
+.urwebs-favorite-item a {
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+  color: var(--main-dark);
+}
