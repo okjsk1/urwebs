@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react'; // React의 핵심 훅(Hook)들을 가져옵니다.
 import { DndProvider } from 'react-dnd'; // 드래그 앤 드롭 기능을 제공하는 라이브러리
 import { HTML5Backend } from 'react-dnd-html5-backend'; // HTML5 기반의 드래그 앤 드롭 백엔드
-import GridLayout, { WidthProvider, Layout } from 'react-grid-layout'; // 위젯 배치를 위한 그리드 레이아웃
-import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
+// react-grid-layout과 관련된 라이브러리는 설치가 되지 않아 빌드에 실패했습니다.
+// 의존성을 제거하고 기본 CSS 그리드를 사용하도록 수정합니다.
 import { Widget, FavoritesData } from '../types'; // 위젯 및 즐겨찾기 데이터 타입을 정의한 파일에서 가져옵니다.
 import { WeatherWidget } from './widgets/WeatherWidget'; // 날씨 위젯 컴포넌트
 import { ClockWidget } from './widgets/ClockWidget'; // 시계 위젯 컴포넌트
@@ -11,8 +10,6 @@ import { MemoWidget } from './widgets/MemoWidget'; // 메모 위젯 컴포넌트
 import { TodoWidget } from './widgets/TodoWidget'; // 할 일 위젯 컴포넌트
 import { websites, categoryOrder, categoryConfig } from '../data/websites'; // 웹사이트 데이터, 카테고리 순서, 카테고리 설정을 가져옵니다.
 import { CategoryCard } from './CategoryCard'; // 카테고리 카드 컴포넌트
-
-const ReactGridLayout = WidthProvider(GridLayout);
 
 interface StartPageProps { // StartPage 컴포넌트가 받는 속성(Props)의 타입을 정의합니다.
   favoritesData: FavoritesData; // 즐겨찾기 데이터를 포함하는 객체
@@ -63,20 +60,6 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
       ...favoritesData,
       widgets: favoritesData.widgets.filter(w => w.id !== id)
     });
-  };
-
-  const handleLayoutChange = (layout: Layout[]) => {
-    const updatedWidgets = favoritesData.widgets.map(widget => {
-      const item = layout.find(l => l.i === widget.id);
-      return item
-        ? {
-            ...widget,
-            position: { x: item.x, y: item.y },
-            size: { width: item.w, height: item.h }
-          }
-        : widget;
-    });
-    onUpdateFavorites({ ...favoritesData, widgets: updatedWidgets });
   };
 
   const handleBackgroundChange = (
@@ -189,26 +172,14 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
             {/* 위젯 영역 */}
             <div className="lg:col-span-2">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">위젯</h2>
-              <ReactGridLayout
-                className="layout"
-                cols={4}
-                rowHeight={100}
-                onLayoutChange={handleLayoutChange}
-              >
+              {/* react-grid-layout을 사용하지 않고 단순한 CSS 그리드를 사용합니다. */}
+              <div className="grid grid-cols-4 gap-4">
                 {favoritesData.widgets.map(widget => (
-                  <div
-                    key={widget.id}
-                    data-grid={{
-                      x: widget.position.x,
-                      y: widget.position.y,
-                      w: widget.size.width,
-                      h: widget.size.height
-                    }}
-                  >
+                  <div key={widget.id} className="col-span-4 sm:col-span-2">
                     {renderWidget(widget)}
                   </div>
                 ))}
-              </ReactGridLayout>
+              </div>
             </div>
           </div>
         
