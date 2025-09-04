@@ -1,19 +1,10 @@
 import React, { useState } from 'react';
-import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-
-// Firebase imports with error handling
-let auth: any = null;
-let googleProvider: any = null;
-
-try {
-  const firebaseAuth = require("firebase/auth");
-  const firebaseConfig = require("../firebase");
-  
-  auth = firebaseConfig.auth;
-  googleProvider = firebaseConfig.googleProvider;
-} catch (error) {
-  console.log("Firebase not available:", error);
-}
+import {
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from 'firebase/auth';
+import { auth, provider as googleProvider } from '../firebase';
 
 interface GoogleAuthModalProps {
   isOpen: boolean;
