@@ -40,6 +40,8 @@ export default function App() {
       items: [],
       folders: [],
       widgets: [],
+      sortMode: 'manual',
+      visitCounts: {},
     });
   const [customSites, setCustomSites] = useState<CustomSite[]>(
     [],

@@ -27,6 +27,7 @@ interface SimpleWebsiteProps {
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
+  onVisit?: (id: string) => void;
   isDraggingOver?: boolean;
 }
 
@@ -37,6 +38,7 @@ function SimpleWebsite({
   onDragOver,
   onDragLeave,
   onDrop,
+  onVisit,
   isDraggingOver,
 }: SimpleWebsiteProps) {
   // 기본 사이트 → 커스텀 사이트(로컬스토리지) 순으로 조회
@@ -84,6 +86,7 @@ function SimpleWebsite({
           href={website.url}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => onVisit && onVisit(websiteId)}
           className="flex-1 text-xs font-medium text-gray-800 hover:text-blue-600 transition-colors truncate dark:text-gray-200 dark:hover:text-blue-400"
           title={website.title}
         >
@@ -345,6 +348,15 @@ export function FavoritesSectionNew({
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [draggedFromFolderId, setDraggedFromFolderId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<'manual' | 'name' | 'visit'>(
+    favoritesData.sortMode || 'manual'
+  );
+
+  React.useEffect(() => {
+    if (favoritesData.sortMode && favoritesData.sortMode !== sortMode) {
+      setSortMode(favoritesData.sortMode);
+    }
+  }, [favoritesData.sortMode]);
 
   // 첫 즐겨찾기 추가 시 기본 폴더 생성
   React.useEffect(() => {
@@ -540,6 +552,50 @@ export function FavoritesSectionNew({
     onUpdateFavorites(newData);
   };
 
+  const handleVisit = (websiteId: string) => {
+    const counts = favoritesData.visitCounts || {};
+    const newCounts = { ...counts, [websiteId]: (counts[websiteId] || 0) + 1 };
+    onUpdateFavorites({ ...favoritesData, visitCounts: newCounts });
+  };
+
+  const handleSortChange = (mode: 'manual' | 'name' | 'visit') => {
+    setSortMode(mode);
+    onUpdateFavorites({ ...favoritesData, sortMode: mode });
+  };
+
+  const getWebsiteTitle = (id: string): string => {
+    let site = websites.find((w) => w.id === id);
+    if (!site) {
+      try {
+        const saved = localStorage.getItem('sfu-custom-sites');
+        if (saved) {
+          const customSites = JSON.parse(saved) as any[];
+          site = customSites.find((w) => w.id === id);
+        }
+      } catch (e) {
+        console.error('Failed to parse custom sites:', e);
+      }
+    }
+    return site?.title || '';
+  };
+
+  const sortWebsiteIds = (ids: string[]) => {
+    const arr = ids.filter((id) => id);
+    if (sortMode === 'name') {
+      return [...arr].sort((a, b) =>
+        getWebsiteTitle(a).localeCompare(getWebsiteTitle(b))
+      );
+    }
+    if (sortMode === 'visit') {
+      return [...arr].sort(
+        (a, b) =>
+          (favoritesData.visitCounts?.[b] || 0) -
+          (favoritesData.visitCounts?.[a] || 0)
+      );
+    }
+    return arr;
+  };
+
   const renameFolder = (folderId: string, newName: string) => {
     const newData = { ...favoritesData };
     newData.folders = (newData.folders || []).filter((f) => f && f.id);
@@ -549,6 +605,8 @@ export function FavoritesSectionNew({
       onUpdateFavorites(newData);
     }
   };
+
+  const sortedRootItems = sortWebsiteIds(favoritesData.items || []);
 
   const deleteFolder = (folderId: string) => {
     const newData = { ...favoritesData };
@@ -659,6 +717,21 @@ export function FavoritesSectionNew({
         </div>
       </div>
 
+      {/* 정렬 옵션 */}
+      <div className="flex justify-end mb-4">
+        <select
+          value={sortMode}
+          onChange={(e) =>
+            handleSortChange(e.target.value as 'manual' | 'name' | 'visit')
+          }
+          className="border rounded px-2 py-1 text-xs dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+        >
+          <option value="manual">수동 정렬</option>
+          <option value="name">이름순</option>
+          <option value="visit">방문순</option>
+        </select>
+      </div>
+
       {/* 새 폴더 입력 */}
       {showNewFolderInput && (
         <div className="mb-4 p-3 bg-white rounded-lg border dark:bg-gray-800 dark:border-gray-700">
@@ -715,20 +788,19 @@ export function FavoritesSectionNew({
             📌 즐겨찾기
           </h3>
           <div className="grid grid-cols-1 gap-2">
-            {(favoritesData.items || [])
-              .filter((id) => id)
-              .map((id) => (
-                <SimpleWebsite
-                  key={id}
-                  websiteId={id}
-                  onRemove={removeFromFavorites}
-                  onDragStart={(e) => handleDragStart(e, id)}
-                  onDragOver={(e) => handleDragOver(e, id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, id)}
-                  isDraggingOver={dragOverId === id}
-                />
-              ))}
+            {sortedRootItems.map((id) => (
+              <SimpleWebsite
+                key={id}
+                websiteId={id}
+                onRemove={removeFromFavorites}
+                onDragStart={(e) => handleDragStart(e, id)}
+                onDragOver={(e) => handleDragOver(e, id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, id)}
+                onVisit={handleVisit}
+                isDraggingOver={dragOverId === id}
+              />
+            ))}
           </div>
         </div>
 
@@ -741,7 +813,7 @@ export function FavoritesSectionNew({
             {(favoritesData.folders || [])
               .filter((f) => f && f.id)
               .map((folder) => {
-                const folderItems = (folder?.items || []).filter((id) => id);
+                const folderItems = sortWebsiteIds(folder?.items || []);
                 return (
                   <SimpleFolder
                     key={folder.id}
@@ -762,6 +834,7 @@ export function FavoritesSectionNew({
                         onDragOver={(e) => handleDragOver(e, id)}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, id)}
+                        onVisit={handleVisit}
                         isDraggingOver={dragOverId === id}
                       />
                     ))}
