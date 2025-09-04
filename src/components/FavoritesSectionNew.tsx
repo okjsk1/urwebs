@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { toast } from "sonner";
 import { FavoritesData, FavoriteFolder, Widget } from '../types';
 import { websites } from '../data/websites';
 import { WeatherWidget } from './widgets/WeatherWidget';
@@ -566,7 +567,7 @@ export function FavoritesSectionNew({
 
   const handleGuideShow = () => {
     if (onShowGuide) onShowGuide();
-    else alert('가이드 기능이 준비 중입니다.');
+    else toast.info('가이드 기능이 준비 중입니다.');
   };
 
   return (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'; // React 라이브러리와 핵심 훅을 가져옵니다.
+import { toast } from "sonner";
 
 interface ContactModalProps { // 컴포넌트가 받는 props의 타입을 정의합니다.
   isOpen: boolean; // 모달 창이 열려있는지 여부를 나타냅니다.
@@ -27,7 +28,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) { // Contac
 
   const handleSubmit = () => { // '문의내용 보내기' 버튼 클릭 시 실행되는 함수입니다.
     if (!email || !message) { // 필수 입력 필드가 비어 있는지 확인합니다.
-      alert('이메일과 문의내용을 입력해주세요.');
+      toast.error('이메일과 문의내용을 입력해주세요.');
       return;
     }
 
