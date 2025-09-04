@@ -87,7 +87,7 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
   }, {} as { [key: string]: typeof websites[0][] });
 
   return ( // 컴포넌트의 UI를 렌더링하는 JSX 코드입니다.
-    <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 z-50 overflow-auto">
+    <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 overflow-auto">
       {/* 고정된 전체화면 배경, 그라디언트 및 스크롤 가능 설정 */}
       <div className="min-h-screen p-6">
         {/* 최소 높이, 내부 여백 설정 */}

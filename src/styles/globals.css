@@ -257,12 +257,12 @@ html {
   background: var(--website-item-bg);
   border-radius: 0.5rem;
   border: 2px solid var(--website-item-border);
-  transition: border-color 0.14s, box-shadow 0.13s;
+  transition: border-color 0.14s, box-shadow 0.1s;
 }
 
 .sfu-website-item:hover {
   border-color: var(--website-item-hover);
-  box-shadow: 0 2px 10px 0 rgba(240, 228, 233, 0.3);
+  box-shadow: 0 1px 8px 0 rgba(240, 228, 233, 0.3);
 }
 
 .sfu-website-item.shadow-hover {
@@ -409,4 +409,91 @@ html {
 
 .sfu-btn-primary:hover {
   filter: brightness(0.95);
+}
+
+/* Firebase Auth Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--main-bg);
+  padding: 2rem;
+  border-radius: var(--card-radius);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 400px;
+  color: var(--main-dark);
+}
+
+.modal-content h2 {
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: var(--main-point);
+}
+
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-content input {
+  padding: 0.75rem;
+  border: 1px solid var(--border-sfu);
+  border-radius: 0.5rem;
+  background: var(--website-item-bg);
+  color: var(--main-dark);
+}
+
+.modal-content input:focus {
+  outline: none;
+  border-color: var(--main-point);
+  box-shadow: 0 0 0 2px rgba(85, 2, 22, 0.1);
+}
+
+.modal-content button[type="submit"] {
+  padding: 0.75rem;
+  background: var(--main-point);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.modal-content button[type="submit"]:hover {
+  filter: brightness(0.95);
+}
+
+.modal-content p {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.modal-content p button {
+  background: none;
+  border: none;
+  color: var(--main-point);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.error-message {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  text-align: center;
+  margin-top: 0.5rem;
 }

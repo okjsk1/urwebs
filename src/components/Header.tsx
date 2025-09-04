@@ -1,5 +1,5 @@
-import React from "react";
-import { AiOutlinePlus } from "react-icons/ai";
+import React, { useState, useEffect } from "react";
+import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
 
 interface HeaderProps {
   onContactClick: () => void;
@@ -9,6 +9,9 @@ interface HeaderProps {
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   categoryTitle?: string;
+  onLoginClick: () => void;
+  onSignupClick: () => void;
+  user?: any; // Firebase User 객체
 }
 
 export function Header({
@@ -19,19 +22,45 @@ export function Header({
   isDarkMode,
   onToggleDarkMode,
   categoryTitle,
+  onLoginClick,
+  onSignupClick,
+  user: propsUser,
 }: HeaderProps) {
-  // 공지사항 클릭 핸들러 - 실제 프로젝트에서는 공지사항 페이지로 이동하도록 구현
+  // Props로 받은 user를 사용하되, 없으면 내부 상태를 사용
+  const [localUser, setLocalUser] = useState<User | null>(null);
+  const user = propsUser || localUser;
+
+  useEffect(() => {
+    if (!propsUser) {
+      const auth = getAuth();
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        setLocalUser(currentUser);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [propsUser]);
+
+  const handleLogout = async () => {
+    const auth = getAuth();
+    try {
+      await signOut(auth);
+      console.log("로그아웃 성공!");
+    } catch (error: any) {
+      console.error("로그아웃 실패:", error.message);
+    }
+  };
+
   const handleNoticeClick = () => {
     alert('공지사항 기능은 개발 중입니다.');
   };
-  
-  // 자유게시판 클릭 핸들러 - 실제 프로젝트에서는 게시판 페이지로 이동하도록 구현  
+    
   const handleBoardClick = () => {
     alert('자유게시판 기능은 개발 중입니다.');
   };
+
   return (
     <header className="sfu-header sticky top-0 z-50">
-      {/* 시작페이지 버튼을 최상단에 배치 */}
       <div className="max-w-screen-2xl mx-auto flex justify-end px-4 lg:px-8 pt-2">
         <button
           className="sfu-btn-ghost text-xs opacity-75 dark:text-gray-300"
@@ -43,9 +72,7 @@ export function Header({
       </div>
       
       <div className="max-w-screen-2xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between px-4 lg:px-8 pb-4 gap-4 lg:gap-8">
-        {/* 헤더의 내부 컨테이너입니다. 반응형 디자인을 위해 flexbox와 gap을 사용합니다. */}
         <div className="flex items-center gap-3">
-          {/* 로고와 제목을 담는 컨테이너입니다. */}
           <div
             className="drop-shadow-sm"
             style={{ fontSize: "2.1rem" }}
@@ -56,7 +83,6 @@ export function Header({
             className="brand cursor-pointer"
             onClick={onHomeClick}
           >
-            {/* 브랜드 영역입니다. 마우스를 올리면 손가락 모양 커서로 바뀝니다. */}
             <h1
               style={{
                 fontSize: "1.5rem",
@@ -64,9 +90,8 @@ export function Header({
                 letterSpacing: "0.01em",
               }}
             >
-              SFU
+              UrWebs
             </h1>
-            {/* SFU 제목입니다. */}
             <p
               style={{
                 fontSize: "1rem",
@@ -74,13 +99,12 @@ export function Header({
                 marginTop: "2px",
               }}
             >
-              {categoryTitle || "Sites For You"}
+              {categoryTitle || "Your Webs"}
             </p>
-            {/* categoryTitle props가 있으면 그 값을, 없으면 "Sites For You"를 표시합니다. */}
           </div>
         </div>
+        
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-between w-full lg:w-auto">
-          {/* 좌측 메뉴들 */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <button
               className="sfu-btn-ghost flex items-center gap-2 text-sm dark:text-gray-200"
@@ -88,30 +112,46 @@ export function Header({
             >
               📢 공지사항
             </button>
-            {/* 공지사항 버튼입니다. */}
             <button
               className="sfu-btn-ghost flex items-center gap-2 text-sm dark:text-gray-200"
               onClick={handleBoardClick}
             >
               💬 자유게시판
             </button>
-            {/* 자유게시판 버튼입니다. */}
             <button
               className="sfu-btn-ghost flex items-center gap-2 text-sm dark:text-gray-200"
               onClick={onContactClick}
             >
               📞 문의하기
             </button>
-            {/* 문의하기 버튼입니다. */}
           </div>
           
-          {/* 우측 메뉴들 */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            {user ? (
+              <>
+                <span className="text-sm dark:text-gray-200">환영합니다, {user?.displayName || user?.email || '사용자'}!</span>
+                <button
+                  className="sfu-btn-ghost text-sm dark:text-gray-200"
+                  onClick={handleLogout}
+                >
+                  로그아웃
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="sfu-btn-ghost text-sm dark:text-gray-200" onClick={onLoginClick}>
+                  로그인
+                </button>
+                <button className="sfu-btn-ghost text-sm dark:text-gray-200" style={{ marginLeft: '10px' }} onClick={onSignupClick}>
+                  회원가입
+                </button>
+              </>
+            )}
+
             <button
               className="sfu-btn-ghost flex items-center gap-2 text-sm dark:text-gray-200"
               onClick={onToggleDarkMode}
             >
-              {/* isDarkMode 상태에 따라 버튼 텍스트가 바뀝니다. */}
               {isDarkMode ? '🌞 Light' : '🌙 Dark'}
             </button>
           </div>

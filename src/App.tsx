@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Header } from "./components/Header";
-
+import { UserGuide } from "./components/UserGuide";
+import { LoginModal } from "./components/LoginModal";
+import { SignupModal } from "./components/SignupModal";
+import { GoogleAuthModal } from "./components/GoogleAuthModal";
 import { FloatingContact } from "./components/FloatingContact";
 import { FavoritesSectionNew } from "./components/FavoritesSectionNew";
 import { CategoryCard } from "./components/CategoryCard";
@@ -9,7 +12,6 @@ import { Footer } from "./components/Footer";
 import { AdBanner } from "./components/AdBanner";
 import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
-import { UserGuide } from "./components/UserGuide";
 import {
   websites,
   categoryConfig,
@@ -18,7 +20,21 @@ import {
 import { FavoritesData, CustomSite, Website } from "./types";
 import "./App.css";
 
+// Firebase imports
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+
+// Firebase auth와 firestore 인스턴스 초기화
+// firestore 인스턴스가 다른 곳에서 초기화되었을 경우 충돌을 막기 위해
+// 여기서는 주석 처리하거나, 적절한 방법으로 가져와야 합니다.
+// const auth = getAuth();
+// const db = getFirestore();
+
 export default function App() {
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [isGoogleAuthModalOpen, setIsGoogleAuthModalOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [favoritesData, setFavoritesData] =
     useState<FavoritesData>({
       items: [],
@@ -38,7 +54,6 @@ export default function App() {
   const [isAddSiteModalOpen, setIsAddSiteModalOpen] =
     useState(false);
   const [showUserGuide, setShowUserGuide] = useState(() => {
-    // 처음 방문자에게만 가이드 표시
     const hasSeenGuide = localStorage.getItem('sfu-guide-seen');
     return !hasSeenGuide;
   });
@@ -49,6 +64,63 @@ export default function App() {
     const savedMode = localStorage.getItem('sfu-mode');
     return savedMode === 'dark';
   });
+
+  // 1. 로그인 상태 감지 및 데이터 동기화
+  useEffect(() => {
+    const auth = getAuth();
+    const db = getFirestore();
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        // 사용자가 로그인하면 Firestore에서 데이터 불러오기
+        const userFavoritesRef = doc(db, "favorites", currentUser.uid);
+        const docSnap = await getDoc(userFavoritesRef);
+        
+        if (docSnap.exists()) {
+          setFavoritesData(docSnap.data() as FavoritesData);
+          console.log("Firestore에서 즐겨찾기 불러오기 성공");
+        } else {
+          // 새 사용자라면 localStorage 데이터를 Firestore에 저장
+          const savedFavorites = localStorage.getItem("sfu-favorites-v3");
+          if (savedFavorites) {
+            const parsedFavorites = JSON.parse(savedFavorites);
+            setFavoritesData(parsedFavorites);
+            await setDoc(userFavoritesRef, parsedFavorites, { merge: true });
+            console.log("localStorage 데이터를 Firestore에 저장 성공");
+          }
+        }
+      } else {
+        // 로그아웃 시 localStorage에서 데이터 불러오기
+        const savedFavorites = localStorage.getItem("sfu-favorites-v3");
+        if (savedFavorites) {
+          setFavoritesData(JSON.parse(savedFavorites));
+          console.log("로그아웃 후 localStorage에서 즐겨찾기 불러오기");
+        }
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, []);
+
+  // 2. 즐겨찾기 데이터 변경 시 Firestore에 저장
+  useEffect(() => {
+    if (user) {
+      const db = getFirestore();
+      const userFavoritesRef = doc(db, "favorites", user.uid);
+      setDoc(userFavoritesRef, favoritesData, { merge: true }).catch(e => {
+        console.error("Failed to save favorites to Firestore:", e);
+      });
+    }
+
+    try {
+      localStorage.setItem(
+        "sfu-favorites-v3",
+        JSON.stringify(favoritesData),
+      );
+    } catch (e) {
+      console.error("Failed to save favorites data to localStorage", e);
+    }
+  }, [favoritesData, user]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -61,43 +133,11 @@ export default function App() {
     localStorage.setItem('sfu-mode', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
-  // useRef를 사용하여 함수를 메모이징
   const handleOpenAddSiteModalRef = useRef(() => {
     setIsAddSiteModalOpen(true);
   });
 
   useEffect(() => {
-    const savedFavorites = localStorage.getItem(
-      "sfu-favorites-v3",
-    );
-    if (savedFavorites) {
-      try {
-        const parsed = JSON.parse(savedFavorites);
-        setFavoritesData({
-          items: (parsed?.items || []).filter((id: string) => id),
-          folders: (parsed?.folders || [])
-            .filter((folder: any) => folder && folder.id)
-            .map((folder: any) => ({
-              ...folder,
-              items: (folder?.items || []).filter((id: string) => id),
-            })),
-          widgets: (parsed?.widgets || []).filter(
-            (widget: any) => widget && widget.id,
-          ),
-        });
-      } catch (e) {
-        console.error(
-          "Failed to parse favorites from localStorage:",
-          e,
-        );
-        setFavoritesData({
-          items: [],
-          folders: [],
-          widgets: [],
-        });
-      }
-    }
-
     const savedCustomSites = localStorage.getItem(
       "sfu-custom-sites",
     );
@@ -124,17 +164,6 @@ export default function App() {
       );
     };
   }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        "sfu-favorites-v3",
-        JSON.stringify(favoritesData),
-      );
-    } catch (e) {
-      console.error("Failed to save favorites data to localStorage", e);
-    }
-  }, [favoritesData]);
 
   const saveCustomSites = (sites: CustomSite[]) => {
     setCustomSites(sites);
@@ -180,11 +209,9 @@ export default function App() {
   };
 
   const addCustomSite = (site: CustomSite, selectedFolderId: string) => {
-    // 커스텀 사이트 저장
     const newCustomSites = [...customSites, site];
     saveCustomSites(newCustomSites);
     
-    // 즐겨찾기에 추가
     const newData = { ...favoritesData };
     newData.items = newData.items || [];
     newData.folders = newData.folders || [];
@@ -228,12 +255,10 @@ export default function App() {
   const handleHomeClick = () => {
     setCurrentView("home");
   };
-  
+    
   const handleStartPageClick = () => {
     setCurrentView("startpage");
   };
-
-
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -246,11 +271,11 @@ export default function App() {
 
   const favSet = new Set(getAllFavoriteIds());
   const categorizedWebsites: Record<string, Website[]> = {};
-  
+    
   const sitesToDisplay = allWebsites.filter(site => site && !favSet.has(site.id));
 
   const seenIds = new Set<string>();
-  
+    
   sitesToDisplay.forEach((website, index) => {
     let uniqueId = website.id;
     if (seenIds.has(website.id)) {
@@ -276,19 +301,63 @@ export default function App() {
         onStartPageClick={handleStartPageClick}
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
+        onLoginClick={() => setIsGoogleAuthModalOpen(true)}
+        onSignupClick={() => setIsGoogleAuthModalOpen(true)}
+        user={user}
       />
+{/* UserGuide 모달을 최상위에서 조건부 렌더링 */}
+      {showUserGuide && (
+        <UserGuide
+          onClose={() => {
+            setShowUserGuide(false);
+            localStorage.setItem('sfu-guide-seen', 'true');
+          }}
+        />
+      )}
+      
+      {isLoginModalOpen && (
+        <LoginModal
+          onClose={() => setIsLoginModalOpen(false)}
+          onSwitchToSignup={() => {
+            setIsLoginModalOpen(false);
+            setIsSignupModalOpen(true);
+          }}
+        />
+      )}
+
+      {isSignupModalOpen && (
+        <SignupModal
+          onClose={() => setIsSignupModalOpen(false)}
+          onSwitchToLogin={() => {
+            setIsSignupModalOpen(false);
+            setIsLoginModalOpen(true);
+          }}
+        />
+      )}
+
+      {isGoogleAuthModalOpen && (
+        <GoogleAuthModal
+          isOpen={isGoogleAuthModalOpen}
+          onClose={() => setIsGoogleAuthModalOpen(false)}
+          onSuccess={() => {
+            console.log('로그인 성공!');
+            // 추가적인 성공 처리 로직
+          }}
+        />
+      )}
+      
+    
       
       {currentView === "home" && (
         <div
           className="min-h-screen relative"
           style={{
             fontFamily:
-              "'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              "'suit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             background: "var(--main-bg)",
             color: "var(--main-dark)",
           }}
         >
-
           <FloatingContact
             onContactClick={() => setIsContactModalOpen(true)}
           />
@@ -298,11 +367,17 @@ export default function App() {
             onUpdateFavorites={setFavoritesData}
             showSampleImage={showSampleImage}
             onShowGuide={() => setShowUserGuide(true)}
+            onSaveData={() => {
+              console.log('데이터 저장 중...');
+              // Firestore에 저장하는 로직은 이미 useEffect에서 처리됨
+              alert('설정이 저장되었습니다!');
+            }}
+            onRequestLogin={() => setIsGoogleAuthModalOpen(true)}
+            isLoggedIn={!!user}
           />
           
-          {/* 설명 토글 스위치 - 컨테이너 안쪽으로 위치 조정 */}
           <div className="max-w-screen-2xl mx-auto px-5 flex justify-between items-center mb-4">
-            <div></div> {/* 좌측 공간 */}
+            <div></div>
             <label htmlFor="description-toggle" className="flex items-center cursor-pointer">
               <span className="text-xs font-medium mr-2" style={{ color: 'var(--main-dark)' }}>사이트 설명 보기</span>
               <div className="relative">
@@ -367,17 +442,7 @@ export default function App() {
             onAddSite={addCustomSite}
             favoritesData={favoritesData}
           />
-
-          {/* 사용자 가이드 */}
-          {showUserGuide && (
-            <UserGuide
-              onClose={() => {
-                setShowUserGuide(false);
-                localStorage.setItem('sfu-guide-seen', 'true');
-              }}
-            />
-          )}
-
+          
           <Footer />
         </div>
       )}
