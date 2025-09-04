@@ -2,74 +2,125 @@
 
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react@0.487.0";
-import { DayPicker } from "react-day-picker@8.10.1";
 
 import { cn } from "./utils";
-import { buttonVariants } from "./button";
+
+interface CalendarProps {
+  className?: string;
+  classNames?: {
+    months?: string;
+    caption?: string;
+    head_cell?: string;
+    cell?: string;
+    day?: string;
+  };
+  selected?: Date;
+  onSelect?: (date: Date | undefined) => void;
+  mode?: "single";
+  showOutsideDays?: boolean;
+}
 
 function Calendar({
   className,
   classNames,
-  showOutsideDays = true,
-  ...props
-}: React.ComponentProps<typeof DayPicker>) {
+  selected,
+  onSelect,
+}: CalendarProps) {
+  const [currentMonth, setCurrentMonth] = React.useState(() =>
+    selected
+      ? new Date(selected.getFullYear(), selected.getMonth(), 1)
+      : new Date()
+  );
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+
+  const weeks: (number | null)[][] = [];
+  const days: (number | null)[] = Array(firstDay)
+    .fill(null)
+    .concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
+  while (days.length % 7 !== 0) days.push(null);
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+
+  const isSelected = (day: number | null) => {
+    if (!selected || day === null) return false;
+    return (
+      selected.getFullYear() === year &&
+      selected.getMonth() === month &&
+      selected.getDate() === day
+    );
+  };
+
+  const handleSelect = (day: number | null) => {
+    if (!onSelect || day === null) return;
+    onSelect(new Date(year, month, day));
+  };
+
+  const cls = {
+    months: "flex flex-col gap-1",
+    caption: "flex items-center justify-between mb-2",
+    head_cell:
+      "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
+    cell: "w-8 h-8 text-center",
+    day: "w-8 h-8 p-0 text-sm rounded hover:bg-accent",
+    ...classNames,
+  };
+
   return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
-      classNames={{
-        months: "flex flex-col sm:flex-row gap-2",
-        month: "flex flex-col gap-4",
-        caption: "flex justify-center pt-1 relative items-center w-full",
-        caption_label: "text-sm font-medium",
-        nav: "flex items-center gap-1",
-        nav_button: cn(
-          buttonVariants({ variant: "outline" }),
-          "size-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-        ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-x-1",
-        head_row: "flex",
-        head_cell:
-          "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: cn(
-          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-range-end)]:rounded-r-md",
-          props.mode === "range"
-            ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
-            : "[&:has([aria-selected])]:rounded-md",
-        ),
-        day: cn(
-          buttonVariants({ variant: "ghost" }),
-          "size-8 p-0 font-normal aria-selected:opacity-100",
-        ),
-        day_range_start:
-          "day-range-start aria-selected:bg-primary aria-selected:text-primary-foreground",
-        day_range_end:
-          "day-range-end aria-selected:bg-primary aria-selected:text-primary-foreground",
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "day-outside text-muted-foreground aria-selected:text-muted-foreground",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle:
-          "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
-        ...classNames,
-      }}
-      components={{
-        IconLeft: ({ className, ...props }) => (
-          <ChevronLeft className={cn("size-4", className)} {...props} />
-        ),
-        IconRight: ({ className, ...props }) => (
-          <ChevronRight className={cn("size-4", className)} {...props} />
-        ),
-      }}
-      {...props}
-    />
+    <div className={cn("p-3", className)}>
+      <div className={cls.caption}>
+        <button
+          type="button"
+          onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <div className="text-sm font-medium">
+          {year}년 {month + 1}월
+        </div>
+        <button
+          type="button"
+          onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+      <div className={cls.months}>
+        <div className="grid grid-cols-7 gap-1">
+          {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
+            <div key={d} className={cls.head_cell}>
+              {d}
+            </div>
+          ))}
+        </div>
+        {weeks.map((week, i) => (
+          <div key={i} className="grid grid-cols-7 gap-1">
+            {week.map((day, j) => (
+              <button
+                key={j}
+                type="button"
+                onClick={() => handleSelect(day)}
+                className={cn(
+                  cls.cell,
+                  cls.day,
+                  day === null && "pointer-events-none opacity-50",
+                  isSelected(day) && "bg-primary text-primary-foreground"
+                )}
+              >
+                {day ?? ""}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
 export { Calendar };
+
