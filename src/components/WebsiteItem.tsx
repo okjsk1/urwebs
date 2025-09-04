@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Website } from "../types";
+import { trackVisit } from "../utils/visitTrack";
 
 interface WebsiteItemProps {
   website: Website;
@@ -79,6 +80,7 @@ export function WebsiteItem({
             onMouseLeave={(e) =>
               (e.currentTarget.style.color = "var(--main-dark)")
             }
+            onClick={() => trackVisit(website.id)}
           >
             {website.title}
           </a>

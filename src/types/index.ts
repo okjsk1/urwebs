@@ -15,7 +15,7 @@ export interface CategoryConfig {
 export type CategoryConfigMap = Record<string, CategoryConfig>;
 
 // 위젯 타입들
-export type WidgetType = 'weather' | 'clock' | 'memo' | 'todo' | 'calendar';
+export type WidgetType = 'weather' | 'clock' | 'memo' | 'todo' | 'calendar' | 'dday' | 'news';
 
 export interface Widget {
   id: string;
@@ -26,12 +26,15 @@ export interface Widget {
   size: { width: number; height: number };
 }
 
+export type SortMode = 'manual' | 'alpha' | 'freq';
+
 // 폴더 타입
 export interface FavoriteFolder {
   id: string;
   name: string;
   items: string[]; // website ids
   color?: string;
+  sortMode?: SortMode;
 }
 
 // 즐겨찾기 구조 확장
@@ -39,6 +42,7 @@ export interface FavoritesData {
   items: string[];
   folders: FavoriteFolder[];
   widgets: Widget[];
+  itemsSortMode?: SortMode;
 }
 
 // 사용자 추가 사이트
