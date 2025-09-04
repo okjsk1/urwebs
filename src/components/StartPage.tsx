@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'; // React의 핵심 훅(Hook)들을 가져옵니다.
 import { DndProvider } from 'react-dnd'; // 드래그 앤 드롭 기능을 제공하는 라이브러리
 import { HTML5Backend } from 'react-dnd-html5-backend'; // HTML5 기반의 드래그 앤 드롭 백엔드
+import GridLayout, { WidthProvider, Layout } from 'react-grid-layout'; // 위젯 배치를 위한 그리드 레이아웃
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 import { Widget, FavoritesData } from '../types'; // 위젯 및 즐겨찾기 데이터 타입을 정의한 파일에서 가져옵니다.
 import { WeatherWidget } from './widgets/WeatherWidget'; // 날씨 위젯 컴포넌트
 import { ClockWidget } from './widgets/ClockWidget'; // 시계 위젯 컴포넌트
@@ -8,6 +11,8 @@ import { MemoWidget } from './widgets/MemoWidget'; // 메모 위젯 컴포넌트
 import { TodoWidget } from './widgets/TodoWidget'; // 할 일 위젯 컴포넌트
 import { websites, categoryOrder, categoryConfig } from '../data/websites'; // 웹사이트 데이터, 카테고리 순서, 카테고리 설정을 가져옵니다.
 import { CategoryCard } from './CategoryCard'; // 카테고리 카드 컴포넌트
+
+const ReactGridLayout = WidthProvider(GridLayout);
 
 interface StartPageProps { // StartPage 컴포넌트가 받는 속성(Props)의 타입을 정의합니다.
   favoritesData: FavoritesData; // 즐겨찾기 데이터를 포함하는 객체
@@ -19,6 +24,15 @@ interface StartPageProps { // StartPage 컴포넌트가 받는 속성(Props)의 
 export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescriptions }: StartPageProps) {
   const [currentTime, setCurrentTime] = useState(new Date()); // 현재 시간을 상태(state)로 관리합니다.
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]); // 확장된 카테고리 목록을 상태로 관리합니다.
+  const [backgroundColor, setBackgroundColor] = useState(
+    favoritesData.backgroundColor || '#ffffff'
+  );
+
+  useEffect(() => {
+    if (favoritesData.backgroundColor) {
+      setBackgroundColor(favoritesData.backgroundColor);
+    }
+  }, [favoritesData.backgroundColor]);
 
   useEffect(() => { // 컴포넌트가 마운트될 때 한 번 실행되는 효과(Effect) 훅입니다.
     const timer = setInterval(() => { // 1초마다 현재 시간을 업데이트하는 타이머를 설정합니다.
@@ -44,16 +58,46 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
     });
   };
 
+  const handleRemoveWidget = (id: string) => {
+    onUpdateFavorites({
+      ...favoritesData,
+      widgets: favoritesData.widgets.filter(w => w.id !== id)
+    });
+  };
+
+  const handleLayoutChange = (layout: Layout[]) => {
+    const updatedWidgets = favoritesData.widgets.map(widget => {
+      const item = layout.find(l => l.i === widget.id);
+      return item
+        ? {
+            ...widget,
+            position: { x: item.x, y: item.y },
+            size: { width: item.w, height: item.h }
+          }
+        : widget;
+    });
+    onUpdateFavorites({ ...favoritesData, widgets: updatedWidgets });
+  };
+
+  const handleBackgroundChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const color = e.target.value;
+    setBackgroundColor(color);
+    onUpdateFavorites({ ...favoritesData, backgroundColor: color });
+  };
+
   const renderWidget = (widget: Widget) => { // 위젯 타입에 따라 다른 위젯 컴포넌트를 렌더링하는 함수입니다.
+    const commonProps = { id: widget.id, onRemove: handleRemoveWidget };
     switch (widget.type) {
       case 'weather':
-        return <WeatherWidget key={widget.id} widget={widget} />;
+        return <WeatherWidget {...commonProps} />;
       case 'clock':
-        return <ClockWidget key={widget.id} widget={widget} />;
+        return <ClockWidget {...commonProps} />;
       case 'memo':
-        return <MemoWidget key={widget.id} widget={widget} />;
+        return <MemoWidget {...commonProps} />;
       case 'todo':
-        return <TodoWidget key={widget.id} widget={widget} />;
+        return <TodoWidget {...commonProps} />;
       default:
         return null; // 정의되지 않은 위젯 타입이면 아무것도 렌더링하지 않습니다.
     }
@@ -87,7 +131,10 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
   }, {} as { [key: string]: typeof websites[0][] });
 
   return ( // 컴포넌트의 UI를 렌더링하는 JSX 코드입니다.
-    <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 overflow-auto">
+    <div
+      className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 overflow-auto"
+      style={{ background: favoritesData.backgroundColor ? backgroundColor : undefined }}
+    >
       {/* 고정된 전체화면 배경, 그라디언트 및 스크롤 가능 설정 */}
       <div className="min-h-screen p-6">
         {/* 최소 높이, 내부 여백 설정 */}
@@ -98,12 +145,21 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
             <p className="text-xl text-gray-600">{formatDate(currentTime)}</p>
             <p className="text-3xl font-mono text-blue-600 mt-2">{formatTime(currentTime)}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            ✖ 닫기
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={backgroundColor}
+              onChange={handleBackgroundChange}
+              className="w-8 h-8 p-0 border rounded"
+              title="배경색 선택"
+            />
+            <button
+              onClick={onClose}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              ✖ 닫기
+            </button>
+          </div>
         </div>
 
         <DndProvider backend={HTML5Backend}>
@@ -133,49 +189,26 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
             {/* 위젯 영역 */}
             <div className="lg:col-span-2">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">위젯</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {favoritesData.widgets.map(renderWidget)}
-                
-                {/* 기본 위젯들 */}
-                <div className="bg-white p-4 rounded-lg shadow-md border">
-                  <h3 className="font-medium text-gray-800 mb-2">🌤️ 날씨</h3>
-                  <p className="text-2xl">23°C</p>
-                  <p className="text-sm text-gray-500">서울, 맑음</p>
-                </div>
-                
-                <div className="bg-white p-4 rounded-lg shadow-md border">
-                  <h3 className="font-medium text-gray-800 mb-2">📝 메모</h3>
-                  <textarea
-                    className="w-full h-20 resize-none border-none outline-none text-sm"
-                    placeholder="메모를 입력하세요..."
-                  />
-                </div>
-                
-                <div className="bg-white p-4 rounded-lg shadow-md border">
-                  <h3 className="font-medium text-gray-800 mb-2">✅ 할 일</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <input type="checkbox" className="rounded" />
-                      <span className="text-sm">프로젝트 완성하기</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input type="checkbox" className="rounded" />
-                      <span className="text-sm">회의 준비하기</span>
-                    </div>
+              <ReactGridLayout
+                className="layout"
+                cols={4}
+                rowHeight={100}
+                onLayoutChange={handleLayoutChange}
+              >
+                {favoritesData.widgets.map(widget => (
+                  <div
+                    key={widget.id}
+                    data-grid={{
+                      x: widget.position.x,
+                      y: widget.position.y,
+                      w: widget.size.width,
+                      h: widget.size.height
+                    }}
+                  >
+                    {renderWidget(widget)}
                   </div>
-                </div>
-                
-                <div className="bg-white p-4 rounded-lg shadow-md border">
-                  <h3 className="font-medium text-gray-800 mb-2">📅 오늘</h3>
-                  <p className="text-sm text-gray-600">
-                    {new Date().toLocaleDateString('ko-KR', { 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">일정이 없습니다</p>
-                </div>
-              </div>
+                ))}
+              </ReactGridLayout>
             </div>
           </div>
         
