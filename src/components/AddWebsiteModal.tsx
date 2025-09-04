@@ -2,20 +2,30 @@
 
 import React, { useState, useEffect } from 'react';
 import { CustomSite } from '../types';
+import { useRecommendedSites } from '../hooks/useRecommendedSites';
 
 interface AddWebsiteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddSite: (site: CustomSite, folderId: string) => void;
   favoritesData: any;
+  recommendedSites?: { title: string; url: string }[];
 }
 
-export function AddWebsiteModal({ isOpen, onClose, onAddSite, favoritesData }: AddWebsiteModalProps) {
+export function AddWebsiteModal({
+  isOpen,
+  onClose,
+  onAddSite,
+  favoritesData,
+  recommendedSites,
+}: AddWebsiteModalProps) {
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const defaultSuggestions = useRecommendedSites();
+  const suggestions = recommendedSites || defaultSuggestions;
 
   useEffect(() => {
     if (!isOpen) {
@@ -170,6 +180,40 @@ export function AddWebsiteModal({ isOpen, onClose, onAddSite, favoritesData }: A
             </button>
           </div>
         </form>
+        {suggestions.length > 0 && (
+          <div className="mt-4">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              추천 사이트
+            </h4>
+            <ul className="space-y-2">
+              {suggestions.map((site) => (
+                <li
+                  key={site.url}
+                  className="flex justify-between items-center text-sm"
+                >
+                  <div className="mr-2 overflow-hidden">
+                    <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {site.title}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {site.url}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTitle(site.title);
+                      setUrl(site.url);
+                    }}
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    추가
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
