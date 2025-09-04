@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { auth } from "../firebase";
 import { toast } from "sonner";
 import { logger } from "../lib/logger";
 
@@ -34,7 +35,6 @@ export function Header({
 
   useEffect(() => {
     if (!propsUser) {
-      const auth = getAuth();
       const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         setLocalUser(currentUser);
       });
@@ -44,7 +44,6 @@ export function Header({
   }, [propsUser]);
 
   const handleLogout = async () => {
-    const auth = getAuth();
     try {
       await signOut(auth);
       logger.info("로그아웃 성공!");

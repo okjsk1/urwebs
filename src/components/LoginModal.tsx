@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "../firebase";
 import { logger } from "../lib/logger";
 
 interface LoginModalProps {
@@ -11,8 +12,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSwitchToSignu
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-
-  const auth = getAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,9 +29,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSwitchToSignu
 
   const handleGoogleLogin = async () => {
     setError('');
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithPopup(auth, googleProvider);
       logger.info('구글 로그인 성공!');
       onClose(); // 로그인 성공 시 모달 닫기
     } catch (error: any) {

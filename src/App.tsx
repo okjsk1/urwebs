@@ -23,14 +23,11 @@ import { FavoritesData, CustomSite, Website } from "./types";
 import "./App.css";
 
 // Firebase imports
-import { getAuth, onAuthStateChanged, User } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "./firebase";
 
-// Firebase auth와 firestore 인스턴스 초기화
-// firestore 인스턴스가 다른 곳에서 초기화되었을 경우 충돌을 막기 위해
-// 여기서는 주석 처리하거나, 적절한 방법으로 가져와야 합니다.
-// const auth = getAuth();
-// const db = getFirestore();
+// Firebase auth와 firestore 인스턴스는 firebase.ts에서 초기화됨
 
 export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -69,8 +66,6 @@ export default function App() {
 
   // 1. 로그인 상태 감지 및 데이터 동기화
   useEffect(() => {
-    const auth = getAuth();
-    const db = getFirestore();
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -107,7 +102,6 @@ export default function App() {
   // 2. 즐겨찾기 데이터 변경 시 Firestore에 저장
   useEffect(() => {
     if (user) {
-      const db = getFirestore();
       const userFavoritesRef = doc(db, "favorites", user.uid);
       setDoc(userFavoritesRef, favoritesData, { merge: true }).catch(e => {
         console.error("Failed to save favorites to Firestore:", e);
