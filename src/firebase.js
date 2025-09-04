@@ -5,13 +5,13 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAyd8HeAdXA...ZcmrWB_84ZACUS7O9lXJs", // 여기에 웹 API 키를 입력
-  authDomain: "urwebs-3f562.firebaseapp.com",
-  projectId: "urwebs-3f562", // 여기에 프로젝트 ID를 입력
-  storageBucket: "urwebs-3f562.appspot.com",
-  messagingSenderId: "1017628927752", // 여기에 프로젝트 번호를 입력
-  appId: "1:1017628927752:web:caf186d8ace8282810aebd",
-  measurementId: "G-BT50LLBYE2"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
