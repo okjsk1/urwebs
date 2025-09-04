@@ -120,7 +120,7 @@ export const websites: Website[] = [
   { category: "건축가", title: "Alvar Aalto", url: "https://alvaraalto.fi/en/architecture/", description: "핀란드 근대 건축의 거장으로, 인간 중심적 디자인과 목재 활용으로 유명합니다", id: "204" },
   { category: "건축가", title: "Louis Kahn", url: "https://www.archdaily.com/tag/louis-kahn", description: "미국의 건축가로, 빛과 공간의 극적인 사용으로 유명합니다", id: "205" },
   { category: "건축가", title: "Le Corbusier", url: "https://www.fondationlecorbusier.fr/", description: "근대 건축의 거장이자 국제주의 양식을 대표하는 건축가입니다", id: "206" }
-
+,
   { category: "자료", title: "국가법령정보센터", url: "https://www.law.go.kr", description: "건축법·시행령·시행규칙·해설 조회", id: "KR-R-001" },
   { category: "자료", title: "국토법령정보센터", url: "https://www.luris.go.kr", description: "국토계획/용도지역·지구/행정절차 안내", id: "KR-R-002" },
   { category: "자료", title: "세움터(건축행정)", url: "https://www.eais.go.kr", description: "인허가·대장·건축행정 정보", id: "KR-R-003" },
