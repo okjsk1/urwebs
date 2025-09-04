@@ -40,6 +40,7 @@ export default function App() {
       items: [],
       folders: [],
       widgets: [],
+      visitCounts: {},
     });
   const [customSites, setCustomSites] = useState<CustomSite[]>(
     [],
@@ -77,15 +78,30 @@ export default function App() {
         const docSnap = await getDoc(userFavoritesRef);
         
         if (docSnap.exists()) {
-          setFavoritesData(docSnap.data() as FavoritesData);
+          const data = docSnap.data() as Partial<FavoritesData>;
+          setFavoritesData({
+            items: data.items || [],
+            folders: data.folders || [],
+            widgets: data.widgets || [],
+            visitCounts: data.visitCounts || {},
+          });
           console.log("Firestore에서 즐겨찾기 불러오기 성공");
         } else {
           // 새 사용자라면 localStorage 데이터를 Firestore에 저장
           const savedFavorites = localStorage.getItem("sfu-favorites-v3");
           if (savedFavorites) {
             const parsedFavorites = JSON.parse(savedFavorites);
-            setFavoritesData(parsedFavorites);
-            await setDoc(userFavoritesRef, parsedFavorites, { merge: true });
+            setFavoritesData({
+              items: parsedFavorites.items || [],
+              folders: parsedFavorites.folders || [],
+              widgets: parsedFavorites.widgets || [],
+              visitCounts: parsedFavorites.visitCounts || {},
+            });
+            await setDoc(
+              userFavoritesRef,
+              { ...parsedFavorites, visitCounts: parsedFavorites.visitCounts || {} },
+              { merge: true },
+            );
             console.log("localStorage 데이터를 Firestore에 저장 성공");
           }
         }
@@ -93,7 +109,13 @@ export default function App() {
         // 로그아웃 시 localStorage에서 데이터 불러오기
         const savedFavorites = localStorage.getItem("sfu-favorites-v3");
         if (savedFavorites) {
-          setFavoritesData(JSON.parse(savedFavorites));
+          const parsed = JSON.parse(savedFavorites);
+          setFavoritesData({
+            items: parsed.items || [],
+            folders: parsed.folders || [],
+            widgets: parsed.widgets || [],
+            visitCounts: parsed.visitCounts || {},
+          });
           console.log("로그아웃 후 localStorage에서 즐겨찾기 불러오기");
         }
       }

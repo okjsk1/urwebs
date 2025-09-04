@@ -39,6 +39,7 @@ export interface FavoritesData {
   items: string[];
   folders: FavoriteFolder[];
   widgets: Widget[];
+  visitCounts: Record<string, number>;
 }
 
 // 사용자 추가 사이트

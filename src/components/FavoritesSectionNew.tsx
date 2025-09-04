@@ -28,6 +28,7 @@ interface SimpleWebsiteProps {
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   isDraggingOver?: boolean;
+  onVisit: (id: string) => void;
 }
 
 function SimpleWebsite({
@@ -38,6 +39,7 @@ function SimpleWebsite({
   onDragLeave,
   onDrop,
   isDraggingOver,
+  onVisit,
 }: SimpleWebsiteProps) {
   // 기본 사이트 → 커스텀 사이트(로컬스토리지) 순으로 조회
   let website =
@@ -84,6 +86,7 @@ function SimpleWebsite({
           href={website.url}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => onVisit(websiteId)}
           className="flex-1 text-xs font-medium text-gray-800 hover:text-blue-600 transition-colors truncate dark:text-gray-200 dark:hover:text-blue-400"
           title={website.title}
         >
@@ -474,6 +477,14 @@ export function FavoritesSectionNew({
     }
   };
 
+  const handleVisit = (websiteId: string) => {
+    const visitCounts = {
+      ...(favoritesData.visitCounts || {}),
+      [websiteId]: (favoritesData.visitCounts?.[websiteId] || 0) + 1,
+    };
+    onUpdateFavorites({ ...favoritesData, visitCounts });
+  };
+
   const moveWebsiteToFolder = (websiteId: string, toFolderId: string) => {
     const newData = { ...favoritesData };
     newData.items = (newData.items || []).filter((id) => id !== websiteId);
@@ -718,17 +729,18 @@ export function FavoritesSectionNew({
             {(favoritesData.items || [])
               .filter((id) => id)
               .map((id) => (
-                <SimpleWebsite
-                  key={id}
-                  websiteId={id}
-                  onRemove={removeFromFavorites}
-                  onDragStart={(e) => handleDragStart(e, id)}
-                  onDragOver={(e) => handleDragOver(e, id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, id)}
-                  isDraggingOver={dragOverId === id}
-                />
-              ))}
+                  <SimpleWebsite
+                    key={id}
+                    websiteId={id}
+                    onRemove={removeFromFavorites}
+                    onDragStart={(e) => handleDragStart(e, id)}
+                    onDragOver={(e) => handleDragOver(e, id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, id)}
+                    isDraggingOver={dragOverId === id}
+                    onVisit={handleVisit}
+                  />
+                ))}
           </div>
         </div>
 
@@ -763,6 +775,7 @@ export function FavoritesSectionNew({
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, id)}
                         isDraggingOver={dragOverId === id}
+                        onVisit={handleVisit}
                       />
                     ))}
 

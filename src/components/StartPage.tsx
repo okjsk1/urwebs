@@ -8,6 +8,7 @@ import { MemoWidget } from './widgets/MemoWidget'; // 메모 위젯 컴포넌트
 import { TodoWidget } from './widgets/TodoWidget'; // 할 일 위젯 컴포넌트
 import { websites, categoryOrder, categoryConfig } from '../data/websites'; // 웹사이트 데이터, 카테고리 순서, 카테고리 설정을 가져옵니다.
 import { CategoryCard } from './CategoryCard'; // 카테고리 카드 컴포넌트
+import { TopSitesSidebar } from './TopSitesSidebar';
 
 interface StartPageProps { // StartPage 컴포넌트가 받는 속성(Props)의 타입을 정의합니다.
   favoritesData: FavoritesData; // 즐겨찾기 데이터를 포함하는 객체
@@ -64,13 +65,21 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
       .map(id => websites.find(site => site.id === id)) // ID를 기반으로 전체 웹사이트 목록에서 찾습니다.
       .filter(Boolean); // 찾지 못한 (undefined) 항목을 제거합니다.
   };
-  
+
   const handleToggleFavorite = (websiteId: string) => { // 특정 웹사이트의 즐겨찾기 상태를 토글하는 함수입니다.
     const isFavorited = favoritesData.items.includes(websiteId); // 이미 즐겨찾기에 있는지 확인
     const updatedItems = isFavorited
       ? favoritesData.items.filter(id => id !== websiteId) // 이미 있다면 제거
       : [...favoritesData.items, websiteId]; // 없다면 추가
     onUpdateFavorites({ ...favoritesData, items: updatedItems }); // 업데이트된 즐겨찾기 목록으로 상태를 변경합니다.
+  };
+
+  const handleVisit = (websiteId: string) => {
+    const visitCounts = {
+      ...(favoritesData.visitCounts || {}),
+      [websiteId]: (favoritesData.visitCounts?.[websiteId] || 0) + 1,
+    };
+    onUpdateFavorites({ ...favoritesData, visitCounts });
   };
   
   const handleToggleCategory = (category: string) => { // 카테고리 확장/축소 상태를 토글하는 함수입니다.
@@ -88,8 +97,9 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
 
   return ( // 컴포넌트의 UI를 렌더링하는 JSX 코드입니다.
     <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 overflow-auto">
+      <TopSitesSidebar favoritesData={favoritesData} onVisit={handleVisit} />
       {/* 고정된 전체화면 배경, 그라디언트 및 스크롤 가능 설정 */}
-      <div className="min-h-screen p-6">
+      <div className="min-h-screen p-6 lg:pr-64">
         {/* 최소 높이, 내부 여백 설정 */}
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -118,6 +128,7 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
                     href={site.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => handleVisit(site.id)}
                     className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border"
                   >
                     <div className="text-center">
