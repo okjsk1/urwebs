@@ -1,5 +1,6 @@
 // Supabase 클라이언트 설정 파일
 // 실제 프로젝트에서는 환경변수로 관리해야 합니다.
+import { logger } from "./logger";
 
 export interface SupabaseConfig {
   url: string;
@@ -118,32 +119,32 @@ CREATE TRIGGER update_user_favorites_updated_at
 // Mock 함수들 (실제 Supabase 연결 전까지 사용)
 export const mockAuthFunctions = {
   signUp: async (email: string, password: string, name: string) => {
-    console.log('Mock signUp:', { email, name });
+    logger.info('Mock signUp:', { email, name });
     return { user: { id: 'mock-user-id', email, name }, error: null };
   },
-  
+
   signIn: async (email: string, password: string) => {
-    console.log('Mock signIn:', { email });
+    logger.info('Mock signIn:', { email });
     return { user: { id: 'mock-user-id', email }, error: null };
   },
-  
+
   signOut: async () => {
-    console.log('Mock signOut');
+    logger.info('Mock signOut');
     return { error: null };
   },
-  
+
   getCurrentUser: async () => {
-    console.log('Mock getCurrentUser');
+    logger.info('Mock getCurrentUser');
     return { user: null, error: null };
   },
-  
+
   saveFavorites: async (userId: string, favoritesData: any) => {
-    console.log('Mock saveFavorites:', { userId, favoritesData });
+    logger.info('Mock saveFavorites:', { userId, favoritesData });
     return { data: favoritesData, error: null };
   },
-  
+
   loadFavorites: async (userId: string) => {
-    console.log('Mock loadFavorites:', { userId });
+    logger.info('Mock loadFavorites:', { userId });
     return { data: null, error: null };
   }
 };

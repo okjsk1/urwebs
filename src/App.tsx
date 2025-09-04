@@ -12,6 +12,8 @@ import { Footer } from "./components/Footer";
 import { AdBanner } from "./components/AdBanner";
 import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
+import { Toaster, toast } from "sonner";
+import { logger } from "./lib/logger";
 import {
   websites,
   categoryConfig,
@@ -78,7 +80,7 @@ export default function App() {
         
         if (docSnap.exists()) {
           setFavoritesData(docSnap.data() as FavoritesData);
-          console.log("Firestore에서 즐겨찾기 불러오기 성공");
+          logger.info("Firestore에서 즐겨찾기 불러오기 성공");
         } else {
           // 새 사용자라면 localStorage 데이터를 Firestore에 저장
           const savedFavorites = localStorage.getItem("sfu-favorites-v3");
@@ -86,7 +88,7 @@ export default function App() {
             const parsedFavorites = JSON.parse(savedFavorites);
             setFavoritesData(parsedFavorites);
             await setDoc(userFavoritesRef, parsedFavorites, { merge: true });
-            console.log("localStorage 데이터를 Firestore에 저장 성공");
+            logger.info("localStorage 데이터를 Firestore에 저장 성공");
           }
         }
       } else {
@@ -94,7 +96,7 @@ export default function App() {
         const savedFavorites = localStorage.getItem("sfu-favorites-v3");
         if (savedFavorites) {
           setFavoritesData(JSON.parse(savedFavorites));
-          console.log("로그아웃 후 localStorage에서 즐겨찾기 불러오기");
+          logger.info("로그아웃 후 localStorage에서 즐겨찾기 불러오기");
         }
       }
     });
@@ -240,15 +242,13 @@ export default function App() {
   const handleHomepageClick = () => {
     try {
       if ((window as any).chrome) {
-        console.log("크롬에서는 설정 > 시작 그룹에서 직접 설정해주세요.");
-        console.log("브라우저 설정에서 직접 시작페이지를 설정해주세요.");
+        logger.info("크롬에서는 설정 > 시작 그룹에서 직접 설정해주세요.");
+        logger.info("브라우저 설정에서 직접 시작페이지를 설정해주세요.");
       } else {
         (window as any).home();
       }
     } catch (e) {
-      alert(
-        "브라우저 설정에서 직접 시작페이지를 설정해주세요.",
-      );
+      toast.error("브라우저 설정에서 직접 시작페이지를 설정해주세요.");
     }
   };
 
@@ -340,7 +340,7 @@ export default function App() {
           isOpen={isGoogleAuthModalOpen}
           onClose={() => setIsGoogleAuthModalOpen(false)}
           onSuccess={() => {
-            console.log('로그인 성공!');
+            logger.info('로그인 성공!');
             // 추가적인 성공 처리 로직
           }}
         />
@@ -368,9 +368,9 @@ export default function App() {
             showSampleImage={showSampleImage}
             onShowGuide={() => setShowUserGuide(true)}
             onSaveData={() => {
-              console.log('데이터 저장 중...');
+              logger.info('데이터 저장 중...');
               // Firestore에 저장하는 로직은 이미 useEffect에서 처리됨
-              alert('설정이 저장되었습니다!');
+              toast.success('설정이 저장되었습니다!');
             }}
             onRequestLogin={() => setIsGoogleAuthModalOpen(true)}
             isLoggedIn={!!user}
@@ -455,6 +455,7 @@ export default function App() {
           showDescriptions={showDescriptions}
         />
       )}
+      <Toaster position="top-right" richColors />
     </>
   );
 }

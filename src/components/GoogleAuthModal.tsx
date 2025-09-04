@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { logger } from "../lib/logger";
 
 // Firebase imports with error handling
 let auth: any = null;
@@ -12,7 +13,7 @@ try {
   auth = firebaseConfig.auth;
   googleProvider = firebaseConfig.googleProvider;
 } catch (error) {
-  console.log("Firebase not available:", error);
+  logger.error("Firebase not available:", error);
 }
 
 interface GoogleAuthModalProps {
@@ -41,7 +42,7 @@ export function GoogleAuthModal({ isOpen, onClose, onSuccess }: GoogleAuthModalP
     
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      console.log('Google 로그인 성공:', result.user);
+      logger.info('Google 로그인 성공:', result.user);
       onSuccess && onSuccess();
       onClose();
     } catch (error: any) {
@@ -66,10 +67,10 @@ export function GoogleAuthModal({ isOpen, onClose, onSuccess }: GoogleAuthModalP
     try {
       if (isLoginMode) {
         await signInWithEmailAndPassword(auth, email, password);
-        console.log('이메일 로그인 성공');
+        logger.info('이메일 로그인 성공');
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
-        console.log('이메일 회원가입 성공');
+        logger.info('이메일 회원가입 성공');
       }
       onSuccess && onSuccess();
       onClose();

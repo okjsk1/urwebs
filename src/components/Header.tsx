@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
+import { toast } from "sonner";
+import { logger } from "../lib/logger";
 
 interface HeaderProps {
   onContactClick: () => void;
@@ -45,18 +47,18 @@ export function Header({
     const auth = getAuth();
     try {
       await signOut(auth);
-      console.log("로그아웃 성공!");
+      logger.info("로그아웃 성공!");
     } catch (error: any) {
       console.error("로그아웃 실패:", error.message);
     }
   };
 
   const handleNoticeClick = () => {
-    alert('공지사항 기능은 개발 중입니다.');
+    toast.info('공지사항 기능은 개발 중입니다.');
   };
     
   const handleBoardClick = () => {
-    alert('자유게시판 기능은 개발 중입니다.');
+    toast.info('자유게시판 기능은 개발 중입니다.');
   };
 
   return (

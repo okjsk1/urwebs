@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { logger } from "../lib/logger";
 
 interface LoginModalProps {
   onClose: () => void;
@@ -19,7 +20,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSwitchToSignu
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      console.log('이메일/비밀번호 로그인 성공!');
+      logger.info('이메일/비밀번호 로그인 성공!');
       onClose(); // 로그인 성공 시 모달 닫기
     } catch (error: any) {
       console.error('로그인 실패:', error.code, error.message);
@@ -32,7 +33,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSwitchToSignu
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      console.log('구글 로그인 성공!');
+      logger.info('구글 로그인 성공!');
       onClose(); // 로그인 성공 시 모달 닫기
     } catch (error: any) {
       console.error('구글 로그인 실패:', error.message);
