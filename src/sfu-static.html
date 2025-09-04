@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SFU - Sites For You</title>
+    <style>
+        /* CSS Variables */
+        :root {
+            --main-point: #550216;
+            --main-brown: #92400e;
+            --main-bg: #fff;
+            --soft-bg: #fafafa;
+            --border-sfu: #ededed;
+            --sub-text: #aaaaaa;
+            --header-gradient: linear-gradient(90deg, #fff 60%, #f8f2f5 100%);
+            --card-radius: 1.1rem;
+            --main-dark: #47340a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--main-bg);
+            color: var(--main-dark);
+            font-size: 14px;
+        }
+
+        /* Header Styles */
+        .sfu-header {
+            background: var(--header-gradient);
+            border-bottom: 1.5px solid var(--border-sfu);
+            box-shadow: 0 2px 10px -8px rgba(234, 234, 234, 0.9);
+            padding: 1rem 1.25rem;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--main-point);
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .sfu-btn-ghost {
+            background: none;
+            color: var(--main-point);
+            border: none;
+            padding: 0.48rem 1.1rem;
+            border-radius: 0.5rem;
+            transition: background 0.18s;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .sfu-btn-ghost:hover {
+            background: #f3e9ef;
+        }
+
+        /* Main Layout */
+        .main-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem 1.25rem;
+        }
+
+        /* Favorites Section */
+        .favorites-section {
+            padding: 2rem 1.25rem;
+            background: var(--soft-bg);
+            border-bottom: 2px solid var(--border-sfu);
+            margin-bottom: 2rem;
+        }
+
+        .favorites-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .favorites-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: var(--main-point);
+        }
+
+        .header-buttons-small {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-green {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-green:hover {
+            background: #16a34a;
+        }
+
+        .btn-blue {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-blue:hover {
+            background: #2563eb;
+        }
+
+        .btn-purple {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .btn-purple:hover {
+            background: #7c3aed;
+        }
+
+        /* Widget Selector */
+        .widget-selector {
+            position: relative;
+        }
+
+        .widget-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 0.5rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-sfu);
+            padding: 0.5rem;
+            z-index: 10;
+            min-width: 160px;
+            display: none;
+        }
+
+        .widget-dropdown.show {
+            display: block;
+        }
+
+        .widget-option {
+            width: 100%;
+            text-align: left;
+            padding: 0.75rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .widget-option:hover {
+            background: #f3f4f6;
+        }
+
+        /* Favorites Grid */
+        .favorites-grid {
+            display: grid;
+            grid-template-columns: 2fr 2fr 2fr;
+            gap: 1.5rem;
+        }
+
+        .folders-section {
+            grid-column: span 2;
+        }
+
+        .favorites-list {
+            grid-column: span 2;
+        }
+
+        .section-title {
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .folders-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .folder {
+            border: 2px dashed #d1d5db;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .folder:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .folder-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .folder-title {
+            font-weight: 500;
+            color: #1f2937;
+            cursor: pointer;
+        }
+
+        .favorites-items {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.5rem;
+        }
+
+        .website-item {
+            background: white;
+            border: 2px solid var(--border-sfu);
+            border-radius: 0.5rem;
+            height: 24px;
+            cursor: move;
+            transition: border-color 0.14s, box-shadow 0.13s;
+            box-shadow: 0 1px 3px 0 #ececec;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .website-item:hover {
+            border-color: #e8c2d4;
+            box-shadow: 0 2px 10px 0 rgba(240, 228, 233, 0.3);
+        }
+
+        .website-content {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            height: 100%;
+            padding: 0 0.375rem;
+        }
+
+        .website-favicon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .website-title {
+            flex: 1;
+            font-size: 0.7rem;
+            color: var(--main-dark);
+            text-decoration: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .website-title:hover {
+            color: var(--main-point);
+        }
+
+        .favorite-star {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: var(--main-point);
+            stroke-width: 2;
+            transition: fill 0.18s;
+            cursor: pointer;
+        }
+
+        .favorite-star.favorited {
+            fill: #fbbf24;
+            stroke: #c94060;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 1px;
+            right: 1px;
+            width: 16px;
+            height: 16px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .website-item:hover .remove-btn {
+            opacity: 1;
+        }
+
+        /* Categories Grid */
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .sfu-category-card {
+            background: var(--main-bg);
+            border: 1.5px solid var(--border-sfu);
+            border-radius: var(--card-radius);
+            box-shadow: 0 2px 10px 0 rgba(241, 230, 235, 0.1);
+            transition: box-shadow 0.15s, border-color 0.15s;
+            padding: 0.75rem;
+            height: 240px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sfu-category-card:hover {
+            box-shadow: 0 8px 24px 0 rgba(240, 228, 233, 0.1);
+            border-color: #e8c2d4;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .category-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .category-title {
+            font-size: 0.9rem;
+            color: var(--main-point);
+            letter-spacing: 0.01em;
+        }
+
+        .category-content {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .websites-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            height: 100%;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        .websites-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .websites-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .websites-list::-webkit-scrollbar-thumb {
+            background: var(--border-sfu);
+            border-radius: 2px;
+        }
+
+        .category-website-item {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 0.5rem;
+            height: 24px;
+            transition: border-color 0.14s, box-shadow 0.13s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0 0.375rem;
+        }
+
+        .category-website-item:hover {
+            border-color: #e8c2d4;
+            box-shadow: 0 2px 10px 0 rgba(240, 228, 233, 0.3);
+        }
+
+        /* Widgets */
+        .widgets-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .widgets-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 1rem;
+        }
+
+        .widget {
+            background: white;
+            border: 1px solid var(--border-sfu);
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            height: 192px;
+            display: flex;
+            flex-direction: column;
+            cursor: move;
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .widget-title {
+            font-weight: 500;
+            color: #1f2937;
+            font-size: 0.875rem;
+        }
+
+        .widget-remove {
+            color: #9ca3af;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.75rem;
+            margin-left: auto;
+        }
+
+        .widget-remove:hover {
+            color: #ef4444;
+        }
+
+        .widget-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .categories-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .favorites-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .folders-section,
+            .favorites-list {
+                grid-column: span 1;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .widgets-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .favorites-items {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .folders-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+            font-size: 0.875rem;
+        }
+
+        /* Weather Widget Specific */
+        .weather-location-btn {
+            font-size: 0.75rem;
+            color: #2563eb;
+            background: #eff6ff;
+            border: none;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+
+        .weather-location-btn:hover {
+            background: #dbeafe;
+        }
+
+        .weather-data {
+            text-align: center;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            transition: background 0.2s;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .weather-data:hover {
+            background: #f9fafb;
+        }
+
+        .weather-icon {
+            font-size: 2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .weather-temp {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #2563eb;
+        }
+
+        .weather-location {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .weather-range {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .weather-link {
+            font-size: 0.75rem;
+            color: #2563eb;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="sfu-header">
+        <div class="header-content">
+            <div class="logo">SFU - Sites For You</div>
+            <div class="header-buttons">
+                <button class="sfu-btn-ghost" onclick="toggleDescriptions()">설명 토글</button>
+                <button class="sfu-btn-ghost" onclick="showContact()">문의하기</button>
+                <button class="sfu-btn-ghost" onclick="goHome()">홈</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Visitor Counter -->
+    <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-bottom: 1px solid var(--border-sfu);">
+        <span style="font-size: 0.875rem; color: #6b7280;">
+            오늘 방문자: <strong id="todayVisitors">1,234</strong> | 
+            총 방문자: <strong id="totalVisitors">12,345</strong>
+        </span>
+    </div>
+
+    <div class="main-container">
+        <!-- Favorites Section -->
+        <div class="favorites-section">
+            <div class="favorites-header">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <h2 class="favorites-title">
+                        📁 즐겨찾기
+                    </h2>
+                    <button class="btn-small btn-green" onclick="showAddSiteModal()">+ 사이트 추가</button>
+                </div>
+                <div class="header-buttons-small">
+                    <div class="widget-selector">
+                        <button class="btn-small btn-green" onclick="toggleWidgetDropdown()">+ 위젯 추가</button>
+                        <div class="widget-dropdown" id="widgetDropdown">
+                            <button class="widget-option" onclick="addWidget('weather')">
+                                <span>🌤️</span><span>네이버 날씨</span>
+                            </button>
+                            <button class="widget-option" onclick="addWidget('weather-weekly')">
+                                <span>📅</span><span>요일별 날씨</span>
+                            </button>
+                            <button class="widget-option" onclick="addWidget('weather-hourly')">
+                                <span>🕐</span><span>시간대별 날씨</span>
+                            </button>
+                            <button class="widget-option" onclick="addWidget('clock')">
+                                <span>🕐</span><span>시계</span>
+                            </button>
+                            <button class="widget-option" onclick="addWidget('memo')">
+                                <span>📝</span><span>메모</span>
+                            </button>
+                            <button class="widget-option" onclick="addWidget('todo')">
+                                <span>✅</span><span>할 일</span>
+                            </button>
+                            <button class="widget-option" onclick="addWidget('calendar')">
+                                <span>📅</span><span>달력</span>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn-small btn-blue" onclick="showAddFolderInput()">+ 폴더 추가</button>
+                    <button class="btn-small btn-purple" onclick="saveSettings()">💾 저장</button>
+                </div>
+            </div>
+
+            <!-- Widgets Section -->
+            <div class="widgets-section hidden" id="widgetsSection">
+                <h3 class="section-title">🔧 위젯</h3>
+                <div class="widgets-grid" id="widgetsGrid">
+                    <!-- Widgets will be added here dynamically -->
+                </div>
+            </div>
+
+            <!-- Favorites Grid -->
+            <div class="favorites-grid">
+                <!-- Folders Section -->
+                <div class="folders-section">
+                    <h3 class="section-title">📂 폴더</h3>
+                    <div class="folders-grid" id="foldersGrid">
+                        <!-- Folders will be added here -->
+                    </div>
+                </div>
+
+                <!-- Favorites List -->
+                <div class="favorites-list">
+                    <h3 class="section-title">📌 즐겨찾기</h3>
+                    <div class="favorites-items" id="favoritesItems">
+                        <!-- Favorite items will be added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories Grid -->
+        <div class="categories-grid" id="categoriesGrid">
+            <!-- Categories will be generated here -->
+        </div>
+    </div>
+
+    <!-- Floating Contact Button -->
+    <button style="
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: var(--main-point);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 4px 10px -6px rgba(0, 0, 0, 0.13);
+        cursor: pointer;
+        font-size: 0.875rem;
+        z-index: 100;
+    " onclick="showContact()">
+        문의하기
+    </button>
+
+    <script>
+        // Sample data
+        const websites = [
+            // 건축 포털
+            { id: '1', title: '건축도시정책정보센터', url: 'https://www.aurum.re.kr', category: '건축 포털', description: '건축 및 도시 정책 정보', summary: '정책 정보 제공' },
+            { id: '2', title: 'e-나라지표', url: 'https://www.index.go.kr', category: '건축 포털', description: '국가통계 정보', summary: '통계 데이터' },
+            { id: '3', title: '대한건축사협회', url: 'https://www.kira.or.kr', category: '건축 포털', description: '건축사 협회', summary: '건축사 정보' },
+            { id: '4', title: '한국건설기술연구원', url: 'https://www.kict.re.kr', category: '건축 포털', description: '건설기술 연구', summary: '기술 연구' },
+            
+            // 국가 기관
+            { id: '5', title: '국토교통부', url: 'https://www.molit.go.kr', category: '국가 기관', description: '국토교통 정책', summary: '정부 정책' },
+            { id: '6', title: '한국토지주택공사', url: 'https://www.lh.or.kr', category: '국가 기관', description: '토지 주택 공사', summary: 'LH 공사' },
+            { id: '7', title: '새올행정시스템', url: 'https://www.saeol.go.kr', category: '국가 기관', description: '행정 시스템', summary: '행정 업무' },
+            
+            // 디자인 포털
+            { id: '8', title: 'Behance', url: 'https://www.behance.net', category: '디자인 포털', description: '크리에이티브 포트폴리오', summary: '포트폴리오' },
+            { id: '9', title: 'Dribbble', url: 'https://dribbble.com', category: '디자인 포털', description: '디자인 커뮤니티', summary: '디자인 쇼케이스' },
+            { id: '10', title: 'Pinterest', url: 'https://www.pinterest.com', category: '디자인 포털', description: '이미지 공유', summary: '아이디어 수집' },
+            
+            // 설계 도구
+            { id: '11', title: 'AutoCAD', url: 'https://www.autodesk.com/products/autocad', category: '설계 도구', description: 'CAD 소프트웨어', summary: '2D/3D 설계' },
+            { id: '12', title: 'SketchUp', url: 'https://www.sketchup.com', category: '설계 도구', description: '3D 모델링', summary: '3D 디자인' },
+            { id: '13', title: 'Revit', url: 'https://www.autodesk.com/products/revit', category: '설계 도구', description: 'BIM 소프트웨어', summary: 'BIM 설계' },
+        ];
+
+        const categories = {
+            '건축 포털': { icon: '🏗️', color: '#8b5a2b' },
+            '국가 기관': { icon: '🏛️', color: '#2563eb' },
+            '디자인 포털': { icon: '🎨', color: '#ec4899' },
+            '설계 도구': { icon: '📐', color: '#059669' },
+            '자재 업체': { icon: '🧱', color: '#dc2626' },
+            '시공 업체': { icon: '🔨', color: '#ea580c' },
+            '부동산': { icon: '🏢', color: '#7c3aed' },
+            '법무/세무': { icon: '⚖️', color: '#1f2937' },
+            '금융': { icon: '💰', color: '#fbbf24' }
+        };
+
+        // State
+        let favoritesData = {
+            items: [],
+            folders: [],
+            widgets: []
+        };
+        
+        let showDescriptions = false;
+
+        // Load from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('sfu-favorites-static');
+            if (saved) {
+                try {
+                    favoritesData = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to parse saved data');
+                }
+            }
+        }
+
+        // Save to localStorage
+        function saveData() {
+            localStorage.setItem('sfu-favorites-static', JSON.stringify(favoritesData));
+        }
+
+        // Initialize
+        function init() {
+            loadData();
+            updateVisitorCount();
+            renderCategories();
+            renderFavorites();
+            renderWidgets();
+        }
+
+        // Update visitor count
+        function updateVisitorCount() {
+            const today = new Date().toDateString();
+            let todayCount = parseInt(localStorage.getItem('sfu-today-count') || '0');
+            let totalCount = parseInt(localStorage.getItem('sfu-total-count') || '12000');
+            let lastVisit = localStorage.getItem('sfu-last-visit');
+
+            if (lastVisit !== today) {
+                todayCount = 1;
+                localStorage.setItem('sfu-last-visit', today);
+            } else {
+                todayCount++;
+            }
+            totalCount++;
+
+            localStorage.setItem('sfu-today-count', todayCount.toString());
+            localStorage.setItem('sfu-total-count', totalCount.toString());
+
+            document.getElementById('todayVisitors').textContent = todayCount.toLocaleString();
+            document.getElementById('totalVisitors').textContent = totalCount.toLocaleString();
+        }
+
+        // Render categories
+        function renderCategories() {
+            const grid = document.getElementById('categoriesGrid');
+            grid.innerHTML = '';
+
+            // Group websites by category, excluding favorited ones
+            const favoriteIds = new Set([...favoritesData.items, ...favoritesData.folders.flatMap(f => f.items)]);
+            const categorizedWebsites = {};
+            
+            websites.forEach(website => {
+                if (!favoriteIds.has(website.id)) {
+                    if (!categorizedWebsites[website.category]) {
+                        categorizedWebsites[website.category] = [];
+                    }
+                    categorizedWebsites[website.category].push(website);
+                }
+            });
+
+            Object.entries(categorizedWebsites).forEach(([category, sites]) => {
+                const categoryConfig = categories[category] || { icon: '📁', color: '#6b7280' };
+                
+                const card = document.createElement('div');
+                card.className = 'sfu-category-card';
+                card.innerHTML = `
+                    <div class="category-header">
+                        <span class="category-icon">${categoryConfig.icon}</span>
+                        <span class="category-title">${category}</span>
+                    </div>
+                    <div class="category-content">
+                        <div class="websites-list">
+                            ${sites.map(website => `
+                                <div class="category-website-item">
+                                    <img class="website-favicon" 
+                                         src="https://www.google.com/s2/favicons?domain=${website.url}&sz=16" 
+                                         onerror="this.src='data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 16 16\\"><rect width=\\"16\\" height=\\"16\\" fill=\\"%23e5e7eb\\"/></svg>'"
+                                         alt="">
+                                    <a href="${website.url}" target="_blank" class="website-title" 
+                                       title="${showDescriptions ? website.description : ''}">${website.title}</a>
+                                    <svg class="favorite-star" viewBox="0 0 24 24" onclick="toggleFavorite('${website.id}')">
+                                        <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8"></polygon>
+                                    </svg>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Render favorites
+        function renderFavorites() {
+            // Render favorite items
+            const favoritesContainer = document.getElementById('favoritesItems');
+            favoritesContainer.innerHTML = '';
+            
+            favoritesData.items.forEach(websiteId => {
+                const website = websites.find(w => w.id === websiteId);
+                if (website) {
+                    const item = createWebsiteItem(website);
+                    favoritesContainer.appendChild(item);
+                }
+            });
+
+            // Render folders
+            const foldersContainer = document.getElementById('foldersGrid');
+            foldersContainer.innerHTML = '';
+            
+            favoritesData.folders.forEach(folder => {
+                const folderElement = document.createElement('div');
+                folderElement.className = 'folder';
+                folderElement.innerHTML = `
+                    <div class="folder-header">
+                        <span>📁</span>
+                        <span class="folder-title" onclick="editFolderName('${folder.id}')">${folder.name}</span>
+                    </div>
+                    <div class="folder-items">
+                        ${folder.items.map(websiteId => {
+                            const website = websites.find(w => w.id === websiteId);
+                            return website ? `
+                                <div class="website-item">
+                                    <div class="website-content">
+                                        <img class="website-favicon" 
+                                             src="https://www.google.com/s2/favicons?domain=${website.url}&sz=16" 
+                                             alt="">
+                                        <a href="${website.url}" target="_blank" class="website-title">${website.title}</a>
+                                    </div>
+                                    <button class="remove-btn" onclick="removeFromFavorites('${website.id}')">×</button>
+                                </div>
+                            ` : '';
+                        }).join('')}
+                        ${folder.items.length === 0 ? '<div class="empty-state">여기에 사이트를 드래그하세요</div>' : ''}
+                    </div>
+                `;
+                foldersContainer.appendChild(folderElement);
+            });
+        }
+
+        // Render widgets
+        function renderWidgets() {
+            const widgetsSection = document.getElementById('widgetsSection');
+            const widgetsGrid = document.getElementById('widgetsGrid');
+            
+            if (favoritesData.widgets.length === 0) {
+                widgetsSection.classList.add('hidden');
+                return;
+            }
+            
+            widgetsSection.classList.remove('hidden');
+            widgetsGrid.innerHTML = '';
+            
+            favoritesData.widgets.forEach(widget => {
+                const widgetElement = createWidget(widget);
+                widgetsGrid.appendChild(widgetElement);
+            });
+        }
+
+        // Create website item
+        function createWebsiteItem(website) {
+            const item = document.createElement('div');
+            item.className = 'website-item';
+            item.innerHTML = `
+                <div class="website-content">
+                    <img class="website-favicon" 
+                         src="https://www.google.com/s2/favicons?domain=${website.url}&sz=16" 
+                         alt="">
+                    <a href="${website.url}" target="_blank" class="website-title">${website.title}</a>
+                </div>
+                <button class="remove-btn" onclick="removeFromFavorites('${website.id}')">×</button>
+            `;
+            return item;
+        }
+
+        // Create widget
+        function createWidget(widget) {
+            const widgetElement = document.createElement('div');
+            widgetElement.className = 'widget';
+            
+            switch (widget.type) {
+                case 'weather':
+                case 'weather-weekly':
+                case 'weather-hourly':
+                    widgetElement.innerHTML = createWeatherWidget(widget);
+                    break;
+                case 'clock':
+                    widgetElement.innerHTML = createClockWidget(widget);
+                    break;
+                case 'memo':
+                    widgetElement.innerHTML = createMemoWidget(widget);
+                    break;
+                case 'todo':
+                    widgetElement.innerHTML = createTodoWidget(widget);
+                    break;
+                case 'calendar':
+                    widgetElement.innerHTML = createCalendarWidget(widget);
+                    break;
+            }
+            
+            return widgetElement;
+        }
+
+        // Create weather widget
+        function createWeatherWidget(widget) {
+            const titles = {
+                'weather': '🌤️ 네이버 날씨',
+                'weather-weekly': '📅 요일별 날씨',
+                'weather-hourly': '🕐 시간별 날씨'
+            };
+            
+            let content = '';
+            if (widget.type === 'weather') {
+                content = `
+                    <div class="weather-data" onclick="window.open('https://weather.naver.com', '_blank')">
+                        <div class="weather-icon">☀️</div>
+                        <div class="weather-temp">22°C</div>
+                        <div class="weather-location">서울, 맑음</div>
+                        <div class="weather-range">
+                            <span>최고 25°</span>
+                            <span>최저 18°</span>
+                        </div>
+                        <div class="weather-link">네이버 날씨 보기</div>
+                    </div>
+                `;
+            } else if (widget.type === 'weather-weekly') {
+                const days = ['월', '화', '수', '목', '금', '토', '일'];
+                const icons = ['☀️', '☁️', '🌧️', '⛅', '☀️', '☁️', '☀️'];
+                content = `
+                    <div class="widget-content">
+                        ${days.map((day, i) => `
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; padding: 0.125rem 0;">
+                                <span style="width: 1.5rem;">${day}</span>
+                                <span>${icons[i]}</span>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <span style="color: #2563eb;">${20 + i}°</span>
+                                    <span style="color: #9ca3af;">${10 + i}°</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (widget.type === 'weather-hourly') {
+                content = `
+                    <div class="widget-content">
+                        ${['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'].map((time, i) => `
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; padding: 0.125rem 0;">
+                                <span style="width: 3rem;">${time}</span>
+                                <span>☀️</span>
+                                <span style="color: #2563eb;">${18 + i % 4}°</span>
+                                <span style="color: #9ca3af;">${i * 10}%</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="widget-header">
+                    <span class="widget-title">${titles[widget.type]}</span>
+                    <button class="weather-location-btn" onclick="toggleWeatherLocation('${widget.id}')">위치설정</button>
+                    <button class="widget-remove" onclick="removeWidget('${widget.id}')">✕</button>
+                </div>
+                ${content}
+            `;
+        }
+
+        // Create other widgets (simplified)
+        function createClockWidget(widget) {
+            return `
+                <div class="widget-header">
+                    <span class="widget-title">🕐 시계</span>
+                    <button class="widget-remove" onclick="removeWidget('${widget.id}')">✕</button>
+                </div>
+                <div class="widget-content" style="text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="font-size: 2rem; font-weight: bold;" id="clock-${widget.id}">${new Date().toLocaleTimeString()}</div>
+                    <div style="font-size: 0.875rem; color: #6b7280;">${new Date().toLocaleDateString()}</div>
+                </div>
+            `;
+        }
+
+        function createMemoWidget(widget) {
+            return `
+                <div class="widget-header">
+                    <span class="widget-title">📝 메모</span>
+                    <button class="widget-remove" onclick="removeWidget('${widget.id}')">✕</button>
+                </div>
+                <div class="widget-content">
+                    <textarea style="width: 100%; height: 100%; border: none; resize: none; font-size: 0.875rem; padding: 0.5rem;" 
+                              placeholder="메모를 입력하세요..." 
+                              onchange="saveMemo('${widget.id}', this.value)"></textarea>
+                </div>
+            `;
+        }
+
+        function createTodoWidget(widget) {
+            return `
+                <div class="widget-header">
+                    <span class="widget-title">✅ 할 일</span>
+                    <button class="widget-remove" onclick="removeWidget('${widget.id}')">✕</button>
+                </div>
+                <div class="widget-content">
+                    <div style="margin-bottom: 0.5rem;">
+                        <input type="text" placeholder="할 일 추가..." style="width: 100%; padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 0.25rem; font-size: 0.875rem;">
+                        <button onclick="addTodo('${widget.id}')" style="margin-top: 0.25rem; width: 100%; padding: 0.25rem; background: #3b82f6; color: white; border: none; border-radius: 0.25rem; font-size: 0.875rem;">추가</button>
+                    </div>
+                    <div id="todos-${widget.id}" style="overflow-y: auto; max-height: 100px;">
+                        <!-- Todo items will be added here -->
+                    </div>
+                </div>
+            `;
+        }
+
+        function createCalendarWidget(widget) {
+            const today = new Date();
+            const month = today.getMonth();
+            const year = today.getFullYear();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            let calendar = '<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; font-size: 0.75rem;">';
+            
+            // Week days
+            ['일', '월', '화', '수', '목', '금', '토'].forEach(day => {
+                calendar += `<div style="text-align: center; font-weight: bold; color: #6b7280;">${day}</div>`;
+            });
+            
+            // Empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                calendar += '<div></div>';
+            }
+            
+            // Month days
+            for (let day = 1; day <= daysInMonth; day++) {
+                const isToday = day === today.getDate();
+                calendar += `<div style="text-align: center; padding: 2px; ${isToday ? 'background: #3b82f6; color: white; border-radius: 2px;' : ''}">${day}</div>`;
+            }
+            
+            calendar += '</div>';
+            
+            return `
+                <div class="widget-header">
+                    <span class="widget-title">📅 달력</span>
+                    <button class="widget-remove" onclick="removeWidget('${widget.id}')">✕</button>
+                </div>
+                <div class="widget-content">
+                    <div style="text-align: center; font-weight: bold; margin-bottom: 0.5rem;">${year}년 ${month + 1}월</div>
+                    ${calendar}
+                </div>
+            `;
+        }
+
+        // Event handlers
+        function toggleDescriptions() {
+            showDescriptions = !showDescriptions;
+            renderCategories();
+        }
+
+        function showContact() {
+            alert('문의하기: admin@example.com');
+        }
+
+        function goHome() {
+            window.location.reload();
+        }
+
+        function toggleFavorite(websiteId) {
+            const isCurrentlyFavorited = favoritesData.items.includes(websiteId) || 
+                favoritesData.folders.some(folder => folder.items.includes(websiteId));
+            
+            if (isCurrentlyFavorited) {
+                // Remove from favorites
+                favoritesData.items = favoritesData.items.filter(id => id !== websiteId);
+                favoritesData.folders = favoritesData.folders.map(folder => ({
+                    ...folder,
+                    items: folder.items.filter(id => id !== websiteId)
+                }));
+            } else {
+                // Add to favorites
+                favoritesData.items.push(websiteId);
+            }
+            
+            saveData();
+            renderCategories();
+            renderFavorites();
+        }
+
+        function removeFromFavorites(websiteId) {
+            favoritesData.items = favoritesData.items.filter(id => id !== websiteId);
+            favoritesData.folders = favoritesData.folders.map(folder => ({
+                ...folder,
+                items: folder.items.filter(id => id !== websiteId)
+            }));
+            
+            saveData();
+            renderCategories();
+            renderFavorites();
+        }
+
+        function toggleWidgetDropdown() {
+            const dropdown = document.getElementById('widgetDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function addWidget(type) {
+            const newWidget = {
+                id: Date.now().toString(),
+                type: type,
+                title: type,
+                position: { x: 0, y: 0 },
+                size: { width: 200, height: 150 }
+            };
+            
+            favoritesData.widgets.push(newWidget);
+            saveData();
+            renderWidgets();
+            
+            document.getElementById('widgetDropdown').classList.remove('show');
+        }
+
+        function removeWidget(widgetId) {
+            favoritesData.widgets = favoritesData.widgets.filter(w => w.id !== widgetId);
+            saveData();
+            renderWidgets();
+        }
+
+        function showAddFolderInput() {
+            const name = prompt('폴더 이름을 입력하세요:');
+            if (name && name.trim()) {
+                const newFolder = {
+                    id: Date.now().toString(),
+                    name: name.trim(),
+                    items: []
+                };
+                favoritesData.folders.push(newFolder);
+                saveData();
+                renderFavorites();
+            }
+        }
+
+        function editFolderName(folderId) {
+            const folder = favoritesData.folders.find(f => f.id === folderId);
+            if (folder) {
+                const newName = prompt('새 폴더 이름:', folder.name);
+                if (newName && newName.trim()) {
+                    folder.name = newName.trim();
+                    saveData();
+                    renderFavorites();
+                }
+            }
+        }
+
+        function showAddSiteModal() {
+            const title = prompt('사이트 제목:');
+            if (!title) return;
+            
+            const url = prompt('사이트 URL:');
+            if (!url) return;
+            
+            const description = prompt('사이트 설명:') || '';
+            
+            const newSite = {
+                id: Date.now().toString(),
+                title: title,
+                url: url,
+                description: description,
+                category: '사용자 추가',
+                summary: '사용자가 추가한 사이트'
+            };
+            
+            websites.push(newSite);
+            toggleFavorite(newSite.id);
+        }
+
+        function saveSettings() {
+            alert('설정이 저장되었습니다.');
+        }
+
+        function toggleWeatherLocation(widgetId) {
+            const cities = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '제주'];
+            const selected = prompt('지역을 선택하세요:\n' + cities.map((city, i) => `${i + 1}. ${city}`).join('\n'));
+            if (selected && cities[parseInt(selected) - 1]) {
+                alert(`${cities[parseInt(selected) - 1]}로 설정되었습니다.`);
+            }
+        }
+
+        function saveMemo(widgetId, content) {
+            // Save memo content to localStorage
+            localStorage.setItem(`memo-${widgetId}`, content);
+        }
+
+        function addTodo(widgetId) {
+            // Simple todo implementation
+            const input = event.target.previousElementSibling;
+            if (input.value.trim()) {
+                const todoList = document.getElementById(`todos-${widgetId}`);
+                const todoItem = document.createElement('div');
+                todoItem.innerHTML = `
+                    <div style="display: flex; align-items: center; margin-bottom: 0.25rem; font-size: 0.75rem;">
+                        <input type="checkbox" style="margin-right: 0.25rem;">
+                        <span>${input.value}</span>
+                    </div>
+                `;
+                todoList.appendChild(todoItem);
+                input.value = '';
+            }
+        }
+
+        // Update clocks every second
+        setInterval(() => {
+            const clocks = document.querySelectorAll('[id^="clock-"]');
+            clocks.forEach(clock => {
+                clock.textContent = new Date().toLocaleTimeString();
+            });
+        }, 1000);
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.widget-selector')) {
+                document.getElementById('widgetDropdown').classList.remove('show');
+            }
+        });
+
+        // Initialize app
+        init();
+    </script>
+</body>
+</html>
