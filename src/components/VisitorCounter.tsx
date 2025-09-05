@@ -5,7 +5,7 @@ export function VisitorCounter() {
 
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const key = `sfu-visit-${today}`;
+    const key = `urwebs-visit-${today}`;
     let visitorCount = parseInt(localStorage.getItem(key) || "0", 10);
     visitorCount++;
     localStorage.setItem(key, visitorCount.toString());

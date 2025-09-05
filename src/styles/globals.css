@@ -40,12 +40,12 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   
-  /* SFU Custom Variables */
+  /* UrWebs Custom Variables */
   --main-point: #550216;
   --main-brown: #92400e;
   --main-bg: #fff;
   --soft-bg: #fafafa;
-  --border-sfu: #ededed;
+  --border-urwebs: #ededed;
   --sub-text: #aaaaaa;
   --header-gradient: linear-gradient(90deg, #fff 60%, #f8f2f5 100%);
   --card-radius: 1.1rem;
@@ -93,12 +93,12 @@
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
   
-  /* SFU Dark Mode Variables */
+  /* UrWebs Dark Mode Variables */
   --main-point: #ff4d7a;
   --main-brown: #d97706;
   --main-bg: #1a1a1a;
   --soft-bg: #2a2a2a;
-  --border-sfu: #404040;
+  --border-urwebs: #404040;
   --sub-text: #888;
   --header-gradient: linear-gradient(90deg, #1a1a1a 60%, #2a1a2a 100%);
   --main-dark: #f5f5f5;
@@ -219,14 +219,14 @@ html {
   font-size: var(--font-size);
 }
 
-/* SFU Custom Styles */
-.sfu-header {
+/* UrWebs Custom Styles */
+.urwebs-header {
   background: var(--header-gradient);
-  border-bottom: 1.5px solid var(--border-sfu);
+  border-bottom: 1.5px solid var(--border-urwebs);
   box-shadow: 0 2px 10px -8px rgba(234, 234, 234, 0.9);
 }
 
-.sfu-btn-ghost {
+.urwebs-btn-ghost {
   background: none;
   color: var(--main-point);
   border: none;
@@ -236,60 +236,60 @@ html {
   cursor: pointer;
 }
 
-.sfu-btn-ghost:hover {
+.urwebs-btn-ghost:hover {
   background: #f3e9ef;
 }
 
-.sfu-category-card {
+.urwebs-category-card {
   background: var(--main-bg);
-  border: 1.5px solid var(--border-sfu);
+  border: 1.5px solid var(--border-urwebs);
   border-radius: var(--card-radius);
   box-shadow: 0 2px 10px 0 rgba(241, 230, 235, 0.1);
   transition: box-shadow 0.15s, border-color 0.15s;
 }
 
-.sfu-category-card:hover {
+.urwebs-category-card:hover {
   box-shadow: 0 8px 24px 0 rgba(240, 228, 233, 0.1);
   border-color: #e8c2d4;
 }
 
-.sfu-website-item {
+.urwebs-website-item {
   background: var(--website-item-bg);
   border-radius: 0.5rem;
   border: 2px solid var(--website-item-border);
   transition: border-color 0.14s, box-shadow 0.1s;
 }
 
-.sfu-website-item:hover {
+.urwebs-website-item:hover {
   border-color: var(--website-item-hover);
   box-shadow: 0 1px 8px 0 rgba(240, 228, 233, 0.3);
 }
 
-.sfu-website-item.shadow-hover {
+.urwebs-website-item.shadow-hover {
   box-shadow: 0 4px 18px 0 rgba(233, 167, 194, 0.3);
   border-color: var(--main-point);
 }
 
-.sfu-favorite-item {
+.urwebs-favorite-item {
   background: var(--favorite-item-bg);
-  border: 1.5px solid var(--border-sfu);
+  border: 1.5px solid var(--border-urwebs);
   border-radius: 0.5rem;
   cursor: move;
   transition: box-shadow 0.15s, border-color 0.15s;
   box-shadow: 0 1px 3px 0 rgba(236, 236, 236, 0.5);
 }
 
-.sfu-favorite-item:hover {
+.urwebs-favorite-item:hover {
   box-shadow: 0 4px 12px -2px rgba(237, 224, 229, 0.5);
 }
 
-.sfu-favorite-item.drag-preview {
+.urwebs-favorite-item.drag-preview {
   opacity: 0.8;
   transform: rotate(5deg);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-.sfu-drop-zone {
+.urwebs-drop-zone {
   border: 2px dashed var(--main-point);
   border-radius: 0.5rem;
   background: rgba(255, 77, 122, 0.1);
@@ -302,18 +302,18 @@ html {
   margin: 0.25rem 0;
 }
 
-.sfu-star-icon {
+.urwebs-star-icon {
   fill: none;
   stroke: var(--main-point);
   transition: fill 0.18s;
 }
 
-.sfu-star-icon.favorited {
+.urwebs-star-icon.favorited {
   fill: #ffe89c;
   stroke: #c94060;
 }
 
-.sfu-more-btn {
+.urwebs-more-btn {
   background: transparent;
   border: 1px solid #ededed;
   color: var(--main-point);
@@ -322,12 +322,12 @@ html {
   transition: all 0.14s;
 }
 
-.sfu-more-btn:hover {
+.urwebs-more-btn:hover {
   background: var(--more-btn-hover);
   border-color: var(--website-item-hover);
 }
 
-.sfu-floating-contact {
+.urwebs-floating-contact {
   background: var(--main-point);
   color: #fff;
   border: none;
@@ -336,11 +336,11 @@ html {
   cursor: pointer;
 }
 
-.sfu-floating-contact:hover {
+.urwebs-floating-contact:hover {
   filter: brightness(0.97);
 }
 
-.sfu-modal {
+.urwebs-modal {
   display: none;
   position: fixed;
   inset: 0;
@@ -351,26 +351,26 @@ html {
   padding: 1rem;
 }
 
-.sfu-modal.open {
+.urwebs-modal.open {
   display: flex;
 }
 
-.sfu-modal-content {
+.urwebs-modal-content {
   background: var(--main-bg);
   width: min(400px, 96vw);
   border-radius: 0.9rem;
-  border: 1px solid var(--border-sfu);
+  border: 1px solid var(--border-urwebs);
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   color: var(--main-dark);
 }
 
-.dark .sfu-modal-content {
+.dark .urwebs-modal-content {
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.3);
 }
 
-.sfu-form-input,
-.sfu-form-textarea {
+.urwebs-form-input,
+.urwebs-form-textarea {
   width: 100%;
   border: 1px solid #e6e6e6;
   border-radius: 0.6rem;
@@ -380,25 +380,25 @@ html {
   color: var(--main-dark);
 }
 
-.dark .sfu-form-input,
-.dark .sfu-form-textarea {
-  border-color: var(--border-sfu);
+.dark .urwebs-form-input,
+.dark .urwebs-form-textarea {
+  border-color: var(--border-urwebs);
   background: var(--website-item-bg);
   color: var(--main-dark);
 }
 
-.sfu-form-input:focus,
-.sfu-form-textarea:focus {
+.urwebs-form-input:focus,
+.urwebs-form-textarea:focus {
   border-color: var(--main-point);
   box-shadow: 0 0 0 2px rgba(233, 167, 194, 0.4);
 }
 
-.dark .sfu-form-input:focus,
-.dark .sfu-form-textarea:focus {
+.dark .urwebs-form-input:focus,
+.dark .urwebs-form-textarea:focus {
   box-shadow: 0 0 0 2px rgba(255, 77, 122, 0.4);
 }
 
-.sfu-btn-primary {
+.urwebs-btn-primary {
   padding: 0.69rem 1rem;
   border: 0;
   border-radius: 0.6rem;
@@ -407,7 +407,7 @@ html {
   cursor: pointer;
 }
 
-.sfu-btn-primary:hover {
+.urwebs-btn-primary:hover {
   filter: brightness(0.95);
 }
 
@@ -449,7 +449,7 @@ html {
 
 .modal-content input {
   padding: 0.75rem;
-  border: 1px solid var(--border-sfu);
+  border: 1px solid var(--border-urwebs);
   border-radius: 0.5rem;
   background: var(--website-item-bg);
   color: var(--main-dark);

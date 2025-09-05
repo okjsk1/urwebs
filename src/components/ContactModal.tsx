@@ -31,7 +31,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) { // Contac
       return;
     }
 
-    const subject = encodeURIComponent('SFU 문의사항'); // 이메일 제목을 URL에 맞게 인코딩합니다.
+    const subject = encodeURIComponent('UrWebs 문의사항'); // 이메일 제목을 URL에 맞게 인코딩합니다.
     const body = encodeURIComponent(`답변받을 이메일: ${email}
 
 문의내용:
@@ -55,13 +55,13 @@ ${message}`); // 이메일 본문 내용을 URL에 맞게 인코딩합니다.
 
   return ( // 모달의 JSX를 렌더링합니다.
     <div 
-      className={`sfu-modal ${isOpen ? 'open' : ''}`} // 모달 상태에 따라 'open' 클래스를 추가합니다.
+      className={`urwebs-modal ${isOpen ? 'open' : ''}`} // 모달 상태에 따라 'open' 클래스를 추가합니다.
       onClick={handleBackdropClick} // 배경 클릭 이벤트 핸들러를 연결합니다.
       role="dialog" // 접근성을 위해 역할을 'dialog'로 설정합니다.
       aria-modal="true" // 모달임을 알리는 속성을 추가합니다.
       aria-hidden={!isOpen} // 모달이 닫혀 있을 때 화면 리더기가 무시하도록 합니다.
     >
-      <div className="sfu-modal-content"> {/* 모달 내용 컨테이너입니다. */}
+      <div className="urwebs-modal-content"> {/* 모달 내용 컨테이너입니다. */}
         <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: '#f0f0f0' }}>
           <h2 style={{ fontSize: '1.1rem', color: 'var(--main-point)' }}>
             문의하기 {/* 모달 제목입니다. */}
@@ -79,7 +79,7 @@ ${message}`); // 이메일 본문 내용을 URL에 맞게 인코딩합니다.
         <div className="p-3">
           <input
             type="email"
-            className="sfu-form-input"
+            className="urwebs-form-input"
             placeholder="답변받을 이메일"
             value={email} // 이메일 상태와 입력 필드를 연결합니다.
             onChange={(e) => setEmail(e.target.value)} // 입력 값 변경 시 이메일 상태를 업데이트합니다.
@@ -88,7 +88,7 @@ ${message}`); // 이메일 본문 내용을 URL에 맞게 인코딩합니다.
         
         <div className="p-3">
           <textarea
-            className="sfu-form-textarea min-h-24 resize-y"
+            className="urwebs-form-textarea min-h-24 resize-y"
             placeholder="문의내용을 입력해주세요"
             value={message} // 문의 내용 상태와 입력 필드를 연결합니다.
             onChange={(e) => setMessage(e.target.value)} // 입력 값 변경 시 문의 내용 상태를 업데이트합니다.
@@ -97,7 +97,7 @@ ${message}`); // 이메일 본문 내용을 URL에 맞게 인코딩합니다.
         
         <div className="mx-4 mb-4">
           <button 
-            className="sfu-btn-primary w-full"
+            className="urwebs-btn-primary w-full"
             onClick={handleSubmit} // 클릭 시 제출 함수를 호출합니다.
             style={{ fontSize: '1rem' }}
           >
