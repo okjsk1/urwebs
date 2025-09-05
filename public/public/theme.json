@@ -1,7 +1,0 @@
-{
-  "colors": { "bg": "#fff8e6", "text": "#2a1f0a", "card": "#ffffff", "accent": "#f5b400" },
-  "radius": { "card": "16px", "button": "12px" },
-  "shadow": { "card": "0 10px 24px rgba(0,0,0,0.08)" },
-  "font": { "baseSize": "16px", "titleSize": "1.06rem", "descSize": "0.9rem" },
-  "spacing": { "cardPadding": "14px", "gridGap": "14px" }
-}
