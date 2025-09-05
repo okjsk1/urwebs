@@ -44,7 +44,7 @@ export function MidBanner({
             className="px-3 py-1 rounded border text-xs bg-white dark:bg-gray-800"
             style={{ borderColor: "var(--border-urwebs)" }}
             onClick={onOpenAddSite}
-            aria-label="직접 추가"
+            aria-label="사이트 직접 추가"
             type="button"
           >
             직접 추가
