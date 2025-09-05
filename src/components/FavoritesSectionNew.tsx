@@ -679,6 +679,7 @@ export function FavoritesSectionNew({
             }}
             className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs transition-colors flex items-center gap-1"
             type="button"
+            aria-label="사이트 추가"
           >
             + 사이트 추가
           </button>

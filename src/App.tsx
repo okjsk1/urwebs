@@ -6,7 +6,6 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 import { Header } from "./components/Header";
-import { UserGuide } from "./components/UserGuide";
 import { LoginModal } from "./components/LoginModal";
 import { SignupModal } from "./components/SignupModal";
 // (삭제) import { GoogleAuthModal } from "./components/GoogleAuthModal";
@@ -19,6 +18,8 @@ import { AdBanner } from "./components/AdBanner";
 import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
 import { MidBanner } from "./components/MidBanner";
+import { Onboarding } from "./components/Onboarding";
+import { RecommendTray } from "./components/RecommendTray";
 import { TopList } from "./components/TopList";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
@@ -33,10 +34,10 @@ import { ARCHITECTURE_STARTER } from "./presets/architecture";
 // urwebs 키 세팅
 // ---------------------------
 const LS_KEYS = {
-  GUIDE: "urwebs-guide-seen",
   MODE: "urwebs-mode",
   FAV: "urwebs-favorites-v3",
   CUSTOM: "urwebs-custom-sites",
+  ONBOARD: "urwebs-onboarding-v1",
 };
 
 export default function App() {
@@ -62,10 +63,9 @@ export default function App() {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isAddSiteModalOpen, setIsAddSiteModalOpen] = useState(false);
 
-  // 유저 가이드 노출 여부
-  const [showUserGuide, setShowUserGuide] = useState(() => {
-    const hasSeenGuide = localStorage.getItem(LS_KEYS.GUIDE);
-    return !hasSeenGuide;
+  // 온보딩 노출 여부
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem(LS_KEYS.ONBOARD);
   });
 
   // 뷰
@@ -311,16 +311,6 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* 유저 가이드 모달 */}
-      {showUserGuide && (
-        <UserGuide
-          onClose={() => {
-            setShowUserGuide(false);
-            localStorage.setItem(LS_KEYS.GUIDE, "true");
-          }}
-        />
-      )}
-
       {/* 로그인/회원가입 모달 */}
       {isLoginModalOpen && (
         <LoginModal
@@ -364,6 +354,23 @@ export default function App() {
           }}
         >
           <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
+          {/* // [Onboarding] */}
+          {showOnboarding && (
+            <Onboarding
+              onApplyPreset={() =>
+                setFavoritesData(
+                  applyPreset(favoritesData, ARCHITECTURE_STARTER)
+                )
+              }
+              onOpenAddSite={() =>
+                window.dispatchEvent(new CustomEvent('openAddSiteModal'))
+              }
+              onOpenHomepageGuide={() =>
+                alert('브라우저 설정에서 시작페이지를 urwebs로 설정하세요.')
+              }
+              onClose={() => setShowOnboarding(false)}
+            />
+          )}
           {/* // [MidBanner] */}
           <MidBanner
             onApplyPreset={() =>
@@ -377,11 +384,18 @@ export default function App() {
             }
           />
 
+          {/* // [RecommendTray] */}
+          <RecommendTray
+            onApplyPreset={(preset) =>
+              setFavoritesData(applyPreset(favoritesData, preset))
+            }
+          />
+
           <FavoritesSectionNew
             favoritesData={favoritesData}
             onUpdateFavorites={setFavoritesData}
             showSampleImage={showSampleImage}
-            onShowGuide={() => setShowUserGuide(true)}
+            onShowGuide={() => setShowOnboarding(true)}
             onSaveData={() => {
               alert("설정이 저장되었습니다!");
             }}
