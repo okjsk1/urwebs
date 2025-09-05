@@ -23,9 +23,14 @@ export function CategoryCard({
   onToggleCategory,
   onToggleFavorite,
 }: CategoryCardProps) {
+  const safeSites = Array.isArray(sites) ? sites : [];
   // 설명 보기가 활성화되어 있으면 전체, 아니면 6개만 표시 (확장 시 전체)
-  const displaySites = showDescriptions ? sites : (isExpanded ? sites : sites.slice(0, 6));
-  const hasMore = sites.length > 6;
+  const displaySites = showDescriptions
+    ? safeSites
+    : isExpanded
+    ? safeSites
+    : safeSites.slice(0, 6);
+  const hasMore = safeSites.length > 6;
 
   const listClasses =
     isExpanded || showDescriptions
@@ -61,7 +66,7 @@ export function CategoryCard({
       {/* 사이트 목록 영역 */}
       <div className="flex-1 flex flex-col min-h-0">
         <div className={`flex flex-col gap-0.5 ${listClasses}`}>
-          {sites.length === 0 ? (
+          {safeSites.length === 0 ? (
             <div className="flex items-center justify-center flex-1 text-gray-500 text-xs">
               모든 사이트가 즐겨찾기에 추가됨
             </div>
@@ -84,7 +89,7 @@ export function CategoryCard({
             onClick={() => onToggleCategory(category)}
             className="urwebs-more-btn mt-1 px-2 py-0.5 text-xs"
           >
-            {isExpanded ? "▲ 접기" : `▼ 더보기 (${sites.length}개)`}
+            {isExpanded ? "▲ 접기" : `▼ 더보기 (${safeSites.length}개)`}
           </button>
         )}
       </div>

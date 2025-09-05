@@ -21,6 +21,8 @@ export function WebsiteItem({
 }: WebsiteItemProps) {
   const [isHovered, setIsHovered] = useState(false);
 
+  if (!website?.url || !website?.title) return null;
+
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -51,8 +53,8 @@ export function WebsiteItem({
             borderColor: "#ededed",
           }}
           onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23e5e7eb"/><text x="8" y="12" text-anchor="middle" fill="%236b7280" font-size="8">🌐</text></svg>';
+            (e.currentTarget as HTMLImageElement).src =
+              'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="%23e5e7eb"/></svg>';
           }}
         />
 
