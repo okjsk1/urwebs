@@ -1,4 +1,4 @@
-// Firebase initialization using environment variables
+// Firebase initialization
 
 // Core
 import { initializeApp, getApp, getApps } from "firebase/app";
@@ -6,16 +6,17 @@ import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 // Firestore
 import { initializeFirestore } from "firebase/firestore";
-// (선택) Analytics
+// (optional) Analytics
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyAyd8HeADxA__ZcmrWB_84ZACUS7O9lXJs",
+  authDomain: "urwebs-3f562.firebaseapp.com",
+  projectId: "urwebs-3f562",
+  storageBucket: "urwebs-3f562.firebasestorage.app",
+  messagingSenderId: "1017628927752",
+  appId: "1:1017628927752:web:caf186d8ace8282810aebd",
+  measurementId: "G-BT50LLBYE2",
 };
 
 // 앱(중복 초기화 방지)
