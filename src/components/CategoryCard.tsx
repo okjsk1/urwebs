@@ -53,8 +53,13 @@ export function CategoryCard({
         </div>
       </div>
 
-      <div className={`flex-1 flex flex-col ${isExpanded || showDescriptions ? "overflow-y-auto" : "overflow-hidden"}`}>
-        <div className={`flex flex-col gap-0.5 ${isExpanded || showDescriptions ? "max-h-80 overflow-y-auto" : ""}`}>
+      {/* 사이트 목록 영역 */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <div
+          className={`flex flex-col gap-0.5 ${
+            isExpanded || showDescriptions ? "max-h-80 overflow-y-auto" : ""
+          }`}
+        >
           {sites.length === 0 ? (
             <div className="flex items-center justify-center flex-1 text-gray-500 text-xs">
               모든 사이트가 즐겨찾기에 추가됨
