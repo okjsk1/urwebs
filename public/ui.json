@@ -1,0 +1,9 @@
+{
+  "showSearch": true,
+  "showFavorites": true,
+  "showCategoryFilter": true,
+  "grid": { "columnsDesktop": 6, "columnsTablet": 4, "columnsMobile": 2 },
+  "cardStyle": "compact",
+  "showDescription": true,
+  "showFavicon": true
+}
