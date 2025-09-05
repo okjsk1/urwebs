@@ -20,6 +20,7 @@ import { MidBanner } from "./components/MidBanner";
 import { Onboarding } from "./components/Onboarding";
 import { RecommendTray } from "./components/RecommendTray";
 import { TopList } from "./components/TopList";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
 import { FavoritesData, CustomSite, Website } from "./types";
@@ -289,7 +290,8 @@ export default function App() {
   // 렌더
   // ---------------------------
   return (
-    <>
+    <ErrorBoundary>
+      <>
       <Header
         onContactClick={() => setIsContactModalOpen(true)}
         onHomepageClick={handleHomepageClick}
@@ -472,6 +474,7 @@ export default function App() {
           showDescriptions={showDescriptions}
         />
       )}
-    </>
+      </>
+    </ErrorBoundary>
   );
 }

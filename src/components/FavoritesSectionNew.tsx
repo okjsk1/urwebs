@@ -77,8 +77,8 @@ function SimpleWebsite({
           alt=""
           className="w-3 h-3 flex-shrink-0"
           onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23e5e7eb"/></svg>';
+            (e.currentTarget as HTMLImageElement).src =
+              'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="%23e5e7eb"/></svg>';
           }}
         />
         <a
@@ -152,8 +152,12 @@ function SimpleFolder({
   };
 
   const handleFolderDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('folderId', folder.id);
-    e.dataTransfer.effectAllowed = 'move';
+    try {
+      e.dataTransfer.setData('folderId', folder.id);
+      e.dataTransfer.effectAllowed = 'move';
+    } catch (err) {
+      console.warn('Folder drag start failed:', err);
+    }
   };
 
   return (
@@ -389,14 +393,18 @@ export function FavoritesSectionNew({
   const handleDragStart = (e: React.DragEvent, id: string, fromFolderId?: string) => {
     setDraggedId(id);
     setDraggedFromFolderId(fromFolderId || null);
-    e.dataTransfer.setData('websiteId', id);
+    try {
+      e.dataTransfer.setData('websiteId', id);
 
-    // 드래그 미리보기 숨김(투명 픽셀)
-    if (e.target instanceof HTMLElement) {
-      const img = new Image();
-      img.src =
-        'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>';
-      e.dataTransfer.setDragImage(img, 0, 0);
+      // 드래그 미리보기 숨김(투명 픽셀)
+      if (e.target instanceof HTMLElement) {
+        const img = new Image();
+        img.src =
+          'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>';
+        e.dataTransfer.setDragImage(img, 0, 0);
+      }
+    } catch (err) {
+      console.warn('Drag start failed:', err);
     }
   };
 
@@ -411,8 +419,15 @@ export function FavoritesSectionNew({
     e.preventDefault();
     setDragOverId(null);
 
-    const categoryWebsiteId = e.dataTransfer.getData('text/plain'); // 카테고리에서 온 경우
-    const favoriteWebsiteId = e.dataTransfer.getData('websiteId');  // 즐겨찾기 내부 이동
+    let categoryWebsiteId = '';
+    let favoriteWebsiteId = '';
+    try {
+      categoryWebsiteId = e.dataTransfer.getData('text/plain');
+      favoriteWebsiteId = e.dataTransfer.getData('websiteId');
+    } catch (err) {
+      console.warn('Drop failed:', err);
+      return;
+    }
 
     const droppedId = favoriteWebsiteId || categoryWebsiteId;
     if (!droppedId) return;
@@ -616,7 +631,9 @@ export function FavoritesSectionNew({
   const freqMap = buildFrequencyMap(); // [sorting]
 
   const rootItems = sortByMode(
-    (favoritesData.items || []).filter((id) => id),
+    Array.isArray(favoritesData.items)
+      ? favoritesData.items.filter(Boolean)
+      : [],
     favoritesData.itemsSortMode || 'manual',
     freqMap,
     titleMap,
@@ -810,49 +827,52 @@ export function FavoritesSectionNew({
             📂 폴더
           </h3>
           <div className="grid gap-3 grid-cols-5">
-            {(favoritesData.folders || [])
-              .filter((f) => f && f.id)
-              .map((folder) => {
-                const folderItems = (folder?.items || []).filter((id) => id);
-                const sortedItems = sortByMode(
-                  folderItems,
-                  folder.sortMode || 'manual',
-                  freqMap,
-                  titleMap,
-                ); // [sorting]
-                return (
-                  <SimpleFolder
-                    key={folder.id}
-                    folder={folder}
-                    onRenameFolder={renameFolder}
-                    onDeleteFolder={deleteFolder}
-                    onDropWebsite={moveWebsiteToFolder}
-                    onDragOverFolder={(e) => handleDragOver(e, folder.id)}
-                    onDragLeaveFolder={handleDragLeave}
-                    isDraggingOver={dragOverId === folder.id}
-                    onChangeSortMode={changeFolderSortMode} // [sorting]
-                  >
-                    {sortedItems.map((id) => (
-                      <SimpleWebsite
-                        key={id}
-                        websiteId={id}
-                        onRemove={removeFromFavorites}
-                        onDragStart={(e) => handleDragStart(e, id, folder.id)}
-                        onDragOver={(e) => handleDragOver(e, id)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, id)}
-                        isDraggingOver={dragOverId === id}
-                      />
-                    ))}
+            {Array.isArray(favoritesData.folders) &&
+              favoritesData.folders
+                .filter(Boolean)
+                .map((folder) => {
+                  const folderItems = Array.isArray(folder?.items)
+                    ? folder.items.filter(Boolean)
+                    : [];
+                  const sortedItems = sortByMode(
+                    folderItems,
+                    folder.sortMode || 'manual',
+                    freqMap,
+                    titleMap,
+                  ); // [sorting]
+                  return (
+                    <SimpleFolder
+                      key={folder.id}
+                      folder={folder}
+                      onRenameFolder={renameFolder}
+                      onDeleteFolder={deleteFolder}
+                      onDropWebsite={moveWebsiteToFolder}
+                      onDragOverFolder={(e) => handleDragOver(e, folder.id)}
+                      onDragLeaveFolder={handleDragLeave}
+                      isDraggingOver={dragOverId === folder.id}
+                      onChangeSortMode={changeFolderSortMode} // [sorting]
+                    >
+                      {sortedItems.map((id) => (
+                        <SimpleWebsite
+                          key={id}
+                          websiteId={id}
+                          onRemove={removeFromFavorites}
+                          onDragStart={(e) => handleDragStart(e, id, folder.id)}
+                          onDragOver={(e) => handleDragOver(e, id)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, id)}
+                          isDraggingOver={dragOverId === id}
+                        />
+                      ))}
 
-                    {sortedItems.length === 0 && (
-                      <p className="text-xs text-gray-500 italic dark:text-gray-400">
-                        폴더가 비어있습니다
-                      </p>
-                    )}
-                  </SimpleFolder>
-                );
-              })}
+                      {sortedItems.length === 0 && (
+                        <p className="text-xs text-gray-500 italic dark:text-gray-400">
+                          폴더가 비어있습니다
+                        </p>
+                      )}
+                    </SimpleFolder>
+                  );
+                })}
           </div>
         </div>
       </div>
