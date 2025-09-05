@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
-import { getPost, deletePost, Post } from "../libs/posts.repo";
+import { getPost, deletePost, Post, increaseView } from "../libs/posts.repo";
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -14,7 +14,12 @@ export default function PostDetail() {
 
   useEffect(() => {
     if (id) {
-      getPost(id).then(setPost);
+      getPost(id).then((p) => {
+        if (p) {
+          setPost({ ...p, views: (p.views || 0) + 1 });
+          increaseView(p.id);
+        }
+      });
     }
   }, [id]);
 
@@ -44,11 +49,18 @@ export default function PostDetail() {
 
   if (!post) return <div className="p-4">Loading...</div>;
 
+  const createdAt = post.createdAt?.toDate
+    ? post.createdAt.toDate()
+    : new Date(post.createdAt);
+
   return (
     <div className="max-w-2xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-2">{post.title}</h1>
-      <div className="text-sm text-gray-500 mb-4">
-        {post.authorName}
+      <div className="text-sm text-gray-500 mb-4 flex justify-between">
+        <span>{post.authorName}</span>
+        <span>
+          {createdAt.toLocaleDateString()} | 조회 {post.views ?? 0}
+        </span>
       </div>
       <div className="whitespace-pre-wrap mb-4">{post.content}</div>
       {(isOwner || isAdmin) && (
