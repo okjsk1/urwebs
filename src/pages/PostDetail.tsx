@@ -88,15 +88,17 @@ export default function PostDetail() {
   return (
     <BoardLayout board={post.board} canWrite={canWrite}>
       <h1 className="text-2xl font-bold mb-2">{post.title}</h1>
-      <div className="text-sm text-gray-500 mb-4 flex justify-between">
+      <div className="text-sm text-gray-500 mb-4 flex flex-wrap gap-2 justify-between">
         <span>{post.authorName}</span>
         <span>
           {createdAt.toLocaleDateString()} | 조회 {post.views ?? 0}
         </span>
       </div>
-      <div className="whitespace-pre-wrap py-8 border-t border-b mb-4">{post.content}</div>
+      <div className="whitespace-pre-wrap p-6 border rounded mb-4">
+        {post.content}
+      </div>
       {(isOwner || isAdmin) && (
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-8">
           <button
             className="px-3 py-1 border"
             onClick={() => navigate(`/write?board=${post.board}&id=${post.id}`)}
@@ -108,15 +110,7 @@ export default function PostDetail() {
           </button>
         </div>
       )}
-      <div className="mb-8">
-        <button
-          className="px-3 py-1 border"
-          onClick={() => navigate(`/${post.board}`)}
-        >
-          목록으로
-        </button>
-      </div>
-      <div className="mt-8">
+      <section className="mt-8">
         <h2 className="text-lg font-semibold mb-2">댓글</h2>
         {comments.map((c) => (
           <div key={c.id} className="border-t py-2">
@@ -137,6 +131,14 @@ export default function PostDetail() {
           onClick={addComment}
         >
           댓글 달기
+        </button>
+      </section>
+      <div className="mt-8">
+        <button
+          className="px-4 py-2 border rounded"
+          onClick={() => navigate(`/${post.board}`)}
+        >
+          목록으로
         </button>
       </div>
     </BoardLayout>

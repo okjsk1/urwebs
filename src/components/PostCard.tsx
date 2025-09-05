@@ -12,12 +12,12 @@ export default function PostCard({ post, index }: Props) {
     : new Date(post.createdAt);
   const isNotice = post.pinned;
   return (
-    <div className="border-b py-3">
-      <Link to={`/post/${post.id}`} className="font-medium block truncate">
+    <div className="border rounded p-4 mb-2">
+      <Link to={`/post/${post.id}`} className="block truncate text-lg font-semibold">
         {isNotice && <span className="text-red-500 mr-1">[공지]</span>}
         {post.title}
       </Link>
-      <div className="text-xs text-gray-500 mt-1 flex gap-2">
+      <div className="mt-1 text-sm text-gray-500 flex flex-wrap gap-2">
         <span>{isNotice ? "공지" : `#${index}`}</span>
         <span>{post.authorName}</span>
         <span>{date.toLocaleDateString()}</span>
