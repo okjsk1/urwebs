@@ -2,13 +2,55 @@ import { FavoritesData } from "../types";
 
 // 건축 샘플 즐겨찾기 프리셋
 export const ARCHITECTURE_STARTER: FavoritesData = {
-  items: ["archi-home", "archi-news"],
+  items: [],
   folders: [
-    { id: "design-ref", name: "디자인 레퍼런스", items: [] },
-    { id: "contest", name: "공모전", items: [] },
-    { id: "bim", name: "BIM/모델링", items: [] },
-    { id: "law", name: "법규/행정", items: [] },
-    { id: "tools", name: "툴/유틸리티", items: [] },
+    {
+      id: "design-ref",
+      name: "디자인 레퍼런스",
+      items: [
+        "1", // archdaily
+        "2", // dezeen
+        "60", // pinterest
+        "3", // wallpaper
+      ],
+    },
+    {
+      id: "contest",
+      name: "공모전",
+      items: [
+        // "uinz", // 데이터에 없음
+        "KR-D-001", // vmspace
+        // "zipggumigi", // 데이터에 없음
+      ],
+    },
+    {
+      id: "bim",
+      name: "BIM / 모델링",
+      items: [
+        // "autodesk", // 데이터에 없음
+        // "sketchup", // 데이터에 없음
+        // "rhino", // 데이터에 없음
+        // "enscape", // 데이터에 없음
+      ],
+    },
+    {
+      id: "law",
+      name: "법규/행정",
+      items: [
+        // "mois", // 데이터에 없음
+        // "lawgo", // 데이터에 없음
+        // "klri", // 데이터에 없음
+      ],
+    },
+    {
+      id: "tools",
+      name: "툴/유틸리티",
+      items: [
+        "301", // google
+        "302", // naver
+        "KR-MAP-001", // kakaoMap
+      ],
+    },
   ],
   widgets: [
     {
@@ -27,14 +69,14 @@ export const ARCHITECTURE_STARTER: FavoritesData = {
     },
     {
       id: "widget-dday",
-      type: "dday" as any,
+      type: "dday",
       title: "D-day",
       position: { x: 4, y: 0 },
       size: { width: 2, height: 2 },
     },
     {
       id: "widget-news",
-      type: "news" as any,
+      type: "news",
       title: "뉴스",
       position: { x: 0, y: 2 },
       size: { width: 4, height: 2 },
