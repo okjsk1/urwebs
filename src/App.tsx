@@ -84,26 +84,33 @@ export default function App() {
       setUser(currentUser);
 
       if (currentUser) {
-        const userFavoritesRef = doc(db, "favorites", currentUser.uid);
-        const docSnap = await getDoc(userFavoritesRef);
+        const userDocRef = doc(db, "users", currentUser.uid);
+        const docSnap = await getDoc(userDocRef);
 
         if (docSnap.exists()) {
-          setFavoritesData(docSnap.data() as FavoritesData);
+          const data = docSnap.data() as {
+            favoritesData?: FavoritesData;
+            customSites?: CustomSite[];
+          };
+          const favData =
+            data.favoritesData || { items: [], folders: [], widgets: [] };
+          const sites = data.customSites || [];
+          setFavoritesData(favData);
+          setCustomSites(sites);
+          localStorage.setItem(LS_KEYS.FAV, JSON.stringify(favData));
+          localStorage.setItem(LS_KEYS.CUSTOM, JSON.stringify(sites));
         } else {
-          // 새 사용자면 localStorage → Firestore
-          const savedFavorites = localStorage.getItem(LS_KEYS.FAV);
-          if (savedFavorites) {
-            const parsedFavorites = JSON.parse(savedFavorites);
-            setFavoritesData(parsedFavorites);
-            await setDoc(userFavoritesRef, parsedFavorites, { merge: true });
-          }
+          const emptyFav = { items: [], folders: [], widgets: [] };
+          setFavoritesData(emptyFav);
+          setCustomSites([]);
+          localStorage.setItem(LS_KEYS.FAV, JSON.stringify(emptyFav));
+          localStorage.setItem(LS_KEYS.CUSTOM, JSON.stringify([]));
         }
       } else {
-        // 로그아웃 시 localStorage에서 로드
-        const savedFavorites = localStorage.getItem(LS_KEYS.FAV);
-        if (savedFavorites) {
-          setFavoritesData(JSON.parse(savedFavorites));
-        }
+        setFavoritesData({ items: [], folders: [], widgets: [] });
+        setCustomSites([]);
+        localStorage.removeItem(LS_KEYS.FAV);
+        localStorage.removeItem(LS_KEYS.CUSTOM);
       }
     });
 
@@ -111,22 +118,27 @@ export default function App() {
   }, []);
 
   // ---------------------------
-  // 2) 즐겨찾기 변경 시 Firestore & localStorage 저장
+  // 2) 즐겨찾기/커스텀 사이트 변경 시 Firestore & localStorage 저장
   // ---------------------------
   useEffect(() => {
     if (user) {
-      const userFavoritesRef = doc(db, "favorites", user.uid);
-      setDoc(userFavoritesRef, favoritesData, { merge: true }).catch((e) => {
-        console.error("Failed to save favorites to Firestore:", e);
+      const userDocRef = doc(db, "users", user.uid);
+      setDoc(
+        userDocRef,
+        { favoritesData, customSites },
+        { merge: true }
+      ).catch((e) => {
+        console.error("Failed to save user data to Firestore:", e);
       });
     }
 
     try {
       localStorage.setItem(LS_KEYS.FAV, JSON.stringify(favoritesData));
+      localStorage.setItem(LS_KEYS.CUSTOM, JSON.stringify(customSites));
     } catch (e) {
-      console.error("Failed to save favorites data to localStorage", e);
+      console.error("Failed to save user data to localStorage", e);
     }
-  }, [favoritesData, user]);
+  }, [favoritesData, customSites, user]);
 
   // ---------------------------
   // 다크모드 토글
@@ -150,15 +162,6 @@ export default function App() {
   });
 
   useEffect(() => {
-    const savedCustomSites = localStorage.getItem(LS_KEYS.CUSTOM);
-    if (savedCustomSites) {
-      try {
-        setCustomSites(JSON.parse(savedCustomSites));
-      } catch (e) {
-        console.error("Failed to parse custom sites from localStorage:", e);
-      }
-    }
-
     window.addEventListener("openAddSiteModal", handleOpenAddSiteModalRef.current);
     return () => {
       window.removeEventListener("openAddSiteModal", handleOpenAddSiteModalRef.current);
@@ -258,6 +261,8 @@ export default function App() {
   // 로그아웃
   const handleLogout = async () => {
     await signOut(auth);
+    localStorage.removeItem(LS_KEYS.FAV);
+    localStorage.removeItem(LS_KEYS.CUSTOM);
   };
 
   // ---------------------------
