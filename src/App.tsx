@@ -26,20 +26,13 @@ import "./App.css";
 
 
 // ---------------------------
-// urwebs 키 세팅 + 레거시 키 마이그레이션
+// urwebs 키 세팅
 // ---------------------------
 const LS_KEYS = {
   GUIDE: "urwebs-guide-seen",
   MODE: "urwebs-mode",
   FAV: "urwebs-favorites-v3",
   CUSTOM: "urwebs-custom-sites",
-};
-
-const LEGACY_KEYS = {
-  GUIDE: "sfu-guide-seen",
-  MODE: "sfu-mode",
-  FAV: "sfu-favorites-v3",
-  CUSTOM: "sfu-custom-sites",
 };
 
 export default function App() {
@@ -67,8 +60,7 @@ export default function App() {
 
   // 유저 가이드 노출 여부
   const [showUserGuide, setShowUserGuide] = useState(() => {
-    const hasSeenGuide =
-      localStorage.getItem(LS_KEYS.GUIDE) ?? localStorage.getItem(LEGACY_KEYS.GUIDE);
+    const hasSeenGuide = localStorage.getItem(LS_KEYS.GUIDE);
     return !hasSeenGuide;
   });
 
@@ -77,7 +69,7 @@ export default function App() {
 
   // 다크모드 초기값
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem(LS_KEYS.MODE) ?? localStorage.getItem(LEGACY_KEYS.MODE);
+    const savedMode = localStorage.getItem(LS_KEYS.MODE);
     return savedMode === "dark";
   });
 
@@ -97,8 +89,7 @@ export default function App() {
           console.log("Firestore에서 즐겨찾기 불러오기 성공");
         } else {
           // 새 사용자면 localStorage → Firestore
-          const savedFavorites =
-            localStorage.getItem(LS_KEYS.FAV) ?? localStorage.getItem(LEGACY_KEYS.FAV);
+          const savedFavorites = localStorage.getItem(LS_KEYS.FAV);
           if (savedFavorites) {
             const parsedFavorites = JSON.parse(savedFavorites);
             setFavoritesData(parsedFavorites);
@@ -108,11 +99,10 @@ export default function App() {
         }
       } else {
         // 로그아웃 시 localStorage에서 로드
-        const savedFavorites =
-          localStorage.getItem(LS_KEYS.FAV) ?? localStorage.getItem(LEGACY_KEYS.FAV);
+        const savedFavorites = localStorage.getItem(LS_KEYS.FAV);
         if (savedFavorites) {
           setFavoritesData(JSON.parse(savedFavorites));
-          console.log("로그아웃 후 localStorage(urwebs/sfu)에서 즐겨찾기 불러오기");
+          console.log("로그아웃 후 localStorage에서 즐겨찾기 불러오기");
         }
       }
     });
@@ -160,8 +150,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    const savedCustomSites =
-      localStorage.getItem(LS_KEYS.CUSTOM) ?? localStorage.getItem(LEGACY_KEYS.CUSTOM);
+    const savedCustomSites = localStorage.getItem(LS_KEYS.CUSTOM);
     if (savedCustomSites) {
       try {
         setCustomSites(JSON.parse(savedCustomSites));

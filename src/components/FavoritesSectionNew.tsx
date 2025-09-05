@@ -44,9 +44,7 @@ function SimpleWebsite({
 
   if (!website) {
     try {
-      const saved =
-        localStorage.getItem('urwebs-custom-sites') ??
-        localStorage.getItem('sfu-custom-sites'); // 레거시 폴백
+      const saved = localStorage.getItem('urwebs-custom-sites');
       if (saved) {
         const customSites = JSON.parse(saved) as any[];
         website = customSites.find((w) => w.id === websiteId);
