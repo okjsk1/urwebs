@@ -69,21 +69,32 @@ export default function BoardList({ board }: Props) {
         onLogout={handleLogout}
         canWrite={canWrite}
       />
-      <div>
-        {posts.map((p) => (
-          <PostItem key={p.id} post={p} />
-        ))}
-        {lastDoc && (
-          <div className="text-center my-4">
-            <button
-              className="px-3 py-1 border"
-              onClick={() => load(false)}
-            >
-              더보기
-            </button>
-          </div>
-        )}
-      </div>
+      <table className="w-full table-fixed">
+        <thead>
+          <tr className="border-b text-center">
+            <th className="w-12">번호</th>
+            <th className="text-left">제목</th>
+            <th className="w-24">작성자</th>
+            <th className="w-32">날짜</th>
+            <th className="w-16">조회</th>
+          </tr>
+        </thead>
+        <tbody>
+          {posts.map((p, i) => (
+            <PostItem key={p.id} post={p} index={posts.length - i} />
+          ))}
+        </tbody>
+      </table>
+      {lastDoc && (
+        <div className="text-center my-4">
+          <button
+            className="px-3 py-1 border"
+            onClick={() => load(false)}
+          >
+            더보기
+          </button>
+        </div>
+      )}
     </div>
   );
 }

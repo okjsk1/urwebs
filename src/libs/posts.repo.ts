@@ -12,6 +12,7 @@ import {
   where,
   updateDoc,
   serverTimestamp,
+  increment,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -23,6 +24,7 @@ export interface Post {
   authorUid: string;
   authorName: string;
   pinned: boolean;
+  views: number;
   createdAt: any;
   updatedAt: any;
 }
@@ -64,9 +66,12 @@ export async function getPost(id: string) {
   return snap.exists() ? ({ id: snap.id, ...(snap.data() as any) } as Post) : null;
 }
 
-export async function createPost(data: Omit<Post, "id" | "createdAt" | "updatedAt">) {
+export async function createPost(
+  data: Omit<Post, "id" | "createdAt" | "updatedAt" | "views">
+) {
   const docRef = await addDoc(collection(db, "posts"), {
     ...data,
+    views: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -85,4 +90,8 @@ export async function updatePost(
 
 export async function deletePost(id: string) {
   await deleteDoc(doc(db, "posts", id));
+}
+
+export async function increaseView(id: string) {
+  await updateDoc(doc(db, "posts", id), { views: increment(1) });
 }

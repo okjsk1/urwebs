@@ -1,18 +1,27 @@
 import { Link } from "react-router-dom";
 import { Post } from "../libs/posts.repo";
 
-export default function PostItem({ post }: { post: Post }) {
+interface Props {
+  post: Post;
+  index: number;
+}
+
+export default function PostItem({ post, index }: Props) {
+  const date = post.createdAt?.toDate
+    ? post.createdAt.toDate()
+    : new Date(post.createdAt);
   return (
-    <div className="border-b p-2">
-      <Link to={`/post/${post.id}`} className="flex justify-between">
-        <div>
-          {post.pinned && <span className="text-red-500 mr-1">[공지]</span>}
-          <span>{post.title}</span>
-        </div>
-        <div className="text-sm text-gray-500">
-          {post.authorName}
-        </div>
-      </Link>
-    </div>
+    <tr className="border-b text-center">
+      <td className="py-2">{post.pinned ? "공지" : index}</td>
+      <td className="text-left">
+        {post.pinned && <span className="text-red-500 mr-1">[공지]</span>}
+        <Link to={`/post/${post.id}`} className="hover:underline">
+          {post.title}
+        </Link>
+      </td>
+      <td>{post.authorName}</td>
+      <td>{date.toLocaleDateString()}</td>
+      <td>{post.views ?? 0}</td>
+    </tr>
   );
 }
