@@ -10,6 +10,7 @@ vi.mock('firebase/firestore', () => ({
   orderBy: (field: string, direction: string) => ({ type: 'orderBy', field, direction }),
   limit: (n: number) => ({ type: 'limit', n }),
   startAfter: (last: any) => ({ type: 'startAfter', last }),
+  initializeFirestore: () => ({}),
   getDocs: async (q: any) => {
     let result = posts;
     const boardCond = q.conds.find((c: any) => c.type === 'where' && c.field === 'board');
