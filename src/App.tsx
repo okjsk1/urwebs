@@ -3,7 +3,7 @@ import { auth, db } from "./firebase";
 import React, { useState, useEffect, useRef } from "react";
 import type { User } from "firebase/auth";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, writeBatch } from "firebase/firestore";
 
 import { Header } from "./components/Header";
 import { LoginModal } from "./components/LoginModal";
@@ -42,6 +42,8 @@ const LS_KEYS = {
   ONBOARD: "urwebs-onboarding-v1",
 };
 
+const EMPTY_FAVORITES: FavoritesData = { items: [], folders: [], widgets: [] };
+
 export default function App() {
   // 모달들
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -49,6 +51,11 @@ export default function App() {
 
   // 로그인 유저
   const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Firestore 스냅샷 unsubscribe 및 저장 플래그
+  const userDataUnsubscribe = useRef<(() => void) | null>(null);
+  const skipSave = useRef(false);
 
   // 즐겨찾기/커스텀/표시 옵션
   const [favoritesData, setFavoritesData] = useState<FavoritesData>({
@@ -82,41 +89,64 @@ export default function App() {
   // 1) 로그인 상태 감지 + 초기 데이터 로드
   // ---------------------------
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      if (userDataUnsubscribe.current) {
+        userDataUnsubscribe.current();
+        userDataUnsubscribe.current = null;
+      }
+
       setUser(currentUser);
 
       if (currentUser) {
+        setAuthLoading(true);
         const userDocRef = doc(db, "users", currentUser.uid);
-        const docSnap = await getDoc(userDocRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data() as {
-            favoritesData?: FavoritesData;
-            customSites?: CustomSite[];
-          };
-          const favData =
-            data.favoritesData || { items: [], folders: [], widgets: [] };
-          const sites = data.customSites || [];
-          setFavoritesData(favData);
-          setCustomSites(sites);
-          localStorage.setItem(LS_KEYS.FAV, JSON.stringify(favData));
-          localStorage.setItem(LS_KEYS.CUSTOM, JSON.stringify(sites));
-        } else {
-          const emptyFav = { items: [], folders: [], widgets: [] };
-          setFavoritesData(emptyFav);
-          setCustomSites([]);
-          localStorage.setItem(LS_KEYS.FAV, JSON.stringify(emptyFav));
-          localStorage.setItem(LS_KEYS.CUSTOM, JSON.stringify([]));
-        }
+        userDataUnsubscribe.current = onSnapshot(
+          userDocRef,
+          (docSnap) => {
+            skipSave.current = true;
+            if (docSnap.exists()) {
+              const data = docSnap.data() as {
+                favoritesData?: FavoritesData;
+                customSites?: CustomSite[];
+              };
+              const favData = data.favoritesData || EMPTY_FAVORITES;
+              const sites = data.customSites || [];
+              setFavoritesData(favData);
+              setCustomSites(sites);
+              localStorage.setItem(LS_KEYS.FAV, JSON.stringify(favData));
+              localStorage.setItem(LS_KEYS.CUSTOM, JSON.stringify(sites));
+            } else {
+              setFavoritesData(EMPTY_FAVORITES);
+              setCustomSites([]);
+              localStorage.setItem(
+                LS_KEYS.FAV,
+                JSON.stringify(EMPTY_FAVORITES)
+              );
+              localStorage.setItem(LS_KEYS.CUSTOM, JSON.stringify([]));
+            }
+            setAuthLoading(false);
+          },
+          (error) => {
+            console.error("Failed to fetch user data from Firestore:", error);
+            toast.error("사용자 데이터를 불러오지 못했습니다.");
+            setFavoritesData(EMPTY_FAVORITES);
+            setCustomSites([]);
+            setAuthLoading(false);
+          }
+        );
       } else {
-        setFavoritesData({ items: [], folders: [], widgets: [] });
+        setFavoritesData(EMPTY_FAVORITES);
         setCustomSites([]);
         localStorage.removeItem(LS_KEYS.FAV);
         localStorage.removeItem(LS_KEYS.CUSTOM);
+        setAuthLoading(false);
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      if (userDataUnsubscribe.current) userDataUnsubscribe.current();
+    };
   }, []);
 
   // ---------------------------
@@ -124,14 +154,17 @@ export default function App() {
   // ---------------------------
   useEffect(() => {
     if (user) {
-      const userDocRef = doc(db, "users", user.uid);
-      setDoc(
-        userDocRef,
-        { favoritesData, customSites },
-        { merge: true }
-      ).catch((e) => {
-        console.error("Failed to save user data to Firestore:", e);
-      });
+      if (skipSave.current) {
+        skipSave.current = false;
+      } else {
+        const batch = writeBatch(db);
+        const userDocRef = doc(db, "users", user.uid);
+        batch.set(userDocRef, { favoritesData, customSites }, { merge: true });
+        batch.commit().catch((e) => {
+          console.error("Failed to save user data to Firestore:", e);
+          toast.error("사용자 데이터를 저장하지 못했습니다.");
+        });
+      }
     }
 
     try {
@@ -263,9 +296,21 @@ export default function App() {
   // 로그아웃
   const handleLogout = async () => {
     await signOut(auth);
+    setFavoritesData(EMPTY_FAVORITES);
+    setCustomSites([]);
     localStorage.removeItem(LS_KEYS.FAV);
     localStorage.removeItem(LS_KEYS.CUSTOM);
+    sessionStorage.removeItem(LS_KEYS.FAV);
+    sessionStorage.removeItem(LS_KEYS.CUSTOM);
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-transparent" />
+      </div>
+    );
+  }
 
   // ---------------------------
   // 목록 구성

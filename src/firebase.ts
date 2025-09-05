@@ -3,7 +3,12 @@
 // Core
 import { initializeApp, getApp, getApps } from "firebase/app";
 // Auth
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  setPersistence,
+  browserLocalPersistence,
+} from "firebase/auth";
 // Firestore
 import { initializeFirestore } from "firebase/firestore";
 // (optional) Analytics
@@ -31,6 +36,11 @@ const db = initializeFirestore(app, {
 // Auth
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+
+// 세션 유지: 브라우저 재시작 후에도 로그인 상태 복원
+setPersistence(auth, browserLocalPersistence).catch(() => {
+  /* ignore */
+});
 
 // (optional) Analytics - only in browser
 let analytics = null;
