@@ -29,11 +29,15 @@ function mergeWidgets(a: Widget[] = [], b: Widget[] = []): Widget[] {
   return Array.from(map.values());
 }
 
-export function applyPreset(current: FavoritesData, preset: FavoritesData): FavoritesData {
+export function applyPreset(
+  current: FavoritesData | null | undefined,
+  preset: FavoritesData
+): FavoritesData {
+  const base: FavoritesData = current || { items: [], folders: [], widgets: [] };
   return {
-    items: mergeIds(current.items, preset.items),
-    folders: mergeFolders(current.folders, preset.folders),
-    widgets: mergeWidgets(current.widgets, preset.widgets),
-    itemsSortMode: current.itemsSortMode,
+    items: mergeIds(base.items, preset.items),
+    folders: mergeFolders(base.folders, preset.folders),
+    widgets: mergeWidgets(base.widgets, preset.widgets),
+    itemsSortMode: base.itemsSortMode,
   };
 }

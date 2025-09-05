@@ -29,6 +29,8 @@ import "./App.css";
 import { applyPreset } from "./utils/applyPreset";
 import { ARCHITECTURE_STARTER } from "./presets/architecture";
 import { toggleFavorite as toggleFavoriteData } from "./utils/favorites";
+import { parseFavoritesData, parseCustomSites } from "./utils/validation";
+import { Skeleton } from "./components/ui/skeleton";
 
 
 
@@ -106,11 +108,11 @@ export default function App() {
             skipSave.current = true;
             if (docSnap.exists()) {
               const data = docSnap.data() as {
-                favoritesData?: FavoritesData;
-                customSites?: CustomSite[];
+                favoritesData?: unknown;
+                customSites?: unknown;
               };
-              const favData = data.favoritesData || EMPTY_FAVORITES;
-              const sites = data.customSites || [];
+              const favData = parseFavoritesData(data.favoritesData);
+              const sites = parseCustomSites(data.customSites);
               setFavoritesData(favData);
               setCustomSites(sites);
               localStorage.setItem(LS_KEYS.FAV, JSON.stringify(favData));
@@ -306,8 +308,10 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-transparent" />
+      <div className="p-4 space-y-4" aria-label="로딩">
+        <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
       </div>
     );
   }
@@ -342,7 +346,13 @@ export default function App() {
   // 렌더
   // ---------------------------
   return (
-    <ErrorBoundary>
+    <ErrorBoundary
+      fallback={
+        <div className="p-4 text-center" role="alert">
+          문제가 발생했습니다. 잠시 후 다시 시도해주세요.
+        </div>
+      }
+    >
       <>
       <Header
         onContactClick={() => setIsContactModalOpen(true)}
