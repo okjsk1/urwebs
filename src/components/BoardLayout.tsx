@@ -13,7 +13,7 @@ export default function BoardLayout({ board, canWrite, children }: BoardLayoutPr
   return (
     <div className="max-w-2xl mx-auto">
       <header className="flex justify-between items-center p-4 border-b">
-        <h1 className="text-xl font-bold">{title}</h1>
+        <h1 className="text-2xl font-bold">{title}</h1>
         {canWrite && (
           <button
             onClick={() => navigate(`/write?board=${board}`)}
