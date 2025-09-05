@@ -18,10 +18,13 @@ import { Footer } from "./components/Footer";
 import { AdBanner } from "./components/AdBanner";
 import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
+import { MidBanner } from "./components/MidBanner";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
 import { FavoritesData, CustomSite, Website } from "./types";
 import "./App.css";
+import { applyPreset } from "./utils/applyPreset";
+import { ARCHITECTURE_STARTER } from "./presets/architecture";
 
 
 
@@ -354,6 +357,18 @@ export default function App() {
           }}
         >
           <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
+          {/* // [MidBanner] */}
+          <MidBanner
+            onApplyPreset={() =>
+              setFavoritesData(applyPreset(favoritesData, ARCHITECTURE_STARTER))
+            }
+            onOpenAddSite={() =>
+              window.dispatchEvent(new CustomEvent('openAddSiteModal'))
+            }
+            onOpenHomepageGuide={() =>
+              alert('브라우저 설정에서 시작페이지를 urwebs로 설정하세요.')
+            }
+          />
 
           <FavoritesSectionNew
             favoritesData={favoritesData}
