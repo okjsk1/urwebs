@@ -9,7 +9,6 @@ import { Header } from "./components/Header";
 import { UserGuide } from "./components/UserGuide";
 import { LoginModal } from "./components/LoginModal";
 import { SignupModal } from "./components/SignupModal";
-// (삭제) import { GoogleAuthModal } from "./components/GoogleAuthModal";
 import { FloatingContact } from "./components/FloatingContact";
 import { FavoritesSectionNew } from "./components/FavoritesSectionNew";
 import { CategoryCard } from "./components/CategoryCard";
@@ -39,7 +38,6 @@ export default function App() {
   // 모달들
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
-  // (삭제) const [isGoogleAuthModalOpen, setIsGoogleAuthModalOpen] = useState(false);
 
   // 로그인 유저
   const [user, setUser] = useState<User | null>(null);
@@ -86,7 +84,6 @@ export default function App() {
 
         if (docSnap.exists()) {
           setFavoritesData(docSnap.data() as FavoritesData);
-          console.log("Firestore에서 즐겨찾기 불러오기 성공");
         } else {
           // 새 사용자면 localStorage → Firestore
           const savedFavorites = localStorage.getItem(LS_KEYS.FAV);
@@ -94,7 +91,6 @@ export default function App() {
             const parsedFavorites = JSON.parse(savedFavorites);
             setFavoritesData(parsedFavorites);
             await setDoc(userFavoritesRef, parsedFavorites, { merge: true });
-            console.log("localStorage 데이터를 Firestore에 저장 성공");
           }
         }
       } else {
@@ -102,7 +98,6 @@ export default function App() {
         const savedFavorites = localStorage.getItem(LS_KEYS.FAV);
         if (savedFavorites) {
           setFavoritesData(JSON.parse(savedFavorites));
-          console.log("로그아웃 후 localStorage에서 즐겨찾기 불러오기");
         }
       }
     });
@@ -236,7 +231,7 @@ export default function App() {
   const handleHomepageClick = () => {
     try {
       if ((window as any).chrome) {
-        console.log("크롬에서는 설정 > 시작 그룹에서 직접 설정해주세요.");
+        // 크롬에서는 설정을 수동으로 안내
       } else {
         (window as any).home();
       }
@@ -252,7 +247,6 @@ export default function App() {
   // 로그아웃
   const handleLogout = async () => {
     await signOut(auth);
-    console.log("로그아웃 성공");
   };
 
   // ---------------------------
@@ -332,16 +326,6 @@ export default function App() {
         />
       )}
 
-      {/* (삭제) 구글 로그인 모달
-      {isGoogleAuthModalOpen && (
-        <GoogleAuthModal
-          isOpen={isGoogleAuthModalOpen}
-          onClose={() => setIsGoogleAuthModalOpen(false)}
-          onSuccess={() => {
-            console.log("로그인 성공!");
-          }}
-        />
-      )} */}
 
       {currentView === "home" && (
         <div
