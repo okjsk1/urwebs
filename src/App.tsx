@@ -19,6 +19,7 @@ import { AdBanner } from "./components/AdBanner";
 import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
 import { MidBanner } from "./components/MidBanner";
+import { TopList } from "./components/TopList";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
 import { FavoritesData, CustomSite, Website } from "./types";
@@ -202,6 +203,12 @@ export default function App() {
     }
 
     setFavoritesData(newData);
+  };
+
+  const handleAddFav = (id: string) => {
+    setFavoritesData((prev) =>
+      applyPreset(prev, { items: [id], folders: [], widgets: [] })
+    );
   };
 
   const addCustomSite = (site: CustomSite, selectedFolderId: string) => {
@@ -437,9 +444,12 @@ export default function App() {
               ))}
             </div>
 
-            <div className="w-24 flex flex-col gap-4 sm:hidden">
-              <AdBanner text="광고3" />
-              <AdBanner text="광고4" />
+            {/* // [TopList] */}
+            <div className="w-64 hidden xl:block">
+              <div className="sticky top-6 space-y-4">
+                <TopList mode="mine" onAddFavorite={handleAddFav} />
+                <TopList mode="global" onAddFavorite={handleAddFav} />
+              </div>
             </div>
           </div>
 
