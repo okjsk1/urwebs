@@ -1,14 +1,15 @@
-import { SortMode } from "../types";
+// src/utils/sorters.ts
+export type SortMode = "manual" | "alpha" | "freq";
 
 export function sortByMode(
   ids: string[],
-  mode: SortMode = "manual",
+  mode: SortMode,
   freqMap: Record<string, number> = {},
   titleMap: Record<string, string> = {}
 ): string[] {
   if (mode === "alpha") {
     return [...ids].sort((a, b) =>
-      (titleMap[a] || "").localeCompare(titleMap[b] || "")
+      (titleMap[a] || "").localeCompare(titleMap[b] || "", "ko")
     );
   }
   if (mode === "freq") {
@@ -16,3 +17,4 @@ export function sortByMode(
   }
   return ids;
 }
+

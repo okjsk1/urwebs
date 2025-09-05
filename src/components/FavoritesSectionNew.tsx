@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { FavoritesData, FavoriteFolder, Widget } from '../types';
+import React, { useState, useRef, useMemo } from 'react';
+import { FavoritesData, FavoriteFolder, Widget, SortMode } from '../types';
 import { websites } from '../data/websites';
 import { WeatherWidget } from './widgets/WeatherWidget';
 import { MemoWidget } from './widgets/MemoWidget';
@@ -9,6 +9,8 @@ import { DdayWidget } from './widgets/DdayWidget';
 import { CalculatorWidget } from './widgets/CalculatorWidget';
 import { BookmarkWidget } from './widgets/BookmarkWidget';
 import { NewsWidget } from './widgets/NewsWidget';
+import { trackVisit, buildFrequencyMap } from '../utils/visitTrack';
+import { sortByMode } from '../utils/sorters';
 
 interface FavoritesSectionProps {
   favoritesData: FavoritesData;
@@ -85,6 +87,7 @@ function SimpleWebsite({
           rel="noopener noreferrer"
           className="flex-1 text-xs font-medium text-gray-800 hover:text-blue-600 transition-colors truncate dark:text-gray-200 dark:hover:text-blue-400"
           title={website.title}
+          onClick={() => trackVisit(website.id)}
         >
           {website.title}
         </a>
@@ -110,6 +113,7 @@ interface SimpleFolderProps {
   onDragOverFolder: (e: React.DragEvent) => void;
   onDragLeaveFolder: (e: React.DragEvent) => void;
   isDraggingOver?: boolean;
+  onChangeSortMode: (folderId: string, mode: SortMode) => void; // [sorting]
   children: React.ReactNode;
 }
 
@@ -121,6 +125,7 @@ function SimpleFolder({
   onDragOverFolder,
   onDragLeaveFolder,
   isDraggingOver,
+  onChangeSortMode, // [sorting]
   children,
 }: SimpleFolderProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -191,6 +196,22 @@ function SimpleFolder({
             {folder.name}
           </h3>
         )}
+        {/* [sorting] */}
+        <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-200">
+          정렬:
+          <select
+            value={folder.sortMode || 'manual'}
+            onChange={(e) =>
+              onChangeSortMode(folder.id, e.target.value as SortMode)
+            }
+            className="border rounded px-1 py-0.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            aria-label="정렬 모드 선택"
+          >
+            <option value="manual">수동</option>
+            <option value="alpha">이름순</option>
+            <option value="freq">접속순</option>
+          </select>
+        </label>
 
         <button
           onClick={() => onDeleteFolder(folder.id)}
@@ -562,6 +583,45 @@ export function FavoritesSectionNew({
     }
   };
 
+  const changeItemsSortMode = (mode: SortMode) => {
+    onUpdateFavorites({ ...favoritesData, itemsSortMode: mode });
+  };
+
+  const changeFolderSortMode = (folderId: string, mode: SortMode) => {
+    const newFolders = (favoritesData.folders || []).map((f) =>
+      f.id === folderId ? { ...f, sortMode: mode } : f
+    );
+    onUpdateFavorites({ ...favoritesData, folders: newFolders });
+  };
+
+  const titleMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    websites.forEach((w) => {
+      map[w.id] = w.title;
+    });
+    try {
+      const saved = localStorage.getItem('urwebs-custom-sites');
+      if (saved) {
+        const customSites = JSON.parse(saved) as any[];
+        customSites.forEach((w) => {
+          if (w && w.id) map[w.id] = w.title;
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to parse custom sites:', e);
+    }
+    return map;
+  }, []);
+
+  const freqMap = buildFrequencyMap(); // [sorting]
+
+  const rootItems = sortByMode(
+    (favoritesData.items || []).filter((id) => id),
+    favoritesData.itemsSortMode || 'manual',
+    freqMap,
+    titleMap,
+  ); // [sorting]
+
   const handleGuideShow = () => {
     if (onShowGuide) onShowGuide();
     else alert('가이드 기능이 준비 중입니다.');
@@ -708,24 +768,38 @@ export function FavoritesSectionNew({
       <div className="grid grid-cols-6 gap-6">
         {/* 즐겨찾기 리스트 */}
         <div className="col-span-1 space-y-3">
-          <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
-            📌 즐겨찾기
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
+              📌 즐겨찾기
+            </h3>
+            {/* [sorting] */}
+            <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-200">
+              정렬:
+              <select
+                value={favoritesData.itemsSortMode || 'manual'}
+                onChange={(e) => changeItemsSortMode(e.target.value as SortMode)}
+                className="border rounded px-1 py-0.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                aria-label="정렬 모드 선택"
+              >
+                <option value="manual">수동</option>
+                <option value="alpha">이름순</option>
+                <option value="freq">접속순</option>
+              </select>
+            </label>
+          </div>
           <div className="grid grid-cols-1 gap-2">
-            {(favoritesData.items || [])
-              .filter((id) => id)
-              .map((id) => (
-                <SimpleWebsite
-                  key={id}
-                  websiteId={id}
-                  onRemove={removeFromFavorites}
-                  onDragStart={(e) => handleDragStart(e, id)}
-                  onDragOver={(e) => handleDragOver(e, id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, id)}
-                  isDraggingOver={dragOverId === id}
-                />
-              ))}
+            {rootItems.map((id) => (
+              <SimpleWebsite
+                key={id}
+                websiteId={id}
+                onRemove={removeFromFavorites}
+                onDragStart={(e) => handleDragStart(e, id)}
+                onDragOver={(e) => handleDragOver(e, id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, id)}
+                isDraggingOver={dragOverId === id}
+              />
+            ))}
           </div>
         </div>
 
@@ -739,6 +813,12 @@ export function FavoritesSectionNew({
               .filter((f) => f && f.id)
               .map((folder) => {
                 const folderItems = (folder?.items || []).filter((id) => id);
+                const sortedItems = sortByMode(
+                  folderItems,
+                  folder.sortMode || 'manual',
+                  freqMap,
+                  titleMap,
+                ); // [sorting]
                 return (
                   <SimpleFolder
                     key={folder.id}
@@ -749,8 +829,9 @@ export function FavoritesSectionNew({
                     onDragOverFolder={(e) => handleDragOver(e, folder.id)}
                     onDragLeaveFolder={handleDragLeave}
                     isDraggingOver={dragOverId === folder.id}
+                    onChangeSortMode={changeFolderSortMode} // [sorting]
                   >
-                    {folderItems.map((id) => (
+                    {sortedItems.map((id) => (
                       <SimpleWebsite
                         key={id}
                         websiteId={id}
@@ -763,7 +844,7 @@ export function FavoritesSectionNew({
                       />
                     ))}
 
-                    {folderItems.length === 0 && (
+                    {sortedItems.length === 0 && (
                       <p className="text-xs text-gray-500 italic dark:text-gray-400">
                         폴더가 비어있습니다
                       </p>
