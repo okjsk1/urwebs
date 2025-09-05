@@ -11,6 +11,7 @@ import { BookmarkWidget } from './widgets/BookmarkWidget';
 import { NewsWidget } from './widgets/NewsWidget';
 import { trackVisit, buildFrequencyMap } from '../utils/visitTrack';
 import { sortByMode } from '../utils/sorters';
+import { toast } from 'sonner';
 
 interface FavoritesSectionProps {
   favoritesData: FavoritesData;
@@ -458,6 +459,7 @@ export function FavoritesSectionNew({
       }
 
       onUpdateFavorites(newData);
+      toast.success('즐겨찾기에 추가되었습니다.');
       setDraggedId(null);
       setDraggedFromFolderId(null);
       return;
@@ -562,16 +564,21 @@ export function FavoritesSectionNew({
   };
 
   const removeFromFavorites = (websiteId: string) => {
-    const newData = { ...favoritesData };
-    newData.items = (newData.items || []).filter((id) => id && id !== websiteId);
-    newData.folders = (newData.folders || [])
-      .filter((folder) => folder && folder.id)
-      .map((folder) => ({
-        ...folder,
-        items: (folder?.items || []).filter((id) => id && id !== websiteId),
-      }));
+    try {
+      const newData = { ...favoritesData };
+      newData.items = (newData.items || []).filter((id) => id && id !== websiteId);
+      newData.folders = (newData.folders || [])
+        .filter((folder) => folder && folder.id)
+        .map((folder) => ({
+          ...folder,
+          items: (folder?.items || []).filter((id) => id && id !== websiteId),
+        }));
 
-    onUpdateFavorites(newData);
+      onUpdateFavorites(newData);
+      toast.success('즐겨찾기에서 제거되었습니다.');
+    } catch (e) {
+      toast.error('즐겨찾기 제거에 실패했습니다.');
+    }
   };
 
   const renameFolder = (folderId: string, newName: string) => {

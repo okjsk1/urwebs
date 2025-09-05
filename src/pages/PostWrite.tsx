@@ -4,6 +4,7 @@ import { User, onAuthStateChanged, signInWithPopup } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, provider, db } from "../firebase";
 import { createPost, updatePost, getPost } from "../libs/posts.repo";
+import { toast } from "sonner";
 
 export default function PostWrite() {
   const navigate = useNavigate();
@@ -55,17 +56,23 @@ export default function PostWrite() {
       authorName: user.displayName || user.email || "",
       pinned: board === "notice" ? pinned : false,
     };
-    if (editId) {
-      await updatePost(editId, {
-        title,
-        content,
-        pinned: data.pinned,
-        board: data.board,
-      });
-      navigate(`/post/${editId}`);
-    } else {
-      const id = await createPost(data);
-      navigate(`/post/${id}`);
+    try {
+      if (editId) {
+        await updatePost(editId, {
+          title,
+          content,
+          pinned: data.pinned,
+          board: data.board,
+        });
+        toast.success("게시글이 수정되었습니다.");
+        navigate(`/post/${editId}`);
+      } else {
+        const id = await createPost(data);
+        toast.success("게시글이 작성되었습니다.");
+        navigate(`/post/${id}`);
+      }
+    } catch (e) {
+      toast.error("게시글 저장에 실패했습니다.");
     }
   };
 
