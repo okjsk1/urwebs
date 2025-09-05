@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { User, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
+import { User, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, provider, db } from "../firebase";
+import { auth, db } from "../firebase";
 import { listPosts, Post } from "../libs/posts.repo";
-import BoardHeader from "../components/BoardHeader";
+import BoardLayout from "../components/BoardLayout";
 import PostItem from "../components/PostItem";
+import PostCard from "../components/PostCard";
 
 interface Props {
   board: "notice" | "free";
@@ -51,50 +52,47 @@ export default function BoardList({ board }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board, search]);
 
-  const handleLogin = async () => {
-    await signInWithPopup(auth, provider);
-  };
-  const handleLogout = async () => {
-    await signOut(auth);
-  };
-
   return (
-    <div className="max-w-2xl mx-auto">
-      <BoardHeader
-        board={board}
-        search={search}
-        onSearch={setSearch}
-        user={user}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-        canWrite={canWrite}
-      />
-      <table className="w-full table-fixed">
-        <thead>
-          <tr className="border-b text-center">
-            <th className="w-12">번호</th>
-            <th className="text-left">제목</th>
-            <th className="w-24">작성자</th>
-            <th className="w-32">날짜</th>
-            <th className="w-16">조회</th>
-          </tr>
-        </thead>
-        <tbody>
-          {posts.map((p, i) => (
-            <PostItem key={p.id} post={p} index={posts.length - i} />
-          ))}
-        </tbody>
-      </table>
+    <BoardLayout board={board} canWrite={canWrite}>
+      <div className="mb-4">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="검색"
+          className="border px-2 py-1 w-full sm:w-64"
+        />
+      </div>
+      <div className="hidden sm:block">
+        <table className="w-full table-fixed">
+          <thead>
+            <tr className="border-b text-center">
+              <th className="w-12">번호</th>
+              <th className="text-left">제목</th>
+              <th className="w-24">작성자</th>
+              <th className="w-32">날짜</th>
+              <th className="w-16">조회</th>
+            </tr>
+          </thead>
+          <tbody>
+            {posts.map((p, i) => (
+              <PostItem key={p.id} post={p} index={posts.length - i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="sm:hidden">
+        {posts.map((p, i) => (
+          <PostCard key={p.id} post={p} index={posts.length - i} />
+        ))}
+      </div>
       {lastDoc && (
         <div className="text-center my-4">
-          <button
-            className="px-3 py-1 border"
-            onClick={() => load(false)}
-          >
+          <button className="px-3 py-1 border" onClick={() => load(false)}>
             더보기
           </button>
         </div>
       )}
-    </div>
+    </BoardLayout>
   );
 }
+

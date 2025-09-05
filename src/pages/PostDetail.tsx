@@ -4,6 +4,14 @@ import { User, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { getPost, deletePost, Post, increaseView } from "../libs/posts.repo";
+import BoardLayout from "../components/BoardLayout";
+
+interface Comment {
+  id: number;
+  author: string;
+  content: string;
+  createdAt: Date;
+}
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -11,6 +19,15 @@ export default function PostDetail() {
   const [post, setPost] = useState<Post | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [comments, setComments] = useState<Comment[]>([
+    {
+      id: 1,
+      author: "익명",
+      content: "첫 댓글입니다.",
+      createdAt: new Date(),
+    },
+  ]);
+  const [comment, setComment] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -38,6 +55,7 @@ export default function PostDetail() {
 
   const isOwner = user && post && post.authorUid === user.uid;
   const isAdmin = role === "admin";
+  const canWrite = !!user && post && (post.board === "free" || isAdmin);
 
   const handleDelete = async () => {
     if (!post) return;
@@ -47,6 +65,20 @@ export default function PostDetail() {
     }
   };
 
+  const addComment = () => {
+    if (!comment.trim()) return;
+    setComments([
+      ...comments,
+      {
+        id: Date.now(),
+        author: user?.displayName || "익명",
+        content: comment,
+        createdAt: new Date(),
+      },
+    ]);
+    setComment("");
+  };
+
   if (!post) return <div className="p-4">Loading...</div>;
 
   const createdAt = post.createdAt?.toDate
@@ -54,7 +86,7 @@ export default function PostDetail() {
     : new Date(post.createdAt);
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <BoardLayout board={post.board} canWrite={canWrite}>
       <h1 className="text-2xl font-bold mb-2">{post.title}</h1>
       <div className="text-sm text-gray-500 mb-4 flex justify-between">
         <span>{post.authorName}</span>
@@ -62,9 +94,9 @@ export default function PostDetail() {
           {createdAt.toLocaleDateString()} | 조회 {post.views ?? 0}
         </span>
       </div>
-      <div className="whitespace-pre-wrap mb-4">{post.content}</div>
+      <div className="whitespace-pre-wrap py-8 border-t border-b mb-4">{post.content}</div>
       {(isOwner || isAdmin) && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-4">
           <button
             className="px-3 py-1 border"
             onClick={() => navigate(`/write?board=${post.board}&id=${post.id}`)}
@@ -76,6 +108,38 @@ export default function PostDetail() {
           </button>
         </div>
       )}
-    </div>
+      <div className="mb-8">
+        <button
+          className="px-3 py-1 border"
+          onClick={() => navigate(`/${post.board}`)}
+        >
+          목록으로
+        </button>
+      </div>
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold mb-2">댓글</h2>
+        {comments.map((c) => (
+          <div key={c.id} className="border-t py-2">
+            <div className="text-sm text-gray-500">
+              {c.author} | {c.createdAt.toLocaleDateString()}
+            </div>
+            <div>{c.content}</div>
+          </div>
+        ))}
+        <textarea
+          className="w-full border p-2 mt-4"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="댓글을 입력하세요"
+        />
+        <button
+          className="mt-2 px-3 py-1 bg-blue-500 text-white rounded"
+          onClick={addComment}
+        >
+          댓글 달기
+        </button>
+      </div>
+    </BoardLayout>
   );
 }
+

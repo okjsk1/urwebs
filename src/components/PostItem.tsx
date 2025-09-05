@@ -10,12 +10,13 @@ export default function PostItem({ post, index }: Props) {
   const date = post.createdAt?.toDate
     ? post.createdAt.toDate()
     : new Date(post.createdAt);
+  const isNotice = post.board === "notice" || post.pinned;
   return (
     <tr className="border-b text-center">
-      <td className="py-2">{post.pinned ? "공지" : index}</td>
+      <td className="py-2">{index}</td>
       <td className="text-left">
-        {post.pinned && <span className="text-red-500 mr-1">[공지]</span>}
-        <Link to={`/post/${post.id}`} className="hover:underline">
+        {isNotice && <span className="text-red-500 mr-1">[공지]</span>}
+        <Link to={`/post/${post.id}`} className="hover:underline block truncate">
           {post.title}
         </Link>
       </td>
@@ -25,3 +26,4 @@ export default function PostItem({ post, index }: Props) {
     </tr>
   );
 }
+
