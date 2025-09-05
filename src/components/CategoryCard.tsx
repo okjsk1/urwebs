@@ -23,17 +23,22 @@ export function CategoryCard({
   onToggleCategory,
   onToggleFavorite,
 }: CategoryCardProps) {
-  // 설명 보기가 활성화되어 있으면 전체, 아니면 4개만 표시 (확장 시 전체)
-  const displaySites = showDescriptions ? sites : (isExpanded ? sites : sites.slice(0, 4));
-  const hasMore = sites.length > 4;
+  // 설명 보기가 활성화되어 있으면 전체, 아니면 6개만 표시 (확장 시 전체)
+  const displaySites = showDescriptions ? sites : (isExpanded ? sites : sites.slice(0, 6));
+  const hasMore = sites.length > 6;
+
+  const listClasses =
+    isExpanded || showDescriptions
+      ? `${showDescriptions ? "max-h-80" : "max-h-56"} overflow-y-auto`
+      : "";
 
   return (
     <div
       className="urwebs-category-card flex flex-col gap-2 p-3 min-w-0"
       style={{
-        height: showDescriptions || isExpanded ? "auto" : "180px",
-        minHeight: "180px",
-        maxHeight: showDescriptions || isExpanded ? "500px" : "180px",
+        height: showDescriptions || isExpanded ? "auto" : "220px",
+        minHeight: "220px",
+        maxHeight: showDescriptions || isExpanded ? "500px" : "220px",
       }}
     >
       <div className="flex items-center gap-3 mb-1">
@@ -55,11 +60,7 @@ export function CategoryCard({
 
       {/* 사이트 목록 영역 */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div
-          className={`flex flex-col gap-0.5 ${
-            isExpanded || showDescriptions ? "max-h-80 overflow-y-auto" : ""
-          }`}
-        >
+        <div className={`flex flex-col gap-0.5 ${listClasses}`}>
           {sites.length === 0 ? (
             <div className="flex items-center justify-center flex-1 text-gray-500 text-xs">
               모든 사이트가 즐겨찾기에 추가됨
