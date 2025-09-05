@@ -28,6 +28,7 @@ import { FavoritesData, CustomSite, Website } from "./types";
 import "./App.css";
 import { applyPreset } from "./utils/applyPreset";
 import { ARCHITECTURE_STARTER } from "./presets/architecture";
+import { toggleFavorite as toggleFavoriteData } from "./utils/favorites";
 
 
 
@@ -186,23 +187,8 @@ export default function App() {
 
   const toggleFavorite = (websiteId: string) => {
     try {
-      const newData = { ...favoritesData };
-      newData.items = newData.items || [];
-      newData.folders = newData.folders || [];
-      newData.widgets = newData.widgets || [];
-
+      const newData = toggleFavoriteData(favoritesData, websiteId);
       const isCurrentlyFavorited = getAllFavoriteIds().includes(websiteId);
-
-      if (isCurrentlyFavorited) {
-        newData.items = newData.items.filter((id) => id !== websiteId);
-        newData.folders = newData.folders.map((folder) => ({
-          ...folder,
-          items: (folder?.items || []).filter((id) => id !== websiteId),
-        }));
-      } else {
-        newData.items = [...newData.items, websiteId];
-      }
-
       setFavoritesData(newData);
       toast.success(
         isCurrentlyFavorited
