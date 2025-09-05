@@ -1,4 +1,4 @@
-// src/firebase.js
+// Firebase initialization using environment variables
 
 // Core
 import { initializeApp, getApp, getApps } from "firebase/app";
@@ -9,15 +9,13 @@ import { initializeFirestore } from "firebase/firestore";
 // (선택) Analytics
 import { getAnalytics } from "firebase/analytics";
 
-// ★ 하드코딩 값 (Firebase 콘솔 > 프로젝트 설정에서 복사한 값)
 const firebaseConfig = {
-  apiKey: "AIzaSyAyd8HeADxA__ZcmrWB_84ZACUS7O9lXJs",
-  authDomain: "urwebs-3f562.firebaseapp.com",
-  projectId: "urwebs-3f562",
-  storageBucket: "urwebs-3f562.firebasestorage.app",
-  messagingSenderId: "1017628927752",
-  appId: "1:1017628927752:web:caf186d8ace8282810aebd",
-  measurementId: "G-BT50LLBYE2",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // 앱(중복 초기화 방지)
@@ -33,12 +31,14 @@ const db = initializeFirestore(app, {
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// Analytics (브라우저 환경에서만, 선택)
+// (optional) Analytics - only in browser
 let analytics = null;
 if (typeof window !== "undefined") {
   try {
     analytics = getAnalytics(app);
-  } catch {}
+  } catch {
+    // ignore
+  }
 }
 
 export { app, auth, provider, db, analytics };

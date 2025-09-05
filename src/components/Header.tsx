@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { User } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   onContactClick: () => void;
@@ -28,12 +29,13 @@ export function Header({
   onLogout,
   user,
 }: HeaderProps) {
+  const navigate = useNavigate();
   const handleNoticeClick = () => {
-    alert("공지사항 기능은 개발 중입니다.");
+    navigate("/notice");
   };
 
   const handleBoardClick = () => {
-    alert("자유게시판 기능은 개발 중입니다.");
+    navigate("/free");
   };
 
   return (
