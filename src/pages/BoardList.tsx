@@ -54,7 +54,7 @@ export default function BoardList({ board }: Props) {
 
   return (
     <BoardLayout board={board} canWrite={canWrite}>
-      <div className="mb-4">
+      <div className="mb-6">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -63,10 +63,10 @@ export default function BoardList({ board }: Props) {
         />
       </div>
       <div className="hidden sm:block">
-        <table className="w-full table-fixed">
-          <thead>
-            <tr className="border-b text-center">
-              <th className="w-12">번호</th>
+        <table className="w-full table-fixed border-t border-b">
+          <thead className="bg-gray-50">
+            <tr className="text-center">
+              <th className="w-12 py-2">번호</th>
               <th className="text-left">제목</th>
               <th className="w-24">작성자</th>
               <th className="w-32">날짜</th>
@@ -80,7 +80,7 @@ export default function BoardList({ board }: Props) {
           </tbody>
         </table>
       </div>
-      <div className="sm:hidden">
+      <div className="sm:hidden space-y-2">
         {posts.map((p, i) => (
           <PostCard key={p.id} post={p} index={posts.length - i} />
         ))}
