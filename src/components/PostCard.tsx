@@ -10,7 +10,7 @@ export default function PostCard({ post, index }: Props) {
   const date = post.createdAt?.toDate
     ? post.createdAt.toDate()
     : new Date(post.createdAt);
-  const isNotice = post.board === "notice" || post.pinned;
+  const isNotice = post.pinned;
   return (
     <div className="border-b py-3">
       <Link to={`/post/${post.id}`} className="font-medium block truncate">
@@ -18,7 +18,7 @@ export default function PostCard({ post, index }: Props) {
         {post.title}
       </Link>
       <div className="text-xs text-gray-500 mt-1 flex gap-2">
-        <span>#{index}</span>
+        <span>{isNotice ? "공지" : `#${index}`}</span>
         <span>{post.authorName}</span>
         <span>{date.toLocaleDateString()}</span>
         <span>조회 {post.views ?? 0}</span>
