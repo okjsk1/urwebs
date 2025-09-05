@@ -1,9 +1,14 @@
 // ⬇⬇ App.tsx 최상단 import 묶음에 추가
-import { auth, db } from "./firebase";
+import { auth } from "./firebase";
 import React, { useState, useEffect, useRef } from "react";
 import type { User } from "firebase/auth";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  pullUserState,
+  pushUserState,
+  mergeLocalAndCloud,
+  saveVersion,
+} from "./utils/sync";
 
 import { Header } from "./components/Header";
 import { LoginModal } from "./components/LoginModal";
@@ -85,24 +90,15 @@ export default function App() {
       setUser(currentUser);
 
       if (currentUser) {
-        const userFavoritesRef = doc(db, "favorites", currentUser.uid);
-        const docSnap = await getDoc(userFavoritesRef);
-
-        if (docSnap.exists()) {
-          setFavoritesData(docSnap.data() as FavoritesData);
-          console.log("Firestore에서 즐겨찾기 불러오기 성공");
-        } else {
-          // 새 사용자면 localStorage → Firestore
-          const savedFavorites = localStorage.getItem(LS_KEYS.FAV);
-          if (savedFavorites) {
-            const parsedFavorites = JSON.parse(savedFavorites);
-            setFavoritesData(parsedFavorites);
-            await setDoc(userFavoritesRef, parsedFavorites, { merge: true });
-            console.log("localStorage 데이터를 Firestore에 저장 성공");
-          }
-        }
+        const cloud = await pullUserState(currentUser.uid);
+        const saved = localStorage.getItem(LS_KEYS.FAV);
+        const local: FavoritesData = saved
+          ? { ...JSON.parse(saved), meta: { updatedAt: Date.now(), source: "local" } }
+          : { items: [], folders: [], widgets: [], meta: { updatedAt: 0, source: "local" } };
+        const merged = mergeLocalAndCloud(local, cloud);
+        setFavoritesData(merged);
+        await pushUserState(currentUser.uid, merged);
       } else {
-        // 로그아웃 시 localStorage에서 로드
         const savedFavorites = localStorage.getItem(LS_KEYS.FAV);
         if (savedFavorites) {
           setFavoritesData(JSON.parse(savedFavorites));
@@ -117,12 +113,20 @@ export default function App() {
   // ---------------------------
   // 2) 즐겨찾기 변경 시 Firestore & localStorage 저장
   // ---------------------------
+  const lastVersionRef = useRef(0);
+
   useEffect(() => {
     if (user) {
-      const userFavoritesRef = doc(db, "favorites", user.uid);
-      setDoc(userFavoritesRef, favoritesData, { merge: true }).catch((e) => {
+      pushUserState(user.uid, favoritesData).catch((e) => {
         console.error("Failed to save favorites to Firestore:", e);
       });
+      const now = Date.now();
+      if (now - lastVersionRef.current > 60_000) {
+        lastVersionRef.current = now;
+        saveVersion(user.uid, favoritesData, favoritesData.meta).catch((e) =>
+          console.error("Failed to save favorites version:", e)
+        );
+      }
     }
 
     try {

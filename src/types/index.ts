@@ -37,12 +37,18 @@ export interface FavoriteFolder {
   sortMode?: SortMode;
 }
 
+export interface FavoritesDataMeta {
+  updatedAt?: number;
+  source?: 'local' | 'cloud';
+}
+
 // 즐겨찾기 구조 확장
 export interface FavoritesData {
   items: string[];
   folders: FavoriteFolder[];
   widgets: Widget[];
   itemsSortMode?: SortMode;
+  meta?: FavoritesDataMeta;
 }
 
 // 사용자 추가 사이트
