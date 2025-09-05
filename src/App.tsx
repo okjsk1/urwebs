@@ -21,6 +21,7 @@ import { Onboarding } from "./components/Onboarding";
 import { RecommendTray } from "./components/RecommendTray";
 import { TopList } from "./components/TopList";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { toast } from "sonner";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
 import { FavoritesData, CustomSite, Website } from "./types";
@@ -184,30 +185,44 @@ export default function App() {
   };
 
   const toggleFavorite = (websiteId: string) => {
-    const newData = { ...favoritesData };
-    newData.items = newData.items || [];
-    newData.folders = newData.folders || [];
-    newData.widgets = newData.widgets || [];
+    try {
+      const newData = { ...favoritesData };
+      newData.items = newData.items || [];
+      newData.folders = newData.folders || [];
+      newData.widgets = newData.widgets || [];
 
-    const isCurrentlyFavorited = getAllFavoriteIds().includes(websiteId);
+      const isCurrentlyFavorited = getAllFavoriteIds().includes(websiteId);
 
-    if (isCurrentlyFavorited) {
-      newData.items = newData.items.filter((id) => id !== websiteId);
-      newData.folders = newData.folders.map((folder) => ({
-        ...folder,
-        items: (folder?.items || []).filter((id) => id !== websiteId),
-      }));
-    } else {
-      newData.items = [...newData.items, websiteId];
+      if (isCurrentlyFavorited) {
+        newData.items = newData.items.filter((id) => id !== websiteId);
+        newData.folders = newData.folders.map((folder) => ({
+          ...folder,
+          items: (folder?.items || []).filter((id) => id !== websiteId),
+        }));
+      } else {
+        newData.items = [...newData.items, websiteId];
+      }
+
+      setFavoritesData(newData);
+      toast.success(
+        isCurrentlyFavorited
+          ? "즐겨찾기에서 제거되었습니다."
+          : "즐겨찾기에 추가되었습니다."
+      );
+    } catch (e) {
+      toast.error("즐겨찾기 변경에 실패했습니다.");
     }
-
-    setFavoritesData(newData);
   };
 
   const handleAddFav = (id: string) => {
-    setFavoritesData((prev) =>
-      applyPreset(prev, { items: [id], folders: [], widgets: [] })
-    );
+    try {
+      setFavoritesData((prev) =>
+        applyPreset(prev, { items: [id], folders: [], widgets: [] })
+      );
+      toast.success("즐겨찾기에 추가되었습니다.");
+    } catch (e) {
+      toast.error("즐겨찾기 추가에 실패했습니다.");
+    }
   };
 
   const addCustomSite = (site: CustomSite, selectedFolderId: string) => {
@@ -230,6 +245,7 @@ export default function App() {
       newData.items = [...newData.items, site.id];
     }
     setFavoritesData(newData);
+    toast.success("커스텀 사이트가 추가되었습니다.");
   };
 
   const toggleCategory = (category: string) => {
@@ -388,7 +404,7 @@ export default function App() {
             showSampleImage={showSampleImage}
             onShowGuide={() => setShowOnboarding(true)}
             onSaveData={() => {
-              alert("설정이 저장되었습니다!");
+              toast.success("설정이 저장되었습니다!");
             }}
             // ⬇️ 로그인 요청 시 로그인 모달 열기
             onRequestLogin={() => setIsLoginModalOpen(true)}

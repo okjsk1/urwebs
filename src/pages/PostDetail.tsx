@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { getPost, deletePost, Post, increaseView } from "../libs/posts.repo";
 import BoardLayout from "../components/BoardLayout";
+import { toast } from "sonner";
 
 interface Comment {
   id: number;
@@ -60,8 +61,13 @@ export default function PostDetail() {
   const handleDelete = async () => {
     if (!post) return;
     if (confirm("삭제하시겠습니까?")) {
-      await deletePost(post.id);
-      navigate(`/${post.board}`);
+      try {
+        await deletePost(post.id);
+        toast.success("게시글이 삭제되었습니다.");
+        navigate(`/${post.board}`);
+      } catch (e) {
+        toast.error("게시글 삭제에 실패했습니다.");
+      }
     }
   };
 
@@ -77,6 +83,7 @@ export default function PostDetail() {
       },
     ]);
     setComment("");
+    toast.success("댓글이 등록되었습니다.");
   };
 
   if (!post) return <div className="p-4">Loading...</div>;
