@@ -171,7 +171,7 @@ function SimpleFolder({
       onDragStart={handleFolderDragStart}
       onDragOver={onDragOverFolder}
       onDragLeave={onDragLeaveFolder}
-      onDrop={onDrop}
+      onDrop={handleDrop}
     >
       <div className="controls flex items-center gap-2 mb-2">
         <span className="text-sm">📁</span>
