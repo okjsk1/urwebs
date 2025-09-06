@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
+const DESKTOP_WIDTH = 1280;
+
 type Arrow = "top" | "bottom" | "left" | "right";
 
 type StepDef = {
@@ -116,7 +118,7 @@ export function UserGuide({ onClose }: UserGuideProps) {
   const placeTooltip = (el: HTMLElement | null) => {
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const vw = window.innerWidth;
+    const vw = DESKTOP_WIDTH;
     const vh = window.innerHeight;
     const margin = 12;
     const w = 320; // 예상 카드 폭
@@ -298,7 +300,7 @@ export function UserGuide({ onClose }: UserGuideProps) {
           className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-4 max-w-sm"
           style={{
             top: window.scrollY + 100,
-            left: window.scrollX + (window.innerWidth - 320) / 2,
+            left: window.scrollX + (DESKTOP_WIDTH - 320) / 2,
             width: 320,
             zIndex: 10001,
           }}
