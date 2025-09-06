@@ -21,14 +21,11 @@ import { RecommendTray } from "./components/RecommendTray";
 import { TopList } from "./components/TopList";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { toast } from "sonner";
-import { StarterPackSection } from "./components/StarterPackSection";
-import { StarterPackPage } from "./components/StarterPackPage";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
 import { FavoritesData, CustomSite, Website } from "./types";
 import "./App.css";
 import { applyPreset } from "./utils/applyPreset";
-import { ARCHITECTURE_STARTER } from "./presets/architecture";
 import { toggleFavorite as toggleFavoriteData } from "./utils/favorites";
 import { parseFavoritesData, parseCustomSites } from "./utils/validation";
 import { Skeleton } from "./components/ui/skeleton";
@@ -79,9 +76,9 @@ export default function App() {
   });
 
   // 뷰
-  const [currentView, setCurrentView] = useState<
-    "home" | "startpage" | "starterpack"
-  >("home");
+  const [currentView, setCurrentView] = useState<"home" | "startpage">(
+    "home"
+  );
 
   // 다크모드 초기값
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -399,11 +396,6 @@ export default function App() {
           {/* // [Onboarding] */}
           {showOnboarding && (
             <Onboarding
-              onApplyPreset={() =>
-                setFavoritesData(
-                  applyPreset(favoritesData, ARCHITECTURE_STARTER)
-                )
-              }
               onOpenAddSite={() =>
                 window.dispatchEvent(new CustomEvent('openAddSiteModal'))
               }
@@ -413,10 +405,6 @@ export default function App() {
               onClose={() => setShowOnboarding(false)}
             />
           )}
-          {/* // [StarterPackSection] */}
-          <StarterPackSection
-            onViewAll={() => setCurrentView("starterpack")}
-          />
 
           {/* // [RecommendTray] */}
           <RecommendTray
@@ -509,10 +497,6 @@ export default function App() {
 
           <Footer />
         </div>
-      )}
-
-      {currentView === "starterpack" && (
-        <StarterPackPage onBack={() => setCurrentView("home")} />
       )}
 
       {currentView === "startpage" && (

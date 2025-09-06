@@ -1,25 +1,17 @@
 import React, { useEffect, useState } from 'react';
 
 interface OnboardingProps {
-  onApplyPreset: () => void;
   onOpenAddSite: () => void;
   onOpenHomepageGuide: () => void;
   onClose?: () => void;
 }
 
 export function Onboarding({
-  onApplyPreset,
   onOpenAddSite,
   onOpenHomepageGuide,
   onClose,
 }: OnboardingProps) {
   const steps = [
-    {
-      title: '샘플 즐겨찾기 담기',
-      description: '건축 스타터팩을 한 번에 담아보세요.',
-      action: onApplyPreset,
-      actionLabel: '샘플 담기',
-    },
     {
       title: '사이트 직접 추가',
       description: '원하는 사이트를 자유롭게 추가해보세요.',
