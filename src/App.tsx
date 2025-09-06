@@ -16,12 +16,13 @@ import { Footer } from "./components/Footer";
 import { AdBanner } from "./components/AdBanner";
 import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
-import { MidBanner } from "./components/MidBanner";
 import { Onboarding } from "./components/Onboarding";
 import { RecommendTray } from "./components/RecommendTray";
 import { TopList } from "./components/TopList";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { toast } from "sonner";
+import { StarterPackSection } from "./components/StarterPackSection";
+import { StarterPackPage } from "./components/StarterPackPage";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
 import { FavoritesData, CustomSite, Website } from "./types";
@@ -78,7 +79,9 @@ export default function App() {
   });
 
   // 뷰
-  const [currentView, setCurrentView] = useState<"home" | "startpage">("home");
+  const [currentView, setCurrentView] = useState<
+    "home" | "startpage" | "starterpack"
+  >("home");
 
   // 다크모드 초기값
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -410,17 +413,9 @@ export default function App() {
               onClose={() => setShowOnboarding(false)}
             />
           )}
-          {/* // [MidBanner] */}
-          <MidBanner
-            onApplyPreset={() =>
-              setFavoritesData(applyPreset(favoritesData, ARCHITECTURE_STARTER))
-            }
-            onOpenAddSite={() =>
-              window.dispatchEvent(new CustomEvent('openAddSiteModal'))
-            }
-            onOpenHomepageGuide={() =>
-              alert('브라우저 설정에서 시작페이지를 urwebs로 설정하세요.')
-            }
+          {/* // [StarterPackSection] */}
+          <StarterPackSection
+            onViewAll={() => setCurrentView("starterpack")}
           />
 
           {/* // [RecommendTray] */}
@@ -514,6 +509,10 @@ export default function App() {
 
           <Footer />
         </div>
+      )}
+
+      {currentView === "starterpack" && (
+        <StarterPackPage onBack={() => setCurrentView("home")} />
       )}
 
       {currentView === "startpage" && (
