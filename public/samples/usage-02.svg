@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <rect width="640" height="360" rx="16" fill="#f9fafb"/>
+  <text x="32" y="48" font-size="24" font-family="sans-serif" fill="#0f172a">모바일/데스크톱 활용 힌트</text>
+  <text x="32" y="80" font-size="16" font-family="sans-serif" fill="#334155">모바일엔 1열 카드, 데스크톱엔 3열 그리드</text>
+  <rect x="32" y="120" width="160" height="200" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <rect x="224" y="120" width="384" height="200" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+</svg>
