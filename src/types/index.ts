@@ -5,6 +5,10 @@ export interface Website {
   description: string;
   id: string;
   summary?: string; // 새로운 요약 필드
+  // 랭킹 계산을 위한 임시 지표
+  clicks?: number;
+  favorites?: number;
+  addedAt?: number;
 }
 
 export interface CategoryConfig {
