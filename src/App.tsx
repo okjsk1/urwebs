@@ -460,7 +460,7 @@ export default function App() {
             )}
 
             {/* 즐겨찾기 & 폴더: 즐겨찾기가 있을 때만 상단에 표시 */}
-            {uiMode === "collect" && hasFav && (
+            {hasFav && (
               <div className="my-4">
                 <FavoritesSectionNew
                   favoritesData={favoritesData}
@@ -523,7 +523,7 @@ export default function App() {
 
                   {/* 내용: FavoritesSectionNew를 그대로 삽입 (내부 스크롤) */}
                   <div className="max-h-[300px] overflow-auto p-4">
-                    {uiMode === "collect" && hasFav ? (
+                    {hasFav ? (
                       <FavoritesSectionNew
                         favoritesData={favoritesData}
                         onUpdateFavorites={setFavoritesData}
