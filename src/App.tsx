@@ -1,4 +1,4 @@
-// ⬇⬇ App.tsx 최상단 import 묶음에 추가
+// ⬇⬇ App.tsx 최상단 import 묶음에 추가/유지
 import { auth, db } from "./firebase";
 import React, { useState, useEffect, useRef } from "react";
 import type { User } from "firebase/auth";
@@ -50,6 +50,7 @@ const LS_KEYS = {
 
 const EMPTY_FAVORITES: FavoritesData = { items: [], folders: [], widgets: [] };
 
+// ✅ 메인엔 카테고리만 보이도록 유지
 const SHOW_ONLY_CATEGORIES = true;
 
 export default function App() {
@@ -85,9 +86,7 @@ export default function App() {
   });
 
   // 뷰
-  const [currentView, setCurrentView] = useState<"home" | "startpage">(
-    "home"
-  );
+  const [currentView, setCurrentView] = useState<"home" | "startpage">("home");
 
   // 다크모드 초기값
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -97,9 +96,18 @@ export default function App() {
 
   // UI 모드(discovery/collect)
   const { uiMode, setUIMode } = useUIMode(user);
-  const { showGuide: showCollectGuide, dismiss: dismissCollectGuide } =
-    useCollectGuide(user);
+  const { showGuide: showCollectGuide, dismiss: dismissCollectGuide } = useCollectGuide(user);
   const hasFav = hasFavorites(favoritesData.folders, favoritesData.items);
+
+  // ✅ 즐겨찾기 패널 오픈 상태 (오버레이)
+  const [isFavOpen, setIsFavOpen] = useState(false);
+
+  // ESC 로 패널 닫기
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsFavOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // ---------------------------
   // 1) 로그인 상태 감지 + 초기 데이터 로드
@@ -134,10 +142,7 @@ export default function App() {
             } else {
               setFavoritesData(EMPTY_FAVORITES);
               setCustomSites([]);
-              localStorage.setItem(
-                LS_KEYS.FAV,
-                JSON.stringify(EMPTY_FAVORITES)
-              );
+              localStorage.setItem(LS_KEYS.FAV, JSON.stringify(EMPTY_FAVORITES));
               localStorage.setItem(LS_KEYS.CUSTOM, JSON.stringify([]));
             }
             setAuthLoading(false);
@@ -251,9 +256,7 @@ export default function App() {
       const isCurrentlyFavorited = getAllFavoriteIds().includes(websiteId);
       setFavoritesData(newData);
       toast.success(
-        isCurrentlyFavorited
-          ? "즐겨찾기에서 제거되었습니다."
-          : "즐겨찾기에 추가되었습니다."
+        isCurrentlyFavorited ? "즐겨찾기에서 제거되었습니다." : "즐겨찾기에 추가되었습니다."
       );
     } catch (e) {
       toast.error("즐겨찾기 변경에 실패했습니다.");
@@ -266,9 +269,7 @@ export default function App() {
       return;
     }
     try {
-      setFavoritesData((prev) =>
-        applyPreset(prev, { items: [id], folders: [], widgets: [] })
-      );
+      setFavoritesData((prev) => applyPreset(prev, { items: [id], folders: [], widgets: [] }));
       toast.success("즐겨찾기에 추가되었습니다.");
     } catch (e) {
       toast.error("즐겨찾기 추가에 실패했습니다.");
@@ -342,9 +343,11 @@ export default function App() {
   // 목록 구성
   // ---------------------------
   const allWebsites: Website[] = [...websites, ...(customSites || [])];
-  const favSet = new Set(getAllFavoriteIds());
-  const categorizedWebsites: Record<string, Website[]> = {};
 
+  const favSet = new Set(getAllFavoriteIds());
+
+  // 카테고리 그리드에는 즐겨찾기 제외(기존 로직 유지)
+  const categorizedWebsites: Record<string, Website[]> = {};
   const sitesToDisplay = allWebsites.filter((site) => site && !favSet.has(site.id));
   const seenIds = new Set<string>();
 
@@ -381,10 +384,10 @@ export default function App() {
           onStartPageClick={handleStartPageClick}
           isDarkMode={isDarkMode}
           onToggleDarkMode={toggleDarkMode}
-          // ⬇️ 로그인/회원가입 모달 열기
+          // 로그인/회원가입 모달 열기
           onLoginClick={() => setIsLoginModalOpen(true)}
           onSignupClick={() => setIsSignupModalOpen(true)}
-          // ⬇️ 로그인 유저 및 로그아웃
+          // 로그인 유저 및 로그아웃
           user={user}
           onLogout={handleLogout}
         />
@@ -420,6 +423,7 @@ export default function App() {
               color: "var(--main-dark)",
             }}
           >
+            {/* ---- 기존 스타트/홍보 영역은 SHOW_ONLY_CATEGORIES=true라 숨김 유지 ---- */}
             {!SHOW_ONLY_CATEGORIES && (
               <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
             )}
@@ -437,85 +441,101 @@ export default function App() {
 
             {!SHOW_ONLY_CATEGORIES && (
               <ModeGate uiMode={uiMode} showWhen="discovery">
-                <Hero
-                  onStart={() => setUIMode("collect")}
-                  onPreview={() => setShowOnboarding(true)}
-                />
+                <Hero onStart={() => setUIMode("collect")} onPreview={() => setShowOnboarding(true)} />
               </ModeGate>
             )}
 
-            {/* Onboarding */}
             {!SHOW_ONLY_CATEGORIES && showOnboarding && (
               <Onboarding
-                onOpenAddSite={() =>
-                  window.dispatchEvent(new CustomEvent('openAddSiteModal'))
-                }
-                onOpenHomepageGuide={() =>
-                  alert('브라우저 설정에서 시작페이지를 urwebs로 설정하세요.')
-                }
+                onOpenAddSite={() => window.dispatchEvent(new CustomEvent("openAddSiteModal"))}
+                onOpenHomepageGuide={() => alert("브라우저 설정에서 시작페이지를 urwebs로 설정하세요.")}
                 onClose={() => setShowOnboarding(false)}
               />
             )}
 
-            {/* RecommendTray */}
             {!SHOW_ONLY_CATEGORIES && (
               <RecommendTray
-                onApplyPreset={(preset) =>
-                  setFavoritesData(applyPreset(favoritesData, preset))
-                }
+                onApplyPreset={(preset) => setFavoritesData(applyPreset(favoritesData, preset))}
               />
             )}
 
-            {/* ✅ Collect + 즐겨찾기 있을 때만 상단 즐겨찾기 & 가이드 표시 */}
-            {uiMode === "collect" && hasFav && (
+            {/* ❌ (중요) 이전에는 여기서 FavoritesSectionNew를 '상단 섹션'으로 바로 그려서
+                    카테고리 영역이 아래로 밀렸습니다.
+                ✅ 이제는 '오버레이 패널'에서만 보여주므로, 이 블록을 제거합니다. */}
+            {/* (삭제된 블록)
+            {uiMode === "collect" && hasFav && ( ...FavoritesSectionNew... )}
+            */}
+
+            {/* ✅ 화면 오른쪽 위에 항상 떠있는 "즐겨찾기" 버튼 (클릭 가능) */}
+            <button
+              type="button"
+              onClick={() => setIsFavOpen(true)}
+              className="fixed right-4 top-20 z-50 px-4 py-2 rounded-md border bg-white shadow hover:shadow-lg hover:ring-4 focus:outline-hidden"
+              title="즐겨찾기 열기"
+            >
+              즐겨찾기
+            </button>
+
+            {/* ✅ 즐겨찾기 오버레이 패널 (레이아웃을 밀지 않음) */}
+            {isFavOpen && (
               <>
-                <FavoritesSectionNew
-                  favoritesData={favoritesData}
-                  onUpdateFavorites={setFavoritesData}
-                  onShowGuide={() => setShowOnboarding(true)}
-                  onSaveData={() => {
-                    toast.success("설정이 저장되었습니다!");
-                  }}
-                  onRequestLogin={() => setIsLoginModalOpen(true)}
-                  isLoggedIn={!!user}
+                {/* 백드롭 */}
+                <div
+                  className="fixed inset-0 bg-black/50 z-[9999]"
+                  onClick={() => setIsFavOpen(false)}
+                  aria-hidden
                 />
-
-                <GuideSamples show={uiMode === "collect" && hasFav} />
-
-                <div className="max-w-screen-2xl mx-auto px-5 flex justify-between items-center mb-4">
-                  <div></div>
-                  <label htmlFor="description-toggle" className="flex items-center cursor-pointer">
-                    <span className="text-xs font-medium mr-2" style={{ color: "var(--main-dark)" }}>
-                      사이트 설명 보기
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        id="description-toggle"
-                        className="sr-only"
-                        checked={showDescriptions}
-                        onChange={() => setShowDescriptions(!showDescriptions)}
-                      />
-                      <div
-                        className="block w-10 h-6 rounded-full"
-                        style={{ backgroundColor: "var(--border-urwebs)" }}
-                      ></div>
-                      <div
-                        className={`dot absolute left-1 top-1 w-4 h-4 rounded-full transition-all duration-200 ${
-                          showDescriptions ? "translate-x-full" : ""
-                        }`}
-                        style={{
-                          backgroundColor: showDescriptions
-                            ? "var(--main-dark)"
-                            : "#ffffff",
-                        }}
-                      ></div>
+                {/* 패널 (상단 고정) */}
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="즐겨찾기와 폴더"
+                  className="fixed left-0 right-0 top-0 z-[10000] bg-white dark:bg-black border-b shadow-xl"
+                >
+                  {/* 헤더 */}
+                  <div className="h-12 px-4 flex items-center justify-between border-b">
+                    <strong className="text-sm">즐겨찾기 & 폴더</strong>
+                    <div className="flex gap-2">
+                      {/* 로그인 필요 시 안내 */}
+                      {!user && (
+                        <button
+                          className="px-3 py-1 rounded border hover:bg-gray-50"
+                          onClick={() => setIsLoginModalOpen(true)}
+                        >
+                          로그인
+                        </button>
+                      )}
+                      <button
+                        className="px-3 py-1 rounded border hover:bg-gray-50"
+                        onClick={() => setIsFavOpen(false)}
+                      >
+                        닫기 (Esc)
+                      </button>
                     </div>
-                  </label>
+                  </div>
+
+                  {/* 내용: FavoritesSectionNew를 그대로 삽입 (내부 스크롤) */}
+                  <div className="max-h-[300px] overflow-auto p-4">
+                    {uiMode === "collect" && hasFav ? (
+                      <FavoritesSectionNew
+                        favoritesData={favoritesData}
+                        onUpdateFavorites={setFavoritesData}
+                        onShowGuide={() => setShowOnboarding(true)}
+                        onSaveData={() => toast.success("설정이 저장되었습니다!")}
+                        onRequestLogin={() => setIsLoginModalOpen(true)}
+                        isLoggedIn={!!user}
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-600">
+                        아직 즐겨찾기가 없습니다. 사이트 카드의 ★ 아이콘을 눌러 추가해보세요.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}
 
+            {/* ✅ 메인: 카테고리 그리드 (항상 첫 화면에 보이게) */}
             <div className="grid gap-6 xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 sm:gap-3 pt-8">
               {categoryOrder.map((category) => (
                 <CategoryCard
@@ -524,12 +544,14 @@ export default function App() {
                   sites={categorizedWebsites[category] || []}
                   config={categoryConfig[category]}
                   showDescriptions={showDescriptions}
-                  favorites={[]}
-                  onToggleFavorite={() => {}}
+                  // ✅ (핵심) 즐겨찾기 상태 & 토글 연결
+                  favorites={getAllFavoriteIds()}
+                  onToggleFavorite={toggleFavorite}
                 />
               ))}
             </div>
 
+            {/* startpage, contact, add-site, footer 는 SHOW_ONLY_CATEGORIES 일 땐 계속 숨김 */}
             {!SHOW_ONLY_CATEGORIES && currentView === "startpage" && (
               <StartPage
                 favoritesData={favoritesData}
@@ -540,10 +562,7 @@ export default function App() {
             )}
 
             {!SHOW_ONLY_CATEGORIES && isContactModalOpen && (
-              <ContactModal
-                isOpen={isContactModalOpen}
-                onClose={() => setIsContactModalOpen(false)}
-              />
+              <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
             )}
 
             {!SHOW_ONLY_CATEGORIES && isAddSiteModalOpen && (
@@ -558,7 +577,6 @@ export default function App() {
             {!SHOW_ONLY_CATEGORIES && <Footer />}
           </div>
         )}
-
       </>
     </ErrorBoundary>
   );
