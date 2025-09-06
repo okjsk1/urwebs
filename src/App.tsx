@@ -16,19 +16,16 @@ import { FavoritesSectionNew } from "./components/FavoritesSectionNew";
 import { CategoryCard } from "./components/CategoryCard";
 import { ContactModal } from "./components/ContactModal";
 import { Footer } from "./components/Footer";
-import { AdBanner } from "./components/AdBanner";
 import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
 import { Onboarding } from "./components/Onboarding";
 import { RecommendTray } from "./components/RecommendTray";
-import { TopList } from "./components/TopList";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import GuideSamples from "./components/GuideSamples";
 import { Hero } from "./components/Hero";
 import { ModeGate } from "./components/ModeGate";
 import { CollectGuide } from "./components/CollectGuide";
 import { toast } from "sonner";
-import EmptyFavoritesCard from "./components/EmptyFavoritesCard";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
 import { FavoritesData, CustomSite, Website } from "./types";
@@ -52,6 +49,8 @@ const LS_KEYS = {
 };
 
 const EMPTY_FAVORITES: FavoritesData = { items: [], folders: [], widgets: [] };
+
+const SHOW_ONLY_CATEGORIES = true;
 
 export default function App() {
   // 모달들
@@ -421,26 +420,32 @@ export default function App() {
               color: "var(--main-dark)",
             }}
           >
-            <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
+            {!SHOW_ONLY_CATEGORIES && (
+              <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
+            )}
 
-            <ModeGate uiMode={uiMode} showWhen="collect">
-              {showCollectGuide && (
-                <CollectGuide
-                  onClose={dismissCollectGuide}
-                  onLogin={() => setIsLoginModalOpen(true)}
+            {!SHOW_ONLY_CATEGORIES && (
+              <ModeGate uiMode={uiMode} showWhen="collect">
+                {showCollectGuide && (
+                  <CollectGuide
+                    onClose={dismissCollectGuide}
+                    onLogin={() => setIsLoginModalOpen(true)}
+                  />
+                )}
+              </ModeGate>
+            )}
+
+            {!SHOW_ONLY_CATEGORIES && (
+              <ModeGate uiMode={uiMode} showWhen="discovery">
+                <Hero
+                  onStart={() => setUIMode("collect")}
+                  onPreview={() => setShowOnboarding(true)}
                 />
-              )}
-            </ModeGate>
-
-            <ModeGate uiMode={uiMode} showWhen="discovery">
-              <Hero
-                onStart={() => setUIMode("collect")}
-                onPreview={() => setShowOnboarding(true)}
-              />
-            </ModeGate>
+              </ModeGate>
+            )}
 
             {/* Onboarding */}
-            {showOnboarding && (
+            {!SHOW_ONLY_CATEGORIES && showOnboarding && (
               <Onboarding
                 onOpenAddSite={() =>
                   window.dispatchEvent(new CustomEvent('openAddSiteModal'))
@@ -453,14 +458,16 @@ export default function App() {
             )}
 
             {/* RecommendTray */}
-            <RecommendTray
-              onApplyPreset={(preset) =>
-                setFavoritesData(applyPreset(favoritesData, preset))
-              }
-            />
+            {!SHOW_ONLY_CATEGORIES && (
+              <RecommendTray
+                onApplyPreset={(preset) =>
+                  setFavoritesData(applyPreset(favoritesData, preset))
+                }
+              />
+            )}
 
             {/* ✅ Collect + 즐겨찾기 있을 때만 상단 즐겨찾기 & 가이드 표시 */}
-            {uiMode === "collect" && hasFav && (
+            {!SHOW_ONLY_CATEGORIES && uiMode === "collect" && hasFav && (
               <>
                 <FavoritesSectionNew
                   favoritesData={favoritesData}
@@ -509,7 +516,21 @@ export default function App() {
               </>
             )}
 
-            {currentView === "startpage" && (
+            <div className="grid gap-6 xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 sm:gap-3 pt-8">
+              {categoryOrder.map((category) => (
+                <CategoryCard
+                  key={category}
+                  category={category}
+                  sites={categorizedWebsites[category] || []}
+                  config={categoryConfig[category]}
+                  showDescriptions={showDescriptions}
+                  favorites={getAllFavoriteIds()}
+                  onToggleFavorite={toggleFavorite}
+                />
+              ))}
+            </div>
+
+            {!SHOW_ONLY_CATEGORIES && currentView === "startpage" && (
               <StartPage
                 favoritesData={favoritesData}
                 onUpdateFavorites={setFavoritesData}
@@ -518,14 +539,14 @@ export default function App() {
               />
             )}
 
-            {isContactModalOpen && (
+            {!SHOW_ONLY_CATEGORIES && isContactModalOpen && (
               <ContactModal
                 isOpen={isContactModalOpen}
                 onClose={() => setIsContactModalOpen(false)}
               />
             )}
 
-            {isAddSiteModalOpen && (
+            {!SHOW_ONLY_CATEGORIES && isAddSiteModalOpen && (
               <AddWebsiteModal
                 isOpen={isAddSiteModalOpen}
                 onClose={() => setIsAddSiteModalOpen(false)}
@@ -534,7 +555,7 @@ export default function App() {
               />
             )}
 
-            <Footer />
+            {!SHOW_ONLY_CATEGORIES && <Footer />}
           </div>
         )}
 
