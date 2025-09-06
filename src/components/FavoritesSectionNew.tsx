@@ -155,7 +155,7 @@ function SimpleFolder({
 
   return (
     <div
-      className={`border-2 border-dashed p-3 rounded-lg flex flex-col transition-all cursor-move ${
+      className={`folder-card border-2 border-dashed p-3 rounded-lg flex flex-col transition-all cursor-move ${
         isDraggingOver
           ? 'urwebs-drop-zone'
           : 'bg-gray-50 dark:bg-gray-800 dark:border-gray-600'
@@ -166,7 +166,7 @@ function SimpleFolder({
       onDragLeave={onDragLeaveFolder}
       onDrop={handleDrop}
     >
-      <div className="flex items-center gap-2 mb-2">
+      <div className="controls flex items-center gap-2 mb-2">
         <span className="text-sm">📁</span>
 
         {isEditing ? (
@@ -175,7 +175,7 @@ function SimpleFolder({
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="flex-1 text-xs font-medium border rounded px-2 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+              className="flex-1 border rounded px-2 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
               onKeyDown={(e) => e.key === 'Enter' && handleRename()}
               onBlur={handleRename}
               autoFocus
@@ -183,7 +183,7 @@ function SimpleFolder({
           </div>
         ) : (
           <h3
-            className="text-xs font-medium text-gray-800 cursor-pointer hover:text-blue-600 transition-colors flex-1 dark:text-gray-200 dark:hover:text-blue-400"
+            className="title text-gray-800 cursor-pointer hover:text-blue-600 transition-colors flex-1 dark:text-gray-200 dark:hover:text-blue-400"
             onClick={() => {
               setIsEditing(true);
               setEditName(folder.name);
@@ -201,7 +201,7 @@ function SimpleFolder({
             onChange={(e) =>
               onChangeSortMode(folder.id, e.target.value as SortMode)
             }
-            className="border rounded px-1 py-0.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            className="border rounded px-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
             aria-label="정렬 모드 선택"
           >
             <option value="manual">수동</option>
@@ -805,7 +805,7 @@ export function FavoritesSectionNew({
           <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
             📂 폴더
           </h3>
-          <div className="grid gap-3 grid-cols-5">
+          <div className="cards-6cols">
             {Array.isArray(favoritesData.folders) &&
               favoritesData.folders
                 .filter(Boolean)

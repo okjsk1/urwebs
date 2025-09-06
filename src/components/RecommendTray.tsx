@@ -17,14 +17,14 @@ const RECOMMENDATIONS: { title: string; preset: FavoritesData }[] = [
 export function RecommendTray({ onApplyPreset }: RecommendTrayProps) {
   return (
     <div className="max-w-screen-2xl mx-auto px-5 sm:px-2 mb-6 mt-6">
-      <div className="grid gap-4 grid-cols-3 sm:grid-cols-2">
+      <div className="cards-6cols">
         {RECOMMENDATIONS.map((rec) => (
           <div
             key={rec.title}
-            className="p-3 border rounded bg-white dark:bg-gray-800"
+            className="card p-3 border rounded bg-white dark:bg-gray-800"
             style={{ borderColor: 'var(--border-urwebs)' }}
           >
-            <h3 className="text-sm font-medium mb-2 text-gray-800 dark:text-gray-100">
+            <h3 className="title mb-2 text-gray-800 dark:text-gray-100">
               {rec.title}
             </h3>
             <button
