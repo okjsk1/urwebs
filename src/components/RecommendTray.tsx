@@ -16,7 +16,7 @@ const RECOMMENDATIONS: { title: string; preset: FavoritesData }[] = [
 
 export function RecommendTray({ onApplyPreset }: RecommendTrayProps) {
   return (
-    <div className="max-w-screen-2xl mx-auto px-5 sm:px-2 mb-6">
+    <div className="max-w-screen-2xl mx-auto px-5 sm:px-2 mb-6 mt-6">
       <div className="grid gap-4 grid-cols-3 sm:grid-cols-2">
         {RECOMMENDATIONS.map((rec) => (
           <div
