@@ -3,7 +3,10 @@ import { auth, db } from "./firebase";
 import React, { useState, useEffect, useRef } from "react";
 import type { User } from "firebase/auth";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, onSnapshot, writeBatch } from "firebase/firestore";
+import { onSnapshot, writeBatch } from "firebase/firestore";
+import { getUserDocRef } from "./services/firestoreClient";
+import { stripUndefined } from "./utils/sanitize";
+import { assertAuthed } from "./utils/assert";
 
 import { Header } from "./components/Header";
 import { LoginModal } from "./components/LoginModal";
@@ -66,6 +69,7 @@ export default function App() {
   });
   const [customSites, setCustomSites] = useState<CustomSite[]>([]);
   const [showDescriptions, setShowDescriptions] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // 기타 모달
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -101,7 +105,7 @@ export default function App() {
 
       if (currentUser) {
         setAuthLoading(true);
-        const userDocRef = doc(db, "users", currentUser.uid);
+        const userDocRef = getUserDocRef(currentUser.uid);
         userDataUnsubscribe.current = onSnapshot(
           userDocRef,
           (docSnap) => {
@@ -156,16 +160,23 @@ export default function App() {
   // ---------------------------
   useEffect(() => {
     if (user) {
+      const authed = assertAuthed(auth);
       if (skipSave.current) {
         skipSave.current = false;
       } else {
         const batch = writeBatch(db);
-        const userDocRef = doc(db, "users", user.uid);
-        batch.set(userDocRef, { favoritesData, customSites }, { merge: true });
-        batch.commit().catch((e) => {
-          console.error("Failed to save user data to Firestore:", e);
-          toast.error("사용자 데이터를 저장하지 못했습니다.");
-        });
+        const userDocRef = getUserDocRef(authed.uid);
+        const payload = stripUndefined({ favoritesData, customSites });
+        batch.set(userDocRef, payload, { merge: true });
+        setSaving(true);
+        batch
+          .commit()
+          .then(() => toast.success("저장 완료"))
+          .catch((e) => {
+            console.error(e);
+            toast.error("저장 실패: 입력값 확인");
+          })
+          .finally(() => setSaving(false));
       }
     }
 
@@ -221,6 +232,10 @@ export default function App() {
   };
 
   const toggleFavorite = (websiteId: string) => {
+    if (!user) {
+      toast.error("로그인이 필요합니다.");
+      return;
+    }
     try {
       const newData = toggleFavoriteData(favoritesData, websiteId);
       const isCurrentlyFavorited = getAllFavoriteIds().includes(websiteId);
@@ -236,6 +251,10 @@ export default function App() {
   };
 
   const handleAddFav = (id: string) => {
+    if (!user) {
+      toast.error("로그인이 필요합니다.");
+      return;
+    }
     try {
       setFavoritesData((prev) =>
         applyPreset(prev, { items: [id], folders: [], widgets: [] })

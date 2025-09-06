@@ -15,6 +15,7 @@ import {
   increment,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { stripUndefined } from "../utils/sanitize";
 
 export interface Post {
   id: string;
@@ -70,12 +71,15 @@ export async function getPost(id: string) {
 export async function createPost(
   data: Omit<Post, "id" | "createdAt" | "updatedAt" | "views">
 ) {
-  const docRef = await addDoc(collection(db, "posts"), {
-    ...data,
-    views: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+  const docRef = await addDoc(
+    collection(db, "posts"),
+    stripUndefined({
+      ...data,
+      views: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  );
   return docRef.id;
 }
 
@@ -83,10 +87,13 @@ export async function updatePost(
   id: string,
   data: Partial<Omit<Post, "id" | "authorUid" | "authorName" | "createdAt">>
 ) {
-  await updateDoc(doc(db, "posts", id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  await updateDoc(
+    doc(db, "posts", id),
+    stripUndefined({
+      ...data,
+      updatedAt: serverTimestamp(),
+    })
+  );
 }
 
 export async function deletePost(id: string) {

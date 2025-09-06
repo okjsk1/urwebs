@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Favicon } from '../Favicon';
 
 interface BookmarkWidgetProps {
   id: string;
@@ -109,14 +110,7 @@ export function BookmarkWidget({ id, onRemove }: BookmarkWidgetProps) {
 
         {bookmarks.map((bookmark) => (
           <div key={bookmark.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100">
-            <img
-              src={`https://www.google.com/s2/favicons?domain=${bookmark.url}&sz=16`}
-              alt=""
-              className="w-3 h-3 flex-shrink-0"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23e5e7eb"/></svg>';
-              }}
-            />
+            <Favicon domain={bookmark.url} size={12} className="w-3 h-3 flex-shrink-0" />
             <a
               href={bookmark.url}
               target="_blank"
