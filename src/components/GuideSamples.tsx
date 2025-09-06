@@ -85,7 +85,7 @@ export default function GuideSamples() {
           <img
             src={open.src}
             alt={open.title}
-            className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl"
+            className="max-h-[90vh] max-w-[1152px] rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
