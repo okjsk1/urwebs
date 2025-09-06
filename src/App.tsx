@@ -499,4 +499,46 @@ export default function App() {
                         }`}
                         style={{
                           backgroundColor: showDescriptions
-                            ? "v
+                            ? "var(--main-dark)"
+                            : "#ffffff",
+                        }}
+                      ></div>
+                    </div>
+                  </label>
+                </div>
+              </>
+            )}
+
+            {currentView === "startpage" && (
+              <StartPage
+                favoritesData={favoritesData}
+                onUpdateFavorites={setFavoritesData}
+                onClose={() => setCurrentView("home")}
+                showDescriptions={showDescriptions}
+              />
+            )}
+
+            {isContactModalOpen && (
+              <ContactModal
+                isOpen={isContactModalOpen}
+                onClose={() => setIsContactModalOpen(false)}
+              />
+            )}
+
+            {isAddSiteModalOpen && (
+              <AddWebsiteModal
+                isOpen={isAddSiteModalOpen}
+                onClose={() => setIsAddSiteModalOpen(false)}
+                favoritesData={favoritesData}
+                onAddSite={(_site, _folderId) => {}}
+              />
+            )}
+
+            <Footer />
+          </div>
+        )}
+
+      </>
+    </ErrorBoundary>
+  );
+}
