@@ -5854,12 +5854,7 @@ html, body {
 }
 /* Card grid height alignment */
 :root { --card-h: 168px; } /* 필요 시 160~184px 내에서 조정 */
-.cards-6cols {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
-  grid-auto-rows: var(--card-h); /* 동일 행 높이 */
-}
+.cards-6cols { grid-auto-rows: var(--card-h); } /* 동일 행 높이 */
 .card,
 .folder-card {
   min-height: var(--card-h);
