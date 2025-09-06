@@ -459,12 +459,19 @@ export default function App() {
               />
             )}
 
-            {/* ❌ (중요) 이전에는 여기서 FavoritesSectionNew를 '상단 섹션'으로 바로 그려서
-                    카테고리 영역이 아래로 밀렸습니다.
-                ✅ 이제는 '오버레이 패널'에서만 보여주므로, 이 블록을 제거합니다. */}
-            {/* (삭제된 블록)
-            {uiMode === "collect" && hasFav && ( ...FavoritesSectionNew... )}
-            */}
+            {/* 즐겨찾기 & 폴더: 즐겨찾기가 있을 때만 상단에 표시 */}
+            {uiMode === "collect" && hasFav && (
+              <div className="my-4">
+                <FavoritesSectionNew
+                  favoritesData={favoritesData}
+                  onUpdateFavorites={setFavoritesData}
+                  onShowGuide={() => setShowOnboarding(true)}
+                  onSaveData={() => toast.success("설정이 저장되었습니다!")}
+                  onRequestLogin={() => setIsLoginModalOpen(true)}
+                  isLoggedIn={!!user}
+                />
+              </div>
+            )}
 
             {/* ✅ 화면 오른쪽 위에 항상 떠있는 "즐겨찾기" 버튼 (클릭 가능) */}
             <button
