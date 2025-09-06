@@ -16,18 +16,18 @@ import { FavoritesSectionNew } from "./components/FavoritesSectionNew";
 import { CategoryCard } from "./components/CategoryCard";
 import { ContactModal } from "./components/ContactModal";
 import { Footer } from "./components/Footer";
-import { AdBanner } from "./components/AdBanner";
 import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
 import { Onboarding } from "./components/Onboarding";
 import { RecommendTray } from "./components/RecommendTray";
-import { TopList } from "./components/TopList";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import GuideSamples from "./components/GuideSamples";
 import { Hero } from "./components/Hero";
 import { ModeGate } from "./components/ModeGate";
 import { CollectGuide } from "./components/CollectGuide";
 import { toast } from "sonner";
+import RightSidebar from "./components/RightSidebar";
+import { EmptyFavoritesCard } from "./components/EmptyFavoritesCard";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
 import { FavoritesData, CustomSite, Website } from "./types";
@@ -38,6 +38,12 @@ import { parseFavoritesData, parseCustomSites } from "./utils/validation";
 import { Skeleton } from "./components/ui/skeleton";
 import { useUIMode } from "./hooks/useUIMode";
 import { useCollectGuide } from "./hooks/useCollectGuide";
+import { hasFavorites } from "./utils/fav";
+import * as visitTrack from "./utils/visitTrack";
+import {
+  getTrendingSites,
+  getFrequentlyBookmarkedSites,
+} from "./utils/rankings";
 
 
 
@@ -260,21 +266,6 @@ export default function App() {
     }
   };
 
-  const handleAddFav = (id: string) => {
-    if (!user) {
-      toast.error("로그인이 필요합니다.");
-      return;
-    }
-    try {
-      setFavoritesData((prev) =>
-        applyPreset(prev, { items: [id], folders: [], widgets: [] })
-      );
-      toast.success("즐겨찾기에 추가되었습니다.");
-    } catch (e) {
-      toast.error("즐겨찾기 추가에 실패했습니다.");
-    }
-  };
-
   const addCustomSite = (site: CustomSite, selectedFolderId: string) => {
     const newCustomSites = [...customSites, site];
     saveCustomSites(newCustomSites);
@@ -361,6 +352,32 @@ export default function App() {
     }
     categorizedWebsites[website.category].push(website);
   });
+
+  const safeBuildFrequencyMap: () => Record<string, number> =
+    typeof visitTrack.buildFrequencyMap === "function"
+      ? visitTrack.buildFrequencyMap
+      : () => ({});
+
+  const topSites = React.useMemo(() => {
+    return Object.entries(safeBuildFrequencyMap())
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => allWebsites.find((w) => w.id === id))
+      .filter((w): w is Website => Boolean(w));
+  }, [allWebsites]);
+
+  const top10 = React.useMemo(
+    () => getFrequentlyBookmarkedSites(allWebsites),
+    [allWebsites]
+  );
+
+  const trending = React.useMemo(
+    () => getTrendingSites(allWebsites),
+    [allWebsites]
+  );
+
+  const hasFav = hasFavorites(favoritesData.folders, favoritesData.items);
+  const showFav = uiMode === "collect" && hasFav;
+  const showEmpty = uiMode === "collect" && !hasFav;
 
 
   // ---------------------------
@@ -459,82 +476,88 @@ export default function App() {
               setFavoritesData(applyPreset(favoritesData, preset))
             }
           />
-
-          <ModeGate uiMode={uiMode} showWhen="collect">
-            <FavoritesSectionNew
-              favoritesData={favoritesData}
-              onUpdateFavorites={setFavoritesData}
-              onShowGuide={() => setShowOnboarding(true)}
-              onSaveData={() => {
-                toast.success("설정이 저장되었습니다!");
-              }}
-              // ⬇️ 로그인 요청 시 로그인 모달 열기
-              onRequestLogin={() => setIsLoginModalOpen(true)}
-              isLoggedIn={!!user}
-            />
-
-            <GuideSamples />
-
-            <div className="max-w-screen-2xl mx-auto px-5 flex justify-between items-center mb-4">
-              <div></div>
-              <label htmlFor="description-toggle" className="flex items-center cursor-pointer">
-                <span className="text-xs font-medium mr-2" style={{ color: "var(--main-dark)" }}>
-                  사이트 설명 보기
-                </span>
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    id="description-toggle"
-                    className="sr-only"
-                    checked={showDescriptions}
-                    onChange={() => setShowDescriptions(!showDescriptions)}
-                  />
-                  <div
-                    className="block w-10 h-6 rounded-full"
-                    style={{ backgroundColor: "var(--border-urwebs)" }}
-                  ></div>
-                  <div
-                    className={`dot absolute left-1 top-1 w-4 h-4 rounded-full transition-all duration-200 ${
-                      showDescriptions ? "translate-x-full" : ""
-                    }`}
-                    style={{
-                      backgroundColor: showDescriptions
-                        ? "var(--main-point)"
-                        : "var(--website-item-bg)",
+          <div className="page-grid pt-8">
+            <main className="page-main">
+              {showFav ? (
+                <>
+                  <FavoritesSectionNew
+                    favoritesData={favoritesData}
+                    onUpdateFavorites={setFavoritesData}
+                    onShowGuide={() => setShowOnboarding(true)}
+                    onSaveData={() => {
+                      toast.success("설정이 저장되었습니다!");
                     }}
-                  ></div>
+                    // ⬇️ 로그인 요청 시 로그인 모달 열기
+                    onRequestLogin={() => setIsLoginModalOpen(true)}
+                    isLoggedIn={!!user}
+                  />
+                  <GuideSamples />
+                </>
+              ) : showEmpty ? (
+                <div className="flex justify-center mb-6">
+                  <EmptyFavoritesCard
+                    onAddSite={() => setIsAddSiteModalOpen(true)}
+                    onPreviewStarter={() => setShowOnboarding(true)}
+                  />
                 </div>
-              </label>
-            </div>
-          </ModeGate>
+              ) : null}
 
-          <div className="flex gap-8 max-w-screen-2xl mx-auto px-5 pt-8 sm:flex-col md:gap-4 sm:px-2">
-            <div className="w-24 p-3 flex flex-col gap-4 sm:hidden">
-              <AdBanner text="광고1" />
-              <AdBanner text="광고2" />
-            </div>
+              <ModeGate uiMode={uiMode} showWhen="collect">
+                <div className="max-w-screen-2xl mx-auto px-5 flex justify-between items-center mb-4">
+                  <div></div>
+                  <label htmlFor="description-toggle" className="flex items-center cursor-pointer">
+                    <span className="text-xs font-medium mr-2" style={{ color: "var(--main-dark)" }}>
+                      사이트 설명 보기
+                    </span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        id="description-toggle"
+                        className="sr-only"
+                        checked={showDescriptions}
+                        onChange={() => setShowDescriptions(!showDescriptions)}
+                      />
+                      <div
+                        className="block w-10 h-6 rounded-full"
+                        style={{ backgroundColor: "var(--border-urwebs)" }}
+                      ></div>
+                      <div
+                        className={`dot absolute left-1 top-1 w-4 h-4 rounded-full transition-all duration-200 ${
+                          showDescriptions ? "translate-x-full" : ""
+                        }`}
+                        style={{
+                          backgroundColor: showDescriptions
+                            ? "var(--main-point)"
+                            : "var(--website-item-bg)",
+                        }}
+                      ></div>
+                    </div>
+                  </label>
+                </div>
+              </ModeGate>
 
-            <div className="flex-1 grid gap-6 xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 sm:gap-3">
-              {categoryOrder.map((category) => (
-                <CategoryCard
-                  key={category}
-                  category={category}
-                  sites={categorizedWebsites[category] || []}
-                  config={categoryConfig[category]}
-                  showDescriptions={showDescriptions}
-                  favorites={getAllFavoriteIds()}
-                  onToggleFavorite={toggleFavorite}
-                />
-              ))}
-            </div>
-
-            {/* // [TopList] */}
-            <div className="w-64 hidden xl:block">
-              <div className="sticky top-6 space-y-4">
-                <TopList mode="mine" onAddFavorite={handleAddFav} />
-                <TopList mode="global" onAddFavorite={handleAddFav} />
+              <div className="grid gap-6 xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 sm:gap-3">
+                {categoryOrder.map((category) => (
+                  <CategoryCard
+                    key={category}
+                    category={category}
+                    sites={categorizedWebsites[category] || []}
+                    config={categoryConfig[category]}
+                    showDescriptions={showDescriptions}
+                    favorites={getAllFavoriteIds()}
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))}
               </div>
-            </div>
+            </main>
+
+            <aside className="page-aside">
+              <RightSidebar
+                topSites={topSites}
+                trending={trending}
+                top10={top10}
+              />
+            </aside>
           </div>
 
           <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
