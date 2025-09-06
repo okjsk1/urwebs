@@ -16,7 +16,6 @@ import { toast } from 'sonner';
 interface FavoritesSectionProps {
   favoritesData: FavoritesData;
   onUpdateFavorites: (data: FavoritesData) => void;
-  showSampleImage: boolean;
   onShowGuide?: () => void;
   onSaveData?: () => void;
   isLoggedIn?: boolean;
@@ -359,7 +358,6 @@ function WidgetRenderer({
 export function FavoritesSectionNew({
   favoritesData,
   onUpdateFavorites,
-  showSampleImage,
   onShowGuide,
   onSaveData,
   isLoggedIn,
@@ -653,25 +651,6 @@ export function FavoritesSectionNew({
 
   return (
     <div className="max-w-screen-2xl mx-auto px-5 sm:px-2 py-8 transition-colors duration-300">
-      {/* 상단 안내 배너 (처음 사용자용) */}
-      {showSampleImage && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg border dark:from-blue-700 dark:to-purple-700 dark:border-gray-600">
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-800 mb-2 dark:text-white">
-              🎯 즐겨찾기 활용 가이드
-            </h3>
-            <p className="text-sm text-gray-600 mb-3 dark:text-gray-200">
-              사이트를 즐겨찾기에 추가하고 폴더로 정리해보세요!
-            </p>
-            <div className="flex justify-center gap-4 text-xs text-gray-500 dark:text-gray-300">
-              <span>📁 폴더 생성</span>
-              <span>📋 위젯 추가</span>
-              <span>🔖 북마크 관리</span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 헤더 버튼 그룹 */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">

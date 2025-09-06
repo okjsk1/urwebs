@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { User, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import useUserRole from "../hooks/useUserRole";
 import { listPosts, Post } from "../libs/posts.repo";
 import BoardLayout from "../components/BoardLayout";
 import PostItem from "../components/PostItem";
@@ -14,23 +12,9 @@ interface Props {
 export default function BoardList({ board }: Props) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [search, setSearch] = useState("");
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<string | null>(null);
+  const { user, role } = useUserRole();
   const [lastDoc, setLastDoc] = useState<any>();
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        const snap = await getDoc(doc(db, "users", u.uid));
-        setRole(snap.data()?.role || "user");
-      } else {
-        setRole(null);
-      }
-    });
-    return () => unsub();
-  }, []);
 
   const canWrite = !!user && (board === "free" || role === "admin");
 

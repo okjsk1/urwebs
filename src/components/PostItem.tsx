@@ -15,7 +15,14 @@ export default function PostItem({ post, index }: Props) {
     <tr className="border-b text-center hover:bg-gray-50">
       <td className="py-3">{isNotice ? "공지" : index}</td>
       <td className="text-left px-2">
-        {isNotice && <span className="text-red-500 mr-1">[공지]</span>}
+        {post.tags?.map((tag) => (
+          <span
+            key={tag}
+            className={`mr-1 ${tag === "공지" ? "text-red-500" : "text-blue-500"}`}
+          >
+            [{tag}]
+          </span>
+        ))}
         <Link to={`/post/${post.id}`} className="block truncate hover:underline">
           {post.title}
         </Link>

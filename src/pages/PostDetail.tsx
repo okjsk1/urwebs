@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { User, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import useUserRole from "../hooks/useUserRole";
 import { getPost, deletePost, Post, increaseView } from "../libs/posts.repo";
 import BoardLayout from "../components/BoardLayout";
 import { toast } from "sonner";
@@ -18,8 +16,7 @@ export default function PostDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState<Post | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<string | null>(null);
+  const { user, role } = useUserRole();
   const [comments, setComments] = useState<Comment[]>([
     {
       id: 1,
@@ -40,19 +37,6 @@ export default function PostDetail() {
       });
     }
   }, [id]);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        const snap = await getDoc(doc(db, "users", u.uid));
-        setRole(snap.data()?.role || "user");
-      } else {
-        setRole(null);
-      }
-    });
-    return () => unsub();
-  }, []);
 
   const isOwner = user && post && post.authorUid === user.uid;
   const isAdmin = role === "admin";
@@ -94,7 +78,17 @@ export default function PostDetail() {
 
   return (
     <BoardLayout board={post.board} canWrite={canWrite}>
-      <h1 className="text-2xl font-bold mb-2">{post.title}</h1>
+      <h1 className="text-2xl font-bold mb-2">
+        {post.tags?.map((tag) => (
+          <span
+            key={tag}
+            className={`mr-1 ${tag === "공지" ? "text-red-500" : "text-blue-500"}`}
+          >
+            [{tag}]
+          </span>
+        ))}
+        {post.title}
+      </h1>
       <div className="text-sm text-gray-500 mb-4 flex flex-wrap gap-2 justify-between">
         <span>{post.authorName}</span>
         <span>

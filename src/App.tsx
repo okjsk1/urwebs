@@ -332,7 +332,6 @@ export default function App() {
     categorizedWebsites[website.category].push(website);
   });
 
-  const showSampleImage = getAllFavoriteIds().length === 0;
 
   // ---------------------------
   // 렌더
@@ -434,7 +433,6 @@ export default function App() {
           <FavoritesSectionNew
             favoritesData={favoritesData}
             onUpdateFavorites={setFavoritesData}
-            showSampleImage={showSampleImage}
             onShowGuide={() => setShowOnboarding(true)}
             onSaveData={() => {
               toast.success("설정이 저장되었습니다!");
