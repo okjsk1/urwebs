@@ -23,6 +23,9 @@ interface FavoritesSectionProps {
   onRequestLogin?: () => void;
 }
 
+/* =========================
+   단일 즐겨찾기 아이템 (왼쪽 리스트/폴더 내부 공통)
+========================= */
 interface SimpleWebsiteProps {
   websiteId: string;
   onRemove: (id: string) => void;
@@ -62,6 +65,7 @@ function SimpleWebsite({
 
   return (
     <div
+      data-bookmark-item /* ✅ 보험: 즐겨찾기 항목 표시용 데이터 속성 */
       className={`urwebs-favorite-item relative p-1 rounded shadow-sm border transition-all h-6 group ${
         isDraggingOver ? 'urwebs-drop-zone' : ''
       }`}
@@ -98,6 +102,9 @@ function SimpleWebsite({
   );
 }
 
+/* =========================
+   폴더 카드
+========================= */
 interface SimpleFolderProps {
   folder: FavoriteFolder;
   onRenameFolder: (folderId: string, newName: string) => void;
@@ -164,7 +171,7 @@ function SimpleFolder({
       onDragStart={handleFolderDragStart}
       onDragOver={onDragOverFolder}
       onDragLeave={onDragLeaveFolder}
-      onDrop={handleDrop}
+      onDrop={onDrop}
     >
       <div className="controls flex items-center gap-2 mb-2">
         <span className="text-sm">📁</span>
@@ -193,6 +200,7 @@ function SimpleFolder({
             {folder.name}
           </h3>
         )}
+
         {/* [sorting] */}
         <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-200">
           정렬:
@@ -225,6 +233,9 @@ function SimpleFolder({
   );
 }
 
+/* =========================
+   위젯 선택 드롭다운
+========================= */
 interface WidgetSelectorProps {
   onAddWidget: (type: string) => void;
 }
@@ -291,6 +302,9 @@ function WidgetSelector({ onAddWidget }: WidgetSelectorProps) {
   );
 }
 
+/* =========================
+   위젯 렌더러 (래퍼 포함)
+========================= */
 function SimpleWidget({
   widget,
   onRemove,
@@ -322,13 +336,9 @@ function WidgetRenderer({
     case 'weather':
       return <WeatherWidget id={widget.id} onRemove={onRemove} />;
     case 'weather-weekly':
-      return (
-        <WeatherWidget id={widget.id} onRemove={onRemove} type="weekly" />
-      );
+      return <WeatherWidget id={widget.id} onRemove={onRemove} type="weekly" />;
     case 'weather-hourly':
-      return (
-        <WeatherWidget id={widget.id} onRemove={onRemove} type="hourly" />
-      );
+      return <WeatherWidget id={widget.id} onRemove={onRemove} type="hourly" />;
     case 'memo':
       return <MemoWidget id={widget.id} onRemove={onRemove} />;
     case 'todo':
@@ -348,6 +358,9 @@ function WidgetRenderer({
   }
 }
 
+/* =========================
+   FavoritesSectionNew
+========================= */
 export function FavoritesSectionNew({
   favoritesData,
   onUpdateFavorites,
