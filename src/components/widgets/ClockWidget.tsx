@@ -16,7 +16,7 @@ export function ClockWidget({ id, onRemove }: ClockWidgetProps) {
   }, []);
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm p-4 h-full flex flex-col">
+    <div className="bg-white rounded-lg border shadow-sm p-3 lg:p-4 h-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-medium text-gray-800 text-sm">🕐 시계</h3>
         <button

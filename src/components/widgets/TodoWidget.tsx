@@ -56,7 +56,7 @@ export function TodoWidget({ id, onRemove }: TodoWidgetProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm p-4 h-full flex flex-col">
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm p-3 lg:p-4 h-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-medium text-gray-800 dark:text-gray-200 text-sm">✅ 할 일</h3>
         <button

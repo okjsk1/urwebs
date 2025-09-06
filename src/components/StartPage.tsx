@@ -146,7 +146,7 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
               <div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">전체 카테고리</h2>
                 <div
-                  className="grid gap-6"
+                  className="grid gap-x-4 gap-y-6"
                   style={{
                     gridTemplateColumns:
                       "repeat(auto-fit, minmax(280px, 1fr))",
