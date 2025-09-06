@@ -47,7 +47,7 @@ export function WebsiteItem({
           href={website.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-sm text-[var(--main-dark)] truncate focus:outline-none"
+          className="block w-full text-sm text-[var(--main-dark)] truncate focus:outline-none"
           title={!showDescription ? website.description : undefined}
           onClick={() => trackVisit(website.id)}
         >
