@@ -41,8 +41,6 @@ import { useUIMode } from "./hooks/useUIMode";
 import { useCollectGuide } from "./hooks/useCollectGuide";
 import { hasFavorites } from "./utils/fav";
 
-
-
 // ---------------------------
 // urwebs 키 세팅
 // ---------------------------
@@ -365,7 +363,6 @@ export default function App() {
     categorizedWebsites[website.category].push(website);
   });
 
-
   // ---------------------------
   // 렌더
   // ---------------------------
@@ -378,194 +375,128 @@ export default function App() {
       }
     >
       <>
-      <Header
-        onContactClick={() => setIsContactModalOpen(true)}
-        onHomepageClick={handleHomepageClick}
-        onHomeClick={handleHomeClick}
-        onStartPageClick={handleStartPageClick}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={toggleDarkMode}
-        // ⬇️ 로그인/회원가입 모달 열기 (GoogleAuthModal 대신)
-        onLoginClick={() => setIsLoginModalOpen(true)}
-        onSignupClick={() => setIsSignupModalOpen(true)}
-        // ⬇️ 로그인 유저 및 로그아웃
-        user={user}
-        onLogout={handleLogout}
-      />
-
-      {/* 로그인/회원가입 모달 */}
-      {isLoginModalOpen && (
-        <LoginModal
-          onClose={() => setIsLoginModalOpen(false)}
-          onSwitchToSignup={() => {
-            setIsLoginModalOpen(false);
-            setIsSignupModalOpen(true);
-          }}
+        <Header
+          onContactClick={() => setIsContactModalOpen(true)}
+          onHomepageClick={handleHomepageClick}
+          onHomeClick={handleHomeClick}
+          onStartPageClick={handleStartPageClick}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={toggleDarkMode}
+          // ⬇️ 로그인/회원가입 모달 열기
+          onLoginClick={() => setIsLoginModalOpen(true)}
+          onSignupClick={() => setIsSignupModalOpen(true)}
+          // ⬇️ 로그인 유저 및 로그아웃
+          user={user}
+          onLogout={handleLogout}
         />
-      )}
 
-      {isSignupModalOpen && (
-        <SignupModal
-          onClose={() => setIsSignupModalOpen(false)}
-          onSwitchToLogin={() => {
-            setIsSignupModalOpen(false);
-            setIsLoginModalOpen(true);
-          }}
-        />
-      )}
+        {/* 로그인/회원가입 모달 */}
+        {isLoginModalOpen && (
+          <LoginModal
+            onClose={() => setIsLoginModalOpen(false)}
+            onSwitchToSignup={() => {
+              setIsLoginModalOpen(false);
+              setIsSignupModalOpen(true);
+            }}
+          />
+        )}
 
+        {isSignupModalOpen && (
+          <SignupModal
+            onClose={() => setIsSignupModalOpen(false)}
+            onSwitchToLogin={() => {
+              setIsSignupModalOpen(false);
+              setIsLoginModalOpen(true);
+            }}
+          />
+        )}
 
-      {currentView === "home" && (
-        <div
-          className="min-h-screen relative"
-          style={{
-            fontFamily:
-              "'suit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            background: "var(--main-bg)",
-            color: "var(--main-dark)",
-          }}
-        >
-          <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
+        {currentView === "home" && (
+          <div
+            className="min-h-screen relative"
+            style={{
+              fontFamily:
+                "'suit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              background: "var(--main-bg)",
+              color: "var(--main-dark)",
+            }}
+          >
+            <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
 
-          <ModeGate uiMode={uiMode} showWhen="collect">
-            {showCollectGuide && (
-              <CollectGuide
-                onClose={dismissCollectGuide}
-                onLogin={() => setIsLoginModalOpen(true)}
+            <ModeGate uiMode={uiMode} showWhen="collect">
+              {showCollectGuide && (
+                <CollectGuide
+                  onClose={dismissCollectGuide}
+                  onLogin={() => setIsLoginModalOpen(true)}
+                />
+              )}
+            </ModeGate>
+
+            <ModeGate uiMode={uiMode} showWhen="discovery">
+              <Hero
+                onStart={() => setUIMode("collect")}
+                onPreview={() => setShowOnboarding(true)}
+              />
+            </ModeGate>
+
+            {/* Onboarding */}
+            {showOnboarding && (
+              <Onboarding
+                onOpenAddSite={() =>
+                  window.dispatchEvent(new CustomEvent('openAddSiteModal'))
+                }
+                onOpenHomepageGuide={() =>
+                  alert('브라우저 설정에서 시작페이지를 urwebs로 설정하세요.')
+                }
+                onClose={() => setShowOnboarding(false)}
               />
             )}
-          </ModeGate>
 
-          <ModeGate uiMode={uiMode} showWhen="discovery">
-            <Hero
-              onStart={() => setUIMode("collect")}
-              onPreview={() => setShowOnboarding(true)}
-            />
-          </ModeGate>
-
-          {/* // [Onboarding] */}
-          {showOnboarding && (
-            <Onboarding
-              onOpenAddSite={() =>
-                window.dispatchEvent(new CustomEvent('openAddSiteModal'))
+            {/* RecommendTray */}
+            <RecommendTray
+              onApplyPreset={(preset) =>
+                setFavoritesData(applyPreset(favoritesData, preset))
               }
-              onOpenHomepageGuide={() =>
-                alert('브라우저 설정에서 시작페이지를 urwebs로 설정하세요.')
-              }
-              onClose={() => setShowOnboarding(false)}
             />
-          )}
 
-          {/* // [RecommendTray] */}
-          <RecommendTray
-            onApplyPreset={(preset) =>
-              setFavoritesData(applyPreset(favoritesData, preset))
-            }
-          />
-
-          {uiMode === "collect" && hasFav && (
-            <>
-              <FavoritesSectionNew
-                favoritesData={favoritesData}
-                onUpdateFavorites={setFavoritesData}
-                onShowGuide={() => setShowOnboarding(true)}
-                onSaveData={() => {
-                  toast.success("설정이 저장되었습니다!");
-                }}
-                // ⬇️ 로그인 요청 시 로그인 모달 열기
-                onRequestLogin={() => setIsLoginModalOpen(true)}
-                isLoggedIn={!!user}
-              />
-
-              <GuideSamples />
-
-              <div className="max-w-screen-2xl mx-auto px-5 flex justify-between items-center mb-4">
-                <div></div>
-                <label htmlFor="description-toggle" className="flex items-center cursor-pointer">
-                  <span className="text-xs font-medium mr-2" style={{ color: "var(--main-dark)" }}>
-                    사이트 설명 보기
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      id="description-toggle"
-                      className="sr-only"
-                      checked={showDescriptions}
-                      onChange={() => setShowDescriptions(!showDescriptions)}
-                    />
-                    <div
-                      className="block w-10 h-6 rounded-full"
-                      style={{ backgroundColor: "var(--border-urwebs)" }}
-                    ></div>
-                    <div
-                      className={`dot absolute left-1 top-1 w-4 h-4 rounded-full transition-all duration-200 ${
-                        showDescriptions ? "translate-x-full" : ""
-                      }`}
-                      style={{
-                        backgroundColor: showDescriptions
-                          ? "var(--main-point)"
-                          : "var(--website-item-bg)",
-                      }}
-                    ></div>
-                  </div>
-                </label>
-              </div>
-            </>
-          )}
-
-          {uiMode === "collect" && !hasFav && <EmptyFavoritesCard />}
-
-          <div className="flex gap-8 max-w-screen-2xl mx-auto px-5 pt-8 sm:flex-col md:gap-4 sm:px-2">
-            <div className="w-24 p-3 flex flex-col gap-4 sm:hidden">
-              <AdBanner text="광고1" />
-              <AdBanner text="광고2" />
-            </div>
-
-            <div className="flex-1 grid gap-6 xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 sm:gap-3">
-              {categoryOrder.map((category) => (
-                <CategoryCard
-                  key={category}
-                  category={category}
-                  sites={categorizedWebsites[category] || []}
-                  config={categoryConfig[category]}
-                  showDescriptions={showDescriptions}
-                  favorites={getAllFavoriteIds()}
-                  onToggleFavorite={toggleFavorite}
+            {/* ✅ Collect + 즐겨찾기 있을 때만 상단 즐겨찾기 & 가이드 표시 */}
+            {uiMode === "collect" && hasFav && (
+              <>
+                <FavoritesSectionNew
+                  favoritesData={favoritesData}
+                  onUpdateFavorites={setFavoritesData}
+                  onShowGuide={() => setShowOnboarding(true)}
+                  onSaveData={() => {
+                    toast.success("설정이 저장되었습니다!");
+                  }}
+                  onRequestLogin={() => setIsLoginModalOpen(true)}
+                  isLoggedIn={!!user}
                 />
-              ))}
-            </div>
 
-            {/* // [TopList] */}
-            <div className="w-64 hidden xl:block">
-              <div className="sticky top-6 space-y-4">
-                <TopList mode="mine" onAddFavorite={handleAddFav} />
-                <TopList mode="global" onAddFavorite={handleAddFav} />
-              </div>
-            </div>
-          </div>
+                <GuideSamples show={uiMode === "collect" && hasFav} />
 
-          <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
-
-          <AddWebsiteModal
-            isOpen={isAddSiteModalOpen}
-            onClose={() => setIsAddSiteModalOpen(false)}
-            onAddSite={addCustomSite}
-            favoritesData={favoritesData}
-          />
-
-          <Footer />
-        </div>
-      )}
-
-      {currentView === "startpage" && (
-        <StartPage
-          favoritesData={favoritesData}
-          onUpdateFavorites={setFavoritesData}
-          onClose={handleHomeClick}
-          showDescriptions={showDescriptions}
-        />
-      )}
-      </>
-    </ErrorBoundary>
-  );
-}
+                <div className="max-w-screen-2xl mx-auto px-5 flex justify-between items-center mb-4">
+                  <div></div>
+                  <label htmlFor="description-toggle" className="flex items-center cursor-pointer">
+                    <span className="text-xs font-medium mr-2" style={{ color: "var(--main-dark)" }}>
+                      사이트 설명 보기
+                    </span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        id="description-toggle"
+                        className="sr-only"
+                        checked={showDescriptions}
+                        onChange={() => setShowDescriptions(!showDescriptions)}
+                      />
+                      <div
+                        className="block w-10 h-6 rounded-full"
+                        style={{ backgroundColor: "var(--border-urwebs)" }}
+                      ></div>
+                      <div
+                        className={`dot absolute left-1 top-1 w-4 h-4 rounded-full transition-all duration-200 ${
+                          showDescriptions ? "translate-x-full" : ""
+                        }`}
+                        style={{
+                          backgroundColor: showDescriptions
+                            ? "v
