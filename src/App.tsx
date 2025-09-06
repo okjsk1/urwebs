@@ -443,70 +443,81 @@ export default function App() {
               color: "var(--main-dark)",
             }}
           >
-            {/* ---- 기존 스타트/홍보 영역은 SHOW_ONLY_CATEGORIES=true라 숨김 유지 ---- */}
-            {!SHOW_ONLY_CATEGORIES && (
-              <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
-            )}
+            <div className="flex justify-center">
+              <div id="page-container" className="w-full !max-w-[900px] px-4 lg:px-6">
+                {/* ---- 기존 스타트/홍보 영역은 SHOW_ONLY_CATEGORIES=true라 숨김 유지 ---- */}
+                {!SHOW_ONLY_CATEGORIES && (
+                  <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
+                )}
 
-            {!SHOW_ONLY_CATEGORIES && (
-              <ModeGate uiMode={uiMode} showWhen="collect">
-                {showCollectGuide && (
-                  <CollectGuide
-                    onClose={dismissCollectGuide}
-                    onLogin={() => setIsLoginModalOpen(true)}
+                {!SHOW_ONLY_CATEGORIES && (
+                  <ModeGate uiMode={uiMode} showWhen="collect">
+                    {showCollectGuide && (
+                      <CollectGuide
+                        onClose={dismissCollectGuide}
+                        onLogin={() => setIsLoginModalOpen(true)}
+                      />
+                    )}
+                  </ModeGate>
+                )}
+
+                {!SHOW_ONLY_CATEGORIES && (
+                  <ModeGate uiMode={uiMode} showWhen="discovery">
+                    <Hero
+                      onStart={() => setUIMode("collect")}
+                      onPreview={() => setShowOnboarding(true)}
+                    />
+                  </ModeGate>
+                )}
+
+                {!SHOW_ONLY_CATEGORIES && showOnboarding && (
+                  <Onboarding
+                    onOpenAddSite={() =>
+                      window.dispatchEvent(new CustomEvent("openAddSiteModal"))
+                    }
+                    onOpenHomepageGuide={() =>
+                      alert("브라우저 설정에서 시작페이지를 urwebs로 설정하세요.")
+                    }
+                    onClose={() => setShowOnboarding(false)}
                   />
                 )}
-              </ModeGate>
-            )}
 
-            {!SHOW_ONLY_CATEGORIES && (
-              <ModeGate uiMode={uiMode} showWhen="discovery">
-                <Hero onStart={() => setUIMode("collect")} onPreview={() => setShowOnboarding(true)} />
-              </ModeGate>
-            )}
-
-            {!SHOW_ONLY_CATEGORIES && showOnboarding && (
-              <Onboarding
-                onOpenAddSite={() => window.dispatchEvent(new CustomEvent("openAddSiteModal"))}
-                onOpenHomepageGuide={() => alert("브라우저 설정에서 시작페이지를 urwebs로 설정하세요.")}
-                onClose={() => setShowOnboarding(false)}
-              />
-            )}
-
-            {!SHOW_ONLY_CATEGORIES && (
-              <RecommendTray
-                onApplyPreset={(preset) => setFavoritesData(applyPreset(favoritesData, preset))}
-              />
-            )}
-
-            <div className="mx-auto max-w-[1200px] px-4 lg:px-6">
-              {/* 즐겨찾기 & 폴더: 즐겨찾기가 있을 때만 상단에 표시 */}
-              {hasFav && (
-                <FavoritesSectionNew
-                  favoritesData={favoritesData}
-                  onUpdateFavorites={setFavoritesData}
-                  onShowGuide={() => setShowOnboarding(true)}
-                  onSaveData={() => toast.success("설정이 저장되었습니다!")}
-                  onRequestLogin={() => setIsLoginModalOpen(true)}
-                  isLoggedIn={!!user}
-                />
-              )}
-
-              {/* ✅ 메인: 카테고리 그리드 (항상 첫 화면에 보이게) */}
-              <section className="mt-6 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
-                {categoryOrder.map((category) => (
-                  <CategoryCard
-                    key={category}
-                    category={category}
-                    sites={categorizedWebsites[category] || []}
-                    config={categoryConfig[category]}
-                    showDescriptions={showDescriptions}
-                    // ✅ (핵심) 즐겨찾기 상태 & 토글 연결
-                    favorites={getAllFavoriteIds()}
-                    onToggleFavorite={toggleFavorite}
+                {!SHOW_ONLY_CATEGORIES && (
+                  <RecommendTray
+                    onApplyPreset={(preset) =>
+                      setFavoritesData(applyPreset(favoritesData, preset))
+                    }
                   />
-                ))}
-              </section>
+                )}
+
+                {/* 즐겨찾기 & 폴더: 즐겨찾기가 있을 때만 상단에 표시 */}
+                {hasFav && (
+                  <FavoritesSectionNew
+                    favoritesData={favoritesData}
+                    onUpdateFavorites={setFavoritesData}
+                    onShowGuide={() => setShowOnboarding(true)}
+                    onSaveData={() => toast.success("설정이 저장되었습니다!")}
+                    onRequestLogin={() => setIsLoginModalOpen(true)}
+                    isLoggedIn={!!user}
+                  />
+                )}
+
+                {/* ✅ 메인: 카테고리 그리드 (항상 첫 화면에 보이게) */}
+                <section className="mt-6 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
+                  {categoryOrder.map((category) => (
+                    <CategoryCard
+                      key={category}
+                      category={category}
+                      sites={categorizedWebsites[category] || []}
+                      config={categoryConfig[category]}
+                      showDescriptions={showDescriptions}
+                      // ✅ (핵심) 즐겨찾기 상태 & 토글 연결
+                      favorites={getAllFavoriteIds()}
+                      onToggleFavorite={toggleFavorite}
+                    />
+                  ))}
+                </section>
+              </div>
             </div>
 
             {/* ✅ 화면 오른쪽 위에 항상 떠있는 "즐겨찾기" 버튼 (클릭 가능) */}
@@ -589,7 +600,10 @@ export default function App() {
             )}
 
             {!SHOW_ONLY_CATEGORIES && isContactModalOpen && (
-              <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
+              <ContactModal
+                isOpen={isContactModalOpen}
+                onClose={() => setIsContactModalOpen(false)}
+              />
             )}
 
             {!SHOW_ONLY_CATEGORIES && isAddSiteModalOpen && (
