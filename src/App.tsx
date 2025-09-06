@@ -467,7 +467,7 @@ export default function App() {
             )}
 
             {/* ✅ Collect + 즐겨찾기 있을 때만 상단 즐겨찾기 & 가이드 표시 */}
-            {!SHOW_ONLY_CATEGORIES && uiMode === "collect" && hasFav && (
+            {uiMode === "collect" && hasFav && (
               <>
                 <FavoritesSectionNew
                   favoritesData={favoritesData}

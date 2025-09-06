@@ -375,26 +375,6 @@ export function FavoritesSectionNew({
   const [draggedFromFolderId, setDraggedFromFolderId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  // 첫 즐겨찾기 추가 시 기본 폴더 생성
-  React.useEffect(() => {
-    if (
-      (favoritesData?.items?.length || 0) === 1 &&
-      (favoritesData?.folders?.length || 0) === 0
-    ) {
-      const defaultFolder: FavoriteFolder = {
-        id: 'default-folder-' + Date.now(),
-        name: '자주 방문하는 사이트',
-        items: favoritesData.items || [],
-      };
-
-      onUpdateFavorites({
-        ...favoritesData,
-        items: [],
-        folders: [defaultFolder],
-      });
-    }
-  }, [favoritesData?.items?.length, favoritesData?.folders?.length, onUpdateFavorites]);
-
   const handleDragStart = (e: React.DragEvent, id: string, fromFolderId?: string) => {
     setDraggedId(id);
     setDraggedFromFolderId(fromFolderId || null);
