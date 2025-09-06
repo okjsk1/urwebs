@@ -171,6 +171,26 @@ export default function App() {
   }, []);
 
   // ---------------------------
+  // 즐겨찾기 추가 시 기본 폴더 샘플 생성
+  // ---------------------------
+  useEffect(() => {
+    const hasBookmark = favoritesData.items.some(Boolean);
+    const hasFolders = favoritesData.folders.length > 0;
+    if (hasBookmark && !hasFolders) {
+      setFavoritesData((prev) => ({
+        ...prev,
+        folders: [
+          {
+            id: "sample-folder",
+            name: "기본 폴더",
+            items: [],
+          },
+        ],
+      }));
+    }
+  }, [favoritesData.items, favoritesData.folders.length]);
+
+  // ---------------------------
   // 2) 즐겨찾기/커스텀 사이트 변경 시 Firestore & localStorage 저장
   // ---------------------------
   useEffect(() => {

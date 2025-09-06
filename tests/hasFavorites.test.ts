@@ -13,4 +13,8 @@ describe('hasFavorites', () => {
   it('returns true when a folder contains an item', () => {
     expect(hasFavorites([{ items: ['site1'] }], [])).toBe(true);
   });
+
+  it('returns true when a folder exists even without items', () => {
+    expect(hasFavorites([{ items: [] }], [])).toBe(true);
+  });
 });

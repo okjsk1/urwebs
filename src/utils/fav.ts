@@ -4,8 +4,9 @@ export function hasFavorites(
   bookmarks: string[] = []
 ): boolean {
   const hasItems = Array.isArray(bookmarks) && bookmarks.some(Boolean);
+  const hasFolders = Array.isArray(folders) && folders.length > 0;
   const hasFolderItems =
     Array.isArray(folders) &&
     folders.some((f) => Array.isArray(f?.items) && f.items.some(Boolean));
-  return hasItems || hasFolderItems;
+  return hasItems || hasFolderItems || hasFolders;
 }
