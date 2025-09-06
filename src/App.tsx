@@ -39,7 +39,7 @@ import { parseFavoritesData, parseCustomSites } from "./utils/validation";
 import { Skeleton } from "./components/ui/skeleton";
 import { useUIMode } from "./hooks/useUIMode";
 import { useCollectGuide } from "./hooks/useCollectGuide";
-import { useHasFavorites } from "./hooks/useHasFavorites";
+import { hasFavorites } from "./utils/fav";
 
 
 
@@ -102,7 +102,7 @@ export default function App() {
   const { uiMode, setUIMode } = useUIMode(user);
   const { showGuide: showCollectGuide, dismiss: dismissCollectGuide } =
     useCollectGuide(user);
-  const { hasFav, loading: hasFavLoading } = useHasFavorites(uiMode);
+  const hasFav = hasFavorites(favoritesData.folders, favoritesData.items);
 
   // ---------------------------
   // 1) 로그인 상태 감지 + 초기 데이터 로드
@@ -463,59 +463,57 @@ export default function App() {
             }
           />
 
-          <ModeGate uiMode={uiMode} showWhen="collect">
-            {hasFav ? (
-              <>
-                <FavoritesSectionNew
-                  favoritesData={favoritesData}
-                  onUpdateFavorites={setFavoritesData}
-                  onShowGuide={() => setShowOnboarding(true)}
-                  onSaveData={() => {
-                    toast.success("설정이 저장되었습니다!");
-                  }}
-                  // ⬇️ 로그인 요청 시 로그인 모달 열기
-                  onRequestLogin={() => setIsLoginModalOpen(true)}
-                  isLoggedIn={!!user}
-                />
+          {uiMode === "collect" && hasFav && (
+            <>
+              <FavoritesSectionNew
+                favoritesData={favoritesData}
+                onUpdateFavorites={setFavoritesData}
+                onShowGuide={() => setShowOnboarding(true)}
+                onSaveData={() => {
+                  toast.success("설정이 저장되었습니다!");
+                }}
+                // ⬇️ 로그인 요청 시 로그인 모달 열기
+                onRequestLogin={() => setIsLoginModalOpen(true)}
+                isLoggedIn={!!user}
+              />
 
-                <GuideSamples />
+              <GuideSamples />
 
-                <div className="max-w-screen-2xl mx-auto px-5 flex justify-between items-center mb-4">
-                  <div></div>
-                  <label htmlFor="description-toggle" className="flex items-center cursor-pointer">
-                    <span className="text-xs font-medium mr-2" style={{ color: "var(--main-dark)" }}>
-                      사이트 설명 보기
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        id="description-toggle"
-                        className="sr-only"
-                        checked={showDescriptions}
-                        onChange={() => setShowDescriptions(!showDescriptions)}
-                      />
-                      <div
-                        className="block w-10 h-6 rounded-full"
-                        style={{ backgroundColor: "var(--border-urwebs)" }}
-                      ></div>
-                      <div
-                        className={`dot absolute left-1 top-1 w-4 h-4 rounded-full transition-all duration-200 ${
-                          showDescriptions ? "translate-x-full" : ""
-                        }`}
-                        style={{
-                          backgroundColor: showDescriptions
-                            ? "var(--main-point)"
-                            : "var(--website-item-bg)",
-                        }}
-                      ></div>
-                    </div>
-                  </label>
-                </div>
-              </>
-            ) : (
-              !hasFavLoading ? <EmptyFavoritesCard /> : null
-            )}
-          </ModeGate>
+              <div className="max-w-screen-2xl mx-auto px-5 flex justify-between items-center mb-4">
+                <div></div>
+                <label htmlFor="description-toggle" className="flex items-center cursor-pointer">
+                  <span className="text-xs font-medium mr-2" style={{ color: "var(--main-dark)" }}>
+                    사이트 설명 보기
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      id="description-toggle"
+                      className="sr-only"
+                      checked={showDescriptions}
+                      onChange={() => setShowDescriptions(!showDescriptions)}
+                    />
+                    <div
+                      className="block w-10 h-6 rounded-full"
+                      style={{ backgroundColor: "var(--border-urwebs)" }}
+                    ></div>
+                    <div
+                      className={`dot absolute left-1 top-1 w-4 h-4 rounded-full transition-all duration-200 ${
+                        showDescriptions ? "translate-x-full" : ""
+                      }`}
+                      style={{
+                        backgroundColor: showDescriptions
+                          ? "var(--main-point)"
+                          : "var(--website-item-bg)",
+                      }}
+                    ></div>
+                  </div>
+                </label>
+              </div>
+            </>
+          )}
+
+          {uiMode === "collect" && !hasFav && <EmptyFavoritesCard />}
 
           <div className="flex gap-8 max-w-screen-2xl mx-auto px-5 pt-8 sm:flex-col md:gap-4 sm:px-2">
             <div className="w-24 p-3 flex flex-col gap-4 sm:hidden">

@@ -61,7 +61,10 @@ export default function GuideSamples() {
   }, [open]);
 
   return (
-    <section className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8 my-10">
+    <section
+      id="guide-samples-section"
+      className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8 my-10"
+    >
       <header className="mb-4 flex items-end justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold">사용 가이드 샘플</h2>
