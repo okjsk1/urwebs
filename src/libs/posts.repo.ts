@@ -24,6 +24,7 @@ export interface Post {
   authorUid: string;
   authorName: string;
   pinned: boolean;
+  tags?: string[];
   views: number;
   createdAt: any;
   updatedAt: any;

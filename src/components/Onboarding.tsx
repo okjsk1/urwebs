@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface OnboardingProps {
   onApplyPreset: () => void;
@@ -13,9 +13,6 @@ export function Onboarding({
   onOpenHomepageGuide,
   onClose,
 }: OnboardingProps) {
-  const [step, setStep] = useState(0);
-  const [visible, setVisible] = useState(true);
-
   const steps = [
     {
       title: '샘플 즐겨찾기 담기',
@@ -35,7 +32,41 @@ export function Onboarding({
       action: onOpenHomepageGuide,
       actionLabel: '시작페이지 안내',
     },
+    {
+      title: '홈 화면 둘러보기',
+      description: '홈 화면의 다양한 기능을 확인하세요.',
+    },
+    {
+      title: '완료',
+      description: '이제 준비가 완료되었습니다!'
+    }
   ];
+
+  const [step, setStep] = useState(() => {
+    const saved = localStorage.getItem('urwebs-guide-step');
+    const idx = saved ? Number(saved) : 0;
+    return idx < steps.length ? idx : 0;
+  });
+  const [checked, setChecked] = useState<boolean[]>(() => {
+    try {
+      const saved = localStorage.getItem('urwebs-guide-checked');
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) {
+          return [...arr, ...Array(steps.length - arr.length).fill(false)].slice(0, steps.length);
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return Array(steps.length).fill(false);
+  });
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    localStorage.setItem('urwebs-guide-step', String(step));
+    localStorage.setItem('urwebs-guide-checked', JSON.stringify(checked));
+  }, [step, checked]);
 
   const close = () => {
     localStorage.setItem('urwebs-onboarding-v1', 'done');
@@ -44,9 +75,16 @@ export function Onboarding({
   };
 
   const handleNext = () => {
+    setChecked((prev) => {
+      const arr = [...prev];
+      arr[step] = true;
+      return arr;
+    });
     if (step < steps.length - 1) {
       setStep((s) => s + 1);
     } else {
+      localStorage.removeItem('urwebs-guide-step');
+      localStorage.removeItem('urwebs-guide-checked');
       close();
     }
   };
@@ -76,16 +114,31 @@ export function Onboarding({
           {current.description}
         </p>
 
-        <div className="mb-4">
-          <button
-            onClick={current.action}
-            className="px-3 py-1 bg-[var(--main-point)] text-white text-xs rounded"
-            type="button"
-            aria-label={current.actionLabel}
-          >
-            {current.actionLabel}
-          </button>
-        </div>
+        <label className="flex items-center gap-2 mb-4 text-sm">
+          <input
+            type="checkbox"
+            checked={checked[step] || false}
+            onChange={(e) => {
+              const arr = [...checked];
+              arr[step] = e.target.checked;
+              setChecked(arr);
+            }}
+          />
+          이 단계 완료
+        </label>
+
+        {current.action && (
+          <div className="mb-4">
+            <button
+              onClick={current.action}
+              className="px-3 py-1 bg-[var(--main-point)] text-white text-xs rounded"
+              type="button"
+              aria-label={current.actionLabel}
+            >
+              {current.actionLabel}
+            </button>
+          </div>
+        )}
 
         <div className="flex justify-between items-center">
           <button

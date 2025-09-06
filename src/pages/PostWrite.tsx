@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { User, onAuthStateChanged, signInWithPopup } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, provider, db } from "../firebase";
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "../firebase";
 import { createPost, updatePost, getPost } from "../libs/posts.repo";
+import useUserRole from "../hooks/useUserRole";
 import { toast } from "sonner";
 
 export default function PostWrite() {
@@ -13,22 +13,9 @@ export default function PostWrite() {
   const editId = params.get("id");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [tags, setTags] = useState("");
   const [pinned, setPinned] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        const snap = await getDoc(doc(db, "users", u.uid));
-        setRole(snap.data()?.role || "user");
-      } else {
-        setRole(null);
-      }
-    });
-    return () => unsub();
-  }, []);
+  const { user, role } = useUserRole();
 
   useEffect(() => {
     if (editId) {
@@ -37,6 +24,7 @@ export default function PostWrite() {
           setTitle(p.title);
           setContent(p.content);
           setPinned(p.pinned);
+          setTags(p.tags?.filter((t) => t !== "공지").join(", ") || "");
         }
       });
     }
@@ -48,6 +36,10 @@ export default function PostWrite() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!board || !user || !canWrite) return;
+    const tagList = tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t);
     const data = {
       board,
       title,
@@ -55,6 +47,7 @@ export default function PostWrite() {
       authorUid: user.uid,
       authorName: user.displayName || user.email || "",
       pinned: board === "notice" ? pinned : false,
+      tags: board === "notice" ? ["공지", ...tagList] : tagList,
     };
     try {
       if (editId) {
@@ -63,6 +56,7 @@ export default function PostWrite() {
           content,
           pinned: data.pinned,
           board: data.board,
+          tags: data.tags,
         });
         toast.success("게시글이 수정되었습니다.");
         navigate(`/post/${editId}`);
@@ -101,6 +95,12 @@ export default function PostWrite() {
           onChange={(e) => setContent(e.target.value)}
           placeholder="내용"
           className="border px-2 py-1 h-60"
+        />
+        <input
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="태그 (쉼표로 구분)"
+          className="border px-2 py-1"
         />
         {board === "notice" && isAdmin && (
           <label className="flex items-center gap-2">
