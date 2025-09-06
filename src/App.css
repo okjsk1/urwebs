@@ -42,6 +42,9 @@
   line-height: 1.4;
   display: inline-block;      /* 잘림 방지 */
   color: var(--main-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 즐겨찾기 안의 사이트 이름 */

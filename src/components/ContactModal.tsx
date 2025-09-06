@@ -5,9 +5,10 @@ interface ContactModalProps { // 컴포넌트가 받는 props의 타입을 정�
   onClose: () => void; // 모달 창을 닫는 함수입니다.
 }
 
-export function ContactModal({ isOpen, onClose }: ContactModalProps) { // ContactModal 컴포넌트를 정의합니다.
-  const [email, setEmail] = useState(''); // 사용자의 이메일을 저장하는 상태입니다.
-  const [message, setMessage] = useState(''); // 사용자의 문의 내용을 저장하는 상태입니다.
+  export function ContactModal({ isOpen, onClose }: ContactModalProps) { // ContactModal 컴포넌트를 정의합니다.
+    const [email, setEmail] = useState(''); // 사용자의 이메일을 저장하는 상태입니다.
+    const [message, setMessage] = useState(''); // 사용자의 문의 내용을 저장하는 상태입니다.
+    const RECIPIENT_EMAIL = 'okjsk1@gmail.com';
 
   useEffect(() => { // 모달 창이 열렸을 때 키보드 이벤트를 처리하기 위한 효과(effect)입니다.
     const handleEscape = (e: KeyboardEvent) => { // 'Escape' 키를 눌렀을 때 모달을 닫는 함수입니다.
@@ -37,7 +38,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) { // Contac
 문의내용:
 ${message}`); // 이메일 본문 내용을 URL에 맞게 인코딩합니다.
     
-    window.location.href = `mailto:okjsk1@gmail.com?subject=${subject}&body=${body}`; // 기본 이메일 클라이언트를 실행하고, 제목과 본문을 채워넣습니다.
+      window.location.href = `mailto:${RECIPIENT_EMAIL}?subject=${subject}&body=${body}`; // 기본 이메일 클라이언트를 실행하고, 제목과 본문을 채워넣습니다.
     
     // 폼 초기화
     setEmail('');

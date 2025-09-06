@@ -563,19 +563,21 @@ export default function App() {
             )}
 
             {/* ✅ 메인: 카테고리 그리드 (항상 첫 화면에 보이게) */}
-            <div className="grid gap-6 xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 sm:gap-3 pt-8">
-              {categoryOrder.map((category) => (
-                <CategoryCard
-                  key={category}
-                  category={category}
-                  sites={categorizedWebsites[category] || []}
-                  config={categoryConfig[category]}
-                  showDescriptions={showDescriptions}
-                  // ✅ (핵심) 즐겨찾기 상태 & 토글 연결
-                  favorites={getAllFavoriteIds()}
-                  onToggleFavorite={toggleFavorite}
-                />
-              ))}
+            <div className="pt-8 max-w-screen-2xl mx-auto px-4 lg:px-8">
+              <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 sm:gap-3">
+                {categoryOrder.map((category) => (
+                  <CategoryCard
+                    key={category}
+                    category={category}
+                    sites={categorizedWebsites[category] || []}
+                    config={categoryConfig[category]}
+                    showDescriptions={showDescriptions}
+                    // ✅ (핵심) 즐겨찾기 상태 & 토글 연결
+                    favorites={getAllFavoriteIds()}
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))}
+              </div>
             </div>
 
             {/* startpage, contact, add-site, footer 는 SHOW_ONLY_CATEGORIES 일 땐 계속 숨김 */}
