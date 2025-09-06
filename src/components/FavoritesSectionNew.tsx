@@ -643,7 +643,10 @@ export function FavoritesSectionNew({
   };
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-5 sm:px-2 py-8 transition-colors duration-300">
+    <section
+      id="favorites-section"
+      className="max-w-screen-2xl mx-auto px-5 sm:px-2 py-8 transition-colors duration-300"
+    >
       {/* 헤더 버튼 그룹 */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -855,6 +858,6 @@ export function FavoritesSectionNew({
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
