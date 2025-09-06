@@ -36,7 +36,7 @@ export async function listPosts(board: "notice" | "free", last?: any) {
     col,
     where("board", "==", board),
     orderBy("createdAt", "desc"),
-    limit(10),
+    limit(20),
     ...(last ? [startAfter(last)] : [])
   );
   const snap = await getDocs(base);
@@ -95,4 +95,22 @@ export async function deletePost(id: string) {
 
 export async function increaseView(id: string) {
   await updateDoc(doc(db, "posts", id), { views: increment(1) });
+}
+
+export async function getAdjacentPosts(board: "notice" | "free", createdAt: any) {
+  const col = collection(db, "posts");
+  const base = query(col, where("board", "==", board), orderBy("createdAt", "desc"));
+  const prevSnap = await getDocs(
+    query(base, where("createdAt", "<", createdAt), limit(1))
+  );
+  const nextSnap = await getDocs(
+    query(base, where("createdAt", ">", createdAt), limit(1))
+  );
+  const prev = prevSnap.docs[0]
+    ? ({ id: prevSnap.docs[0].id, ...(prevSnap.docs[0].data() as any) } as Post)
+    : null;
+  const next = nextSnap.docs[0]
+    ? ({ id: nextSnap.docs[0].id, ...(nextSnap.docs[0].data() as any) } as Post)
+    : null;
+  return { prev, next };
 }

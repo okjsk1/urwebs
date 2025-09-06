@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { PinIcon } from "lucide-react@0.487.0";
 import { Post } from "../libs/posts.repo";
 
 interface Props {
@@ -7,23 +8,34 @@ interface Props {
 }
 
 export default function PostItem({ post, index }: Props) {
+  const navigate = useNavigate();
   const date = post.createdAt?.toDate
     ? post.createdAt.toDate()
     : new Date(post.createdAt);
   const isNotice = post.pinned;
   return (
-    <tr className="border-b text-center hover:bg-gray-50">
-      <td className="py-3">{isNotice ? "공지" : index}</td>
-      <td className="text-left px-2">
-        {post.tags?.map((tag) => (
-          <span
-            key={tag}
-            className={`mr-1 ${tag === "공지" ? "text-red-500" : "text-blue-500"}`}
-          >
-            [{tag}]
+    <tr
+      onClick={() => navigate(`/post/${post.id}`)}
+      className={`border-b text-center hover:bg-gray-100 cursor-pointer ${
+        isNotice ? "bg-gray-100" : ""
+      }`}
+    >
+      <td className="py-3">
+        {isNotice ? (
+          <span className="inline-flex items-center gap-1 text-red-500">
+            <PinIcon className="w-4 h-4" /> 공지
           </span>
-        ))}
-        <Link to={`/post/${post.id}`} className="block truncate hover:underline">
+        ) : (
+          index
+        )}
+      </td>
+      <td className="text-left px-2">
+        <Link
+          to={`/post/${post.id}`}
+          title={post.title}
+          className="block truncate hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
           {post.title}
         </Link>
       </td>

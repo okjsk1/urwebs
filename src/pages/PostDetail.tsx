@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useUserRole from "../hooks/useUserRole";
-import { getPost, deletePost, Post, increaseView } from "../libs/posts.repo";
+import {
+  getPost,
+  deletePost,
+  Post,
+  increaseView,
+  getAdjacentPosts,
+} from "../libs/posts.repo";
 import BoardLayout from "../components/BoardLayout";
 import { toast } from "sonner";
+import { PinIcon } from "lucide-react@0.487.0";
 
 interface Comment {
   id: number;
@@ -16,6 +23,8 @@ export default function PostDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState<Post | null>(null);
+  const [prevPost, setPrevPost] = useState<Post | null>(null);
+  const [nextPost, setNextPost] = useState<Post | null>(null);
   const { user, role } = useUserRole();
   const [comments, setComments] = useState<Comment[]>([
     {
@@ -29,10 +38,14 @@ export default function PostDetail() {
 
   useEffect(() => {
     if (id) {
-      getPost(id).then((p) => {
+      getPost(id).then(async (p) => {
         if (p) {
           setPost({ ...p, views: (p.views || 0) + 1 });
           increaseView(p.id);
+          const created = p.createdAt?.toDate ? p.createdAt.toDate() : p.createdAt;
+          const adj = await getAdjacentPosts(p.board, created);
+          setPrevPost(adj.prev);
+          setNextPost(adj.next);
         }
       });
     }
@@ -78,16 +91,13 @@ export default function PostDetail() {
 
   return (
     <BoardLayout board={post.board} canWrite={canWrite}>
-      <h1 className="text-2xl font-bold mb-2">
-        {post.tags?.map((tag) => (
-          <span
-            key={tag}
-            className={`mr-1 ${tag === "공지" ? "text-red-500" : "text-blue-500"}`}
-          >
-            [{tag}]
+      <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
+        {post.pinned && (
+          <span className="inline-flex items-center text-red-500 gap-1">
+            <PinIcon className="w-5 h-5" /> [공지]
           </span>
-        ))}
-        {post.title}
+        )}
+        <span>{post.title}</span>
       </h1>
       <div className="text-sm text-gray-500 mb-4 flex flex-wrap gap-2 justify-between">
         <span>{post.authorName}</span>
@@ -134,13 +144,37 @@ export default function PostDetail() {
           댓글 달기
         </button>
       </section>
-      <div className="mt-8">
-        <button
-          className="px-4 py-2 border rounded"
-          onClick={() => navigate(`/${post.board}`)}
-        >
-          목록으로
-        </button>
+      <div className="mt-8 space-y-2">
+        <div className="flex justify-between text-sm">
+          {prevPost ? (
+            <a
+              href={`/post/${prevPost.id}`}
+              className="text-blue-500 hover:underline"
+            >
+              ← 이전 글: {prevPost.title}
+            </a>
+          ) : (
+            <span />
+          )}
+          {nextPost ? (
+            <a
+              href={`/post/${nextPost.id}`}
+              className="text-blue-500 hover:underline"
+            >
+              다음 글: {nextPost.title} →
+            </a>
+          ) : (
+            <span />
+          )}
+        </div>
+        <div>
+          <button
+            className="px-4 py-2 border rounded"
+            onClick={() => navigate(`/${post.board}`)}
+          >
+            목록으로
+          </button>
+        </div>
       </div>
     </BoardLayout>
   );
