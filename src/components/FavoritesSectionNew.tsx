@@ -757,10 +757,12 @@ export function FavoritesSectionNew({
         </div>
       )}
 
-      {/* 즐겨찾기 & 폴더 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
-        {/* 즐겨찾기 리스트 */}
-        <div className="col-span-1 space-y-2 lg:space-y-3 md:col-span-1 xl:col-span-1">
+      <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200 mb-3">
+        📂 폴더
+      </h3>
+      <div className="cards-6cols">
+        {/* 즐겨찾기 리스트 (좌측 1열) */}
+        <div className="space-y-2 lg:space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
               📌 즐겨찾기
@@ -796,60 +798,53 @@ export function FavoritesSectionNew({
           </div>
         </div>
 
-        {/* 폴더들 */}
-        <div className="space-y-2 lg:space-y-3 md:col-span-2 xl:col-span-5">
-          <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
-            📂 폴더
-          </h3>
-          <div className="cards-6cols">
-            {Array.isArray(favoritesData.folders) &&
-              favoritesData.folders
-                .filter(Boolean)
-                .map((folder) => {
-                  const folderItems = Array.isArray(folder?.items)
-                    ? folder.items.filter(Boolean)
-                    : [];
-                  const sortedItems = sortByMode(
-                    folderItems,
-                    folder.sortMode || 'manual',
-                    freqMap,
-                    titleMap,
-                  ); // [sorting]
-                  return (
-                    <SimpleFolder
-                      key={folder.id}
-                      folder={folder}
-                      onRenameFolder={renameFolder}
-                      onDeleteFolder={deleteFolder}
-                      onDropWebsite={moveWebsiteToFolder}
-                      onDragOverFolder={(e) => handleDragOver(e, folder.id)}
-                      onDragLeaveFolder={handleDragLeave}
-                      isDraggingOver={dragOverId === folder.id}
-                      onChangeSortMode={changeFolderSortMode} // [sorting]
-                    >
-                      {sortedItems.map((id) => (
-                        <SimpleWebsite
-                          key={id}
-                          websiteId={id}
-                          onRemove={removeFromFavorites}
-                          onDragStart={(e) => handleDragStart(e, id, folder.id)}
-                          onDragOver={(e) => handleDragOver(e, id)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, id)}
-                          isDraggingOver={dragOverId === id}
-                        />
-                      ))}
+        {/* 폴더 카드들 (우측 5열) */}
+        {Array.isArray(favoritesData.folders) &&
+          favoritesData.folders
+            .filter(Boolean)
+            .map((folder) => {
+              const folderItems = Array.isArray(folder?.items)
+                ? folder.items.filter(Boolean)
+                : [];
+              const sortedItems = sortByMode(
+                folderItems,
+                folder.sortMode || 'manual',
+                freqMap,
+                titleMap,
+              ); // [sorting]
+              return (
+                <SimpleFolder
+                  key={folder.id}
+                  folder={folder}
+                  onRenameFolder={renameFolder}
+                  onDeleteFolder={deleteFolder}
+                  onDropWebsite={moveWebsiteToFolder}
+                  onDragOverFolder={(e) => handleDragOver(e, folder.id)}
+                  onDragLeaveFolder={handleDragLeave}
+                  isDraggingOver={dragOverId === folder.id}
+                  onChangeSortMode={changeFolderSortMode} // [sorting]
+                >
+                  {sortedItems.map((id) => (
+                    <SimpleWebsite
+                      key={id}
+                      websiteId={id}
+                      onRemove={removeFromFavorites}
+                      onDragStart={(e) => handleDragStart(e, id, folder.id)}
+                      onDragOver={(e) => handleDragOver(e, id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, id)}
+                      isDraggingOver={dragOverId === id}
+                    />
+                  ))}
 
-                      {sortedItems.length === 0 && (
-                        <p className="text-xs text-gray-500 italic dark:text-gray-400">
-                          폴더가 비어있습니다
-                        </p>
-                      )}
-                    </SimpleFolder>
-                  );
-                })}
-          </div>
-        </div>
+                  {sortedItems.length === 0 && (
+                    <p className="text-xs text-gray-500 italic dark:text-gray-400">
+                      폴더가 비어있습니다
+                    </p>
+                  )}
+                </SimpleFolder>
+              );
+            })}
       </div>
     </section>
   );
