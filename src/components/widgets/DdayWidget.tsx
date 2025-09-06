@@ -46,7 +46,7 @@ export function DdayWidget({ id, onRemove }: DdayWidgetProps) {
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border h-full relative">
+    <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm border h-full relative">
       <div className="flex justify-between items-center mb-3">
         <h3 className="text-sm font-medium text-gray-800">⏰ D-Day</h3>
         <button
@@ -58,7 +58,7 @@ export function DdayWidget({ id, onRemove }: DdayWidgetProps) {
       </div>
 
       {isEditing || (!targetDate || !title) ? (
-        <div className="space-y-3">
+        <div className="space-y-2 lg:space-y-3">
           <input
             type="text"
             value={title}

@@ -479,7 +479,7 @@ export default function App() {
               />
             )}
 
-            <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+            <div className="mx-auto max-w-[1200px] px-4 lg:px-6">
               {/* 즐겨찾기 & 폴더: 즐겨찾기가 있을 때만 상단에 표시 */}
               {hasFav && (
                 <FavoritesSectionNew
@@ -493,7 +493,7 @@ export default function App() {
               )}
 
               {/* ✅ 메인: 카테고리 그리드 (항상 첫 화면에 보이게) */}
-              <section className="mt-8 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
+              <section className="mt-6 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
                 {categoryOrder.map((category) => (
                   <CategoryCard
                     key={category}
@@ -558,7 +558,7 @@ export default function App() {
                   </div>
 
                   {/* 내용: FavoritesSectionNew를 그대로 삽입 (내부 스크롤) */}
-                  <div className="max-h-[300px] overflow-auto p-4 max-w-[1280px] mx-auto">
+                  <div className="max-h-[300px] overflow-auto p-4 max-w-[1200px] mx-auto">
                     {hasFav ? (
                       <FavoritesSectionNew
                         favoritesData={favoritesData}
