@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { PinIcon } from "lucide-react@0.487.0";
 import { Post } from "../libs/posts.repo";
 
 interface Props {
@@ -12,16 +13,13 @@ export default function PostCard({ post, index }: Props) {
     : new Date(post.createdAt);
   const isNotice = post.pinned;
   return (
-    <div className="border rounded p-4 mb-2">
-      <Link to={`/post/${post.id}`} className="block truncate text-lg font-semibold">
-        {post.tags?.map((tag) => (
-          <span
-            key={tag}
-            className={`mr-1 ${tag === "공지" ? "text-red-500" : "text-blue-500"}`}
-          >
-            [{tag}]
-          </span>
-        ))}
+    <div className={`border rounded p-4 mb-2 ${isNotice ? "bg-gray-100" : ""}`}>
+      <Link
+        to={`/post/${post.id}`}
+        className="block truncate text-lg font-semibold"
+        title={post.title}
+      >
+        {isNotice && <PinIcon className="inline mr-1 w-4 h-4 text-red-500" />}
         {post.title}
       </Link>
       <div className="mt-1 text-sm text-gray-500 flex flex-wrap gap-2">
