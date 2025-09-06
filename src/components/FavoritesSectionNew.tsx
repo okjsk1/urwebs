@@ -638,7 +638,7 @@ export function FavoritesSectionNew({
   return (
     <section
       id="favorites-section"
-      className="max-w-screen-2xl mx-auto px-5 sm:px-2 py-8 transition-colors duration-300"
+      className="mx-auto max-w-[1280px] px-6 lg:px-8 py-8 transition-colors duration-300"
     >
       {/* 헤더 버튼 그룹 */}
       <div className="flex items-center justify-between mb-4">
@@ -747,7 +747,7 @@ export function FavoritesSectionNew({
           <h3 className="font-medium text-gray-700 text-sm mb-3 dark:text-gray-200">
             🔧 위젯
           </h3>
-          <div className="grid gap-4 grid-cols-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
             {(favoritesData.widgets || [])
               .filter((w) => w && w.id)
               .map((w) => (
@@ -758,9 +758,9 @@ export function FavoritesSectionNew({
       )}
 
       {/* 즐겨찾기 & 폴더 */}
-      <div className="grid grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
         {/* 즐겨찾기 리스트 */}
-        <div className="col-span-1 space-y-3">
+        <div className="col-span-1 space-y-3 md:col-span-1 xl:col-span-1">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
               📌 즐겨찾기
@@ -797,7 +797,7 @@ export function FavoritesSectionNew({
         </div>
 
         {/* 폴더들 */}
-        <div className="col-span-5 space-y-3">
+        <div className="space-y-3 md:col-span-2 xl:col-span-5">
           <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
             📂 폴더
           </h3>

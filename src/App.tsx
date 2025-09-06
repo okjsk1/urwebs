@@ -479,9 +479,9 @@ export default function App() {
               />
             )}
 
-            {/* 즐겨찾기 & 폴더: 즐겨찾기가 있을 때만 상단에 표시 */}
-            {hasFav && (
-              <div className="my-4">
+            <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+              {/* 즐겨찾기 & 폴더: 즐겨찾기가 있을 때만 상단에 표시 */}
+              {hasFav && (
                 <FavoritesSectionNew
                   favoritesData={favoritesData}
                   onUpdateFavorites={setFavoritesData}
@@ -490,8 +490,24 @@ export default function App() {
                   onRequestLogin={() => setIsLoginModalOpen(true)}
                   isLoggedIn={!!user}
                 />
-              </div>
-            )}
+              )}
+
+              {/* ✅ 메인: 카테고리 그리드 (항상 첫 화면에 보이게) */}
+              <section className="mt-8 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
+                {categoryOrder.map((category) => (
+                  <CategoryCard
+                    key={category}
+                    category={category}
+                    sites={categorizedWebsites[category] || []}
+                    config={categoryConfig[category]}
+                    showDescriptions={showDescriptions}
+                    // ✅ (핵심) 즐겨찾기 상태 & 토글 연결
+                    favorites={getAllFavoriteIds()}
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))}
+              </section>
+            </div>
 
             {/* ✅ 화면 오른쪽 위에 항상 떠있는 "즐겨찾기" 버튼 (클릭 가능) */}
             <button
@@ -542,7 +558,7 @@ export default function App() {
                   </div>
 
                   {/* 내용: FavoritesSectionNew를 그대로 삽입 (내부 스크롤) */}
-                  <div className="max-h-[300px] overflow-auto p-4">
+                  <div className="max-h-[300px] overflow-auto p-4 max-w-[1280px] mx-auto">
                     {hasFav ? (
                       <FavoritesSectionNew
                         favoritesData={favoritesData}
@@ -561,24 +577,6 @@ export default function App() {
                 </div>
               </>
             )}
-
-            {/* ✅ 메인: 카테고리 그리드 (항상 첫 화면에 보이게) */}
-            <div className="pt-8 max-w-screen-2xl mx-auto px-4 lg:px-8">
-              <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 sm:gap-3">
-                {categoryOrder.map((category) => (
-                  <CategoryCard
-                    key={category}
-                    category={category}
-                    sites={categorizedWebsites[category] || []}
-                    config={categoryConfig[category]}
-                    showDescriptions={showDescriptions}
-                    // ✅ (핵심) 즐겨찾기 상태 & 토글 연결
-                    favorites={getAllFavoriteIds()}
-                    onToggleFavorite={toggleFavorite}
-                  />
-                ))}
-              </div>
-            </div>
 
             {/* startpage, contact, add-site, footer 는 SHOW_ONLY_CATEGORIES 일 땐 계속 숨김 */}
             {!SHOW_ONLY_CATEGORIES && currentView === "startpage" && (
