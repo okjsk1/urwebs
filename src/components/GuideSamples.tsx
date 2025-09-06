@@ -8,47 +8,13 @@ interface Sample {
   caption?: string;
 }
 
-function SampleCard({ sample, onOpen }: { sample: Sample; onOpen: (s: Sample) => void }) {
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
-
-  return (
-    <figure className="flex-shrink-0 w-72 sm:w-auto rounded-xl border bg-card" key={sample.src}>
-      <button
-        onClick={() => onOpen(sample)}
-        className="block w-full overflow-hidden rounded-t-xl relative"
-        aria-label={`${sample.title} 확대 보기`}
-      >
-        {!error && (
-          <>
-            <img
-              src={sample.src}
-              alt={sample.title}
-              loading="lazy"
-              onLoad={() => setLoaded(true)}
-              onError={() => setError(true)}
-              className={`aspect-[16/9] w-full object-cover transition-opacity ${loaded ? 'opacity-100' : 'opacity-0'}`}
-            />
-            {!loaded && (
-              <Skeleton className="absolute inset-0 aspect-[16/9] w-full" />
-            )}
-          </>
-        )}
-        {error && (
-          <div className="aspect-[16/9] w-full bg-muted flex items-center justify-center text-muted-foreground">
-            이미지를 불러오지 못했습니다
-          </div>
-        )}
-      </button>
-      <figcaption className="p-3">
-        <div className="text-sm font-medium">{sample.title}</div>
-        {sample.caption && <div className="text-xs text-muted-foreground">{sample.caption}</div>}
-      </figcaption>
-    </figure>
-  );
+/** 부모가 show=false를 넘기면 DOM 자체를 만들지 않음 */
+export default function GuideSamples({ show }: { show: boolean }) {
+  if (!show) return null;
+  return <GuideSamplesBody />;
 }
 
-export default function GuideSamples() {
+function GuideSamplesBody() {
   const [open, setOpen] = useState<Sample | null>(null);
 
   useEffect(() => {
@@ -94,5 +60,45 @@ export default function GuideSamples() {
         </div>
       )}
     </section>
+  );
+}
+
+function SampleCard({ sample, onOpen }: { sample: Sample; onOpen: (s: Sample) => void }) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  return (
+    <figure className="flex-shrink-0 w-72 sm:w-auto rounded-xl border bg-card" key={sample.src}>
+      <button
+        onClick={() => onOpen(sample)}
+        className="block w-full overflow-hidden rounded-t-xl relative"
+        aria-label={`${sample.title} 확대 보기`}
+      >
+        {!error && (
+          <>
+            <img
+              src={sample.src}
+              alt={sample.title}
+              loading="lazy"
+              onLoad={() => setLoaded(true)}
+              onError={() => setError(true)}
+              className={`aspect-[16/9] w-full object-cover transition-opacity ${loaded ? 'opacity-100' : 'opacity-0'}`}
+            />
+            {!loaded && (
+              <Skeleton className="absolute inset-0 aspect-[16/9] w-full" />
+            )}
+          </>
+        )}
+        {error && (
+          <div className="aspect-[16/9] w-full bg-muted flex items-center justify-center text-muted-foreground">
+            이미지를 불러오지 못했습니다
+          </div>
+        )}
+      </button>
+      <figcaption className="p-3">
+        <div className="text-sm font-medium">{sample.title}</div>
+        {sample.caption && <div className="text-xs text-muted-foreground">{sample.caption}</div>}
+      </figcaption>
+    </figure>
   );
 }
