@@ -20,6 +20,7 @@ import { Onboarding } from "./components/Onboarding";
 import { RecommendTray } from "./components/RecommendTray";
 import { TopList } from "./components/TopList";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import GuideSamples from "./components/GuideSamples";
 import { toast } from "sonner";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
@@ -424,6 +425,8 @@ export default function App() {
             onRequestLogin={() => setIsLoginModalOpen(true)}
             isLoggedIn={!!user}
           />
+
+          <GuideSamples />
 
           <div className="max-w-screen-2xl mx-auto px-5 flex justify-between items-center mb-4">
             <div></div>
