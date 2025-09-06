@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Website, CategoryConfig } from "../types";
 import { WebsiteItem } from "./WebsiteItem";
 
@@ -6,10 +6,8 @@ interface CategoryCardProps {
   category: string;
   sites: Website[];
   config: CategoryConfig;
-  isExpanded: boolean;
   showDescriptions: boolean;
   favorites: string[];
-  onToggleCategory: (category: string) => void;
   onToggleFavorite: (id: string) => void;
 }
 
@@ -17,36 +15,52 @@ export function CategoryCard({
   category,
   sites,
   config,
-  isExpanded,
   showDescriptions,
   favorites,
-  onToggleCategory,
   onToggleFavorite,
 }: CategoryCardProps) {
   const safeSites = Array.isArray(sites) ? sites : [];
-  // 설명 보기가 활성화되어 있으면 전체, 아니면 6개만 표시 (확장 시 전체)
+  const [visibleCount, setVisibleCount] = useState(6);
+  const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const loaderRef = useRef<HTMLDivElement | null>(null);
+
+  const loadMore = useCallback(() => {
+    if (loading || visibleCount >= safeSites.length) return;
+    setLoading(true);
+    setTimeout(() => {
+      setVisibleCount((prev) => Math.min(prev + 10, safeSites.length));
+      setLoading(false);
+    }, 500);
+  }, [loading, visibleCount, safeSites.length]);
+
+  useEffect(() => {
+    if (!initialized) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        loadMore();
+      }
+    });
+    const current = loaderRef.current;
+    if (current) observer.observe(current);
+    return () => {
+      observer.disconnect();
+    };
+  }, [initialized, loadMore]);
+
+  const handleFirstMore = () => {
+    setInitialized(true);
+    loadMore();
+  };
+
   const displaySites = showDescriptions
     ? safeSites
-    : isExpanded
-    ? safeSites
-    : safeSites.slice(0, 6);
-  const hasMore = safeSites.length > 6;
-
-  const listClasses =
-    isExpanded || showDescriptions
-      ? `${showDescriptions ? "max-h-80" : "max-h-56"} overflow-y-auto`
-      : "";
+    : safeSites.slice(0, visibleCount);
+  const hasMore = visibleCount < safeSites.length;
 
   return (
-    <div
-      className="urwebs-category-card flex flex-col gap-2 p-3 min-w-0"
-      style={{
-        height: showDescriptions || isExpanded ? "auto" : "220px",
-        minHeight: "220px",
-        maxHeight: showDescriptions || isExpanded ? "500px" : "220px",
-      }}
-    >
-      <div className="flex items-center gap-3 mb-1">
+    <div className="urwebs-category-card flex flex-col gap-2 p-3 min-w-0">
+      <div className="flex items-center gap-3 mb-2">
         <div className="flex items-center justify-center gap-3 mb-0.5">
           <span style={{ fontSize: "0.9rem" }} className="flex-shrink-0">
             {config.icon}
@@ -65,31 +79,42 @@ export function CategoryCard({
 
       {/* 사이트 목록 영역 */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className={`flex flex-col gap-0.5 ${listClasses}`}>
+        <div className="flex flex-col gap-0.5 overflow-y-auto max-h-80">
           {safeSites.length === 0 ? (
-            <div className="flex items-center justify-center flex-1 text-gray-500 text-xs">
-              모든 사이트가 즐겨찾기에 추가됨
+            <div className="flex flex-col items-center justify-center py-6 text-gray-500 text-xs">
+              <span className="text-base mb-2">📭</span>
+              <span>사이트가 없습니다</span>
             </div>
           ) : (
-            displaySites.map((website) => (
-              <WebsiteItem
-                key={website.id}
-                website={website}
-                isDraggable={false}
-                isFavorited={favorites.includes(website.id)}
-                onToggleFavorite={onToggleFavorite}
-                showDescription={showDescriptions}
-              />
-            ))
+            <>
+              {displaySites.map((website) => (
+                <WebsiteItem
+                  key={website.id}
+                  website={website}
+                  isDraggable={false}
+                  isFavorited={favorites.includes(website.id)}
+                  onToggleFavorite={onToggleFavorite}
+                  showDescription={showDescriptions}
+                />
+              ))}
+              {loading &&
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={`skeleton-${i}`}
+                    className="h-5 bg-gray-200 rounded animate-pulse"
+                  />
+                ))}
+            </>
           )}
+          <div ref={loaderRef} />
         </div>
 
-        {hasMore && !showDescriptions && (
+        {hasMore && !initialized && !showDescriptions && (
           <button
-            onClick={() => onToggleCategory(category)}
-            className="urwebs-more-btn mt-1 px-2 py-0.5 text-xs"
+            onClick={handleFirstMore}
+            className="urwebs-more-btn mt-2 px-2 py-1 text-xs"
           >
-            {isExpanded ? "▲ 접기" : `▼ 더보기 (${safeSites.length}개)`}
+            ▼ 더보기 ({safeSites.length}개)
           </button>
         )}
       </div>

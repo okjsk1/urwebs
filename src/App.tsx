@@ -67,7 +67,6 @@ export default function App() {
   });
   const [customSites, setCustomSites] = useState<CustomSite[]>([]);
   const [showDescriptions, setShowDescriptions] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // 기타 모달
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -267,13 +266,6 @@ export default function App() {
     }
     setFavoritesData(newData);
     toast.success("커스텀 사이트가 추가되었습니다.");
-  };
-
-  const toggleCategory = (category: string) => {
-    const next = new Set(expandedCategories);
-    if (next.has(category)) next.delete(category);
-    else next.add(category);
-    setExpandedCategories(next);
   };
 
   // ---------------------------
@@ -490,17 +482,15 @@ export default function App() {
               <AdBanner text="광고2" />
             </div>
 
-            <div className="flex-1 grid gap-4 xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 sm:gap-3">
+            <div className="flex-1 grid gap-6 xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 sm:gap-3">
               {categoryOrder.map((category) => (
                 <CategoryCard
                   key={category}
                   category={category}
                   sites={categorizedWebsites[category] || []}
                   config={categoryConfig[category]}
-                  isExpanded={expandedCategories.has(category)}
                   showDescriptions={showDescriptions}
                   favorites={getAllFavoriteIds()}
-                  onToggleCategory={toggleCategory}
                   onToggleFavorite={toggleFavorite}
                 />
               ))}

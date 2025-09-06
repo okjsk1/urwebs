@@ -40,7 +40,6 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
   }, []);
 
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -76,12 +75,6 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
     onUpdateFavorites({ ...favoritesData, items: updatedItems });
   };
 
-  const handleToggleCategory = (category: string) => {
-    setExpandedCategories(prev =>
-      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
-    );
-  };
-
   // ✅ websites(상태)를 기준으로 카테고리 묶기
   const categorizedWebsites = useMemo(() => {
     const acc: Record<string, Website[]> = {};
@@ -112,10 +105,10 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
         </div>
 
         <DndProvider backend={HTML5Backend}>
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* 즐겨찾기 사이트들 */}
             <div className="lg:col-span-2">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">즐겨찾기 사이트</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">즐겨찾기 사이트</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {getFavoriteWebsites().map((site) => (
                   <a
@@ -136,8 +129,8 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
             </div>
 
             {/* 위젯 영역 */}
-            <div className="lg:col-span-2">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">위젯</h2>
+            <div className="lg:col-span-2 mt-8 lg:mt-0">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">위젯</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {favoritesData.widgets.map(renderWidget)}
                 {/* 기본 위젯들 ... (생략: 기존 그대로) */}
@@ -145,18 +138,16 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
             </div>
           </div>
 
-          <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">전체 카테고리</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <h2 className="text-2xl font-bold text-gray-800 mt-12 mb-6">전체 카테고리</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {categoryOrder.map(category => (
               <CategoryCard
                 key={category}
                 category={category}
                 sites={categorizedWebsites[category] || []}
                 config={categoryConfig[category]}
-                isExpanded={expandedCategories.includes(category)}
                 showDescriptions={showDescriptions}
                 favorites={favoritesData.items}
-                onToggleCategory={handleToggleCategory}
                 onToggleFavorite={handleToggleFavorite}
               />
             ))}
