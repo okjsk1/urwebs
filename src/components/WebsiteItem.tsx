@@ -1,6 +1,7 @@
 import React from "react";
 import { Website } from "../types";
 import { trackVisit } from "../utils/visitTrack";
+import { Favicon } from "./Favicon";
 
 interface WebsiteItemProps {
   website: Website;
@@ -39,16 +40,7 @@ export function WebsiteItem({
       draggable={isDraggable}
       onDragStart={handleDragStart}
     >
-      <img
-        src={`https://www.google.com/s2/favicons?domain=${website.url}&sz=84`}
-        alt=""
-        className="w-4 h-4 rounded border flex-shrink-0"
-        style={{ backgroundColor: "#f7f7f7", borderColor: "#ededed" }}
-        onError={(e) => {
-          (e.currentTarget as HTMLImageElement).src =
-            'data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><rect width=\"16\" height=\"16\" fill=\"%23e5e7eb\"/></svg>';
-        }}
-      />
+      <Favicon domain={website.url} className="w-4 h-4 rounded border flex-shrink-0" />
 
       <div className="flex-1 min-w-0">
         <a

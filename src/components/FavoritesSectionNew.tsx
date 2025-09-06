@@ -12,6 +12,7 @@ import { NewsWidget } from './widgets/NewsWidget';
 import { trackVisit, buildFrequencyMap } from '../utils/visitTrack';
 import { sortByMode } from '../utils/sorters';
 import { toast } from 'sonner';
+import { Favicon } from './Favicon';
 
 interface FavoritesSectionProps {
   favoritesData: FavoritesData;
@@ -72,15 +73,7 @@ function SimpleWebsite({
       ref={dragRef}
     >
       <div className="flex items-center gap-1 h-full">
-        <img
-          src={`https://www.google.com/s2/favicons?domain=${website.url}&sz=16`}
-          alt=""
-          className="w-3 h-3 flex-shrink-0"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src =
-              'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="%23e5e7eb"/></svg>';
-          }}
-        />
+        <Favicon domain={website.url} size={12} className="w-3 h-3 flex-shrink-0" />
         <a
           href={website.url}
           target="_blank"

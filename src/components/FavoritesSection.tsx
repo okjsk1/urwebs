@@ -1,5 +1,6 @@
 import React from "react";
 import { Website } from "../types";
+import { Favicon } from "./Favicon";
 import { websites } from "../data/websites";
 
 interface FavoritesSectionProps {
@@ -74,15 +75,7 @@ export function FavoritesSection({
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, index)}
             >
-              <img
-                src={`https://www.google.com/s2/favicons?domain=${website.url}&sz=16`}
-                alt=""
-                className="w-4 h-4 flex-shrink-0"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23e5e7eb"/></svg>';
-                }}
-              />
+              <Favicon domain={website.url} className="w-4 h-4 flex-shrink-0" />
               <a
                 href={website.url}
                 target="_blank"
