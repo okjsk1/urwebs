@@ -35,7 +35,7 @@ export function WebsiteItem({
 
   return (
     <div
-      className="urwebs-website-item flex items-center gap-2 px-2 min-h-9 rounded-md min-w-0 flex-1 overflow-hidden hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
+      className="urwebs-website-item flex items-center gap-2 px-2 py-1.5 rounded-md min-w-0 flex-1 overflow-hidden hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
       style={{ height: showDescription ? "auto" : undefined }}
       draggable={isDraggable}
       onDragStart={handleDragStart}
@@ -47,8 +47,8 @@ export function WebsiteItem({
           href={website.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-sm text-[var(--main-dark)] truncate focus:outline-none"
-          title={!showDescription ? website.description : undefined}
+          className="block flex-1 min-w-0 text-sm leading-snug text-[var(--main-dark)] break-keep focus:outline-none"
+          title={website.title}
           onClick={() => trackVisit(website.id)}
         >
           {website.title}
