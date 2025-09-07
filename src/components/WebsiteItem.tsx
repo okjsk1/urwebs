@@ -35,7 +35,7 @@ export function WebsiteItem({
 
   return (
     <div
-      className="urwebs-website-item flex items-center gap-2 px-1 min-h-9 rounded-md min-w-0 flex-1 overflow-hidden hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
+      className="urwebs-website-item flex items-center gap-2 px-1 min-h-9 rounded-md min-w-0 flex-1 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
       style={{ height: showDescription ? "auto" : undefined }}
       draggable={isDraggable}
       onDragStart={handleDragStart}
@@ -87,7 +87,7 @@ export function WebsiteItem({
 
       <button
         onClick={handleFavoriteClick}
-        className="ml-auto bg-transparent border-0 p-1 flex items-center cursor-pointer rounded transition-colors hover:bg-pink-100"
+        className="ml-1 flex-shrink-0 bg-transparent border-0 p-1 flex items-center cursor-pointer rounded transition-colors hover:bg-pink-100"
         aria-label="즐겨찾기"
       >
         <svg
