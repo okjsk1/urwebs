@@ -23,7 +23,7 @@ export function CategoryCard({
   const [visibleCount, setVisibleCount] = useState(6);
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const loaderRef = useRef<HTMLDivElement | null>(null);
+  const loaderRef = useRef<HTMLLIElement | null>(null);
 
   const loadMore = useCallback(() => {
     if (loading || visibleCount >= safeSites.length) return;
@@ -79,13 +79,13 @@ export function CategoryCard({
       </div>
 
       {/* 사이트 목록 영역 */}
-      <div className="flex-1 flex flex-col min-h-0 px-3 pb-4">
-        <div className="flex flex-col gap-0.5 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0 px-3 pb-4">
+        <ul className="flex flex-col gap-0.5 overflow-x-hidden overflow-y-auto list-none">
           {safeSites.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-6 text-gray-500 text-xs">
+            <li className="flex flex-col items-center justify-center py-6 text-gray-500 text-xs">
               <span className="text-base mb-2">📭</span>
               <span>사이트가 없습니다</span>
-            </div>
+            </li>
           ) : (
             <>
               {displaySites.map((website) => (
@@ -100,15 +100,15 @@ export function CategoryCard({
               ))}
               {loading &&
                 Array.from({ length: 3 }).map((_, i) => (
-                  <div
+                  <li
                     key={`skeleton-${i}`}
                     className="h-5 bg-gray-200 rounded animate-pulse"
                   />
                 ))}
+              <li ref={loaderRef} />
             </>
           )}
-          <div ref={loaderRef} />
-        </div>
+        </ul>
 
         {hasMore && !initialized && !showDescriptions && (
           <button

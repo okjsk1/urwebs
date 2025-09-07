@@ -34,22 +34,22 @@ export function WebsiteItem({
   };
 
   return (
-    <div
-      className="urwebs-website-item flex items-center gap-2 px-1 min-h-9 rounded-md min-w-0 flex-1 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
+    <li
+      className="urwebs-website-item flex items-center gap-2 px-2 py-1 min-h-9 rounded-md min-w-0 flex-1 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
       style={{ height: showDescription ? "auto" : undefined }}
       draggable={isDraggable}
       onDragStart={handleDragStart}
     >
-      <Favicon domain={website.url} className="w-4 h-4 rounded border flex-shrink-0" />
+      <Favicon domain={website.url} className="w-4 h-4 rounded border shrink-0" />
 
       <div className="flex-1 min-w-0">
         <a
           href={website.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-[var(--main-dark)] truncate focus:outline-none"
+          className="block truncate text-[var(--main-dark)] focus:outline-none"
           style={{ fontSize: "12.5px" }}
-          title={!showDescription ? website.description : undefined}
+          title={website.title}
           onClick={() => trackVisit(website.id)}
         >
           {website.title}
@@ -87,8 +87,8 @@ export function WebsiteItem({
 
       <button
         onClick={handleFavoriteClick}
-        className="ml-1 flex-shrink-0 bg-transparent border-0 p-1 flex items-center cursor-pointer rounded transition-colors hover:bg-pink-100"
         aria-label="즐겨찾기"
+        className="ml-2 shrink-0 w-7 h-7 grid place-items-center bg-transparent border-0 cursor-pointer rounded transition-colors hover:bg-pink-100"
       >
         <svg
           className={`w-3 h-3 urwebs-star-icon ${isFavorited ? "favorited" : ""}`}
@@ -98,7 +98,6 @@ export function WebsiteItem({
           <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8"></polygon>
         </svg>
       </button>
-    </div>
+    </li>
   );
 }
-
