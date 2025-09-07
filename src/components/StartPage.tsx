@@ -125,7 +125,7 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
                       >
                         <div className="text-center">
                           <div className="text-2xl mb-2">🌐</div>
-                          <h3 className="font-medium text-gray-800 truncate">{site.title}</h3>
+                          <h3 className="font-medium text-gray-800 overflow-hidden text-ellipsis whitespace-nowrap">{site.title}</h3>
                           <p className="text-sm text-gray-500 mt-1 line-clamp-2">{site.description}</p>
                         </div>
                       </a>
@@ -149,7 +149,7 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
                   className="grid gap-x-4 gap-y-6"
                   style={{
                     gridTemplateColumns:
-                      "repeat(auto-fit, minmax(280px, 1fr))",
+                      "repeat(auto-fit, minmax(360px, 1fr))",
                   }}
                 >
                   {categoryOrder.map((category) => (
