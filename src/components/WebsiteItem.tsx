@@ -34,12 +34,15 @@ export function WebsiteItem({
   };
 
   return (
-    <div
-      className="urwebs-website-item flex items-center gap-1 px-1 min-h-9 rounded-md min-w-0 flex-1 overflow-hidden hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
-      style={{ height: showDescription ? "auto" : undefined }}
-      draggable={isDraggable}
-      onDragStart={handleDragStart}
-    >
+      <div
+        className={[
+          "urwebs-website-item flex items-center gap-1 px-1 min-h-9 rounded-md min-w-0 flex-1 overflow-hidden",
+          "hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400",
+        ].join(" ")}
+        style={{ height: showDescription ? "auto" : undefined }}
+        draggable={isDraggable}
+        onDragStart={handleDragStart}
+      >
       <Favicon domain={website.url} className="w-4 h-4 rounded border flex-shrink-0" />
 
       <div className="flex-1 min-w-0">
