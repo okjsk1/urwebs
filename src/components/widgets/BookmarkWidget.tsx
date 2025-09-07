@@ -38,7 +38,7 @@ export function BookmarkWidget({ id, onRemove }: BookmarkWidgetProps) {
         title: newTitle.trim(),
         url: newUrl.trim().startsWith('http') ? newUrl.trim() : `https://${newUrl.trim()}`
       };
-      
+
       saveBookmarks([...bookmarks, newBookmark]);
       setNewTitle('');
       setNewUrl('');

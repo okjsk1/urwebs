@@ -46,10 +46,10 @@ const getMockWeatherData = (location: string): WeatherData => {
   const temps = [18, 22, 25, 16, 28, 30, 14, 26];
   const conditions = ['맑음', '흐림', '비', '눈', '구름많음'];
   const icons = ['☀️', '☁️', '🌧️', '❄️', '⛅'];
-  
+
   const baseTemp = temps[Math.floor(Math.random() * temps.length)];
   const conditionIndex = Math.floor(Math.random() * conditions.length);
-  
+
   return {
     location,
     temperature: baseTemp,
@@ -64,7 +64,7 @@ const getMockWeeklyData = (): WeeklyData[] => {
   const days = ['월', '화', '수', '목', '금', '토', '일'];
   const icons = ['☀️', '☁️', '🌧️', '❄️', '⛅'];
   const conditions = ['맑음', '흐림', '비', '눈', '구름많음'];
-  
+
   return days.map(day => ({
     day,
     high: Math.floor(Math.random() * 15) + 15,
@@ -80,7 +80,7 @@ const getMockHourlyData = (): HourlyData[] => {
     hours.push(`${i.toString().padStart(2, '0')}:00`);
   }
   const icons = ['☀️', '☁️', '🌧️', '❄️', '⛅'];
-  
+
   return hours.map(time => ({
     time,
     temperature: Math.floor(Math.random() * 15) + 10,
@@ -141,7 +141,7 @@ export function WeatherWidget({ id, onRemove, type = 'current' }: WeatherWidgetP
           </button>
         </div>
       </div>
-      
+
       {showLocationSelect && (
         <div className="mb-3">
           <select
@@ -162,7 +162,7 @@ export function WeatherWidget({ id, onRemove, type = 'current' }: WeatherWidgetP
       )}
 
       {type === 'current' && weatherData && (
-        <div 
+        <div
           className="text-center cursor-pointer hover:bg-gray-50 rounded p-2 transition-colors flex-1 flex flex-col justify-center"
           onClick={handleLocationClick}
         >

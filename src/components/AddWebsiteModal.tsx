@@ -32,7 +32,7 @@ export function AddWebsiteModal({ isOpen, onClose, onAddSite, favoritesData }: A
       setTitle('');
       return;
     }
-    
+
     // 디바운스 시간을 300ms로 단축하여 반응성 개선
     const handler = setTimeout(async () => {
       setIsLoading(true);
@@ -41,12 +41,12 @@ export function AddWebsiteModal({ isOpen, onClose, onAddSite, favoritesData }: A
         // 타임아웃을 5초로 설정하여 빠른 응답 보장
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
+
         const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
           signal: controller.signal
         });
         clearTimeout(timeoutId);
-        
+
         const data = await response.json();
         const html = data.contents;
         const parser = new DOMParser();
@@ -94,17 +94,17 @@ export function AddWebsiteModal({ isOpen, onClose, onAddSite, favoritesData }: A
       category: 'custom',
       isCustom: true,
     };
-    
+
     // onAddSite 함수에 newSite와 selectedFolder를 함께 전달
     onAddSite(newSite, selectedFolder);
-    
+
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 overflow-y-auto h-full w-full flex justify-center items-center z-50"
       style={{
         backdropFilter: 'blur(4px)',

@@ -6,7 +6,7 @@ interface AdBannerProps {
 
 export function AdBanner({ text }: AdBannerProps) {
   return (
-    <div 
+    <div
       className="flex items-center justify-center text-center h-35 rounded-xl border-2 border-dashed"
       style={{
         background: '#f8f8f8',
