@@ -63,7 +63,7 @@ export function CategoryCard({
 
   return (
     <div className="urwebs-category-card h-full w-full min-w-0 rounded-xl border bg-white p-3 lg:p-4 flex flex-col shadow-sm dark:bg-gray-900">
-      <div className="flex items-center gap-3 px-4 py-4">
+      <div className="flex items-center gap-3 px-3 py-4">
         <span style={{ fontSize: "0.9rem" }} className="flex-shrink-0">
           {config.icon}
         </span>
@@ -79,7 +79,7 @@ export function CategoryCard({
       </div>
 
       {/* 사이트 목록 영역 */}
-      <div className="flex-1 flex flex-col min-h-0 px-4 pb-4">
+      <div className="flex-1 flex flex-col min-h-0 px-3 pb-4">
         <div className="flex flex-col gap-0.5 overflow-y-auto">
           {safeSites.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-6 text-gray-500 text-xs">
