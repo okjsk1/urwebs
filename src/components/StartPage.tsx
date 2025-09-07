@@ -149,7 +149,7 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
                   className="grid gap-x-4 gap-y-6"
                   style={{
                     gridTemplateColumns:
-                      "repeat(auto-fit, minmax(280px, 1fr))",
+                      "repeat(auto-fit, minmax(300px, 1fr))",
                   }}
                 >
                   {categoryOrder.map((category) => (
