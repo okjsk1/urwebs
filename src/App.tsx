@@ -206,7 +206,6 @@ export default function App() {
         setSaving(true);
         batch
           .commit()
-          .then(() => toast.success("저장 완료"))
           .catch((e) => {
             console.error(e);
             toast.error("저장 실패: 입력값 확인");
