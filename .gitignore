@@ -1,5 +1,9 @@
+.vercel
 node_modules/
 dist/
-.next/
-.vercel/
-build/
+node_modules
+dist
+.next
+.vercel
+build
+node_modules

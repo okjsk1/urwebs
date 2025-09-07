@@ -13,7 +13,7 @@ export function VisitorCounter() {
   }, []);
 
   return (
-    <div
+    <div 
       className="fixed bottom-4 right-4 bg-white px-4 py-3 rounded-full border-2 z-20 flex items-center gap-2"
       style={{
         color: '#8d8d8d',

@@ -29,7 +29,7 @@ export function GoogleAuthModal({ isOpen, onClose, onSuccess }: GoogleAuthModalP
 
     setIsLoading(true);
     setError('');
-
+    
     try {
       const result = await signInWithPopup(auth, googleProvider);
       console.log('Google 로그인 성공:', result.user);
@@ -45,7 +45,7 @@ export function GoogleAuthModal({ isOpen, onClose, onSuccess }: GoogleAuthModalP
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!auth) {
       setError('Firebase가 설정되지 않았습니다.');
       return;
