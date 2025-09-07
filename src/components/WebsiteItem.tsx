@@ -87,7 +87,7 @@ export function WebsiteItem({
 
       <button
         onClick={handleFavoriteClick}
-        className="ml-auto bg-transparent border-0 p-1 flex items-center cursor-pointer rounded transition-colors hover:bg-pink-100"
+        className="bg-transparent border-0 p-1 flex items-center flex-shrink-0 cursor-pointer rounded transition-colors hover:bg-pink-100"
         aria-label="즐겨찾기"
       >
         <svg
