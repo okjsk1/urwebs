@@ -18,7 +18,7 @@ export function Footer() {
   }, []);
 
   return (
-    <footer
+    <footer 
       className="w-full text-right pr-7 pb-1 mt-9"
       style={{
         fontSize: '0.93rem',

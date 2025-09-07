@@ -34,7 +34,7 @@ export function TodoWidget({ id, onRemove }: TodoWidgetProps) {
   }, [todos, id]);
 
   const toggleTodo = (todoId: string) => {
-    setTodos(todos.map(todo =>
+    setTodos(todos.map(todo => 
       todo.id === todoId ? { ...todo, completed: !todo.completed } : todo
     ));
   };
@@ -66,7 +66,7 @@ export function TodoWidget({ id, onRemove }: TodoWidgetProps) {
           ✕
         </button>
       </div>
-
+      
       <div className="flex-1 min-h-0">
         <div className="space-y-2 mb-3 max-h-32 overflow-y-auto">
           {todos.map(todo => (
@@ -77,7 +77,7 @@ export function TodoWidget({ id, onRemove }: TodoWidgetProps) {
                 onChange={() => toggleTodo(todo.id)}
                 className="rounded flex-shrink-0"
               />
-              <span
+              <span 
                 className={`text-xs flex-1 ${todo.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}
               >
                 {todo.text}
@@ -91,7 +91,7 @@ export function TodoWidget({ id, onRemove }: TodoWidgetProps) {
             </div>
           ))}
         </div>
-
+        
         <div className="flex gap-2">
           <input
             type="text"

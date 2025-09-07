@@ -37,9 +37,9 @@ interface ContactModalProps { // 컴포넌트가 받는 props의 타입을 정�
 
 문의내용:
 ${message}`); // 이메일 본문 내용을 URL에 맞게 인코딩합니다.
-
+    
       window.location.href = `mailto:${RECIPIENT_EMAIL}?subject=${subject}&body=${body}`; // 기본 이메일 클라이언트를 실행하고, 제목과 본문을 채워넣습니다.
-
+    
     // 폼 초기화
     setEmail('');
     setMessage('');
@@ -55,7 +55,7 @@ ${message}`); // 이메일 본문 내용을 URL에 맞게 인코딩합니다.
   if (!isOpen) return null; // 'isOpen'이 false이면 아무것도 렌더링하지 않습니다.
 
   return ( // 모달의 JSX를 렌더링합니다.
-    <div
+    <div 
       className={`urwebs-modal ${isOpen ? 'open' : ''}`} // 모달 상태에 따라 'open' 클래스를 추가합니다.
       onClick={handleBackdropClick} // 배경 클릭 이벤트 핸들러를 연결합니다.
       role="dialog" // 접근성을 위해 역할을 'dialog'로 설정합니다.
@@ -76,7 +76,7 @@ ${message}`); // 이메일 본문 내용을 URL에 맞게 인코딩합니다.
             &times; {/* 닫기 아이콘(x)입니다. */}
           </button>
         </div>
-
+        
         <div className="p-3">
           <input
             type="email"
@@ -86,7 +86,7 @@ ${message}`); // 이메일 본문 내용을 URL에 맞게 인코딩합니다.
             onChange={(e) => setEmail(e.target.value)} // 입력 값 변경 시 이메일 상태를 업데이트합니다.
           />
         </div>
-
+        
         <div className="p-3">
           <textarea
             className="urwebs-form-textarea min-h-24 resize-y"
@@ -95,9 +95,9 @@ ${message}`); // 이메일 본문 내용을 URL에 맞게 인코딩합니다.
             onChange={(e) => setMessage(e.target.value)} // 입력 값 변경 시 문의 내용 상태를 업데이트합니다.
           />
         </div>
-
+        
         <div className="mx-4 mb-4">
-          <button
+          <button 
             className="urwebs-btn-primary w-full"
             onClick={handleSubmit} // 클릭 시 제출 함수를 호출합니다.
             style={{ fontSize: '1rem' }}
