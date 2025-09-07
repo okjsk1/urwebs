@@ -48,7 +48,7 @@ export function WebsiteItem({
           target="_blank"
           rel="noopener noreferrer"
           className="block text-[var(--main-dark)] truncate focus:outline-none"
-          style={{ fontSize: "13.5px" }}
+          style={{ fontSize: "12.5px" }}
           title={!showDescription ? website.description : undefined}
           onClick={() => trackVisit(website.id)}
         >
