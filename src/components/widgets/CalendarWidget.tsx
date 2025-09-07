@@ -36,7 +36,7 @@ export function CalendarWidget({ id, onRemove }: CalendarWidgetProps) {
   };
 
   const getEventsForDate = (date: Date) => {
-    return events.filter(event => 
+    return events.filter(event =>
       event.date.toDateString() === date.toDateString()
     );
   };
@@ -54,7 +54,7 @@ export function CalendarWidget({ id, onRemove }: CalendarWidgetProps) {
           ✕
         </button>
       </div>
-      
+
       <div className="flex-1 min-h-0 overflow-hidden">
         <div className="mb-2">
           <div className="max-w-full">

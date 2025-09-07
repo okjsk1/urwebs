@@ -39,7 +39,7 @@ export const DATABASE_SCHEMA = {
     created_at: 'timestamp',
     updated_at: 'timestamp'
   },
-  
+
   // 사용자 즐겨찾기 테이블
   user_favorites: {
     id: 'uuid (primary key)',
@@ -106,12 +106,12 @@ END;
 $$ language 'plpgsql';
 
 -- 업데이트 트리거 생성
-CREATE TRIGGER update_profiles_updated_at 
-  BEFORE UPDATE ON profiles 
+CREATE TRIGGER update_profiles_updated_at
+  BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_user_favorites_updated_at 
-  BEFORE UPDATE ON user_favorites 
+CREATE TRIGGER update_user_favorites_updated_at
+  BEFORE UPDATE ON user_favorites
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 `;
 
@@ -121,27 +121,27 @@ export const mockAuthFunctions = {
     console.log('Mock signUp:', { email, name });
     return { user: { id: 'mock-user-id', email, name }, error: null };
   },
-  
+
   signIn: async (email: string, password: string) => {
     console.log('Mock signIn:', { email });
     return { user: { id: 'mock-user-id', email }, error: null };
   },
-  
+
   signOut: async () => {
     console.log('Mock signOut');
     return { error: null };
   },
-  
+
   getCurrentUser: async () => {
     console.log('Mock getCurrentUser');
     return { user: null, error: null };
   },
-  
+
   saveFavorites: async (userId: string, favoritesData: any) => {
     console.log('Mock saveFavorites:', { userId, favoritesData });
     return { data: favoritesData, error: null };
   },
-  
+
   loadFavorites: async (userId: string) => {
     console.log('Mock loadFavorites:', { userId });
     return { data: null, error: null };
