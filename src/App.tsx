@@ -505,7 +505,7 @@ export default function App() {
                 {/* ✅ 메인: 카테고리 그리드 (항상 첫 화면에 보이게) */}
                 <section className="mt-6 w-full overflow-x-hidden">
                   <div className="mx-auto w-full max-w-[1180px] px-4 sm:px-5 lg:px-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6 min-w-0">
+                    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-x-4 gap-y-6 min-w-0">
                       {categoryOrder.map((category) => (
                         <CategoryCard
                           key={category}
