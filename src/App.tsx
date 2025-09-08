@@ -22,7 +22,6 @@ import { StartPage } from "./components/StartPage";
 import { Onboarding } from "./components/Onboarding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import GuideSamples from "./components/GuideSamples";
-import { Hero } from "./components/Hero";
 import { ModeGate } from "./components/ModeGate";
 import { CollectGuide } from "./components/CollectGuide";
 import { toast } from "sonner";
@@ -162,10 +161,21 @@ export default function App() {
           }
         );
       } else {
-        setFavoritesData(EMPTY_FAVORITES);
-        setCustomSites([]);
-        localStorage.removeItem(LS_KEYS.FAV);
-        localStorage.removeItem(LS_KEYS.CUSTOM);
+        try {
+          const rawFav = localStorage.getItem(LS_KEYS.FAV);
+          const favData = parseFavoritesData(
+            rawFav ? JSON.parse(rawFav) : undefined
+          );
+          const rawCustom = localStorage.getItem(LS_KEYS.CUSTOM);
+          const customData = parseCustomSites(
+            rawCustom ? JSON.parse(rawCustom) : undefined
+          );
+          setFavoritesData(favData);
+          setCustomSites(customData);
+        } catch {
+          setFavoritesData(EMPTY_FAVORITES);
+          setCustomSites([]);
+        }
         setAuthLoading(false);
       }
     });
@@ -464,15 +474,6 @@ export default function App() {
                         onLogin={() => setIsLoginModalOpen(true)}
                       />
                     )}
-                  </ModeGate>
-                )}
-
-                {!SHOW_ONLY_CATEGORIES && (
-                  <ModeGate uiMode={uiMode} showWhen="discovery">
-                    <Hero
-                      onStart={() => setUIMode("collect")}
-                      onPreview={() => setShowOnboarding(true)}
-                    />
                   </ModeGate>
                 )}
 
