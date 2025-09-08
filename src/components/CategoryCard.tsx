@@ -8,6 +8,8 @@ interface CategoryCardProps {
   config: CategoryConfig;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
+  showDescriptions: boolean;
+  onToggleDescriptions: (v: boolean) => void;
 }
 
 export function CategoryCard({
@@ -16,6 +18,8 @@ export function CategoryCard({
   config,
   favorites,
   onToggleFavorite,
+  showDescriptions,
+  onToggleDescriptions,
 }: CategoryCardProps) {
   const safeSites = Array.isArray(sites) ? sites : [];
   const [visibleCount, setVisibleCount] = useState(6);
@@ -59,19 +63,35 @@ export function CategoryCard({
 
   return (
     <div className="urwebs-category-card h-full w-full min-w-0 rounded-xl border bg-white p-3 lg:p-4 flex flex-col shadow-sm dark:bg-gray-900">
-      <div className="flex items-center gap-3 px-3 py-4">
-        <span style={{ fontSize: "0.9rem" }} className="flex-shrink-0">
-          {config.icon}
-        </span>
-        <span
-          style={{
-            fontSize: "1.1rem",
-            color: "var(--main-point)",
-            letterSpacing: "0.01em",
-          }}
+      <div className="flex items-center justify-between px-3 py-4">
+        <div className="flex items-center gap-3">
+          <span style={{ fontSize: "0.9rem" }} className="flex-shrink-0">
+            {config.icon}
+          </span>
+          <span
+            style={{
+              fontSize: "1.1rem",
+              color: "var(--main-point)",
+              letterSpacing: "0.01em",
+            }}
+          >
+            {category}
+          </span>
+        </div>
+        <label
+          htmlFor="description-toggle"
+          className="urwebs-btn-ghost flex items-center gap-1 text-sm dark:text-gray-200 cursor-pointer"
+          data-guide="desc-toggle"
         >
-          {category}
-        </span>
+          <input
+            id="description-toggle"
+            type="checkbox"
+            checked={showDescriptions}
+            onChange={(e) => onToggleDescriptions(e.target.checked)}
+            className="mr-1"
+          />
+          사이트 설명 보기
+        </label>
       </div>
 
       {/* 사이트 목록 영역 */}
@@ -89,8 +109,9 @@ export function CategoryCard({
                   key={website.id}
                   website={website}
                   isDraggable={false}
-                  isFavorited={favorites.includes(website.id)}
+                  isFavorite={favorites.includes(website.id)}
                   onToggleFavorite={onToggleFavorite}
+                  showDescriptions={showDescriptions}
                 />
               ))}
               {loading &&
