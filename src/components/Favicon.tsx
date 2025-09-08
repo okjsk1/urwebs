@@ -9,10 +9,25 @@ const FallbackIcon: React.FC<{ size?: number; className?: string }> = ({ size = 
   </svg>
 );
 
-export const Favicon: React.FC<{ domain: string; size?: number; className?: string }> = ({ domain, size = 16, className }) => {
+export const Favicon: React.FC<{ domain: string; size?: number; className?: string }> = ({
+  domain,
+  size = 16,
+  className,
+}) => {
   const [err, setErr] = React.useState(false);
-  const src = `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(domain)}&sz=64`;
+
+  const hostname = React.useMemo(() => {
+    try {
+      return new URL(domain).hostname;
+    } catch {
+      return domain;
+    }
+  }, [domain]);
+
+  const src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=64`;
+
   if (err) return <FallbackIcon size={size} className={className} />;
+
   return (
     <img
       src={src}
