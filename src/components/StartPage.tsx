@@ -189,7 +189,7 @@ export function StartPage({
                 <div
                   className="grid gap-x-4 gap-y-6"
                   style={{
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
                   }}
                 >
                   {categoryOrder.map((category) => (
