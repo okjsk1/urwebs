@@ -76,16 +76,21 @@ export function TopList({ mode, onAddFavorite }: TopListProps) {
       <h2 className="font-bold mb-2 text-gray-800 dark:text-gray-100">{title}</h2>
       <ul className="space-y-2">
         {items.map((site) => (
-          <li key={site.id} className="flex items-center gap-2">
-            <Favicon domain={site.url} className="w-4 h-4 flex-shrink-0" />
-            <a
-              href={site.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 hover:underline"
-            >
-              {site.title}
-            </a>
+          <li key={site.id} className="flex items-start gap-2">
+            <Favicon domain={site.url} className="w-4 h-4 flex-shrink-0 mt-1" />
+            <div className="flex-1 overflow-hidden">
+              <a
+                href={site.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block truncate text-sm text-gray-800 dark:text-gray-200 hover:underline"
+              >
+                {site.title}
+              </a>
+              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                {site.description}
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => onAddFavorite(site.id)}
