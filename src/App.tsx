@@ -74,7 +74,6 @@ export default function App() {
     widgets: [],
   });
   const [customSites, setCustomSites] = useState<CustomSite[]>([]);
-  const [showDescriptions, setShowDescriptions] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // 기타 모달
@@ -511,7 +510,6 @@ export default function App() {
                           category={category}
                           sites={categorizedWebsites[category] || []}
                           config={categoryConfig[category]}
-                          showDescriptions={showDescriptions}
                           // ✅ (핵심) 즐겨찾기 상태 & 토글 연결
                           favorites={getAllFavoriteIds()}
                           onToggleFavorite={toggleFavorite}
@@ -598,7 +596,6 @@ export default function App() {
                 favoritesData={favoritesData}
                 onUpdateFavorites={setFavoritesData}
                 onClose={() => setCurrentView("home")}
-                showDescriptions={showDescriptions}
               />
             )}
 

@@ -6,7 +6,6 @@ interface CategoryCardProps {
   category: string;
   sites: Website[];
   config: CategoryConfig;
-  showDescriptions: boolean;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
 }
@@ -15,7 +14,6 @@ export function CategoryCard({
   category,
   sites,
   config,
-  showDescriptions,
   favorites,
   onToggleFavorite,
 }: CategoryCardProps) {
@@ -56,9 +54,7 @@ export function CategoryCard({
     loadMore();
   };
 
-  const displaySites = showDescriptions
-    ? safeSites
-    : safeSites.slice(0, visibleCount);
+  const displaySites = safeSites.slice(0, visibleCount);
   const hasMore = visibleCount < safeSites.length;
 
   return (
@@ -95,7 +91,6 @@ export function CategoryCard({
                   isDraggable={false}
                   isFavorited={favorites.includes(website.id)}
                   onToggleFavorite={onToggleFavorite}
-                  showDescription={showDescriptions}
                 />
               ))}
               {loading &&
@@ -110,7 +105,7 @@ export function CategoryCard({
           )}
         </ul>
 
-        {hasMore && !initialized && !showDescriptions && (
+        {hasMore && !initialized && (
           <button
             onClick={handleFirstMore}
             className="urwebs-more-btn mt-2 px-2 py-1 text-xs self-center"
