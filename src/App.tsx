@@ -74,7 +74,6 @@ export default function App() {
     widgets: [],
   });
   const [customSites, setCustomSites] = useState<CustomSite[]>([]);
-  const [showDescriptions, setShowDescriptions] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // 기타 모달
@@ -94,6 +93,16 @@ export default function App() {
     const savedMode = localStorage.getItem(LS_KEYS.MODE);
     return savedMode === "dark";
   });
+
+  // 사이트 설명 표시 여부
+  const [showDescriptions, setShowDescriptions] = useState(() => {
+    const saved = localStorage.getItem("urwebs-show-descriptions");
+    return saved ? saved === "true" : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("urwebs-show-descriptions", String(showDescriptions));
+  }, [showDescriptions]);
 
   // UI 모드(discovery/collect)
   const { uiMode, setUIMode } = useUIMode(user);
@@ -420,6 +429,8 @@ export default function App() {
           onStartPageClick={handleStartPageClick}
           isDarkMode={isDarkMode}
           onToggleDarkMode={toggleDarkMode}
+          showDescriptions={showDescriptions}
+          onToggleDescriptions={() => setShowDescriptions((prev) => !prev)}
           // 로그인/회원가입 모달 열기
           onLoginClick={() => setIsLoginModalOpen(true)}
           onSignupClick={() => setIsSignupModalOpen(true)}
@@ -511,10 +522,10 @@ export default function App() {
                           category={category}
                           sites={categorizedWebsites[category] || []}
                           config={categoryConfig[category]}
-                          showDescriptions={showDescriptions}
                           // ✅ (핵심) 즐겨찾기 상태 & 토글 연결
                           favorites={getAllFavoriteIds()}
                           onToggleFavorite={toggleFavorite}
+                          showDescriptions={showDescriptions}
                         />
                       ))}
                     </div>

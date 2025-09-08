@@ -6,19 +6,19 @@ import { Favicon } from "./Favicon";
 interface WebsiteItemProps {
   website: Website;
   isFavorited: boolean;
-  showDescription: boolean;
   onToggleFavorite: (id: string) => void;
   isDraggable?: boolean;
   onDragStart: (e: React.DragEvent, website: Website) => void;
+  showDescriptions: boolean;
 }
 
 export function WebsiteItem({
   website,
   isFavorited,
-  showDescription,
   onToggleFavorite,
   isDraggable = false,
   onDragStart,
+  showDescriptions,
 }: WebsiteItemProps) {
   if (!website?.url || !website?.title) return null;
 
@@ -36,7 +36,6 @@ export function WebsiteItem({
   return (
     <li
       className="urwebs-website-item relative flex items-center min-h-9 rounded-md min-w-0 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
-      style={{ height: showDescription ? "auto" : undefined }}
       draggable={isDraggable}
       onDragStart={handleDragStart}
     >
@@ -69,7 +68,7 @@ export function WebsiteItem({
             {website.title}
           </a>
 
-          {showDescription && (
+          {showDescriptions && (website.summary || website.description) && (
             <div className="mt-2 space-y-1">
               {website.summary && (
                 <div
@@ -84,17 +83,19 @@ export function WebsiteItem({
                   📝 {website.summary}
                 </div>
               )}
-              <div
-                className="pl-1"
-                style={{
-                  fontSize: "9px",
-                  color: "var(--sub-text)",
-                  lineHeight: 1.45,
-                  wordBreak: "break-word",
-                }}
-              >
-                {website.description}
-              </div>
+              {website.description && (
+                <div
+                  className="pl-1"
+                  style={{
+                    fontSize: "9px",
+                    color: "var(--sub-text)",
+                    lineHeight: 1.45,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {website.description}
+                </div>
+              )}
             </div>
           )}
         </div>
