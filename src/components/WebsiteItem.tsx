@@ -35,14 +35,28 @@ export function WebsiteItem({
 
   return (
     <li
-      className="urwebs-website-item flex items-center justify-between min-h-9 rounded-md min-w-0 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
+      className="urwebs-website-item relative flex items-center min-h-9 rounded-md min-w-0 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
       style={{ height: showDescription ? "auto" : undefined }}
       draggable={isDraggable}
       onDragStart={handleDragStart}
     >
+      <button
+        onClick={handleFavoriteClick}
+        aria-label="즐겨찾기"
+        className="favorite absolute top-1 right-1 w-5 h-5 grid place-items-center bg-transparent border-0 cursor-pointer rounded transition-colors hover:bg-pink-100"
+      >
+        <svg
+          className={`w-3 h-3 urwebs-star-icon ${isFavorited ? "favorited" : ""}`}
+          viewBox="0 0 24 24"
+          strokeWidth="1"
+        >
+          <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8"></polygon>
+        </svg>
+      </button>
+
       <div className="left flex items-center gap-2 min-w-0 flex-1">
         <Favicon domain={website.url} className="w-4 h-4 rounded border shrink-0" />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pr-2">
           <a
             href={website.url}
             target="_blank"
@@ -85,20 +99,6 @@ export function WebsiteItem({
           )}
         </div>
       </div>
-
-      <button
-        onClick={handleFavoriteClick}
-        aria-label="즐겨찾기"
-        className="favorite ml-auto w-7 h-7 grid place-items-center bg-transparent border-0 cursor-pointer rounded transition-colors hover:bg-pink-100"
-      >
-        <svg
-          className={`w-3 h-3 urwebs-star-icon ${isFavorited ? "favorited" : ""}`}
-          viewBox="0 0 24 24"
-          strokeWidth="1"
-        >
-          <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8"></polygon>
-        </svg>
-      </button>
     </li>
   );
 }

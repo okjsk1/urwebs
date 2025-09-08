@@ -5175,6 +5175,10 @@ html {
   border: 2px solid var(--website-item-border);
   border-radius: .5rem;
   transition: border-color .14s, box-shadow .1s;
+  display: flex;
+  align-items: center;
+  padding: 6px 26px 6px 10px;
+  position: relative;
 }
 
 .urwebs-website-item:hover {
@@ -5185,6 +5189,16 @@ html {
 .urwebs-website-item.shadow-hover {
   border-color: var(--main-point);
   box-shadow: 0 4px 18px #e9a7c24d;
+}
+
+.urwebs-website-item .favorite {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+.urwebs-favorite-item .favorite {
+  margin-left: auto;
 }
 
 .urwebs-favorite-item {

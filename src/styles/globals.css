@@ -260,8 +260,8 @@ html {
   transition: border-color 0.14s, box-shadow 0.1s;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px;
+  padding: 6px 26px 6px 10px;
+  position: relative;
 }
 
 .urwebs-website-item:hover {
@@ -282,7 +282,12 @@ html {
   min-width: 0;
 }
 
-.urwebs-website-item .favorite,
+.urwebs-website-item .favorite {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
 .urwebs-favorite-item .favorite {
   margin-left: auto;
 }
