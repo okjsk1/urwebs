@@ -26,7 +26,6 @@ export function StartPage({
   // JSON에서 불러온 목록을 상태로 보관
   const [websites, setWebsites] = useState<Website[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDescriptions, setShowDescriptions] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -199,8 +198,6 @@ export function StartPage({
                       config={categoryConfig[category]}
                       favorites={favoritesData.items}
                       onToggleFavorite={handleToggleFavorite}
-                      showDescriptions={showDescriptions}
-                      onToggleDescriptions={setShowDescriptions}
                     />
                   ))}
                 </div>
