@@ -75,6 +75,7 @@ export default function App() {
   });
   const [customSites, setCustomSites] = useState<CustomSite[]>([]);
   const [saving, setSaving] = useState(false);
+  const [showDescriptions, setShowDescriptions] = useState(false);
 
   // 기타 모달
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
