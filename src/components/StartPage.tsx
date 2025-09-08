@@ -9,6 +9,7 @@ import { TodoWidget } from './widgets/TodoWidget';
 // ⚠️ websites는 import하지 말고, JSON에서 읽는다
 import { categoryOrder, categoryConfig } from '../data/websites';
 import { CategoryCard } from './CategoryCard';
+import { Favicon } from './Favicon';
 
 interface StartPageProps {
   favoritesData: FavoritesData;
@@ -116,19 +117,43 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
                   <h2 className="text-2xl font-bold text-gray-800 mb-6">즐겨찾기 사이트</h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {getFavoriteWebsites().map((site) => (
-                      <a
+                      <div
                         key={site.id}
-                        href={site.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border"
                       >
-                        <div className="text-center">
-                          <div className="text-2xl mb-2">🌐</div>
-                          <h3 className="font-medium text-gray-800 truncate">{site.title}</h3>
-                          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{site.description}</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <a
+                            href={site.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 min-w-0"
+                          >
+                            <Favicon domain={site.url} size={20} className="w-5 h-5 rounded border flex-shrink-0" />
+                            <h3 className="font-medium text-gray-800 truncate">
+                              {site.title}
+                            </h3>
+                          </a>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleToggleFavorite(site.id);
+                            }}
+                            aria-label="즐겨찾기 제거"
+                            className="favorite w-5 h-5 flex items-center justify-center text-gray-400 hover:text-yellow-500"
+                            type="button"
+                          >
+                            <svg
+                              className="w-3 h-3 urwebs-star-icon favorited"
+                              viewBox="0 0 24 24"
+                              strokeWidth="1"
+                            >
+                              <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8"></polygon>
+                            </svg>
+                          </button>
                         </div>
-                      </a>
+                        <p className="text-sm text-gray-500 line-clamp-2">{site.description}</p>
+                      </div>
                     ))}
                   </div>
                 </div>

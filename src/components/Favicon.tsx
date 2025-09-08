@@ -11,10 +11,11 @@ const FallbackIcon: React.FC<{ size?: number; className?: string }> = ({ size = 
 
 export const Favicon: React.FC<{ domain: string; size?: number; className?: string }> = ({ domain, size = 16, className }) => {
   const [err, setErr] = React.useState(false);
+  const src = `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(domain)}&sz=64`;
   if (err) return <FallbackIcon size={size} className={className} />;
   return (
     <img
-      src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+      src={src}
       onError={() => setErr(true)}
       alt=""
       width={size}
