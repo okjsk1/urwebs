@@ -43,11 +43,11 @@ export function WebsiteItem({
         href={website.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="block w-full font-medium text-sm text-[var(--main-dark)] focus:outline-none min-w-[10ch] truncate"
+        className="block w-full font-medium text-sm text-[var(--main-dark)] focus:outline-none min-w-[8ch] truncate"
         title={website.title}
         onClick={() => trackVisit(website.id)}
       >
-        {website.title}
+        {website.title.slice(0, 8)}
       </a>
 
       <button
