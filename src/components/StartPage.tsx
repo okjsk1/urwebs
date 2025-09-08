@@ -128,7 +128,7 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 min-w-0"
                           >
-                            <Favicon domain={site.url} size={20} className="w-5 h-5 rounded border flex-shrink-0" />
+                            <Favicon domain={site.url} size={20} className="w-5 h-5 rounded flex-shrink-0" />
                             <h3 className="font-medium text-gray-800 truncate">
                               {site.title}
                             </h3>
