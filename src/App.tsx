@@ -71,7 +71,7 @@ export default function App() {
     widgets: [],
   });
   const [customSites, setCustomSites] = useState<CustomSite[]>([]);
-  const [showDescriptions, setShowDescriptions] = useState(false);
+  const showDescriptions = true;
   const [saving, setSaving] = useState(false);
 
   // 기타 모달
