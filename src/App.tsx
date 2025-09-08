@@ -22,7 +22,6 @@ import { StartPage } from "./components/StartPage";
 import { Onboarding } from "./components/Onboarding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import GuideSamples from "./components/GuideSamples";
-import { Hero } from "./components/Hero";
 import { ModeGate } from "./components/ModeGate";
 import { CollectGuide } from "./components/CollectGuide";
 import { toast } from "sonner";
@@ -475,15 +474,6 @@ export default function App() {
                         onLogin={() => setIsLoginModalOpen(true)}
                       />
                     )}
-                  </ModeGate>
-                )}
-
-                {!SHOW_ONLY_CATEGORIES && (
-                  <ModeGate uiMode={uiMode} showWhen="discovery">
-                    <Hero
-                      onStart={() => setUIMode("collect")}
-                      onPreview={() => setShowOnboarding(true)}
-                    />
                   </ModeGate>
                 )}
 
