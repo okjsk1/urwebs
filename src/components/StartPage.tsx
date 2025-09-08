@@ -169,7 +169,11 @@ export function StartPage({
                             </svg>
                           </button>
                         </div>
-                        <p className="text-sm text-gray-500 line-clamp-2">{site.description}</p>
+                        {showDescriptions && (
+                          <p className="text-sm text-gray-500 line-clamp-2">
+                            {site.description}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -198,9 +202,9 @@ export function StartPage({
                       category={category}
                       sites={categorizedWebsites[category] || []}
                       config={categoryConfig[category]}
-                      showDescriptions={showDescriptions}
                       favorites={favoritesData.items}
                       onToggleFavorite={handleToggleFavorite}
+                      showDescriptions={showDescriptions}
                     />
                   ))}
                 </div>
