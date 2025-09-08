@@ -1,8 +1,9 @@
-import { writeFileSync } from "fs";
+import { writeFileSync, mkdirSync } from "fs";
 import { execSync } from "child_process";
 const sha = execSync("git rev-parse --short HEAD").toString().trim();
 const msg = execSync('git log -1 --pretty=%s').toString().trim();
 const now = new Date().toISOString();
+mkdirSync('public', { recursive: true });
 writeFileSync("public/status.txt",
 `ok
 app: urwebs
