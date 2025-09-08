@@ -8,8 +8,8 @@ interface CategoryCardProps {
   config: CategoryConfig;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
-  showDescriptions: boolean;
-  onToggleDescriptions: (v: boolean) => void;
+  showDescriptions?: boolean;
+  onToggleDescriptions?: (v: boolean) => void;
 }
 
 export function CategoryCard({
@@ -18,8 +18,8 @@ export function CategoryCard({
   config,
   favorites,
   onToggleFavorite,
-  showDescriptions,
-  onToggleDescriptions,
+  showDescriptions = false,
+  onToggleDescriptions = () => {},
 }: CategoryCardProps) {
   const safeSites = Array.isArray(sites) ? sites : [];
   const [visibleCount, setVisibleCount] = useState(6);

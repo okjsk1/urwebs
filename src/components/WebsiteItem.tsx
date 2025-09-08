@@ -9,7 +9,7 @@ interface WebsiteItemProps {
   onToggleFavorite: (id: string) => void;
   isDraggable?: boolean;
   onDragStart?: (e: React.DragEvent, website: Website) => void;
-  showDescriptions: boolean;
+  showDescriptions?: boolean;
 }
 
 export function WebsiteItem({
@@ -18,7 +18,7 @@ export function WebsiteItem({
   onToggleFavorite,
   isDraggable = false,
   onDragStart,
-  showDescriptions,
+  showDescriptions = false,
 }: WebsiteItemProps) {
   if (!website?.url || !website?.title) return null;
 
