@@ -1,12 +1,13 @@
+// src/components/StartPage.tsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Widget, FavoritesData, Website } from '../types'; // ← Website도 함께 import
+import { Widget, FavoritesData, Website } from '../types';
 import { WeatherWidget } from './widgets/WeatherWidget';
 import { ClockWidget } from './widgets/ClockWidget';
 import { MemoWidget } from './widgets/MemoWidget';
 import { TodoWidget } from './widgets/TodoWidget';
-// ⚠️ websites는 import하지 말고, JSON에서 읽는다
+// websites는 import하지 않고 JSON에서 읽어옴
 import { categoryOrder, categoryConfig } from '../data/websites';
 import { CategoryCard } from './CategoryCard';
 import { Favicon } from './Favicon';
@@ -18,8 +19,13 @@ interface StartPageProps {
   showDescriptions: boolean;
 }
 
-export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescriptions }: StartPageProps) {
-  // ✅ JSON에서 불러온 목록을 상태로 보관
+export function StartPage({
+  favoritesData,
+  onUpdateFavorites,
+  onClose,
+  showDescriptions,
+}: StartPageProps) {
+  // JSON에서 불러온 목록을 상태로 보관
   const [websites, setWebsites] = useState<Website[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,50 +43,65 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const [currentTime, setCurrentTime] = useState(new Date());
-
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   const formatTime = (date: Date) =>
-    date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    date.toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
 
   const formatDate = (date: Date) =>
-    date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+    date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    });
 
   const renderWidget = (widget: Widget) => {
     switch (widget.type) {
-      case 'weather': return <WeatherWidget key={widget.id} widget={widget} />;
-      case 'clock':   return <ClockWidget key={widget.id} widget={widget} />;
-      case 'memo':    return <MemoWidget key={widget.id} widget={widget} />;
-      case 'todo':    return <TodoWidget key={widget.id} widget={widget} />;
-      default:        return null;
+      case 'weather':
+        return <WeatherWidget key={widget.id} widget={widget} />;
+      case 'clock':
+        return <ClockWidget key={widget.id} widget={widget} />;
+      case 'memo':
+        return <MemoWidget key={widget.id} widget={widget} />;
+      case 'todo':
+        return <TodoWidget key={widget.id} widget={widget} />;
+      default:
+        return null;
     }
   };
 
   const getFavoriteWebsites = () =>
     favoritesData.items
-      .map(id => websites.find(site => site.id === id))
+      .map((id) => websites.find((site) => site.id === id))
       .filter(Boolean) as Website[];
 
   const handleToggleFavorite = (websiteId: string) => {
     const isFavorited = favoritesData.items.includes(websiteId);
     const updatedItems = isFavorited
-      ? favoritesData.items.filter(id => id !== websiteId)
+      ? favoritesData.items.filter((id) => id !== websiteId)
       : [...favoritesData.items, websiteId];
     onUpdateFavorites({ ...favoritesData, items: updatedItems });
   };
 
-  // ✅ websites(상태)를 기준으로 카테고리 묶기
+  // websites(상태)를 기준으로 카테고리 묶기
   const categorizedWebsites = useMemo(() => {
     const acc: Record<string, Website[]> = {};
-    categoryOrder.forEach(category => {
-      acc[category] = websites.filter(site => site.category === category);
+    categoryOrder.forEach((category) => {
+      acc[category] = websites.filter((site) => site.category === category);
     });
     return acc;
   }, [websites]);
@@ -89,10 +110,7 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 overflow-auto">
-      <div
-        className="min-h-screen mx-auto px-4 md:px-6"
-        style={{ maxWidth: "1440px" }}
-      >
+      <div className="min-h-screen mx-auto px-4 md:px-6" style={{ maxWidth: '1440px' }}>
         <div className="py-8 space-y-12">
           {/* Header */}
           <div className="flex justify-between items-center">
@@ -128,10 +146,9 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 min-w-0"
                           >
-                            <Favicon domain={site.url} size={20} className="w-5 h-5 rounded" />
-                            <h3 className="font-medium text-gray-800 truncate">
-                              {site.title}
-                            </h3>
+                            {/* 추천안: flex-shrink-0 유지, border 제거 */}
+                            <Favicon domain={site.url} size={20} className="w-5 h-5 rounded flex-shrink-0" />
+                            <h3 className="font-medium text-gray-800 truncate">{site.title}</h3>
                           </a>
                           <button
                             onClick={(e) => {
@@ -148,7 +165,7 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
                               viewBox="0 0 24 24"
                               strokeWidth="1"
                             >
-                              <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8"></polygon>
+                              <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8" />
                             </svg>
                           </button>
                         </div>
@@ -163,7 +180,6 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
                   <h2 className="text-2xl font-bold text-gray-800 mb-6">위젯</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {favoritesData.widgets.map(renderWidget)}
-                    {/* 기본 위젯들 ... (생략: 기존 그대로) */}
                   </div>
                 </div>
               </div>
@@ -173,8 +189,7 @@ export function StartPage({ favoritesData, onUpdateFavorites, onClose, showDescr
                 <div
                   className="grid gap-x-4 gap-y-6"
                   style={{
-                    gridTemplateColumns:
-                      "repeat(auto-fit, minmax(300px, 1fr))",
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                   }}
                 >
                   {categoryOrder.map((category) => (
