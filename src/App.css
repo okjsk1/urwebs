@@ -55,3 +55,71 @@
   line-height: 1.4;
   color: var(--main-dark);
 }
+
+/* Toolbar & Ghost Buttons */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--btn-border, #e5e7eb);
+  background: var(--btn-bg, #fff);
+  color: var(--btn-fg, #111);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.02s;
+}
+.btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.btn-ghost:active {
+  transform: translateY(1px);
+}
+.btn-ghost .hint {
+  margin-left: 6px;
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+:root {
+  --btn-bg: #fff;
+  --btn-fg: #111;
+  --btn-border: #e5e7eb;
+}
+.dark {
+  --btn-bg: #121212;
+  --btn-fg: #f3f4f6;
+  --btn-border: #2a2a2a;
+}
+.dark .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.btn-ghost svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.btn-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-ghost.sm {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.btn-ghost.sm .hint {
+  font-size: 11px;
+}

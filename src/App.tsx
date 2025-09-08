@@ -7,6 +7,7 @@ import { onSnapshot, writeBatch } from "firebase/firestore";
 import { getUserDocRef } from "./services/firestoreClient";
 import { stripUndefined } from "./utils/sanitize";
 import { assertAuthed } from "./utils/assert";
+import { setupGuestMigration } from "./services/bookmarks";
 
 import { Header } from "./components/Header";
 import { LoginModal } from "./components/LoginModal";
@@ -101,6 +102,10 @@ export default function App() {
 
   // ✅ 즐겨찾기 패널 오픈 상태 (오버레이)
   const [isFavOpen, setIsFavOpen] = useState(false);
+
+  useEffect(() => {
+    setupGuestMigration();
+  }, []);
 
   // ESC 로 패널 닫기
   useEffect(() => {
