@@ -5,18 +5,20 @@ import { Favicon } from "./Favicon";
 
 interface WebsiteItemProps {
   website: Website;
-  isFavorited: boolean;
+  isFavorite: boolean;
   onToggleFavorite: (id: string) => void;
   isDraggable?: boolean;
-  onDragStart: (e: React.DragEvent, website: Website) => void;
+  onDragStart?: (e: React.DragEvent, website: Website) => void;
+  showDescriptions: boolean;
 }
 
 export function WebsiteItem({
   website,
-  isFavorited,
+  isFavorite,
   onToggleFavorite,
   isDraggable = false,
   onDragStart,
+  showDescriptions,
 }: WebsiteItemProps) {
   if (!website?.url || !website?.title) return null;
 
@@ -28,7 +30,7 @@ export function WebsiteItem({
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("websiteId", website.id);
-    onDragStart(e, website);
+    onDragStart?.(e, website);
   };
 
   return (
@@ -43,7 +45,7 @@ export function WebsiteItem({
         className="favorite absolute top-1 right-1 w-5 h-5 grid place-items-center bg-transparent border-0 cursor-pointer rounded transition-colors hover:bg-pink-100"
       >
         <svg
-          className={`w-3 h-3 urwebs-star-icon ${isFavorited ? "favorited" : ""}`}
+          className={`w-3 h-3 urwebs-star-icon ${isFavorite ? "favorited" : ""}`}
           viewBox="0 0 24 24"
           strokeWidth="1"
         >
@@ -66,7 +68,7 @@ export function WebsiteItem({
             {website.title}
           </a>
 
-          {(website.summary || website.description) && (
+          {showDescriptions && (website.summary || website.description) && (
             <div className="mt-2 space-y-1">
               {website.summary && (
                 <div
@@ -78,21 +80,13 @@ export function WebsiteItem({
                     wordBreak: "break-word",
                   }}
                 >
-                  📝 {website.summary}
+                  {website.summary}
                 </div>
               )}
               {website.description && (
-                <div
-                  className="pl-1"
-                  style={{
-                    fontSize: "9px",
-                    color: "var(--sub-text)",
-                    lineHeight: 1.45,
-                    wordBreak: "break-word",
-                  }}
-                >
+                <p className="pl-1 text-xs leading-snug opacity-80">
                   {website.description}
-                </div>
+                </p>
               )}
             </div>
           )}
