@@ -65,6 +65,16 @@ export function UserGuide({ onClose }: UserGuideProps) {
     () => [
       {
         id: 1,
+        title: "사이트 설명 보기",
+        description: "오른쪽 상단 토글을 켜면 각 사이트의 설명이 보입니다.",
+        findTarget: () =>
+          document.querySelector<HTMLElement>('[data-guide="desc-toggle"]') ||
+          document.querySelector<HTMLElement>('label[for="description-toggle"]') ||
+          document.querySelector<HTMLElement>("#description-toggle")?.parentElement ||
+          queryByText("label,div,span,button", "사이트 설명 보기"),
+      },
+      {
+        id: 2,
         title: "사이트 추가",
         description: "‘사이트 추가’ 버튼으로 내 링크를 추가해보세요.",
         findTarget: () =>
@@ -74,7 +84,7 @@ export function UserGuide({ onClose }: UserGuideProps) {
           queryByText("button,a", "+사이트 추가"),
       },
       {
-        id: 2,
+        id: 3,
         title: "즐겨찾기 관리",
         description: "좌측 ‘즐겨찾기’ 목록에서 항목을 드래그해 폴더로 옮길 수 있어요.",
         findTarget: () =>
@@ -82,7 +92,7 @@ export function UserGuide({ onClose }: UserGuideProps) {
           nearestColumnByHeading("📌 즐겨찾기", "즐겨찾기"),
       },
       {
-        id: 3,
+        id: 4,
         title: "폴더 정리",
         description: "‘폴더’ 영역에서 폴더를 만들거나 이름을 바꿔보세요.",
         findTarget: () =>
@@ -90,7 +100,7 @@ export function UserGuide({ onClose }: UserGuideProps) {
           nearestColumnByHeading("📂 폴더", "폴더"),
       },
       {
-        id: 4,
+        id: 5,
         title: "저장하기",
         description: "로그인해서 즐겨찾기/설정을 저장하면 다음에도 그대로 쓸 수 있어요.",
         findTarget: () =>

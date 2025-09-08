@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { User } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
@@ -126,6 +126,7 @@ export function Header({
                 </button>
               </>
             )}
+
             <button
               className="urwebs-btn-ghost flex items-center gap-2 text-sm dark:text-gray-200"
               onClick={onToggleDarkMode}

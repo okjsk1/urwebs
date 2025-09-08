@@ -84,7 +84,7 @@ function SimpleWebsite({
           href={website.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 min-w-[6ch] truncate text-xs font-medium text-gray-800 hover:text-blue-600 transition-colors dark:text-gray-200 dark:hover:text-blue-400"
+          className="flex-1 truncate text-xs font-medium text-gray-800 hover:text-blue-600 transition-colors dark:text-gray-200 dark:hover:text-blue-400"
           title={website.title}
           onClick={() => trackVisit(website.id)}
         >

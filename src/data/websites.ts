@@ -139,7 +139,7 @@ export const categoryConfig = {
   "건축가": { title: "건축가", icon: "👨‍💼", iconClass: "icon-purple" },
   "포털사이트": { title: "포털사이트", icon: "🌐", iconClass: "icon-orange" },
   "기타": { title: "기타", icon: "📚", iconClass: "icon-gray" },
-  "자료": { title: "자료", icon: "📚", iconClass: "icon-gray" },
+  "자료" : { title: "기타", icon: "📚", iconClass: "icon-gray" },
 };
 
 export const categoryOrder = [
