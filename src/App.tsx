@@ -420,6 +420,8 @@ export default function App() {
           onStartPageClick={handleStartPageClick}
           isDarkMode={isDarkMode}
           onToggleDarkMode={toggleDarkMode}
+          showDescriptions={showDescriptions}
+          onToggleDescriptions={() => setShowDescriptions((prev) => !prev)}
           // 로그인/회원가입 모달 열기
           onLoginClick={() => setIsLoginModalOpen(true)}
           onSignupClick={() => setIsSignupModalOpen(true)}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { User } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +9,8 @@ interface HeaderProps {
   onStartPageClick: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  showDescriptions: boolean;
+  onToggleDescriptions: () => void;
   categoryTitle?: string;
   onLoginClick: () => void;
   onSignupClick: () => void;
@@ -23,6 +25,8 @@ export function Header({
   onStartPageClick,
   isDarkMode,
   onToggleDarkMode,
+  showDescriptions,
+  onToggleDescriptions,
   categoryTitle,
   onLoginClick,
   onSignupClick,
@@ -126,6 +130,20 @@ export function Header({
                 </button>
               </>
             )}
+            <label
+              htmlFor="description-toggle"
+              className="urwebs-btn-ghost flex items-center gap-1 text-sm dark:text-gray-200 cursor-pointer"
+              data-guide="desc-toggle"
+            >
+              <input
+                id="description-toggle"
+                type="checkbox"
+                checked={showDescriptions}
+                onChange={onToggleDescriptions}
+                className="mr-1"
+              />
+              사이트 설명 보기
+            </label>
 
             <button
               className="urwebs-btn-ghost flex items-center gap-2 text-sm dark:text-gray-200"
