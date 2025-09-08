@@ -52,7 +52,9 @@ const LS_KEYS = {
 const EMPTY_FAVORITES: FavoritesData = { items: [], folders: [], widgets: [] };
 
 // ✅ 메인엔 카테고리만 보이도록 유지
-const SHOW_ONLY_CATEGORIES = true;
+// 기존 설정에서는 카테고리만 보여서 '사이트 추가' 버튼이 동작하지 않았습니다.
+// 기능 사용을 위해 기본값을 false로 변경합니다.
+const SHOW_ONLY_CATEGORIES = false;
 
 export default function App() {
   // 모달들
