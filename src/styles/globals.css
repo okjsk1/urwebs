@@ -258,6 +258,10 @@ html {
   border-radius: 0.5rem;
   border: 2px solid var(--website-item-border);
   transition: border-color 0.14s, box-shadow 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
 }
 
 .urwebs-website-item:hover {
@@ -270,6 +274,19 @@ html {
   border-color: var(--main-point);
 }
 
+.urwebs-website-item .left,
+.urwebs-favorite-item .left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.urwebs-website-item .favorite,
+.urwebs-favorite-item .favorite {
+  margin-left: auto;
+}
+
 .urwebs-favorite-item {
   background: var(--favorite-item-bg);
   border: 1.5px solid var(--border-urwebs);
@@ -277,6 +294,9 @@ html {
   cursor: move;
   transition: box-shadow 0.15s, border-color 0.15s;
   box-shadow: 0 1px 3px 0 rgba(236, 236, 236, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .urwebs-favorite-item:hover {
