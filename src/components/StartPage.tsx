@@ -16,12 +16,14 @@ interface StartPageProps {
   favoritesData: FavoritesData;
   onUpdateFavorites: (data: FavoritesData) => void;
   onClose: () => void;
+  showDescriptions: boolean;
 }
 
 export function StartPage({
   favoritesData,
   onUpdateFavorites,
   onClose,
+  showDescriptions,
 }: StartPageProps) {
   // JSON에서 불러온 목록을 상태로 보관
   const [websites, setWebsites] = useState<Website[]>([]);
@@ -196,6 +198,7 @@ export function StartPage({
                       category={category}
                       sites={categorizedWebsites[category] || []}
                       config={categoryConfig[category]}
+                      showDescriptions={showDescriptions}
                       favorites={favoritesData.items}
                       onToggleFavorite={handleToggleFavorite}
                     />

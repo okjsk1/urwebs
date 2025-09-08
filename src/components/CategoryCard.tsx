@@ -6,6 +6,7 @@ interface CategoryCardProps {
   category: string;
   sites: Website[];
   config: CategoryConfig;
+  showDescriptions: boolean;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
 }
@@ -14,6 +15,7 @@ export function CategoryCard({
   category,
   sites,
   config,
+  showDescriptions,
   favorites,
   onToggleFavorite,
 }: CategoryCardProps) {
@@ -54,16 +56,15 @@ export function CategoryCard({
     loadMore();
   };
 
-  const displaySites = safeSites.slice(0, visibleCount);
+  const displaySites = showDescriptions
+    ? safeSites
+    : safeSites.slice(0, visibleCount);
   const hasMore = visibleCount < safeSites.length;
 
   return (
     <div className="urwebs-category-card h-full w-full min-w-0 rounded-xl border bg-white p-3 lg:p-4 flex flex-col shadow-sm dark:bg-gray-900">
       <div className="flex items-center gap-3 px-3 py-4">
-        <span
-          style={{ fontSize: "0.9rem" }}
-          className={`flex-shrink-0 ${config.iconClass}`}
-        >
+        <span style={{ fontSize: "0.9rem" }} className="flex-shrink-0">
           {config.icon}
         </span>
         <span
@@ -73,7 +74,7 @@ export function CategoryCard({
             letterSpacing: "0.01em",
           }}
         >
-          {config.title ?? category}
+          {category}
         </span>
       </div>
 
@@ -92,8 +93,9 @@ export function CategoryCard({
                   key={website.id}
                   website={website}
                   isDraggable={false}
-                  isFavorite={favorites.includes(website.id)}
+                  isFavorited={favorites.includes(website.id)}
                   onToggleFavorite={onToggleFavorite}
+                  showDescription={showDescriptions}
                 />
               ))}
               {loading &&
@@ -108,7 +110,7 @@ export function CategoryCard({
           )}
         </ul>
 
-        {hasMore && !initialized && (
+        {hasMore && !initialized && !showDescriptions && (
           <button
             onClick={handleFirstMore}
             className="urwebs-more-btn mt-2 px-2 py-1 text-xs self-center"

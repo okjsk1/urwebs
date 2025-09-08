@@ -77,19 +77,19 @@ export function FavoritesSection({
             >
               <div className="left flex items-center gap-2 min-w-0 flex-1">
                 <Favicon domain={website.url} className="w-4 h-4 flex-shrink-0" />
-              <a
-                href={website.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 min-w-[6ch] overflow-hidden text-ellipsis whitespace-nowrap text-decoration-none"
-                style={{
-                  color: "#47340a",
-                  fontSize: "14px",
-                  letterSpacing: "0.01em",
-                }}
-              >
-                {website.title}
-              </a>
+                <a
+                  href={website.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-decoration-none"
+                  style={{
+                    color: "#47340a",
+                    fontSize: "14px",
+                    letterSpacing: "0.01em",
+                  }}
+                >
+                  {website.title}
+                </a>
               </div>
               <button
                 onClick={() => onRemoveFavorite(website.id)}

@@ -5,15 +5,17 @@ import { Favicon } from "./Favicon";
 
 interface WebsiteItemProps {
   website: Website;
-  isFavorite: boolean;
+  isFavorited: boolean;
+  showDescription: boolean;
   onToggleFavorite: (id: string) => void;
   isDraggable?: boolean;
-  onDragStart?: (e: React.DragEvent, website: Website) => void;
+  onDragStart: (e: React.DragEvent, website: Website) => void;
 }
 
 export function WebsiteItem({
   website,
-  isFavorite,
+  isFavorited,
+  showDescription,
   onToggleFavorite,
   isDraggable = false,
   onDragStart,
@@ -28,51 +30,74 @@ export function WebsiteItem({
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("websiteId", website.id);
-    onDragStart?.(e, website);
+    onDragStart(e, website);
   };
 
   return (
     <li
-      className="urwebs-website-item px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 focus-within:ring-2 focus-within:ring-blue-400"
+      className="urwebs-website-item relative flex items-center min-h-9 rounded-md min-w-0 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
+      style={{ height: showDescription ? "auto" : undefined }}
       draggable={isDraggable}
       onDragStart={handleDragStart}
     >
-      <div className="grid grid-cols-[20px_1fr_24px] items-start gap-x-2 min-w-0">
-        <Favicon
-          domain={website.url}
-          className="w-5 h-5 rounded border col-start-1 row-start-1 justify-self-start self-center"
-        />
-
-        <a
-          href={website.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={website.title}
-          onClick={() => trackVisit(website.id)}
-          className="col-start-2 row-start-1 block font-medium text-sm text-zinc-900 dark:text-zinc-100 min-w-0 truncate [min-width:10ch] focus:outline-none"
+      <button
+        onClick={handleFavoriteClick}
+        aria-label="즐겨찾기"
+        className="favorite absolute top-1 right-1 w-5 h-5 grid place-items-center bg-transparent border-0 cursor-pointer rounded transition-colors hover:bg-pink-100"
+      >
+        <svg
+          className={`w-3 h-3 urwebs-star-icon ${isFavorited ? "favorited" : ""}`}
+          viewBox="0 0 24 24"
+          strokeWidth="1"
         >
-          {website.title}
-        </a>
+          <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8"></polygon>
+        </svg>
+      </button>
 
-        <button
-          onClick={handleFavoriteClick}
-          aria-label="즐겨찾기"
-          className="col-start-3 row-start-1 justify-self-end self-start w-6 h-6 grid place-items-center rounded hover:bg-pink-100 dark:hover:bg-zinc-700"
-        >
-          <svg
-            className={`w-4 h-4 urwebs-star-icon ${isFavorite ? "favorited" : ""}`}
-            viewBox="0 0 24 24"
-            strokeWidth="1"
+      <div className="left flex items-center gap-2 min-w-0 flex-1">
+        <Favicon domain={website.url} className="w-4 h-4 rounded border shrink-0" />
+        <div className="min-w-0 flex-1 pr-2">
+          <a
+            href={website.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block truncate text-[var(--main-dark)] focus:outline-none"
+            style={{ fontSize: "12.5px" }}
+            title={website.title}
+            onClick={() => trackVisit(website.id)}
           >
-            <polygon points="12,2 15,8.2 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8.2" />
-          </svg>
-        </button>
+            {website.title}
+          </a>
 
-        {(website.summary || website.description) && (
-          <p className="col-start-2 col-span-2 row-start-2 mt-1 text-xs leading-snug text-zinc-700 dark:text-zinc-300 min-w-0 line-clamp-2">
-            {website.summary ?? website.description}
-          </p>
-        )}
+          {showDescription && (
+            <div className="mt-2 space-y-1">
+              {website.summary && (
+                <div
+                  className="pl-1 font-medium"
+                  style={{
+                    fontSize: "10px",
+                    color: "var(--sub-text)",
+                    lineHeight: 1.4,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  📝 {website.summary}
+                </div>
+              )}
+              <div
+                className="pl-1"
+                style={{
+                  fontSize: "9px",
+                  color: "var(--sub-text)",
+                  lineHeight: 1.45,
+                  wordBreak: "break-word",
+                }}
+              >
+                {website.description}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </li>
   );

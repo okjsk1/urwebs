@@ -82,7 +82,7 @@ export function TopList({ mode, onAddFavorite }: TopListProps) {
               href={site.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 min-w-[6ch] overflow-hidden text-ellipsis whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 hover:underline"
+              className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 hover:underline"
             >
               {site.title}
             </a>
