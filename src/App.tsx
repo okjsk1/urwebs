@@ -20,7 +20,6 @@ import { Footer } from "./components/Footer";
 import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
 import { Onboarding } from "./components/Onboarding";
-import { RecommendTray } from "./components/RecommendTray";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import GuideSamples from "./components/GuideSamples";
 import { Hero } from "./components/Hero";
@@ -486,14 +485,6 @@ export default function App() {
                       alert("브라우저 설정에서 시작페이지를 urwebs로 설정하세요.")
                     }
                     onClose={() => setShowOnboarding(false)}
-                  />
-                )}
-
-                {!SHOW_ONLY_CATEGORIES && (
-                  <RecommendTray
-                    onApplyPreset={(preset) =>
-                      setFavoritesData(applyPreset(favoritesData, preset))
-                    }
                   />
                 )}
 
