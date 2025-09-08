@@ -16,13 +16,6 @@ export function EmptyFavoritesCard() {
           >
             사이트 추가
           </button>
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent('openRecommendTray'))}
-            className="px-3 py-1 text-xs rounded border"
-          >
-            스타터 세트
-          </button>
         </div>
       </div>
     </div>
