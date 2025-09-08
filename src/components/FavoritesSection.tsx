@@ -68,30 +68,32 @@ export function FavoritesSection({
           return (
             <div
               key={websiteId}
-              className="urwebs-favorite-item flex items-center gap-2 p-2 min-w-0 max-w-40 overflow-hidden"
+              className="urwebs-favorite-item p-2 min-w-0 max-w-40 overflow-hidden"
               draggable
               onDragStart={(e) => handleDragStart(e, index)}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, index)}
             >
-              <Favicon domain={website.url} className="w-4 h-4 flex-shrink-0" />
-              <a
-                href={website.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-decoration-none"
-                style={{
-                  color: "#47340a",
-                  fontSize: "14px",
-                  letterSpacing: "0.01em",
-                }}
-              >
-                {website.title}
-              </a>
+              <div className="left flex items-center gap-2 min-w-0 flex-1">
+                <Favicon domain={website.url} className="w-4 h-4 flex-shrink-0" />
+                <a
+                  href={website.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-decoration-none"
+                  style={{
+                    color: "#47340a",
+                    fontSize: "14px",
+                    letterSpacing: "0.01em",
+                  }}
+                >
+                  {website.title}
+                </a>
+              </div>
               <button
                 onClick={() => onRemoveFavorite(website.id)}
-                className="ml-auto p-1 bg-transparent border-0 cursor-pointer transition-colors"
+                className="favorite ml-auto p-1 bg-transparent border-0 cursor-pointer transition-colors"
                 style={{
                   fontSize: "14px",
                   color: "var(--main-point)",
