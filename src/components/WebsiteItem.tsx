@@ -33,7 +33,7 @@ export function WebsiteItem({
 
   return (
     <li
-      className="urwebs-website-item relative px-2 py-2 rounded-md hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
+      className="urwebs-website-item px-2 py-2 rounded-md hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
       draggable={isDraggable}
       onDragStart={handleDragStart}
     >
@@ -44,7 +44,7 @@ export function WebsiteItem({
           href={website.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block font-medium truncate text-sm text-[var(--main-dark)] focus:outline-none pr-8 flex-1"
+          className="font-medium text-sm text-[var(--main-dark)] focus:outline-none flex-1 min-w-[8ch] truncate"
           title={website.title}
           onClick={() => trackVisit(website.id)}
         >
@@ -54,7 +54,7 @@ export function WebsiteItem({
         <button
           onClick={handleFavoriteClick}
           aria-label="즐겨찾기"
-          className="favorite absolute top-2 right-2 grid place-items-center w-5 h-5 bg-transparent border-0 cursor-pointer rounded hover:bg-pink-100"
+          className="favorite grid place-items-center w-5 h-5 bg-transparent border-0 cursor-pointer rounded hover:bg-pink-100 shrink-0"
         >
           <svg
             className={`w-3 h-3 urwebs-star-icon ${isFavorite ? "favorited" : ""}`}
@@ -67,7 +67,7 @@ export function WebsiteItem({
       </div>
 
       {(website.summary || website.description) && (
-        <p className="mt-1 text-xs leading-snug text-gray-600 dark:text-gray-300 pl-6 line-clamp-2">
+        <p className="mt-1 ml-6 text-xs leading-snug text-gray-600 dark:text-gray-300 line-clamp-2">
           {website.summary ?? website.description}
         </p>
       )}
