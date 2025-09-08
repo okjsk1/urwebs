@@ -75,7 +75,6 @@ export default function App() {
   });
   const [customSites, setCustomSites] = useState<CustomSite[]>([]);
   const [saving, setSaving] = useState(false);
-  const [showDescriptions, setShowDescriptions] = useState(false);
 
   // 기타 모달
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -420,8 +419,6 @@ export default function App() {
           onStartPageClick={handleStartPageClick}
           isDarkMode={isDarkMode}
           onToggleDarkMode={toggleDarkMode}
-          showDescriptions={showDescriptions}
-          onToggleDescriptions={() => setShowDescriptions((prev) => !prev)}
           // 로그인/회원가입 모달 열기
           onLoginClick={() => setIsLoginModalOpen(true)}
           onSignupClick={() => setIsSignupModalOpen(true)}
