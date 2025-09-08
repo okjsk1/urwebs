@@ -162,10 +162,21 @@ export default function App() {
           }
         );
       } else {
-        setFavoritesData(EMPTY_FAVORITES);
-        setCustomSites([]);
-        localStorage.removeItem(LS_KEYS.FAV);
-        localStorage.removeItem(LS_KEYS.CUSTOM);
+        try {
+          const rawFav = localStorage.getItem(LS_KEYS.FAV);
+          const favData = parseFavoritesData(
+            rawFav ? JSON.parse(rawFav) : undefined
+          );
+          const rawCustom = localStorage.getItem(LS_KEYS.CUSTOM);
+          const customData = parseCustomSites(
+            rawCustom ? JSON.parse(rawCustom) : undefined
+          );
+          setFavoritesData(favData);
+          setCustomSites(customData);
+        } catch {
+          setFavoritesData(EMPTY_FAVORITES);
+          setCustomSites([]);
+        }
         setAuthLoading(false);
       }
     });
