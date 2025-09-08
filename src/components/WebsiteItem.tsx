@@ -33,62 +33,71 @@ export function WebsiteItem({
     onDragStart(e, website);
   };
 
+  const faviconDomain = (() => {
+    try {
+      return new URL(website.url).hostname;
+    } catch {
+      return website.url;
+    }
+  })();
+
   return (
     <li
-      className="urwebs-website-item flex items-center gap-2 px-2 py-1 min-h-9 rounded-md min-w-0 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
+      className="urwebs-website-item flex items-center justify-between min-h-9 rounded-md min-w-0 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
       style={{ height: showDescription ? "auto" : undefined }}
       draggable={isDraggable}
       onDragStart={handleDragStart}
     >
-      <Favicon domain={website.url} className="w-4 h-4 rounded border shrink-0" />
+      <div className="left flex items-center gap-2 min-w-0 flex-1">
+        <Favicon domain={faviconDomain} className="w-4 h-4 rounded border shrink-0" />
+        <div className="min-w-0 flex-1">
+          <a
+            href={website.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block truncate text-[var(--main-dark)] focus:outline-none"
+            style={{ fontSize: "12.5px" }}
+            title={website.title}
+            onClick={() => trackVisit(website.id)}
+          >
+            {website.title}
+          </a>
 
-      <div className="flex-1 min-w-0">
-        <a
-          href={website.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block truncate text-[var(--main-dark)] focus:outline-none"
-          style={{ fontSize: "12.5px" }}
-          title={website.title}
-          onClick={() => trackVisit(website.id)}
-        >
-          {website.title}
-        </a>
-
-        {showDescription && (
-          <div className="mt-2 space-y-1">
-            {website.summary && (
+          {showDescription && (
+            <div className="mt-2 space-y-1">
+              {website.summary && (
+                <div
+                  className="pl-1 font-medium"
+                  style={{
+                    fontSize: "10px",
+                    color: "var(--sub-text)",
+                    lineHeight: 1.4,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  📝 {website.summary}
+                </div>
+              )}
               <div
-                className="pl-1 font-medium"
+                className="pl-1"
                 style={{
-                  fontSize: "10px",
+                  fontSize: "9px",
                   color: "var(--sub-text)",
-                  lineHeight: 1.4,
+                  lineHeight: 1.45,
                   wordBreak: "break-word",
                 }}
               >
-                📝 {website.summary}
+                {website.description}
               </div>
-            )}
-            <div
-              className="pl-1"
-              style={{
-                fontSize: "9px",
-                color: "var(--sub-text)",
-                lineHeight: 1.45,
-                wordBreak: "break-word",
-              }}
-            >
-              {website.description}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <button
         onClick={handleFavoriteClick}
         aria-label="즐겨찾기"
-        className="ml-auto w-7 h-7 grid place-items-center bg-transparent border-0 cursor-pointer rounded transition-colors hover:bg-pink-100"
+        className="favorite ml-auto w-7 h-7 grid place-items-center bg-transparent border-0 cursor-pointer rounded transition-colors hover:bg-pink-100"
       >
         <svg
           className={`w-3 h-3 urwebs-star-icon ${isFavorited ? "favorited" : ""}`}

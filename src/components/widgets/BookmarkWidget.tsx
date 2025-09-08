@@ -108,26 +108,36 @@ export function BookmarkWidget({ id, onRemove }: BookmarkWidgetProps) {
           </div>
         )}
 
-        {bookmarks.map((bookmark) => (
-          <div key={bookmark.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100">
-            <Favicon domain={bookmark.url} size={12} className="w-3 h-3 flex-shrink-0" />
-            <a
-              href={bookmark.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 text-xs text-blue-600 hover:underline truncate"
-              title={bookmark.title}
-            >
-              {bookmark.title}
-            </a>
-            <button
-              onClick={() => removeBookmark(bookmark.id)}
-              className="text-red-500 hover:text-red-700 text-xs"
-            >
-              ×
-            </button>
-          </div>
-        ))}
+        {bookmarks.map((bookmark) => {
+          const domain = (() => {
+            try {
+              return new URL(bookmark.url).hostname;
+            } catch {
+              return bookmark.url;
+            }
+          })();
+
+          return (
+            <div key={bookmark.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100">
+              <Favicon domain={domain} size={12} className="w-3 h-3 flex-shrink-0" />
+              <a
+                href={bookmark.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 text-xs text-blue-600 hover:underline truncate"
+                title={bookmark.title}
+              >
+                {bookmark.title}
+              </a>
+              <button
+                onClick={() => removeBookmark(bookmark.id)}
+                className="text-red-500 hover:text-red-700 text-xs"
+              >
+                ×
+              </button>
+            </div>
+          );
+        })}
 
         {bookmarks.length === 0 && !isAdding && (
           <p className="text-xs text-gray-500 text-center py-4">

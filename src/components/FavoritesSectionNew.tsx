@@ -65,10 +65,18 @@ function SimpleWebsite({
   const dragRef = useRef<HTMLDivElement>(null);
   if (!website) return null;
 
+  const faviconDomain = (() => {
+    try {
+      return new URL(website.url).hostname;
+    } catch {
+      return website.url;
+    }
+  })();
+
   return (
     <div
       data-bookmark-item /* ✅ 보험: 즐겨찾기 항목 표시용 데이터 속성 */
-      className={`urwebs-favorite-item relative p-1 rounded shadow-sm border transition-all h-6 group ${
+      className={`urwebs-favorite-item flex items-center p-1 rounded shadow-sm border transition-all h-6 group ${
         isDraggingOver ? 'urwebs-drop-zone' : ''
       }`}
       draggable
@@ -78,13 +86,13 @@ function SimpleWebsite({
       onDrop={onDrop}
       ref={dragRef}
     >
-      <div className="flex items-center gap-1 h-full">
-        <Favicon domain={website.url} size={12} className="w-3 h-3 flex-shrink-0" />
+      <div className="left flex items-center gap-1 flex-1 min-w-0 h-full">
+        <Favicon domain={faviconDomain} size={12} className="w-3 h-3 flex-shrink-0" />
         <a
           href={website.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 text-xs font-medium text-gray-800 hover:text-blue-600 transition-colors truncate dark:text-gray-200 dark:hover:text-blue-400"
+          className="flex-1 truncate text-xs font-medium text-gray-800 hover:text-blue-600 transition-colors dark:text-gray-200 dark:hover:text-blue-400"
           title={website.title}
           onClick={() => trackVisit(website.id)}
         >
@@ -94,7 +102,7 @@ function SimpleWebsite({
 
       <button
         onClick={() => onRemove(websiteId)}
-        className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-red-500 text-white w-3 h-3 rounded-full text-[10px] leading-[10px] flex items-center justify-center transition-opacity"
+        className="favorite ml-auto opacity-0 group-hover:opacity-100 bg-red-500 text-white w-3 h-3 rounded-full text-[10px] leading-[10px] flex items-center justify-center transition-opacity"
         aria-label="즐겨찾기에서 제거"
         type="button"
       >

@@ -75,27 +75,37 @@ export function TopList({ mode, onAddFavorite }: TopListProps) {
     <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded">
       <h2 className="font-bold mb-2 text-gray-800 dark:text-gray-100">{title}</h2>
       <ul className="space-y-2">
-        {items.map((site) => (
-          <li key={site.id} className="flex items-center gap-2">
-            <Favicon domain={site.url} className="w-4 h-4 flex-shrink-0" />
-            <a
-              href={site.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 hover:underline"
-            >
-              {site.title}
-            </a>
-            <button
-              type="button"
-              onClick={() => onAddFavorite(site.id)}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-              aria-label={`${site.title} 즐겨찾기 추가`}
-            >
-              [+ 즐겨찾기]
-            </button>
-          </li>
-        ))}
+        {items.map((site) => {
+          const domain = (() => {
+            try {
+              return new URL(site.url).hostname;
+            } catch {
+              return site.url;
+            }
+          })();
+
+          return (
+            <li key={site.id} className="flex items-center gap-2">
+              <Favicon domain={domain} className="w-4 h-4 flex-shrink-0" />
+              <a
+                href={site.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 hover:underline"
+              >
+                {site.title}
+              </a>
+              <button
+                type="button"
+                onClick={() => onAddFavorite(site.id)}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                aria-label={`${site.title} 즐겨찾기 추가`}
+              >
+                [+ 즐겨찾기]
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
