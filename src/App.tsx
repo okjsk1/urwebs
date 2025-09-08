@@ -22,8 +22,6 @@ import { StartPage } from "./components/StartPage";
 import { Onboarding } from "./components/Onboarding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import GuideSamples from "./components/GuideSamples";
-import { ModeGate } from "./components/ModeGate";
-import { CollectGuide } from "./components/CollectGuide";
 import { toast } from "sonner";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
@@ -34,7 +32,6 @@ import { toggleFavorite as toggleFavoriteData } from "./utils/favorites";
 import { parseFavoritesData, parseCustomSites } from "./utils/validation";
 import { Skeleton } from "./components/ui/skeleton";
 import { useUIMode } from "./hooks/useUIMode";
-import { useCollectGuide } from "./hooks/useCollectGuide";
 import { hasFavorites } from "./utils/fav";
 
 // ---------------------------
@@ -97,7 +94,6 @@ export default function App() {
 
   // UI 모드(discovery/collect)
   const { uiMode, setUIMode } = useUIMode(user);
-  const { showGuide: showCollectGuide, dismiss: dismissCollectGuide } = useCollectGuide(user);
   const hasFav = hasFavorites(favoritesData.folders, favoritesData.items);
 
   // ✅ 즐겨찾기 패널 오픈 상태 (오버레이)
@@ -466,16 +462,6 @@ export default function App() {
                   <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
                 )}
 
-                {!SHOW_ONLY_CATEGORIES && (
-                  <ModeGate uiMode={uiMode} showWhen="collect">
-                    {showCollectGuide && (
-                      <CollectGuide
-                        onClose={dismissCollectGuide}
-                        onLogin={() => setIsLoginModalOpen(true)}
-                      />
-                    )}
-                  </ModeGate>
-                )}
 
                 {!SHOW_ONLY_CATEGORIES && showOnboarding && (
                   <Onboarding
