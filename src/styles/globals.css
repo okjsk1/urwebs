@@ -260,6 +260,7 @@ html {
   transition: border-color 0.14s, box-shadow 0.1s;
   display: flex;
   align-items: center;
+  width: 100%;
   padding: 6px 26px 6px 10px;
   position: relative;
 }
