@@ -279,10 +279,6 @@ export default function App() {
   };
 
   const toggleFavorite = (websiteId: string) => {
-    if (!user) {
-      toast.error("로그인이 필요합니다.");
-      return;
-    }
     try {
       const newData = toggleFavoriteData(favoritesData, websiteId);
       const isCurrentlyFavorited = getAllFavoriteIds().includes(websiteId);
@@ -296,10 +292,6 @@ export default function App() {
   };
 
   const handleAddFav = (id: string) => {
-    if (!user) {
-      toast.error("로그인이 필요합니다.");
-      return;
-    }
     try {
       setFavoritesData((prev) => applyPreset(prev, { items: [id], folders: [], widgets: [] }));
       toast.success("즐겨찾기에 추가되었습니다.");
