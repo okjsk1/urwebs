@@ -11,6 +11,7 @@ import { TodoWidget } from './widgets/TodoWidget';
 import { categoryOrder, categoryConfig } from '../data/websites';
 import { CategoryCard } from './CategoryCard';
 import { Favicon } from './Favicon';
+import { applyStarter, resetFavorites, saveFavoritesData } from '../utils/startPageStorage';
 
 interface StartPageProps {
   favoritesData: FavoritesData;
@@ -54,6 +55,18 @@ export function StartPage({
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    saveFavoritesData(favoritesData);
+  }, [favoritesData]);
+
+  const handleStarter = () => applyStarter(onUpdateFavorites);
+  const handleReset = () => resetFavorites(onUpdateFavorites);
+
+  const handleRemoveWidget = (id: string) => {
+    const updated = favoritesData.widgets.filter((w) => w.id !== id);
+    onUpdateFavorites({ ...favoritesData, widgets: updated });
+  };
+
   const formatTime = (date: Date) =>
     date.toLocaleTimeString('ko-KR', {
       hour: '2-digit',
@@ -72,13 +85,13 @@ export function StartPage({
   const renderWidget = (widget: Widget) => {
     switch (widget.type) {
       case 'weather':
-        return <WeatherWidget key={widget.id} widget={widget} />;
+        return <WeatherWidget key={widget.id} id={widget.id} onRemove={handleRemoveWidget} />;
       case 'clock':
-        return <ClockWidget key={widget.id} widget={widget} />;
+        return <ClockWidget key={widget.id} id={widget.id} onRemove={handleRemoveWidget} />;
       case 'memo':
-        return <MemoWidget key={widget.id} widget={widget} />;
+        return <MemoWidget key={widget.id} id={widget.id} onRemove={handleRemoveWidget} />;
       case 'todo':
-        return <TodoWidget key={widget.id} widget={widget} />;
+        return <TodoWidget key={widget.id} id={widget.id} onRemove={handleRemoveWidget} />;
       default:
         return null;
     }
@@ -105,8 +118,27 @@ export function StartPage({
     });
     return acc;
   }, [websites]);
+  const isEmpty = favoritesData.items.length === 0 && favoritesData.widgets.length === 0;
 
   if (loading) return <div className="p-6">로딩 중…</div>;
+
+  if (isEmpty) {
+    return (
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 flex flex-col items-center justify-center text-center p-6">
+        <h1 className="text-3xl font-bold mb-4">나만의 시작페이지를 만들어 보세요</h1>
+        <p className="text-lg text-gray-600 mb-8">
+          버튼 한 번으로 추천 셋팅을 불러오고, 즐겨찾기와 위젯은 자유롭게 바꿀 수 있어요.
+        </p>
+        <button
+          onClick={handleStarter}
+          aria-label="나만의 시작페이지"
+          className="bg-blue-500 text-white px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          나만의 시작페이지
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 overflow-auto">
@@ -114,6 +146,22 @@ export function StartPage({
         <div className="py-8 space-y-12">
           {/* Header */}
           <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              <button
+                onClick={handleStarter}
+                aria-label="나만의 시작페이지"
+                className="bg-blue-500 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+              >
+                나만의 시작페이지
+              </button>
+              <button
+                onClick={handleReset}
+                aria-label="기본 셋팅으로 리셋"
+                className="border border-blue-500 text-blue-500 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+              >
+                기본 셋팅으로 리셋
+              </button>
+            </div>
             <div className="text-center flex-1">
               <h1 className="text-4xl font-bold text-gray-800 mb-2">나의 시작페이지</h1>
               <p className="text-xl text-gray-600">{formatDate(currentTime)}</p>
@@ -121,6 +169,7 @@ export function StartPage({
             </div>
             <button
               onClick={onClose}
+              aria-label="닫기"
               className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
             >
               ✖ 닫기

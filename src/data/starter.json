@@ -1,0 +1,7 @@
+{
+  "favorites": ["60", "62", "12"],
+  "widgets": [
+    { "id": "w-weather", "type": "weather" },
+    { "id": "w-clock", "type": "clock" }
+  ]
+}
