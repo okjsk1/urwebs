@@ -11,6 +11,7 @@ function mergeFolders(a: FavoriteFolder[] = [], b: FavoriteFolder[] = []): Favor
     if (map.has(f.id)) {
       const cur = map.get(f.id)!;
       cur.items = mergeIds(cur.items, f.items);
+      if (!cur.position && f.position) cur.position = f.position;
     } else {
       map.set(f.id, { ...f });
     }

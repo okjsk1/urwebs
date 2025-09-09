@@ -39,6 +39,7 @@ export interface FavoriteFolder {
   items: string[]; // website ids
   color?: string;
   sortMode?: SortMode;
+  position?: { x: number; y: number };
 }
 
 // 즐겨찾기 구조 확장
