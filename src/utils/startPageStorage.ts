@@ -14,7 +14,7 @@ interface StarterFolder {
 interface StarterRaw {
   favorites: string[];
   folders?: StarterFolder[];
-  widgets: { id: string; type: Widget['type'] }[];
+  widgets?: { id: string; type: Widget['type'] }[];
 }
 
 const starterData = starter as StarterRaw;
@@ -22,10 +22,17 @@ const starterData = starter as StarterRaw;
 export function loadFavoritesData(): FavoritesData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : { items: [], folders: [], widgets: [] };
+    if (raw) {
+      return JSON.parse(raw);
+    }
+    const starter = getStarterData();
+    saveFavoritesData(starter);
+    return starter;
   } catch (e) {
     console.error('Failed to load favorites data', e);
-    return { items: [], folders: [], widgets: [] };
+    const starter = getStarterData();
+    saveFavoritesData(starter);
+    return starter;
   }
 }
 
