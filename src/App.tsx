@@ -45,7 +45,7 @@ const LS_KEYS = {
   ONBOARD: "urwebs-onboarding-v1",
 };
 
-const EMPTY_FAVORITES: FavoritesData = { items: [], folders: [], widgets: [] };
+const EMPTY_FAVORITES: FavoritesData = { items: [], folders: [], widgets: [], layout: [] };
 
 // ✅ 메인엔 카테고리만 보이도록 유지
 // 기존 설정에서는 카테고리만 보여서 '사이트 추가' 버튼이 동작하지 않았습니다.
@@ -70,6 +70,7 @@ export default function App() {
     items: [],
     folders: [],
     widgets: [],
+    layout: [],
   });
   const [customSites, setCustomSites] = useState<CustomSite[]>([]);
   const showDescriptions = true;

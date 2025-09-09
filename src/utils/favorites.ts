@@ -5,6 +5,7 @@ export function toggleFavorite(data: FavoritesData, websiteId: string): Favorite
     items: data.items ? [...data.items] : [],
     folders: data.folders ? data.folders.map(f => ({ ...f, items: [...(f.items || [])] })) : [],
     widgets: data.widgets ? [...data.widgets] : [],
+    layout: data.layout ? [...data.layout] : [],
   };
 
   const allIds = [
@@ -19,8 +20,10 @@ export function toggleFavorite(data: FavoritesData, websiteId: string): Favorite
       ...folder,
       items: (folder.items || []).filter(id => id !== websiteId),
     }));
+    newData.layout = (newData.layout || []).filter(entry => entry !== `item:${websiteId}`);
   } else {
     newData.items = [...(newData.items || []), websiteId];
+    newData.layout = [...(newData.layout || []), `item:${websiteId}`];
   }
 
   return newData;
