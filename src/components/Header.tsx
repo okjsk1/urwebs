@@ -40,7 +40,7 @@ export function Header({
 
   return (
     <header className="urwebs-header sticky top-0 z-50">
-      <div className="max-w-screen-2xl mx-auto flex justify-end px-4 lg:px-8 pt-2">
+      <div className="max-w-screen-2xl mx-auto flex justify-end px-4 lg:px-8 pt-1.5">
         <button
           className="urwebs-btn-ghost text-xs opacity-75 dark:text-gray-300"
           onClick={onHomepageClick}
@@ -50,7 +50,7 @@ export function Header({
         </button>
       </div>
 
-      <div className="max-w-screen-2xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between px-4 lg:px-8 pb-4 gap-4 lg:gap-8">
+      <div className="max-w-screen-2xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between px-4 lg:px-8 pb-3 gap-3 lg:gap-6">
         <div className="flex items-center">
           <div className="brand cursor-pointer" onClick={onHomeClick}>
             <h1
