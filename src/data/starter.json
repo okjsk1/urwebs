@@ -1,5 +1,10 @@
 {
-  "favorites": ["60", "62", "12"],
+  "favorites": [],
+  "folders": [
+    { "id": "f-design", "name": "디자인", "items": ["60"] },
+    { "id": "f-contest", "name": "공모전", "items": ["62"] },
+    { "id": "f-jobs", "name": "채용정보", "items": ["12"] }
+  ],
   "widgets": [
     { "id": "w-weather", "type": "weather" },
     { "id": "w-clock", "type": "clock" }

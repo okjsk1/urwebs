@@ -1,10 +1,19 @@
-import { FavoritesData, Widget } from '../types';
+import { FavoritesData, Widget, SortMode } from '../types';
 import starter from '../data/starter.json';
 
 const STORAGE_KEY = 'urwebs-favorites-v3';
 
+interface StarterFolder {
+  id: string;
+  name: string;
+  items: string[];
+  color?: string;
+  sortMode?: SortMode;
+}
+
 interface StarterRaw {
   favorites: string[];
+  folders?: StarterFolder[];
   widgets: { id: string; type: Widget['type'] }[];
 }
 
@@ -33,7 +42,14 @@ function buildStarter(): FavoritesData {
     id: w.id,
     type: w.type,
   }));
-  return { items: starterData.favorites || [], folders: [], widgets };
+  const folders = (starterData.folders || []).map((f) => ({
+    id: f.id,
+    name: f.name,
+    items: f.items || [],
+    color: f.color,
+    sortMode: f.sortMode,
+  }));
+  return { items: starterData.favorites || [], folders, widgets };
 }
 
 export function applyStarter(onUpdate: (data: FavoritesData) => void) {
