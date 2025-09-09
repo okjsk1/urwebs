@@ -55,7 +55,7 @@ export function Header({
           <div className="brand cursor-pointer" onClick={onHomeClick}>
             <h1
               style={{
-                fontSize: "1.5rem",
+                fontSize: "calc(1.5rem - 2px)",
                 color: "var(--main-point)",
                 letterSpacing: "0.01em",
               }}
