@@ -5177,6 +5177,7 @@ html {
   transition: border-color .14s, box-shadow .1s;
   display: flex;
   align-items: center;
+  width: 100%;
   padding: 4px 18px 4px 8px;
   position: relative;
 }

@@ -35,7 +35,7 @@ export function WebsiteItem({
 
   return (
     <li
-      className="urwebs-website-item relative flex flex-col items-start min-h-9 rounded-md min-w-0 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
+      className="urwebs-website-item relative flex w-full flex-col items-start min-h-9 rounded-md min-w-0 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
       style={{ height: showDescription ? "auto" : undefined }}
       draggable={isDraggable}
       onDragStart={handleDragStart}
