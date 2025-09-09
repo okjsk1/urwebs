@@ -24,10 +24,10 @@ export type WidgetType = 'weather' | 'clock' | 'memo' | 'todo' | 'calendar' | 'd
 export interface Widget {
   id: string;
   type: WidgetType;
-  title: string;
+  title?: string;
   data?: any;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
+  position?: { x: number; y: number };
+  size?: { width: number; height: number };
 }
 
 export type SortMode = 'manual' | 'alpha' | 'freq';
