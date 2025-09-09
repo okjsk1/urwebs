@@ -37,7 +37,7 @@ export function saveFavoritesData(data: FavoritesData) {
   }
 }
 
-function buildStarter(): FavoritesData {
+export function getStarterData(): FavoritesData {
   const widgets: Widget[] = (starterData.widgets || []).map((w) => ({
     id: w.id,
     type: w.type,
@@ -53,7 +53,7 @@ function buildStarter(): FavoritesData {
 }
 
 export function applyStarter(onUpdate: (data: FavoritesData) => void) {
-  const data = buildStarter();
+  const data = getStarterData();
   saveFavoritesData(data);
   onUpdate(data);
 }
