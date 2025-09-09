@@ -46,6 +46,7 @@ export interface FavoritesData {
   items: string[];
   folders: FavoriteFolder[];
   widgets: Widget[];
+  layout?: string[];
   itemsSortMode?: SortMode;
 }
 

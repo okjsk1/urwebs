@@ -44,10 +44,11 @@ export function parseFavoritesData(data: unknown): FavoritesData {
       items: isStringArray(obj.items) ? obj.items : [],
       folders: parseFolders(obj.folders),
       widgets: parseWidgets(obj.widgets),
+      layout: isStringArray(obj.layout) ? obj.layout : [],
       itemsSortMode: typeof obj.itemsSortMode === "string" ? obj.itemsSortMode : undefined,
     };
   }
-  return { items: [], folders: [], widgets: [] };
+  return { items: [], folders: [], widgets: [], layout: [] };
 }
 
 export function parseCustomSites(data: unknown): CustomSite[] {

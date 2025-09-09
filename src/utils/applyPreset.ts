@@ -33,11 +33,20 @@ export function applyPreset(
   current: FavoritesData | null | undefined,
   preset: FavoritesData
 ): FavoritesData {
-  const base: FavoritesData = current || { items: [], folders: [], widgets: [] };
+  const base: FavoritesData = current || { items: [], folders: [], widgets: [], layout: [] };
+  const items = mergeIds(base.items, preset.items);
+  const folders = mergeFolders(base.folders, preset.folders);
+  const widgets = mergeWidgets(base.widgets, preset.widgets);
+  const layout = [
+    ...items.map((id) => `item:${id}`),
+    ...folders.map((f) => `folder:${f.id}`),
+    ...widgets.map((w) => `widget:${w.id}`),
+  ];
   return {
-    items: mergeIds(base.items, preset.items),
-    folders: mergeFolders(base.folders, preset.folders),
-    widgets: mergeWidgets(base.widgets, preset.widgets),
+    items,
+    folders,
+    widgets,
+    layout,
     itemsSortMode: base.itemsSortMode,
   };
 }

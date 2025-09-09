@@ -64,7 +64,8 @@ export function StartPage({
 
   const handleRemoveWidget = (id: string) => {
     const updated = favoritesData.widgets.filter((w) => w.id !== id);
-    onUpdateFavorites({ ...favoritesData, widgets: updated });
+    const updatedLayout = (favoritesData.layout || []).filter((e) => e !== `widget:${id}`);
+    onUpdateFavorites({ ...favoritesData, widgets: updated, layout: updatedLayout });
   };
 
   const formatTime = (date: Date) =>
@@ -97,18 +98,137 @@ export function StartPage({
     }
   };
 
-  const getFavoriteWebsites = () =>
-    favoritesData.items
-      .map((id) => websites.find((site) => site.id === id))
-      .filter(Boolean) as Website[];
-
   const handleToggleFavorite = (websiteId: string) => {
     const isFavorited = favoritesData.items.includes(websiteId);
     const updatedItems = isFavorited
       ? favoritesData.items.filter((id) => id !== websiteId)
       : [...favoritesData.items, websiteId];
-    onUpdateFavorites({ ...favoritesData, items: updatedItems });
+    const updatedLayout = isFavorited
+      ? (favoritesData.layout || []).filter((e) => e !== `item:${websiteId}`)
+      : [...(favoritesData.layout || []), `item:${websiteId}`];
+    onUpdateFavorites({ ...favoritesData, items: updatedItems, layout: updatedLayout });
   };
+
+  const buildLayout = () => {
+    const entries = [
+      ...favoritesData.items.map((id) => `item:${id}`),
+      ...favoritesData.folders.map((f) => `folder:${f.id}`),
+      ...favoritesData.widgets.map((w) => `widget:${w.id}`),
+    ];
+    const layout = favoritesData.layout && favoritesData.layout.length
+      ? favoritesData.layout.filter((e) => entries.includes(e))
+      : entries.slice();
+    entries.forEach((e) => {
+      if (!layout.includes(e)) layout.push(e);
+    });
+    return layout;
+  };
+  const layout = buildLayout();
+
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const handleDragStart = (index: number) => () => setDragIndex(index);
+  const handleDragOver = (index: number) => (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+  const handleDrop = (index: number) => (e: React.DragEvent) => {
+    e.preventDefault();
+    if (dragIndex === null) return;
+    const newLayout = [...layout];
+    const [moved] = newLayout.splice(dragIndex, 1);
+    newLayout.splice(index, 0, moved);
+    onUpdateFavorites({ ...favoritesData, layout: newLayout });
+    setDragIndex(null);
+  };
+
+  const renderDesktopItem = (entry: string, index: number) => {
+    const [type, id] = entry.split(':');
+    if (type === 'item') {
+      const site = websites.find((s) => s.id === id);
+      if (!site) return null;
+      return (
+        <div
+          key={entry}
+          className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border"
+          draggable
+          onDragStart={handleDragStart(index)}
+          onDragOver={handleDragOver(index)}
+          onDrop={handleDrop(index)}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <a
+              href={site.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 min-w-0"
+            >
+              <Favicon domain={site.url} size={20} className="w-5 h-5 rounded flex-shrink-0" />
+              <h3 className="font-medium text-gray-800 truncate">{site.title}</h3>
+            </a>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleToggleFavorite(site.id);
+              }}
+              aria-label="즐겨찾기 제거"
+              className="favorite w-5 h-5 flex items-center justify-center text-gray-400 hover:text-yellow-500"
+              type="button"
+            >
+              <svg className="w-3 h-3 urwebs-star-icon favorited" viewBox="0 0 24 24" strokeWidth="1">
+                <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8" />
+              </svg>
+            </button>
+          </div>
+          <p className="text-sm text-gray-500 line-clamp-2">{site.description}</p>
+        </div>
+      );
+    }
+    if (type === 'widget') {
+      const widget = favoritesData.widgets.find((w) => w.id === id);
+      if (!widget) return null;
+      return (
+        <div
+          key={entry}
+          draggable
+          onDragStart={handleDragStart(index)}
+          onDragOver={handleDragOver(index)}
+          onDrop={handleDrop(index)}
+        >
+          {renderWidget(widget)}
+        </div>
+      );
+    }
+    if (type === 'folder') {
+      const folder = favoritesData.folders.find((f) => f.id === id);
+      if (!folder) return null;
+      return (
+        <div
+          key={entry}
+          className="bg-white p-4 rounded-lg shadow-md border flex flex-col items-center"
+          draggable
+          onDragStart={handleDragStart(index)}
+          onDragOver={handleDragOver(index)}
+          onDrop={handleDrop(index)}
+        >
+          <span className="text-2xl">📁</span>
+          <h3 className="font-medium mt-2">{folder.name}</h3>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    if (!favoritesData.layout || favoritesData.layout.length === 0) {
+      const initial = [
+        ...favoritesData.items.map((id) => `item:${id}`),
+        ...favoritesData.folders.map((f) => `folder:${f.id}`),
+        ...favoritesData.widgets.map((w) => `widget:${w.id}`),
+      ];
+      onUpdateFavorites({ ...favoritesData, layout: initial });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // websites(상태)를 기준으로 카테고리 묶기
   const categorizedWebsites = useMemo(() => {
@@ -178,58 +298,10 @@ export function StartPage({
 
           <DndProvider backend={HTML5Backend}>
             <div className="space-y-12">
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* 즐겨찾기 사이트들 */}
-                <div className="lg:col-span-2">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-6">즐겨찾기 사이트</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {getFavoriteWebsites().map((site) => (
-                      <div
-                        key={site.id}
-                        className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <a
-                            href={site.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 min-w-0"
-                          >
-                            {/* 추천안: flex-shrink-0 유지, border 제거 */}
-                            <Favicon domain={site.url} size={20} className="w-5 h-5 rounded flex-shrink-0" />
-                            <h3 className="font-medium text-gray-800 truncate">{site.title}</h3>
-                          </a>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleToggleFavorite(site.id);
-                            }}
-                            aria-label="즐겨찾기 제거"
-                            className="favorite w-5 h-5 flex items-center justify-center text-gray-400 hover:text-yellow-500"
-                            type="button"
-                          >
-                            <svg
-                              className="w-3 h-3 urwebs-star-icon favorited"
-                              viewBox="0 0 24 24"
-                              strokeWidth="1"
-                            >
-                              <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8" />
-                            </svg>
-                          </button>
-                        </div>
-                        <p className="text-sm text-gray-500 line-clamp-2">{site.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 위젯 영역 */}
-                <div className="lg:col-span-2">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-6">위젯</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {favoritesData.widgets.map(renderWidget)}
-                  </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">나의 바탕화면</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {layout.map((entry, idx) => renderDesktopItem(entry, idx))}
                 </div>
               </div>
 

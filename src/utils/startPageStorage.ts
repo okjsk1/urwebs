@@ -22,10 +22,10 @@ const starterData = starter as StarterRaw;
 export function loadFavoritesData(): FavoritesData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : { items: [], folders: [], widgets: [] };
+    return raw ? JSON.parse(raw) : { items: [], folders: [], widgets: [], layout: [] };
   } catch (e) {
     console.error('Failed to load favorites data', e);
-    return { items: [], folders: [], widgets: [] };
+    return { items: [], folders: [], widgets: [], layout: [] };
   }
 }
 
@@ -49,7 +49,13 @@ export function getStarterData(): FavoritesData {
     color: f.color,
     sortMode: f.sortMode,
   }));
-  return { items: starterData.favorites || [], folders, widgets };
+  const items = starterData.favorites || [];
+  const layout = [
+    ...items.map((id) => `item:${id}`),
+    ...folders.map((f) => `folder:${f.id}`),
+    ...widgets.map((w) => `widget:${w.id}`),
+  ];
+  return { items, folders, widgets, layout };
 }
 
 export function applyStarter(onUpdate: (data: FavoritesData) => void) {
