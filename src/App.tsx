@@ -30,6 +30,7 @@ import "./App.css";
 import { applyPreset } from "./utils/applyPreset";
 import { toggleFavorite as toggleFavoriteData } from "./utils/favorites";
 import { parseFavoritesData, parseCustomSites } from "./utils/validation";
+import { getStarterData } from "./utils/startPageStorage";
 import { Skeleton } from "./components/ui/skeleton";
 import { useUIMode } from "./hooks/useUIMode";
 import { hasFavorites } from "./utils/fav";
@@ -159,9 +160,17 @@ export default function App() {
       } else {
         try {
           const rawFav = localStorage.getItem(LS_KEYS.FAV);
-          const favData = parseFavoritesData(
+          let favData = parseFavoritesData(
             rawFav ? JSON.parse(rawFav) : undefined
           );
+          if (
+            favData.items.length === 0 &&
+            favData.folders.length === 0 &&
+            favData.widgets.length === 0
+          ) {
+            favData = getStarterData();
+            localStorage.setItem(LS_KEYS.FAV, JSON.stringify(favData));
+          }
           const rawCustom = localStorage.getItem(LS_KEYS.CUSTOM);
           const customData = parseCustomSites(
             rawCustom ? JSON.parse(rawCustom) : undefined

@@ -14,6 +14,10 @@ function parseFolders(data: any): FavoriteFolder[] {
       items: isStringArray(f.items) ? f.items : [],
       color: typeof f.color === "string" ? f.color : undefined,
       sortMode: typeof f.sortMode === "string" ? f.sortMode : undefined,
+      position:
+        f.position && typeof f.position.x === "number" && typeof f.position.y === "number"
+          ? { x: f.position.x, y: f.position.y }
+          : { x: 0, y: 0 },
     }));
 }
 
