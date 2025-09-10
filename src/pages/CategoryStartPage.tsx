@@ -1,3 +1,4 @@
+// src/pages/CategoryStartPage.tsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StartPage } from '../components/StartPage';
@@ -84,7 +85,7 @@ export default function CategoryStartPage({
     (async () => {
       try {
         const base = (import.meta as any).env?.BASE_URL || '/';
-        const url = new URL(jsonFile, base).toString();
+        const url = `${base.replace(/\/$/, '')}/${jsonFile}`;
         const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const ct = res.headers.get('content-type') || '';
