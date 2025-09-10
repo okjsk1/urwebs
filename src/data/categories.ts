@@ -80,12 +80,14 @@ export const categories: FieldCategory[] = [
     title: '부동산',
     emoji: '🏠',
     description: '부동산 관련 자료를 빠르게',
+    href: '/category/realestate',
   },
   {
     slug: 'stocks',
     title: '증권',
     emoji: '📈',
     description: '투자와 주식 정보를 확인',
+    href: '/category/stocks',
   },
 ];
 
