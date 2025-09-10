@@ -76,7 +76,7 @@ export default function MainLanding() {
             return (
               <Link
                 key={cat.slug}
-                to={cat.href ?? `/category/${cat.slug}`}
+                to={cat.href ?? `/fields/${cat.slug}`}
                 className={className}
               >
                 {content}

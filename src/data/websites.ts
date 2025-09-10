@@ -9,9 +9,10 @@ export interface Website {
 
 export interface CategoryConfigMap {
   [key: string]: {
+    title: string;
+    description?: string;
     icon: string;
     iconClass: string;
-    title: string;
   };
 }
 
@@ -126,27 +127,77 @@ export const websites: Website[] = [
 ];
 
 export const categoryConfig = {
-  "디자인": { title: "디자인", icon: "🎨", iconClass: "icon-blue" },
-  "공모전": { title: "공모전", icon: "🏆", iconClass: "icon-yellow" },
-  "채용정보": { title: "채용정보", icon: "💼", iconClass: "icon-green" },
-  "유튜브": { title: "유튜브", icon: "📺", iconClass: "icon-red" },
-  "커뮤니티": { title: "커뮤니티", icon: "👥", iconClass: "icon-indigo" },
-  "지도": { title: "지도", icon: "📍", iconClass: "icon-teal" },
-  "건축가": { title: "건축가", icon: "👨‍💼", iconClass: "icon-purple" },
-  "포털사이트": { title: "포털사이트", icon: "🌐", iconClass: "icon-orange" },
-  "기타": { title: "기타", icon: "📚", iconClass: "icon-gray" },
-  "자료" : { title: "기타", icon: "📚", iconClass: "icon-gray" },
+  design: {
+    title: "디자인",
+    description: "디자인 영감/뉴스/자료",
+    icon: "🎨",
+    iconClass: "icon-blue",
+  },
+  contest: {
+    title: "공모전",
+    description: "공모전·경연 정보",
+    icon: "🏆",
+    iconClass: "icon-yellow",
+  },
+  jobs: {
+    title: "채용정보",
+    description: "채용 공고 및 취업 정보",
+    icon: "💼",
+    iconClass: "icon-green",
+  },
+  youtube: {
+    title: "유튜브",
+    description: "관련 유튜브 채널",
+    icon: "📺",
+    iconClass: "icon-red",
+  },
+  community: {
+    title: "커뮤니티",
+    description: "온라인 커뮤니티",
+    icon: "👥",
+    iconClass: "icon-indigo",
+  },
+  map: {
+    title: "지도",
+    description: "지도/로드뷰/길찾기",
+    icon: "📍",
+    iconClass: "icon-teal",
+  },
+  architect: {
+    title: "건축가",
+    description: "건축가 아카이브",
+    icon: "👨‍💼",
+    iconClass: "icon-purple",
+  },
+  portal: {
+    title: "포털사이트",
+    description: "검색 포털",
+    icon: "🌐",
+    iconClass: "icon-orange",
+  },
+  etc: {
+    title: "기타",
+    description: "기타 유용한 사이트",
+    icon: "📚",
+    iconClass: "icon-gray",
+  },
+  reference: {
+    title: "자료",
+    description: "자료/법규/데이터",
+    icon: "📚",
+    iconClass: "icon-gray",
+  },
 };
 
 export const categoryOrder = [
-    "디자인",
-  "공모전",
-  "채용정보",
-  "유튜브",
-  "커뮤니티",
-  "지도",
-  "건축가",
-  "포털사이트",
-  "기타",
-  "자료",
+  "design",
+  "contest",
+  "jobs",
+  "youtube",
+  "community",
+  "map",
+  "architect",
+  "portal",
+  "etc",
+  "reference",
 ];

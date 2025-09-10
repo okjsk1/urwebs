@@ -7,6 +7,7 @@ import PostDetail from "./pages/PostDetail";
 import PostWrite from "./pages/PostWrite";
 import MainLanding from "./pages/MainLanding";
 import CategoryStartPage from "./pages/CategoryStartPage";
+import FieldPage from "./pages/FieldPage";
 
 function RoutedCategoryStartPage() {
   const { slug = "architecture" } = useParams();
@@ -25,6 +26,7 @@ export default function Root() {
       <>
         <Routes>
           <Route path="/" element={<MainLanding />} />
+          <Route path="/fields/:slug" element={<FieldPage />} />
           <Route path="/category/:slug" element={<RoutedCategoryStartPage />} />
           <Route
             path="/architecture"
