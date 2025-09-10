@@ -137,15 +137,13 @@ export function StartPage({
 
   const moveItem = (from: number, to: number) => {
     if (from === to) return;
-    let updatedLayout: string[] = [];
     setLayout((prev) => {
       const updated = [...prev];
       const [moved] = updated.splice(from, 1);
       updated.splice(to, 0, moved);
-      updatedLayout = updated;
+      onUpdateFavorites({ ...favoritesData, layout: updated });
       return updated;
     });
-    onUpdateFavorites({ ...favoritesData, layout: updatedLayout });
   };
 
   const renderItemContent = (entry: string) => {
@@ -188,7 +186,7 @@ export function StartPage({
       const widget = favoritesData.widgets.find((w) => w.id === id);
       if (!widget) return null;
       return (
-        <div className="h-full flex items-center justify-center">
+        <div className="h-full flex items-center justify-center cursor-move">
           {renderWidget(widget)}
         </div>
       );
@@ -197,7 +195,7 @@ export function StartPage({
       const folder = favoritesData.folders.find((f) => f.id === id);
       if (!folder) return null;
       return (
-        <div className="h-full bg-white p-4 rounded-lg shadow-md border flex flex-col items-center justify-center">
+        <div className="h-full bg-white p-4 rounded-lg shadow-md border flex flex-col items-center justify-center cursor-move">
           <span className="text-2xl">📁</span>
           <h3 className="font-medium mt-2">{folder.name}</h3>
         </div>
