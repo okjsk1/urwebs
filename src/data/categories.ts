@@ -7,6 +7,7 @@ export const categories: FieldCategory[] = [
     title: '웹개발',
     emoji: '💻',
     description: '프론트엔드, 백엔드, 풀스택 자료',
+    href: '/category/webdev',
   },
   {
     slug: 'mobile',
