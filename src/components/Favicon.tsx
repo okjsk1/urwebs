@@ -1,12 +1,7 @@
 import React from "react";
 
 const FallbackIcon: React.FC<{ size?: number; className?: string }> = ({ size = 16, className }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" className={className}>
-    <circle cx="12" cy="12" r="10"></circle>
-    <text x="12" y="16" textAnchor="middle" fontSize="10">
-      W
-    </text>
-  </svg>
+  <img src="/favicon.svg" width={size} height={size} className={className} alt="" />
 );
 
 export const Favicon: React.FC<{ domain: string; size?: number; className?: string }> = ({ domain, size = 16, className }) => {
