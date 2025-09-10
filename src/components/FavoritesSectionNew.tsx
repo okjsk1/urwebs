@@ -761,7 +761,7 @@ export function FavoritesSectionNew({
 
       {/* 위젯 섹션 */}
       {(favoritesData?.widgets?.length || 0) > 0 && (
-        <div className="mb-6">
+        <div className="mb-6 p-4 border rounded-lg bg-white dark:bg-gray-800">
           <h3 className="font-medium text-gray-700 text-sm mb-3 dark:text-gray-200">
             🔧 위젯
           </h3>
@@ -776,20 +776,21 @@ export function FavoritesSectionNew({
       )}
 
       {/* 즐겨찾기 & 폴더 */}
-      <div className="toolbar btn-group mb-4">
-        <GhostBtn icon={<IconStarPlus />} hint="Ctrl+D" onClick={onAddFavorite}>
-          이 페이지를 즐겨찾기에 추가
-        </GhostBtn>
-        <GhostBtn icon={<IconFolderPlus />} onClick={onAddFolder}>
-          폴더 추가
-        </GhostBtn>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
-        {/* 즐겨찾기 리스트 */}
-        <div className="col-span-1 space-y-2 lg:space-y-3 md:col-span-1 xl:col-span-1">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
-              📌 즐겨찾기
+      <div className="p-4 border rounded-lg bg-white dark:bg-gray-800">
+        <div className="toolbar btn-group mb-4">
+          <GhostBtn icon={<IconStarPlus />} hint="Ctrl+D" onClick={onAddFavorite}>
+            이 페이지를 즐겨찾기에 추가
+          </GhostBtn>
+          <GhostBtn icon={<IconFolderPlus />} onClick={onAddFolder}>
+            폴더 추가
+          </GhostBtn>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
+          {/* 즐겨찾기 리스트 */}
+          <div className="col-span-1 space-y-2 lg:space-y-3 md:col-span-1 xl:col-span-1">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
+                📌 즐겨찾기
             </h3>
             {/* [sorting] */}
             <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-200">
@@ -822,58 +823,59 @@ export function FavoritesSectionNew({
           </div>
         </div>
 
-        {/* 폴더들 */}
-        <div className="space-y-2 lg:space-y-3 md:col-span-2 xl:col-span-5">
-          <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
-            📂 폴더
-          </h3>
-          <div className="cards-6cols">
-            {Array.isArray(favoritesData.folders) &&
-              favoritesData.folders
-                .filter(Boolean)
-                .map((folder) => {
-                  const folderItems = Array.isArray(folder?.items)
-                    ? folder.items.filter(Boolean)
-                    : [];
-                  const sortedItems = sortByMode(
-                    folderItems,
-                    folder.sortMode || 'manual',
-                    freqMap,
-                    titleMap,
-                  ); // [sorting]
-                  return (
-                    <SimpleFolder
-                      key={folder.id}
-                      folder={folder}
-                      onRenameFolder={renameFolder}
-                      onDeleteFolder={deleteFolder}
-                      onDropWebsite={moveWebsiteToFolder}
-                      onDragOverFolder={(e) => handleDragOver(e, folder.id)}
-                      onDragLeaveFolder={handleDragLeave}
-                      isDraggingOver={dragOverId === folder.id}
-                      onChangeSortMode={changeFolderSortMode} // [sorting]
-                    >
-                      {sortedItems.map((id) => (
-                        <SimpleWebsite
-                          key={id}
-                          websiteId={id}
-                          onRemove={removeFromFavorites}
-                          onDragStart={(e) => handleDragStart(e, id, folder.id)}
-                          onDragOver={(e) => handleDragOver(e, id)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, id)}
-                          isDraggingOver={dragOverId === id}
-                        />
-                      ))}
+          {/* 폴더들 */}
+          <div className="space-y-2 lg:space-y-3 md:col-span-2 xl:col-span-5">
+            <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
+              📂 폴더
+            </h3>
+            <div className="cards-6cols">
+              {Array.isArray(favoritesData.folders) &&
+                favoritesData.folders
+                  .filter(Boolean)
+                  .map((folder) => {
+                    const folderItems = Array.isArray(folder?.items)
+                      ? folder.items.filter(Boolean)
+                      : [];
+                    const sortedItems = sortByMode(
+                      folderItems,
+                      folder.sortMode || 'manual',
+                      freqMap,
+                      titleMap,
+                    ); // [sorting]
+                    return (
+                      <SimpleFolder
+                        key={folder.id}
+                        folder={folder}
+                        onRenameFolder={renameFolder}
+                        onDeleteFolder={deleteFolder}
+                        onDropWebsite={moveWebsiteToFolder}
+                        onDragOverFolder={(e) => handleDragOver(e, folder.id)}
+                        onDragLeaveFolder={handleDragLeave}
+                        isDraggingOver={dragOverId === folder.id}
+                        onChangeSortMode={changeFolderSortMode} // [sorting]
+                      >
+                        {sortedItems.map((id) => (
+                          <SimpleWebsite
+                            key={id}
+                            websiteId={id}
+                            onRemove={removeFromFavorites}
+                            onDragStart={(e) => handleDragStart(e, id, folder.id)}
+                            onDragOver={(e) => handleDragOver(e, id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, id)}
+                            isDraggingOver={dragOverId === id}
+                          />
+                        ))}
 
-                      {sortedItems.length === 0 && (
-                        <p className="text-xs text-gray-500 italic dark:text-gray-400">
-                          폴더가 비어있습니다
-                        </p>
-                      )}
-                    </SimpleFolder>
-                  );
-                })}
+                        {sortedItems.length === 0 && (
+                          <p className="text-xs text-gray-500 italic dark:text-gray-400">
+                            폴더가 비어있습니다
+                          </p>
+                        )}
+                      </SimpleFolder>
+                    );
+                  })}
+            </div>
           </div>
         </div>
       </div>
