@@ -17,6 +17,7 @@ import {
   resetFavorites,
 } from '../utils/startPageStorage';
 import categories from '../data/categories';
+import { buildAssetUrl } from '../utils/asset';
 
 type Props = {
   categorySlug: string;
@@ -75,9 +76,7 @@ export default function CategoryStartPage({
     let cancelled = false;
     (async () => {
       try {
-        const base = (import.meta as any).env?.BASE_URL || '/';
-        + import { buildAssetUrl } from '../utils/asset';
-+ const res = await fetch(buildAssetUrl(jsonFile), { cache: 'no-store' });
+        const res = await fetch(buildAssetUrl(jsonFile), { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const ct = res.headers.get('content-type') || '';
         if (!ct.includes('application/json')) throw new Error(`Invalid content-type: ${ct}`);
