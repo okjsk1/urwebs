@@ -57,10 +57,7 @@ export function FavoritesSection({
         </h2>
       </div>
 
-      <div
-        className="grid gap-3 overflow-x-auto pb-2"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}
-      >
+      <div className="flex flex-col gap-3 pb-2">
         {favorites.map((websiteId, index) => {
           const website = websites.find((w) => w.id === websiteId);
           if (!website) return null;
@@ -68,7 +65,7 @@ export function FavoritesSection({
           return (
             <div
               key={websiteId}
-              className="urwebs-favorite-item p-2 min-w-0 max-w-40 overflow-hidden"
+              className="urwebs-favorite-item p-2 min-w-0 w-full overflow-hidden"
               draggable
               onDragStart={(e) => handleDragStart(e, index)}
               onDragOver={handleDragOver}
