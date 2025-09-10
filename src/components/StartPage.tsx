@@ -7,7 +7,6 @@ import { WeatherWidget } from './widgets/WeatherWidget';
 import { ClockWidget } from './widgets/ClockWidget';
 import { MemoWidget } from './widgets/MemoWidget';
 import { TodoWidget } from './widgets/TodoWidget';
-// websites는 import하지 않고 JSON에서 읽어옴
 import { categoryOrder, categoryConfig, websites as websitesLocal } from '../data/websites';
 import { CategoryCard } from './CategoryCard';
 import { Favicon } from './Favicon';
@@ -26,28 +25,29 @@ export function StartPage({
   onClose,
   showDescriptions,
 }: StartPageProps) {
-  // JSON에서 불러온 목록을 상태로 보관
-  const [websites, setWebsites] = useState<Website[]>([]);
+  // 로컬 폴백으로 먼저 초기화 후, public/websites.json이 있으면 덮어씀
+  const [websites, setWebsites] = useState<Website[]>(websitesLocal);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        // 1) 로컬 폴백으로 먼저 채우기
-        if (!cancelled) setWebsites(websitesLocal);
-        // 2) 배포에 JSON이 있을 경우에만 덮어쓰기
         const base = (import.meta as any).env?.BASE_URL || '/';
-        const res = await fetch(new URL('websites.json', base).toString(), { cache: 'no-store' });
+        const url = new URL('websites.json', base).toString();
+        const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
         const ct = res.headers.get('content-type') || '';
         if (!ct.includes('application/json')) throw new Error(`Invalid content-type: ${ct}`);
+
         const data = await res.json();
         if (!Array.isArray(data)) throw new Error('Invalid websites.json shape');
+
         if (!cancelled) setWebsites(data);
       } catch (e) {
         console.warn('websites.json 불러오기 실패:', e);
-        // 폴백(웹사이트 로컬 데이터) 그대로 유지
+        // 실패 시에는 로컬 폴백(websitesLocal) 그대로 유지
       } finally {
         if (!cancelled) setLoading(false);
       }
