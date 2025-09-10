@@ -12,10 +12,10 @@ import {
   categoryConfig as configRealEstate,
 } from '../data/websites.realestate';
 import {
-  websites as websitesStocks,
-  categoryOrder as orderStocks,
-  categoryConfig as configStocks,
-} from '../data/websites.stocks';
+  websites as websitesSecurities,
+  categoryOrder as orderSecurities,
+  categoryConfig as configSecurities,
+} from '../data/websites.securities';
 import type { FavoritesData, Website } from '../types';
 import {
   loadFavoritesData,
@@ -50,10 +50,10 @@ export default function CategoryStartPage({
       categoryOrder: orderRealEstate,
       categoryConfig: configRealEstate,
     },
-    stocks: {
-      websites: websitesStocks,
-      categoryOrder: orderStocks,
-      categoryConfig: configStocks,
+    securities: {
+      websites: websitesSecurities,
+      categoryOrder: orderSecurities,
+      categoryConfig: configSecurities,
     },
   } as const;
   const fallback = dataMap[categorySlug as keyof typeof dataMap] ?? dataMap.architecture;

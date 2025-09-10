@@ -16,7 +16,7 @@ export const categories: FieldCategory[] = [
     description: '부동산 관련 자료를 빠르게',
   },
   {
-    slug: 'stocks',
+    slug: 'securities',
     title: '증권',
     emoji: '📈',
     description: '투자와 주식 정보를 확인',

@@ -35,8 +35,8 @@ export default function Root() {
             element={<Navigate to="/category/realestate" replace />}
           />
           <Route
-            path="/stocks"
-            element={<Navigate to="/category/stocks" replace />}
+            path="/securities"
+            element={<Navigate to="/category/securities" replace />}
           />
           <Route
             path="/start"
