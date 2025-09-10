@@ -1,3 +1,4 @@
+// src/Root.tsx
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
@@ -53,4 +54,3 @@ export default function Root() {
     </AppErrorBoundary>
   );
 }
-
