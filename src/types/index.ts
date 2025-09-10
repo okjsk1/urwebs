@@ -41,6 +41,15 @@ export interface FavoriteFolder {
   sortMode?: SortMode;
 }
 
+// 메인 페이지 분야 선택용 카테고리 타입
+export interface FieldCategory {
+  slug: string;
+  title: string;
+  emoji: string;
+  description?: string;
+  order?: number;
+}
+
 // 즐겨찾기 구조 확장
 export interface FavoritesData {
   items: string[];
