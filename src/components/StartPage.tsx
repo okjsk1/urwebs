@@ -266,11 +266,14 @@ export function StartPage({
   // websites(상태)를 기준으로 카테고리 묶기
   const categorizedWebsites = useMemo(() => {
     const acc: Record<string, Website[]> = {};
-    categoryOrder.forEach((category) => {
-      acc[category] = websites.filter((site) => site.category === category);
+    categoryOrder.forEach((slug) => {
+      const name = categoryConfig[slug]?.title ?? slug;
+      acc[slug] = websites.filter(
+        (site) => site.category === name || site.categorySlug === slug,
+      );
     });
     return acc;
-  }, [websites, categoryOrder]);
+  }, [websites, categoryOrder, categoryConfig]);
 
   const isEmpty =
     favoritesData.items.length === 0 &&
@@ -368,17 +371,21 @@ export function StartPage({
                     gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
                   }}
                 >
-                  {categoryOrder.map((category) => (
-                    <CategoryCard
-                      key={category}
-                      category={category}
-                      sites={categorizedWebsites[category] || []}
-                      config={categoryConfig[category]}
-                      showDescriptions={showDescriptions}
-                      favorites={favoritesData.items}
-                      onToggleFavorite={handleToggleFavorite}
-                    />
-                  ))}
+                  {categoryOrder.map((slug) => {
+                    const displayName =
+                      categoryConfig[slug]?.title ?? slug;
+                    return (
+                      <CategoryCard
+                        key={slug}
+                        category={displayName}
+                        sites={categorizedWebsites[slug] || []}
+                        config={categoryConfig[slug]}
+                        showDescriptions={showDescriptions}
+                        favorites={favoritesData.items}
+                        onToggleFavorite={handleToggleFavorite}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>

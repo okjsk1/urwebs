@@ -7,6 +7,7 @@ import PostDetail from "./pages/PostDetail";
 import PostWrite from "./pages/PostWrite";
 import MainLanding from "./pages/MainLanding";
 import CategoryStartPage from "./pages/CategoryStartPage";
+import FieldPage from "./pages/FieldPage";
 
 function RoutedCategoryStartPage() {
   const { slug = "architecture" } = useParams();
@@ -14,7 +15,6 @@ function RoutedCategoryStartPage() {
     <CategoryStartPage
       categorySlug={slug}
       title="나의 시작페이지"
-      jsonFile="websites.json"
       storageNamespace={`favorites:${slug}`}
     />
   );
@@ -26,6 +26,7 @@ export default function Root() {
       <>
         <Routes>
           <Route path="/" element={<MainLanding />} />
+          <Route path="/fields/:slug" element={<FieldPage />} />
           <Route path="/category/:slug" element={<RoutedCategoryStartPage />} />
           <Route
             path="/architecture"

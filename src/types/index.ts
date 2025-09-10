@@ -10,11 +10,15 @@ export interface Website {
   clicks?: number;
   favorites?: number;
   addedAt?: number;
+  /** optional slug-based category identifier */
+  categorySlug?: string;
 }
 
 export interface CategoryConfig {
+  title: string;
+  description?: string;
   icon: string;
-  iconClass: string;
+  iconClass?: string;
 }
 
 export type CategoryConfigMap = Record<string, CategoryConfig>;
