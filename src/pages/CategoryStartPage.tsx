@@ -1,7 +1,24 @@
+// src/pages/CategoryStartPage.tsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StartPage } from '../components/StartPage';
-import { websites as websitesLocal, categoryOrder, categoryConfig } from '../data/websites';
+
+import {
+  websites as websitesArchitecture,
+  categoryOrder as orderArchitecture,
+  categoryConfig as configArchitecture,
+} from '../data/websites';
+import {
+  websites as websitesRealEstate,
+  categoryOrder as orderRealEstate,
+  categoryConfig as configRealEstate,
+} from '../data/websites.realestate';
+import {
+  websites as websitesStocks,
+  categoryOrder as orderStocks,
+  categoryConfig as configStocks,
+} from '../data/websites.stocks';
+
 import type { FavoritesData, Website } from '../types';
 import {
   loadFavoritesData,
@@ -25,23 +42,54 @@ export default function CategoryStartPage({
   storageNamespace = `favorites:${categorySlug}`,
 }: Props) {
   const navigate = useNavigate();
+
+  // 카테고리별 로컬 폴백 데이터 맵
+  const dataMap = {
+    architecture: {
+      websites: websitesArchitecture,
+      categoryOrder: orderArchitecture,
+      categoryConfig: configArchitecture,
+    },
+    realestate: {
+      websites: websitesRealEstate,
+      categoryOrder: orderRealEstate,
+      categoryConfig: configRealEstate,
+    },
+    stocks: {
+      websites: websitesStocks,
+      categoryOrder: orderStocks,
+      categoryConfig: configStocks,
+    },
+  } as const;
+
+  const fallback = dataMap[categorySlug as keyof typeof dataMap] ?? dataMap.architecture;
+
   const [favoritesData, setFavoritesData] = useState<FavoritesData>(() =>
     loadFavoritesData(storageNamespace),
   );
-  const [websites, setWebsites] = useState<Website[]>(websitesLocal);
+  const [websites, setWebsites] = useState<Website[]>(fallback.websites);
   const [loading, setLoading] = useState(true);
 
   const category = categories.find((c) => c.slug === categorySlug);
   const categoryTitle = category?.title || categorySlug;
 
+  // 페이지 타이틀
   useEffect(() => {
     document.title = `${categoryTitle} | ${title}`;
   }, [categoryTitle, title]);
 
+  // 네임스페이스가 바뀌면 저장된 즐겨찾기 로드
   useEffect(() => {
     setFavoritesData(loadFavoritesData(storageNamespace));
   }, [storageNamespace]);
 
+  // 슬러그가 바뀌면 우선 폴백으로 채움(즉시 화면 표시)
+  useEffect(() => {
+    setWebsites(fallback.websites);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categorySlug]);
+
+  // jsonFile이 있으면 성공 시 폴백을 덮어씀
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -57,6 +105,7 @@ export default function CategoryStartPage({
         if (!cancelled) setWebsites(data);
       } catch (e) {
         console.warn('websites.json 불러오기 실패:', e);
+        // 실패 시 폴백 유지
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -66,6 +115,7 @@ export default function CategoryStartPage({
     };
   }, [jsonFile]);
 
+  // 즐겨찾기/위젯 변경 저장
   useEffect(() => {
     saveFavoritesData(favoritesData, storageNamespace);
   }, [favoritesData, storageNamespace]);
@@ -82,8 +132,8 @@ export default function CategoryStartPage({
       pageTitle={title}
       categoryTitle={categoryTitle}
       websites={websites}
-      categoryOrder={categoryOrder}
-      categoryConfig={categoryConfig}
+      categoryOrder={fallback.categoryOrder}
+      categoryConfig={fallback.categoryConfig}
       loading={loading}
       onApplyStarter={onApplyStarter}
       onReset={onReset}
