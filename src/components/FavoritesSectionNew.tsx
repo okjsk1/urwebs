@@ -766,7 +766,7 @@ export function FavoritesSectionNew({
             <h3 className="font-medium text-gray-700 text-sm mb-3 dark:text-gray-200">
               🔧 위젯
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
               {(favoritesData.widgets || [])
                 .filter((w) => w && w.id)
                 .map((w) => (
@@ -784,7 +784,7 @@ export function FavoritesSectionNew({
             폴더 추가
           </GhostBtn>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
           {/* 즐겨찾기 리스트 */}
           <div className="col-span-1 space-y-2 lg:space-y-3 md:col-span-1 xl:col-span-1">
             <div className="flex items-center justify-between">
