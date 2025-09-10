@@ -2,21 +2,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Widget, FavoritesData, Website } from '../types';
+import { Widget, FavoritesData, Website, CategoryConfigMap } from '../types';
 import { WeatherWidget } from './widgets/WeatherWidget';
 import { ClockWidget } from './widgets/ClockWidget';
 import { MemoWidget } from './widgets/MemoWidget';
 import { TodoWidget } from './widgets/TodoWidget';
-import { categoryOrder, categoryConfig, websites as websitesLocal } from '../data/websites';
 import { CategoryCard } from './CategoryCard';
 import { Favicon } from './Favicon';
-import { applyStarter, resetFavorites, saveFavoritesData } from '../utils/startPageStorage';
 
 interface StartPageProps {
   favoritesData: FavoritesData;
   onUpdateFavorites: (data: FavoritesData) => void;
   onClose: () => void;
   showDescriptions: boolean;
+  pageTitle?: string;
+  categoryTitle?: string;
+  websites: Website[];
+  categoryOrder: string[];
+  categoryConfig: CategoryConfigMap;
+  loading?: boolean;
+  onApplyStarter?: () => Promise<void> | void;
+  onReset?: () => Promise<void> | void;
 }
 
 export function StartPage({
@@ -24,38 +30,15 @@ export function StartPage({
   onUpdateFavorites,
   onClose,
   showDescriptions,
+  pageTitle = '나의 시작페이지',
+  categoryTitle,
+  websites,
+  categoryOrder,
+  categoryConfig,
+  loading = false,
+  onApplyStarter,
+  onReset,
 }: StartPageProps) {
-  // 로컬 폴백으로 먼저 초기화 후, public/websites.json이 있으면 덮어씀
-  const [websites, setWebsites] = useState<Website[]>(websitesLocal);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const base = (import.meta as any).env?.BASE_URL || '/';
-        const url = new URL('websites.json', base).toString();
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const ct = res.headers.get('content-type') || '';
-        if (!ct.includes('application/json')) throw new Error(`Invalid content-type: ${ct}`);
-
-        const data = await res.json();
-        if (!Array.isArray(data)) throw new Error('Invalid websites.json shape');
-
-        if (!cancelled) setWebsites(data);
-      } catch (e) {
-        console.warn('websites.json 불러오기 실패:', e);
-        // 실패 시에는 로컬 폴백(websitesLocal) 그대로 유지
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
@@ -63,18 +46,14 @@ export function StartPage({
     return () => clearInterval(timer);
   }, []);
 
-  // 변경될 때마다 즉시 저장 (영속화)
-  useEffect(() => {
-    saveFavoritesData(favoritesData);
-  }, [favoritesData]);
-
   // 스타터팩/리셋 적용 중 로딩 가드
   const [isApplying, setIsApplying] = useState(false);
 
   const handleStarter = async () => {
+    if (!onApplyStarter) return;
     try {
       setIsApplying(true);
-      await applyStarter(onUpdateFavorites);
+      await onApplyStarter();
     } catch (e) {
       console.error('Starter apply failed', e);
     } finally {
@@ -83,9 +62,10 @@ export function StartPage({
   };
 
   const handleReset = async () => {
+    if (!onReset) return;
     try {
       setIsApplying(true);
-      await resetFavorites(onUpdateFavorites);
+      await onReset();
     } catch (e) {
       console.error('Reset favorites failed', e);
     } finally {
@@ -290,7 +270,7 @@ export function StartPage({
       acc[category] = websites.filter((site) => site.category === category);
     });
     return acc;
-  }, [websites]);
+  }, [websites, categoryOrder]);
 
   const isEmpty =
     favoritesData.items.length === 0 &&
@@ -349,7 +329,10 @@ export function StartPage({
               </button>
             </div>
             <div className="text-center flex-1">
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">나의 시작페이지</h1>
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">{pageTitle}</h1>
+              {categoryTitle && (
+                <p className="text-lg text-gray-700 mb-1">{categoryTitle}</p>
+              )}
               <p className="text-xl text-gray-600">{formatDate(currentTime)}</p>
               <p className="text-3xl font-mono text-blue-600 mt-2">{formatTime(currentTime)}</p>
             </div>
