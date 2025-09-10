@@ -1,7 +1,9 @@
 
   # urwebs
 
-  This is a code bundle for urwebs. The original project is available at https://www.figma.com/design/hcQMwbaejdIXdIBIQkYJ7U/urwebs.
+This is a code bundle for urwebs. The original project is available at https://www.figma.com/design/hcQMwbaejdIXdIBIQkYJ7U/urwebs.
+
+The app includes category-specific start pages under `/category/:slug` that load website lists from JSON and store favorites per category.
 
   ## Running the code
 
