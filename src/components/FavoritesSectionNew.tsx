@@ -766,7 +766,7 @@ export function FavoritesSectionNew({
             <h3 className="font-medium text-gray-700 text-sm mb-3 dark:text-gray-200">
               🔧 위젯
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
               {(favoritesData.widgets || [])
                 .filter((w) => w && w.id)
                 .map((w) => (
@@ -784,50 +784,50 @@ export function FavoritesSectionNew({
             폴더 추가
           </GhostBtn>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
           {/* 즐겨찾기 리스트 */}
-          <div className="col-span-1 space-y-2 lg:space-y-3 md:col-span-1 xl:col-span-1">
+          <div className="space-y-2 lg:space-y-3 md:col-span-1 xl:col-span-1">
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
                 📌 즐겨찾기
-            </h3>
-            {/* [sorting] */}
-            <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-200">
-              정렬:
-              <select
-                value={favoritesData.itemsSortMode || 'manual'}
-                onChange={(e) => changeItemsSortMode(e.target.value as SortMode)}
-                className="border rounded px-1 py-0.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                aria-label="정렬 모드 선택"
-              >
-                <option value="manual">수동</option>
-                <option value="alpha">이름순</option>
-                <option value="freq">접속순</option>
-              </select>
-            </label>
+              </h3>
+              {/* [sorting] */}
+              <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-200">
+                정렬:
+                <select
+                  value={favoritesData.itemsSortMode || 'manual'}
+                  onChange={(e) => changeItemsSortMode(e.target.value as SortMode)}
+                  className="border rounded px-1 py-0.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  aria-label="정렬 모드 선택"
+                >
+                  <option value="manual">수동</option>
+                  <option value="alpha">이름순</option>
+                  <option value="freq">접속순</option>
+                </select>
+              </label>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {rootItems.map((id) => (
+                <SimpleWebsite
+                  key={id}
+                  websiteId={id}
+                  onRemove={removeFromFavorites}
+                  onDragStart={(e) => handleDragStart(e, id)}
+                  onDragOver={(e) => handleDragOver(e, id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, id)}
+                  isDraggingOver={dragOverId === id}
+                />
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-1 gap-2">
-            {rootItems.map((id) => (
-              <SimpleWebsite
-                key={id}
-                websiteId={id}
-                onRemove={removeFromFavorites}
-                onDragStart={(e) => handleDragStart(e, id)}
-                onDragOver={(e) => handleDragOver(e, id)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, id)}
-                isDraggingOver={dragOverId === id}
-              />
-            ))}
-          </div>
-        </div>
 
           {/* 폴더들 */}
-          <div className="space-y-2 lg:space-y-3 md:col-span-2 xl:col-span-5">
+          <div className="space-y-2 lg:space-y-3 md:col-span-5 xl:col-span-5">
             <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
               📂 폴더
             </h3>
-            <div className="cards-6cols">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 cards-6cols">
               {Array.isArray(favoritesData.folders) &&
                 favoritesData.folders
                   .filter(Boolean)
