@@ -18,6 +18,11 @@ import {
   categoryOrder as stocksOrder,
   categoryConfig as stocksConfig,
 } from '../data/websites.stocks';
+import {
+  websites as webdevWebsites,
+  categoryOrder as webdevOrder,
+  categoryConfig as webdevConfig,
+} from '../data/websites.webdev';
 
 import type { FavoritesData, Website } from '../types';
 import {
@@ -60,6 +65,11 @@ export default function CategoryStartPage({
       websites: stocksWebsites,
       categoryOrder: stocksOrder,
       categoryConfig: stocksConfig,
+    },
+    webdev: {
+      websites: webdevWebsites,
+      categoryOrder: webdevOrder,
+      categoryConfig: webdevConfig,
     },
   } as const;
 
