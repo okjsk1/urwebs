@@ -137,13 +137,15 @@ export function StartPage({
 
   const moveItem = (from: number, to: number) => {
     if (from === to) return;
+    let updatedLayout: string[] = [];
     setLayout((prev) => {
       const updated = [...prev];
       const [moved] = updated.splice(from, 1);
       updated.splice(to, 0, moved);
-      onUpdateFavorites({ ...favoritesData, layout: updated });
+      updatedLayout = updated;
       return updated;
     });
+    onUpdateFavorites({ ...favoritesData, layout: updatedLayout });
   };
 
   const renderItemContent = (entry: string) => {
