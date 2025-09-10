@@ -25,13 +25,11 @@ export default function MainLanding() {
 
         <figure className="w-full md:flex-1">
           <img
-            src="/assets/favorites-sample.webp"
+            src="https://upload.wikimedia.org/wikipedia/commons/9/9a/Question_mark.svg"
             alt="즐겨찾기 예시 레이아웃 스크린샷"
             loading="lazy"
             width={1280}
             height={720}
-            srcSet="/assets/favorites-sample.webp 1280w, /assets/favorites-sample.webp 640w"
-            sizes="(max-width: 768px) 100vw, 50vw"
             className="w-full h-auto rounded-lg shadow"
           />
           <figcaption className="mt-2 text-xs text-gray-500 text-center md:text-right">
