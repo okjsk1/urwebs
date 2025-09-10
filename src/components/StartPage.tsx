@@ -7,8 +7,8 @@ import { WeatherWidget } from './widgets/WeatherWidget';
 import { ClockWidget } from './widgets/ClockWidget';
 import { MemoWidget } from './widgets/MemoWidget';
 import { TodoWidget } from './widgets/TodoWidget';
-// websites는 import하지 않고 JSON에서 읽어옴
-import { categoryOrder, categoryConfig } from '../data/websites';
+// 웹사이트 기본 목록 (JSON이 없을 때 폴백으로 사용)
+import { categoryOrder, categoryConfig, websites as websitesLocal } from '../data/websites';
 import { CategoryCard } from './CategoryCard';
 import { Favicon } from './Favicon';
 import { applyStarter, resetFavorites, saveFavoritesData } from '../utils/startPageStorage';
@@ -34,12 +34,20 @@ export function StartPage({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/websites.json', { cache: 'no-store' });
+        // 1) 로컬 폴백으로 먼저 채우기
+        if (!cancelled) setWebsites(websitesLocal);
+        // 2) 배포에 JSON이 있을 경우에만 덮어쓰기
+        const base = import.meta.env.BASE_URL;
+        const res = await fetch(new URL('websites.json', base).toString(), { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) throw new Error(`Invalid content-type: ${ct}`);
         const data = await res.json();
-        if (!cancelled) setWebsites(Array.isArray(data) ? data : []);
+        if (!Array.isArray(data)) throw new Error('Invalid websites.json shape');
+        if (!cancelled) setWebsites(data);
       } catch (e) {
         console.warn('websites.json 불러오기 실패:', e);
-        if (!cancelled) setWebsites([]);
+        // 폴백(웹사이트 로컬 데이터) 그대로 유지
       } finally {
         if (!cancelled) setLoading(false);
       }
