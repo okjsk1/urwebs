@@ -4,20 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { StartPage } from '../components/StartPage';
 
 import {
-  websites as websitesArchitecture,
-  categoryOrder as orderArchitecture,
-  categoryConfig as configArchitecture,
+  websites as defaultWebsites,
+  categoryOrder as defaultOrder,
+  categoryConfig as defaultConfig,
 } from '../data/websites';
-import {
-  websites as websitesRealEstate,
-  categoryOrder as orderRealEstate,
-  categoryConfig as configRealEstate,
-} from '../data/websites.realestate';
-import {
-  websites as websitesStocks,
-  categoryOrder as orderStocks,
-  categoryConfig as configStocks,
-} from '../data/websites.stocks';
 
 import type { FavoritesData, Website } from '../types';
 import {
@@ -46,19 +36,9 @@ export default function CategoryStartPage({
   // 카테고리별 로컬 폴백 데이터 맵
   const dataMap = {
     architecture: {
-      websites: websitesArchitecture,
-      categoryOrder: orderArchitecture,
-      categoryConfig: configArchitecture,
-    },
-    realestate: {
-      websites: websitesRealEstate,
-      categoryOrder: orderRealEstate,
-      categoryConfig: configRealEstate,
-    },
-    stocks: {
-      websites: websitesStocks,
-      categoryOrder: orderStocks,
-      categoryConfig: configStocks,
+      websites: defaultWebsites,
+      categoryOrder: defaultOrder,
+      categoryConfig: defaultConfig,
     },
   } as const;
 
