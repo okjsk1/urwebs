@@ -1,6 +1,6 @@
 // src/components/StartPage.tsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { DndProvider } from 'react-dnd';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Widget, FavoritesData, Website } from '../types';
 import { WeatherWidget } from './widgets/WeatherWidget';
@@ -128,36 +128,21 @@ export function StartPage({
   const displayLayout: (string | null)[] = [...layout];
   while (displayLayout.length < GRID_CAPACITY) displayLayout.push(null);
 
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const handleDragStart = (index: number) => () => setDragIndex(index);
-  const handleDragOver = (index: number) => (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-  const handleDrop = (index: number) => (e: React.DragEvent) => {
-    e.preventDefault();
-    if (dragIndex === null) return;
+  const moveItem = (from: number, to: number) => {
+    if (from === to) return;
     const newLayout = [...layout];
-    const [moved] = newLayout.splice(dragIndex, 1);
-    const clampedIndex = index > newLayout.length ? newLayout.length : index;
-    newLayout.splice(clampedIndex, 0, moved);
+    const [moved] = newLayout.splice(from, 1);
+    newLayout.splice(to, 0, moved);
     onUpdateFavorites({ ...favoritesData, layout: newLayout });
-    setDragIndex(null);
   };
 
-  const renderDesktopItem = (entry: string, index: number) => {
+  const renderItemContent = (entry: string) => {
     const [type, id] = entry.split(':');
     if (type === 'item') {
       const site = websites.find((s) => s.id === id);
       if (!site) return null;
       return (
-        <div
-          key={entry}
-          className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border"
-          draggable
-          onDragStart={handleDragStart(index)}
-          onDragOver={handleDragOver(index)}
-          onDrop={handleDrop(index)}
-        >
+        <div className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border">
           <div className="flex items-center justify-between mb-2">
             <a
               href={site.url}
@@ -190,36 +175,48 @@ export function StartPage({
     if (type === 'widget') {
       const widget = favoritesData.widgets.find((w) => w.id === id);
       if (!widget) return null;
-      return (
-        <div
-          key={entry}
-          draggable
-          onDragStart={handleDragStart(index)}
-          onDragOver={handleDragOver(index)}
-          onDrop={handleDrop(index)}
-        >
-          {renderWidget(widget)}
-        </div>
-      );
+      return <div>{renderWidget(widget)}</div>;
     }
     if (type === 'folder') {
       const folder = favoritesData.folders.find((f) => f.id === id);
       if (!folder) return null;
       return (
-        <div
-          key={entry}
-          className="bg-white p-4 rounded-lg shadow-md border flex flex-col items-center"
-          draggable
-          onDragStart={handleDragStart(index)}
-          onDragOver={handleDragOver(index)}
-          onDrop={handleDrop(index)}
-        >
+        <div className="bg-white p-4 rounded-lg shadow-md border flex flex-col items-center">
           <span className="text-2xl">📁</span>
           <h3 className="font-medium mt-2">{folder.name}</h3>
         </div>
       );
     }
     return null;
+  };
+
+  const ITEM_TYPE = "desktop-item";
+
+  const DesktopItem = ({ entry, index }: { entry: string; index: number }) => {
+    const ref = React.useRef<HTMLDivElement>(null);
+    const [, drop] = useDrop({
+      accept: ITEM_TYPE,
+      drop: (item: { index: number }) => moveItem(item.index, index),
+    });
+    const [{ isDragging }, drag] = useDrag({
+      type: ITEM_TYPE,
+      item: { index },
+      collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+    });
+    drag(drop(ref));
+    return (
+      <div ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }}>
+        {renderItemContent(entry)}
+      </div>
+    );
+  };
+
+  const EmptyCell = ({ index }: { index: number }) => {
+    const [, drop] = useDrop({
+      accept: ITEM_TYPE,
+      drop: (item: { index: number }) => moveItem(item.index, index),
+    });
+    return <div ref={drop} className="h-24 border-2 border-dashed rounded-lg" />;
   };
 
   useEffect(() => {
@@ -307,14 +304,9 @@ export function StartPage({
                 <div className="grid grid-cols-6 gap-4">
                   {displayLayout.map((entry, idx) =>
                     entry ? (
-                      renderDesktopItem(entry, idx)
+                      <DesktopItem key={entry} entry={entry} index={idx} />
                     ) : (
-                      <div
-                        key={`empty-${idx}`}
-                        className="h-24 border-2 border-dashed rounded-lg"
-                        onDragOver={handleDragOver(idx)}
-                        onDrop={handleDrop(idx)}
-                      />
+                      <EmptyCell key={`empty-${idx}`} index={idx} />
                     )
                   )}
                 </div>
