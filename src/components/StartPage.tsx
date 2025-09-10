@@ -55,12 +55,35 @@ export function StartPage({
     return () => clearInterval(timer);
   }, []);
 
+  // 변경될 때마다 즉시 저장 (영속화)
   useEffect(() => {
     saveFavoritesData(favoritesData);
   }, [favoritesData]);
 
-  const handleStarter = () => applyStarter(onUpdateFavorites);
-  const handleReset = () => resetFavorites(onUpdateFavorites);
+  // 스타터팩/리셋 적용 중 로딩 가드
+  const [isApplying, setIsApplying] = useState(false);
+
+  const handleStarter = async () => {
+    try {
+      setIsApplying(true);
+      await applyStarter(onUpdateFavorites);
+    } catch (e) {
+      console.error('Starter apply failed', e);
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  const handleReset = async () => {
+    try {
+      setIsApplying(true);
+      await resetFavorites(onUpdateFavorites);
+    } catch (e) {
+      console.error('Reset favorites failed', e);
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   const handleRemoveWidget = (id: string) => {
     const updated = favoritesData.widgets.filter((w) => w.id !== id);
@@ -115,25 +138,37 @@ export function StartPage({
       ...favoritesData.folders.map((f) => `folder:${f.id}`),
       ...favoritesData.widgets.map((w) => `widget:${w.id}`),
     ];
-    const layout = favoritesData.layout && favoritesData.layout.length
-      ? favoritesData.layout.filter((e) => entries.includes(e))
-      : entries.slice();
+    const base =
+      favoritesData.layout && favoritesData.layout.length
+        ? favoritesData.layout.filter((e) => entries.includes(e))
+        : entries.slice();
     entries.forEach((e) => {
-      if (!layout.includes(e)) layout.push(e);
+      if (!base.includes(e)) base.push(e);
     });
-    return layout;
+    return base;
   };
-  const layout = buildLayout();
+
+  const [layout, setLayout] = useState<string[]>(buildLayout());
+
+  useEffect(() => {
+    setLayout(buildLayout());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favoritesData]);
+
   const GRID_CAPACITY = 36;
   const displayLayout: (string | null)[] = [...layout];
   while (displayLayout.length < GRID_CAPACITY) displayLayout.push(null);
 
+  // 드래그 이동: 상태와 외부 상태 동기화 일원화
   const moveItem = (from: number, to: number) => {
     if (from === to) return;
-    const newLayout = [...layout];
-    const [moved] = newLayout.splice(from, 1);
-    newLayout.splice(to, 0, moved);
-    onUpdateFavorites({ ...favoritesData, layout: newLayout });
+    setLayout((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(from, 1);
+      updated.splice(to, 0, moved);
+      onUpdateFavorites({ ...favoritesData, layout: updated });
+      return updated;
+    });
   };
 
   const renderItemContent = (entry: string) => {
@@ -142,8 +177,9 @@ export function StartPage({
       const site = websites.find((s) => s.id === id);
       if (!site) return null;
       return (
-        <div className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border">
-          <div className="flex items-center justify-between mb-2">
+        <div className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border h-full">
+          {/* 헤더: 절대 포지셔닝으로 ★ 우측 고정, 제목은 줄임표 */}
+          <div className="relative mb-2 pr-8">
             <a
               href={site.url}
               target="_blank"
@@ -160,10 +196,10 @@ export function StartPage({
                 handleToggleFavorite(site.id);
               }}
               aria-label="즐겨찾기 제거"
-              className="favorite w-5 h-5 flex items-center justify-center text-gray-400 hover:text-yellow-500"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-yellow-500"
               type="button"
             >
-              <svg className="w-3 h-3 urwebs-star-icon favorited" viewBox="0 0 24 24" strokeWidth="1">
+              <svg className="w-4 h-4 urwebs-star-icon favorited" viewBox="0 0 24 24" strokeWidth="1">
                 <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8" />
               </svg>
             </button>
@@ -175,13 +211,17 @@ export function StartPage({
     if (type === 'widget') {
       const widget = favoritesData.widgets.find((w) => w.id === id);
       if (!widget) return null;
-      return <div>{renderWidget(widget)}</div>;
+      return (
+        <div className="h-full flex items-center justify-center cursor-move">
+          {renderWidget(widget)}
+        </div>
+      );
     }
     if (type === 'folder') {
       const folder = favoritesData.folders.find((f) => f.id === id);
       if (!folder) return null;
       return (
-        <div className="bg-white p-4 rounded-lg shadow-md border flex flex-col items-center">
+        <div className="h-full bg-white p-4 rounded-lg shadow-md border flex flex-col items-center justify-center cursor-move">
           <span className="text-2xl">📁</span>
           <h3 className="font-medium mt-2">{folder.name}</h3>
         </div>
@@ -190,7 +230,7 @@ export function StartPage({
     return null;
   };
 
-  const ITEM_TYPE = "desktop-item";
+  const ITEM_TYPE = 'desktop-item';
 
   const DesktopItem = ({ entry, index }: { entry: string; index: number }) => {
     const ref = React.useRef<HTMLDivElement>(null);
@@ -205,7 +245,11 @@ export function StartPage({
     });
     drag(drop(ref));
     return (
-      <div ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }}>
+      <div
+        ref={ref}
+        className="h-24 cursor-move"
+        style={{ opacity: isDragging ? 0.5 : 1 }}
+      >
         {renderItemContent(entry)}
       </div>
     );
@@ -239,7 +283,11 @@ export function StartPage({
     });
     return acc;
   }, [websites]);
-  const isEmpty = favoritesData.items.length === 0 && favoritesData.widgets.length === 0;
+
+  const isEmpty =
+    favoritesData.items.length === 0 &&
+    favoritesData.widgets.length === 0 &&
+    favoritesData.folders.length === 0;
 
   if (loading) return <div className="p-6">로딩 중…</div>;
 
@@ -263,6 +311,15 @@ export function StartPage({
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 overflow-auto">
+      {/* 적용 중 오버레이 */}
+      {isApplying && (
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="px-6 py-4 rounded-lg shadow bg-white border text-gray-700">
+            스타터팩 적용 중…
+          </div>
+        </div>
+      )}
+
       <div className="min-h-screen mx-auto px-4 md:px-6" style={{ maxWidth: '1440px' }}>
         <div className="py-8 space-y-12">
           {/* Header */}
@@ -304,7 +361,7 @@ export function StartPage({
                 <div className="grid grid-cols-6 gap-4">
                   {displayLayout.map((entry, idx) =>
                     entry ? (
-                      <DesktopItem key={entry} entry={entry} index={idx} />
+                      <DesktopItem key={`${entry}-${idx}`} entry={entry} index={idx} />
                     ) : (
                       <EmptyCell key={`empty-${idx}`} index={idx} />
                     )
