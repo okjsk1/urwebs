@@ -187,13 +187,17 @@ export function StartPage({
     if (type === 'widget') {
       const widget = favoritesData.widgets.find((w) => w.id === id);
       if (!widget) return null;
-      return <div>{renderWidget(widget)}</div>;
+      return (
+        <div className="h-full flex items-center justify-center">
+          {renderWidget(widget)}
+        </div>
+      );
     }
     if (type === 'folder') {
       const folder = favoritesData.folders.find((f) => f.id === id);
       if (!folder) return null;
       return (
-        <div className="bg-white p-4 rounded-lg shadow-md border flex flex-col items-center">
+        <div className="h-full bg-white p-4 rounded-lg shadow-md border flex flex-col items-center justify-center">
           <span className="text-2xl">📁</span>
           <h3 className="font-medium mt-2">{folder.name}</h3>
         </div>
@@ -217,7 +221,11 @@ export function StartPage({
     });
     drag(drop(ref));
     return (
-      <div ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }}>
+      <div
+        ref={ref}
+        className="h-24 cursor-move"
+        style={{ opacity: isDragging ? 0.5 : 1 }}
+      >
         {renderItemContent(entry)}
       </div>
     );
@@ -251,7 +259,10 @@ export function StartPage({
     });
     return acc;
   }, [websites]);
-  const isEmpty = favoritesData.items.length === 0 && favoritesData.widgets.length === 0;
+  const isEmpty =
+    favoritesData.items.length === 0 &&
+    favoritesData.widgets.length === 0 &&
+    favoritesData.folders.length === 0;
 
   if (loading) return <div className="p-6">로딩 중…</div>;
 
