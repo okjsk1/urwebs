@@ -76,8 +76,8 @@ export default function CategoryStartPage({
     (async () => {
       try {
         const base = (import.meta as any).env?.BASE_URL || '/';
-        const url = new URL(jsonFile, base).toString();
-        const res = await fetch(url, { cache: 'no-store' });
+        + import { buildAssetUrl } from '../utils/asset';
++ const res = await fetch(buildAssetUrl(jsonFile), { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const ct = res.headers.get('content-type') || '';
         if (!ct.includes('application/json')) throw new Error(`Invalid content-type: ${ct}`);
