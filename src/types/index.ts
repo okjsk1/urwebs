@@ -1,3 +1,4 @@
+// src/types/index.ts
 export interface Website {
   category: string;
   title: string;
@@ -19,7 +20,14 @@ export interface CategoryConfig {
 export type CategoryConfigMap = Record<string, CategoryConfig>;
 
 // 위젯 타입들
-export type WidgetType = 'weather' | 'clock' | 'memo' | 'todo' | 'calendar' | 'dday' | 'news';
+export type WidgetType =
+  | 'weather'
+  | 'clock'
+  | 'memo'
+  | 'todo'
+  | 'calendar'
+  | 'dday'
+  | 'news';
 
 export interface Widget {
   id: string;
@@ -48,6 +56,8 @@ export interface FieldCategory {
   emoji: string;
   description?: string;
   order?: number;
+  /** (선택) 슬러그 대신 사용할 사용자 정의 링크 경로 또는 외부 링크 */
+  href?: string;
 }
 
 // 즐겨찾기 구조 확장
