@@ -14,7 +14,6 @@ function RoutedCategoryStartPage() {
     <CategoryStartPage
       categorySlug={slug}
       title="나의 시작페이지"
-      jsonFile="websites.json"
       storageNamespace={`favorites:${slug}`}
     />
   );
