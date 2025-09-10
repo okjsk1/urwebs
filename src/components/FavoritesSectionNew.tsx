@@ -759,24 +759,23 @@ export function FavoritesSectionNew({
         </div>
       )}
 
-      {/* 위젯 섹션 */}
-      {(favoritesData?.widgets?.length || 0) > 0 && (
-        <div className="mb-6 p-4 border rounded-lg bg-white dark:bg-gray-800">
-          <h3 className="font-medium text-gray-700 text-sm mb-3 dark:text-gray-200">
-            🔧 위젯
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
-            {(favoritesData.widgets || [])
-              .filter((w) => w && w.id)
-              .map((w) => (
-                <SimpleWidget key={w.id} widget={w} onRemove={removeWidget} />
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* 즐겨찾기 & 폴더 */}
+      {/* 즐겨찾기 & 폴더 (위젯 포함) */}
       <div className="p-4 border rounded-lg bg-white dark:bg-gray-800">
+        {(favoritesData?.widgets?.length || 0) > 0 && (
+          <div className="mb-6">
+            <h3 className="font-medium text-gray-700 text-sm mb-3 dark:text-gray-200">
+              🔧 위젯
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-6">
+              {(favoritesData.widgets || [])
+                .filter((w) => w && w.id)
+                .map((w) => (
+                  <SimpleWidget key={w.id} widget={w} onRemove={removeWidget} />
+                ))}
+            </div>
+          </div>
+        )}
+
         <div className="toolbar btn-group mb-4">
           <GhostBtn icon={<IconStarPlus />} hint="Ctrl+D" onClick={onAddFavorite}>
             이 페이지를 즐겨찾기에 추가
