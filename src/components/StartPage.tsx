@@ -365,7 +365,7 @@ export function StartPage({
 
               <div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">전체 카테고리</h2>
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-x-2 gap-y-4 min-w-0">
+                <div className="grid grid-cols-6 gap-x-2 gap-y-4 min-w-0">
                   {categoryOrder.map((slug) => {
                     const displayName =
                       categoryConfig[slug]?.title ?? slug;
