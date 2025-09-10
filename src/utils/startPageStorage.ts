@@ -1,7 +1,7 @@
 import { FavoritesData, Widget, SortMode } from '../types';
 import starter from '../data/starter.json';
 
-const STORAGE_KEY = 'urwebs-favorites-v3';
+const DEFAULT_STORAGE_KEY = 'favorites:default';
 
 interface StarterFolder {
   id: string;
@@ -19,9 +19,9 @@ interface StarterRaw {
 
 const starterData = starter as StarterRaw;
 
-export function loadFavoritesData(): FavoritesData {
+export function loadFavoritesData(ns = DEFAULT_STORAGE_KEY): FavoritesData {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(ns);
     return raw ? JSON.parse(raw) : { items: [], folders: [], widgets: [], layout: [] };
   } catch (e) {
     console.error('Failed to load favorites data', e);
@@ -29,9 +29,9 @@ export function loadFavoritesData(): FavoritesData {
   }
 }
 
-export function saveFavoritesData(data: FavoritesData) {
+export function saveFavoritesData(data: FavoritesData, ns = DEFAULT_STORAGE_KEY) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(ns, JSON.stringify(data));
   } catch (e) {
     console.error('Failed to save favorites data', e);
   }
@@ -58,12 +58,18 @@ export function getStarterData(): FavoritesData {
   return { items, folders, widgets, layout };
 }
 
-export function applyStarter(onUpdate: (data: FavoritesData) => void) {
+export function applyStarter(
+  onUpdate: (data: FavoritesData) => void,
+  ns = DEFAULT_STORAGE_KEY,
+) {
   const data = getStarterData();
-  saveFavoritesData(data);
+  saveFavoritesData(data, ns);
   onUpdate(data);
 }
 
-export function resetFavorites(onUpdate: (data: FavoritesData) => void) {
-  applyStarter(onUpdate);
+export function resetFavorites(
+  onUpdate: (data: FavoritesData) => void,
+  ns = DEFAULT_STORAGE_KEY,
+) {
+  applyStarter(onUpdate, ns);
 }

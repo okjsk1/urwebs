@@ -16,7 +16,7 @@ export default function MainLanding() {
           <h1 className="text-4xl font-bold">URWEBS</h1>
           <p className="mt-2 text-lg text-gray-700">분야별로 빠르게 시작하세요</p>
           <Link
-            to="/start"
+            to="/category/architecture"
             className="mt-4 inline-block text-sm text-blue-600 underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             나의 시작페이지로 이동
@@ -76,7 +76,7 @@ export default function MainLanding() {
             return (
               <Link
                 key={cat.slug}
-                to={cat.href ?? `/${cat.slug}`}
+                to={cat.href ?? `/category/${cat.slug}`}
                 className={className}
               >
                 {content}

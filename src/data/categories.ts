@@ -7,7 +7,7 @@ export const categories: FieldCategory[] = [
     title: '건축학과',
     emoji: '🏛️',
     description: '건축 정보를 모았습니다',
-    // href: '/architecture', // (선택) 커스텀 경로가 필요하면 주석 해제
+    // href: '/category/architecture', // (선택) 커스텀 경로가 필요하면 주석 해제
   },
   {
     slug: 'realestate',
