@@ -1,14 +1,23 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import BoardList from "./pages/BoardList";
 import PostDetail from "./pages/PostDetail";
 import PostWrite from "./pages/PostWrite";
 import MainLanding from "./pages/MainLanding";
-import ArchitectureHome from "./pages/ArchitectureHome";
-import RealEstateHome from "./pages/RealEstateHome";
-import StocksHome from "./pages/StocksHome";
-import StartPageWrapper from "./pages/StartPageWrapper";
+import CategoryStartPage from "./pages/CategoryStartPage";
+
+function RoutedCategoryStartPage() {
+  const { slug = "architecture" } = useParams();
+  return (
+    <CategoryStartPage
+      categorySlug={slug}
+      title="나의 시작페이지"
+      jsonFile={`${slug}.json`}
+      storageNamespace={`favorites:${slug}`}
+    />
+  );
+}
 
 export default function Root() {
   return (
@@ -16,10 +25,23 @@ export default function Root() {
       <>
         <Routes>
           <Route path="/" element={<MainLanding />} />
-          <Route path="/architecture" element={<ArchitectureHome />} />
-          <Route path="/realestate" element={<RealEstateHome />} />
-          <Route path="/stocks" element={<StocksHome />} />
-          <Route path="/start" element={<StartPageWrapper />} />
+          <Route path="/category/:slug" element={<RoutedCategoryStartPage />} />
+          <Route
+            path="/architecture"
+            element={<Navigate to="/category/architecture" replace />}
+          />
+          <Route
+            path="/realestate"
+            element={<Navigate to="/category/realestate" replace />}
+          />
+          <Route
+            path="/stocks"
+            element={<Navigate to="/category/stocks" replace />}
+          />
+          <Route
+            path="/start"
+            element={<Navigate to="/category/architecture" replace />}
+          />
           <Route path="/notice" element={<BoardList board="notice" />} />
           <Route path="/free" element={<BoardList board="free" />} />
           <Route path="/post/:id" element={<PostDetail />} />
