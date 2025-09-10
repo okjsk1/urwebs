@@ -124,6 +124,9 @@ export function StartPage({
     return layout;
   };
   const layout = buildLayout();
+  const GRID_CAPACITY = 36;
+  const displayLayout: (string | null)[] = [...layout];
+  while (displayLayout.length < GRID_CAPACITY) displayLayout.push(null);
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const handleDragStart = (index: number) => () => setDragIndex(index);
@@ -135,7 +138,8 @@ export function StartPage({
     if (dragIndex === null) return;
     const newLayout = [...layout];
     const [moved] = newLayout.splice(dragIndex, 1);
-    newLayout.splice(index, 0, moved);
+    const clampedIndex = index > newLayout.length ? newLayout.length : index;
+    newLayout.splice(clampedIndex, 0, moved);
     onUpdateFavorites({ ...favoritesData, layout: newLayout });
     setDragIndex(null);
   };
@@ -300,8 +304,19 @@ export function StartPage({
             <div className="space-y-12">
               <div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">나의 바탕화면</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {layout.map((entry, idx) => renderDesktopItem(entry, idx))}
+                <div className="grid grid-cols-6 gap-4">
+                  {displayLayout.map((entry, idx) =>
+                    entry ? (
+                      renderDesktopItem(entry, idx)
+                    ) : (
+                      <div
+                        key={`empty-${idx}`}
+                        className="h-24 border-2 border-dashed rounded-lg"
+                        onDragOver={handleDragOver(idx)}
+                        onDrop={handleDrop(idx)}
+                      />
+                    )
+                  )}
                 </div>
               </div>
 
