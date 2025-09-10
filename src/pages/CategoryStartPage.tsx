@@ -62,7 +62,8 @@ export default function CategoryStartPage({
     },
   } as const;
 
-  const fallback = dataMap[categorySlug as keyof typeof dataMap] ?? dataMap.architecture;
+  const fallback =
+    dataMap[categorySlug as keyof typeof dataMap] ?? dataMap.architecture;
 
   const [favoritesData, setFavoritesData] = useState<FavoritesData>(() =>
     loadFavoritesData(storageNamespace),
