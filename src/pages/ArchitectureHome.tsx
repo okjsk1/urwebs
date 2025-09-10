@@ -1,4 +1,5 @@
-import { useState } from "react";
+// src/pages/ArchitectureHome.tsx
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StartPage } from "../components/StartPage";
 import type { FavoritesData } from "../types";
@@ -19,4 +20,3 @@ export default function ArchitectureHome() {
     />
   );
 }
-
