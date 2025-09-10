@@ -8,6 +8,16 @@ import {
   categoryOrder as defaultOrder,
   categoryConfig as defaultConfig,
 } from '../data/websites';
+import {
+  websites as realestateWebsites,
+  categoryOrder as realestateOrder,
+  categoryConfig as realestateConfig,
+} from '../data/websites.realestate';
+import {
+  websites as stocksWebsites,
+  categoryOrder as stocksOrder,
+  categoryConfig as stocksConfig,
+} from '../data/websites.stocks';
 
 import type { FavoritesData, Website } from '../types';
 import {
@@ -29,7 +39,7 @@ type Props = {
 export default function CategoryStartPage({
   categorySlug,
   title = '나의 시작페이지',
-  jsonFile = 'websites.json',
+  jsonFile,
   storageNamespace = `favorites:${categorySlug}`,
 }: Props) {
   const navigate = useNavigate();
@@ -41,6 +51,16 @@ export default function CategoryStartPage({
       categoryOrder: defaultOrder,
       categoryConfig: defaultConfig,
     },
+    realestate: {
+      websites: realestateWebsites,
+      categoryOrder: realestateOrder,
+      categoryConfig: realestateConfig,
+    },
+    stocks: {
+      websites: stocksWebsites,
+      categoryOrder: stocksOrder,
+      categoryConfig: stocksConfig,
+    },
   } as const;
 
   const fallback =
@@ -50,7 +70,7 @@ export default function CategoryStartPage({
     loadFavoritesData(storageNamespace),
   );
   const [websites, setWebsites] = useState<Website[]>(fallback.websites);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!jsonFile);
 
   const category = categories.find((c) => c.slug === categorySlug);
   const categoryTitle = category?.title || categorySlug;
@@ -73,6 +93,10 @@ export default function CategoryStartPage({
 
   // jsonFile이 있으면 성공 시 폴백을 덮어씀
   useEffect(() => {
+    if (!jsonFile) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
