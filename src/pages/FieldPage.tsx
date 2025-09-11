@@ -1,42 +1,57 @@
-import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import type { Website } from "../types";
-import { categoryConfig, websites as websitesLocal } from "../data/websites";
+import { useMemo } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import type { Website } from '../types';
+import { CATEGORY_BY_FIELD } from '../data/fieldCategories';
+import { websites as realEstateSites } from '../data/websites.realestate';
+import { websites as webdevSites } from '../data/websites.webdev';
+import { websites as stocksSites } from '../data/websites.stocks';
+
+const FIELD_DATA: Record<string, { title: string; websites: Website[] }> = {
+  'real-estate': { title: '부동산', websites: realEstateSites },
+  webdev: { title: '웹개발', websites: webdevSites },
+  stocks: { title: '증권', websites: stocksSites },
+};
 
 export default function FieldPage() {
-  const { slug } = useParams<{ slug: string }>();
-  const [websites, setWebsites] = useState<Website[] | null>(null);
-  const [error, setError] = useState(false);
+  const { field } = useParams<{ field: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await fetch("/websites.json", { cache: "no-store" });
-        if (!res.ok) throw new Error("failed");
-        const data: Website[] = await res.json();
-        if (mounted) setWebsites(data);
-      } catch {
-        setError(true);
-        if (mounted) setWebsites(websitesLocal);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const data = field ? FIELD_DATA[field] : undefined;
+  const categories = field ? CATEGORY_BY_FIELD[field] || [] : [];
 
-  const categoryInfo = slug ? categoryConfig[slug] : undefined;
+  const selectedParam = searchParams.get('category');
+  const selectedListRaw = selectedParam
+    ? selectedParam.split(',').map((s) => decodeURIComponent(s.trim())).filter(Boolean)
+    : [];
+  const selectedList = selectedListRaw.filter((c) => categories.includes(c));
 
-  const filtered = useMemo(() => {
-    if (!websites || !slug) return [];
-    const name = categoryInfo?.title ?? slug;
-    return websites.filter(
-      (w) => w.category === name || w.categorySlug === slug,
+  const results = useMemo(() => {
+    if (!data) return [];
+    return data.websites.filter(
+      (item) => selectedList.length === 0 || selectedList.includes(item.category),
     );
-  }, [websites, slug, categoryInfo]);
+  }, [data, selectedList]);
 
-  if (!slug || !categoryInfo) {
+  const toggleCategory = (cat: string) => {
+    const exists = selectedList.includes(cat);
+    const next = exists ? selectedList.filter((c) => c !== cat) : [...selectedList, cat];
+    if (next.length === 0) {
+      searchParams.delete('category');
+    } else {
+      searchParams.set(
+        'category',
+        next.map((c) => encodeURIComponent(c)).join(','),
+      );
+    }
+    setSearchParams(searchParams);
+  };
+
+  const resetCategories = () => {
+    searchParams.delete('category');
+    setSearchParams(searchParams);
+  };
+
+  if (!field || !data) {
     return (
       <div className="p-6">
         <p className="mb-4">알 수 없는 분야입니다.</p>
@@ -47,47 +62,62 @@ export default function FieldPage() {
     );
   }
 
-  if (!websites) return <div className="p-6">로딩 중…</div>;
-
-  if (filtered.length === 0) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">{categoryInfo.title}</h1>
-        {error && (
-          <p className="mb-2 text-sm text-gray-500">
-            사이트 목록을 불러오지 못해 로컬 데이터로 표시합니다.
-          </p>
-        )}
-        <p>표시할 사이트가 없습니다.</p>
-      </div>
-    );
-  }
-
   return (
     <main className="p-6">
-      <h1 className="text-2xl font-bold mb-4">{categoryInfo.title}</h1>
-      {error && (
-        <p className="mb-4 text-sm text-gray-500">
-          사이트 목록을 불러오지 못해 로컬 데이터로 표시합니다.
-        </p>
-      )}
-      <ul className="space-y-3">
-        {filtered.map((site) => (
-          <li key={site.id} className="border-b pb-2">
-            <a
-              href={site.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
-            >
-              {site.title}
-            </a>
-            {site.description && (
-              <p className="text-sm text-gray-600">{site.description}</p>
-            )}
-          </li>
+      <h1 className="text-2xl font-bold mb-4">{data.title}</h1>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => toggleCategory(cat)}
+            className={`px-3 py-1 border rounded-full text-sm cursor-pointer transition-colors ${selectedList.includes(cat) ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+            type="button"
+          >
+            {cat}
+          </button>
         ))}
-      </ul>
+        {selectedList.length > 0 && (
+          <button
+            onClick={resetCategories}
+            className="px-3 py-1 border rounded-full text-sm cursor-pointer hover:bg-gray-200"
+            type="button"
+          >
+            선택 초기화
+          </button>
+        )}
+      </div>
+
+      {results.length === 0 ? (
+        <div>
+          <p className="mb-2">표시할 사이트가 없습니다.</p>
+          <button
+            onClick={resetCategories}
+            className="text-blue-600 underline"
+            type="button"
+          >
+            전체 보기
+          </button>
+        </div>
+      ) : (
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {results.map((site) => (
+            <li key={site.id} className="border rounded p-3">
+              <a
+                href={site.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                {site.title}
+              </a>
+              {site.description && (
+                <p className="text-sm text-gray-600 mt-1">{site.description}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </main>
   );
 }

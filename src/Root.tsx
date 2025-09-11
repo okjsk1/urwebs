@@ -26,7 +26,7 @@ export default function Root() {
       <>
         <Routes>
           <Route path="/" element={<MainLanding />} />
-          <Route path="/fields/:slug" element={<FieldPage />} />
+          <Route path="/fields/:field" element={<FieldPage />} />
           <Route path="/category/:slug" element={<RoutedCategoryStartPage />} />
           <Route
             path="/architecture"

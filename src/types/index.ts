@@ -1,9 +1,18 @@
 // src/types/index.ts
 export interface Website {
+  /** 세부분야(카테고리) */
   category: string;
+  /** 사이트 제목 */
   title: string;
+  /** 이동할 URL */
   url: string;
+  /** 30자 내외 설명 */
   description: string;
+  /** (선택) 상위 분야 명 */
+  field?: string;
+  /** (권장) 상위 분야 슬러그 */
+  fieldSlug?: string;
+  /** 고유 ID */
   id: string;
   summary?: string; // 새로운 요약 필드
   // 랭킹 계산을 위한 임시 지표
