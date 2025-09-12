@@ -68,7 +68,7 @@ export const categories: FieldCategory[] = [
     title: '건축/BIM/CAD/GIS',
     emoji: '🏛️',
     description: '공간·건축 관련 정보를 모았습니다',
-    // href: '/category/architecture', // (선택) 커스텀 경로가 필요하면 주석 해제
+    href: '/category/architecture',
   },
   {
     slug: 'embedded',
