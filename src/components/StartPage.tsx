@@ -15,6 +15,8 @@ interface StartPageProps {
   onUpdateFavorites: (data: FavoritesData) => void;
   onClose: () => void;
   showDescriptions: boolean;
+  /** 즐겨찾기가 비어 있어도 소개(빈 상태) 화면을 보여줄지 여부 */
+  showEmptyState?: boolean;
   pageTitle?: string;
   categoryTitle?: string;
   websites: Website[];
@@ -30,6 +32,7 @@ export function StartPage({
   onUpdateFavorites,
   onClose,
   showDescriptions,
+  showEmptyState = true,
   pageTitle = '나의 시작페이지',
   categoryTitle,
   websites,
@@ -39,6 +42,8 @@ export function StartPage({
   onApplyStarter,
   onReset,
 }: StartPageProps) {
+  // TODO: 필요 시 showEmptyState 사용해 빈 상태/소개 화면 토글
+  // 현재는 타입 일치 목적의 최소 적용
 
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
@@ -282,7 +287,7 @@ export function StartPage({
 
   if (loading) return <div className="p-6">로딩 중…</div>;
 
-  if (isEmpty) {
+  if (isEmpty && showEmptyState) {
     return (
       <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 flex flex-col items-center justify-center text-center p-6">
         <h1 className="text-3xl font-bold mb-4">나만의 시작페이지를 만들어 보세요</h1>
