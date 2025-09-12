@@ -76,7 +76,12 @@ export default function CategoryStartPage({
       categoryOrder: defaultOrder,
       categoryConfig: defaultConfig,
     },
-    insurance: {
+    'insurance-auto': {
+      websites: insuranceWebsites,
+      categoryOrder: insuranceOrder,
+      categoryConfig: insuranceConfig,
+    },
+    'insurance-planner': {
       websites: insuranceWebsites,
       categoryOrder: insuranceOrder,
       categoryConfig: insuranceConfig,
