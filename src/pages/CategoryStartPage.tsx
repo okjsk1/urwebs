@@ -24,6 +24,11 @@ import {
   categoryOrder as webdevOrder,
   categoryConfig as webdevConfig,
 } from '../data/websites.webdev';
+import {
+  websites as insuranceWebsites,
+  categoryOrder as insuranceOrder,
+  categoryConfig as insuranceConfig,
+} from '../data/websites.insurance';
 
 import type { FavoritesData, Website } from '../types';
 import {
@@ -80,6 +85,11 @@ export default function CategoryStartPage({
       websites: stocksWebsites,
       categoryOrder: stocksOrder,
       categoryConfig: stocksConfig,
+    },
+    insurance: {
+      websites: insuranceWebsites,
+      categoryOrder: insuranceOrder,
+      categoryConfig: insuranceConfig,
     },
     webdev: {
       websites: webdevWebsites,

@@ -90,6 +90,13 @@ export const categories: FieldCategory[] = [
     description: '투자와 주식 정보를 확인',
     href: '/category/stocks',
   },
+  {
+    slug: 'insurance',
+    title: '보험',
+    emoji: '🛡️',
+    description: '보험 설계사·자동차보험 자료',
+    href: '/category/insurance',
+  },
 ];
 
 export default categories;
