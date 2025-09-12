@@ -25,6 +25,8 @@ interface StartPageProps {
   loading?: boolean;
   onApplyStarter?: () => Promise<void> | void;
   onReset?: () => Promise<void> | void;
+  /** 즐겨찾기가 비었을 때 소개 화면을 표시할지 여부 */
+  showEmptyState?: boolean;
 }
 
 export function StartPage({
@@ -41,6 +43,7 @@ export function StartPage({
   loading = false,
   onApplyStarter,
   onReset,
+  showEmptyState = true,
 }: StartPageProps) {
   // TODO: 필요 시 showEmptyState 사용해 빈 상태/소개 화면 토글
   // 현재는 타입 일치 목적의 최소 적용
@@ -284,10 +287,9 @@ export function StartPage({
     favoritesData.items.length === 0 &&
     favoritesData.widgets.length === 0 &&
     favoritesData.folders.length === 0;
-
   if (loading) return <div className="p-6">로딩 중…</div>;
 
-  if (isEmpty) {
+  if (isEmpty && showEmptyState) {
     return (
       <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 flex flex-col items-center justify-center text-center p-6">
         <h1 className="text-3xl font-bold mb-4">나만의 시작페이지를 만들어 보세요</h1>
@@ -355,18 +357,20 @@ export function StartPage({
 
           <DndProvider backend={HTML5Backend}>
             <div className="space-y-12">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-6">나의 바탕화면</h2>
-                <div className="grid grid-cols-6 gap-4">
-                  {displayLayout.map((entry, idx) =>
-                    entry ? (
-                      <DesktopItem key={`${entry}-${idx}`} entry={entry} index={idx} />
-                    ) : (
-                      <EmptyCell key={`empty-${idx}`} index={idx} />
-                    )
-                  )}
+              {!isEmpty && (
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6">나의 바탕화면</h2>
+                  <div className="grid grid-cols-6 gap-4">
+                    {displayLayout.map((entry, idx) =>
+                      entry ? (
+                        <DesktopItem key={`${entry}-${idx}`} entry={entry} index={idx} />
+                      ) : (
+                        <EmptyCell key={`empty-${idx}`} index={idx} />
+                      )
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">전체 카테고리</h2>
