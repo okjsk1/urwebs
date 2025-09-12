@@ -9,7 +9,6 @@ import MainLanding from "./pages/MainLanding";
 import CategoryStartPage from "./pages/CategoryStartPage";
 import FieldPage from "./pages/FieldPage";
 import RealEstateRoleSelect from "./pages/RealEstateRoleSelect";
-import InsuranceTypeSelect from "./pages/InsuranceTypeSelect";
 
 function RoutedCategoryStartPage() {
   const { slug = "architecture" } = useParams();
@@ -43,24 +42,6 @@ function RoutedRealEstateRoleStartPage() {
   );
 }
 
-function RoutedInsuranceStartPage() {
-  const { type = "planner" } = useParams();
-  const titleMap = {
-    planner: "보험 - 설계사",
-    auto: "보험 - 자동차보험",
-  } as const;
-  const categoryTitle = titleMap[type as keyof typeof titleMap] ?? "보험";
-  return (
-    <CategoryStartPage
-      categorySlug={`insurance-${type}`}
-      title="나의 시작페이지"
-      storageNamespace={`favorites:insurance-${type}`}
-      categoryTitleOverride={categoryTitle}
-      showEmptyState={false}
-    />
-  );
-}
-
 export default function Root() {
   return (
     <AppErrorBoundary>
@@ -72,11 +53,6 @@ export default function Root() {
           <Route
             path="/category/realestate/:role"
             element={<RoutedRealEstateRoleStartPage />}
-          />
-          <Route path="/category/insurance" element={<InsuranceTypeSelect />} />
-          <Route
-            path="/category/insurance/:type"
-            element={<RoutedInsuranceStartPage />}
           />
           <Route path="/category/:slug" element={<RoutedCategoryStartPage />} />
           <Route
