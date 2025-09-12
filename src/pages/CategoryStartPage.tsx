@@ -13,6 +13,7 @@ import {
   categoryOrder as realestateOrder,
   categoryConfig as realestateConfig,
 } from '../data/websites.realestate';
+import { roleData as realestateRoleData } from '../data/websites.realestate.roles';
 import {
   websites as stocksWebsites,
   categoryOrder as stocksOrder,
@@ -39,6 +40,10 @@ type Props = {
   title?: string;
   jsonFile?: string;
   storageNamespace?: string;
+  /** 부동산 역할별 페이지 등에서 카테고리 제목 커스터마이즈 */
+  categoryTitleOverride?: string;
+  /** 즐겨찾기가 비어 있어도 소개 화면을 건너뛸지 여부 */
+  showEmptyState?: boolean;
 };
 
 export default function CategoryStartPage({
@@ -46,10 +51,20 @@ export default function CategoryStartPage({
   title = '나의 시작페이지',
   jsonFile,
   storageNamespace = `favorites:${categorySlug}`,
+  categoryTitleOverride,
+  showEmptyState = true,
 }: Props) {
   const navigate = useNavigate();
 
   // 카테고리별 로컬 폴백 데이터 맵
+  const roleEntries = Object.entries(realestateRoleData).reduce(
+    (acc, [role, data]) => {
+      acc[`realestate-${role}`] = data;
+      return acc;
+    },
+    {} as Record<string, { websites: Website[]; categoryOrder: string[]; categoryConfig: typeof defaultConfig }>,
+  );
+
   const dataMap = {
     architecture: {
       websites: defaultWebsites,
@@ -71,6 +86,7 @@ export default function CategoryStartPage({
       categoryOrder: webdevOrder,
       categoryConfig: webdevConfig,
     },
+    ...roleEntries,
   } as const;
 
   const fallback =
@@ -83,7 +99,7 @@ export default function CategoryStartPage({
   const [loading, setLoading] = useState(!!jsonFile);
 
   const category = categories.find((c) => c.slug === categorySlug);
-  const categoryTitle = category?.title || categorySlug;
+  const categoryTitle = categoryTitleOverride || category?.title || categorySlug;
 
   // 페이지 타이틀
   useEffect(() => {
@@ -151,6 +167,7 @@ export default function CategoryStartPage({
       loading={loading}
       onApplyStarter={onApplyStarter}
       onReset={onReset}
+      showEmptyState={showEmptyState}
     />
   );
 }
