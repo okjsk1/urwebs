@@ -8,6 +8,7 @@ import PostWrite from "./pages/PostWrite";
 import MainLanding from "./pages/MainLanding";
 import CategoryStartPage from "./pages/CategoryStartPage";
 import FieldPage from "./pages/FieldPage";
+import RealEstateRoleSelect from "./pages/RealEstateRoleSelect";
 
 function RoutedCategoryStartPage() {
   const { slug = "architecture" } = useParams();
@@ -20,6 +21,26 @@ function RoutedCategoryStartPage() {
   );
 }
 
+function RoutedRealEstateRoleStartPage() {
+  const { role = "student" } = useParams();
+  const titleMap = {
+    student: "부동산 - 학생",
+    agent: "부동산 - 공인중개사",
+    tenant: "부동산 - 임차인",
+    landlord: "부동산 - 임대인",
+    investor: "부동산 - 투자자",
+  } as const;
+  const categoryTitle = titleMap[role as keyof typeof titleMap] ?? "부동산";
+  return (
+    <CategoryStartPage
+      categorySlug={`realestate-${role}`}
+      title="나의 시작페이지"
+      storageNamespace={`favorites:realestate-${role}`}
+      categoryTitleOverride={categoryTitle}
+    />
+  );
+}
+
 export default function Root() {
   return (
     <AppErrorBoundary>
@@ -27,6 +48,11 @@ export default function Root() {
         <Routes>
           <Route path="/" element={<MainLanding />} />
           <Route path="/fields/:slug" element={<FieldPage />} />
+          <Route path="/category/realestate" element={<RealEstateRoleSelect />} />
+          <Route
+            path="/category/realestate/:role"
+            element={<RoutedRealEstateRoleStartPage />}
+          />
           <Route path="/category/:slug" element={<RoutedCategoryStartPage />} />
           <Route
             path="/architecture"
