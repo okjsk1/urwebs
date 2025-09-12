@@ -9,6 +9,11 @@ import {
   categoryConfig as defaultConfig,
 } from '../data/websites';
 import {
+  websites as insuranceWebsites,
+  categoryOrder as insuranceOrder,
+  categoryConfig as insuranceConfig,
+} from '../data/websites.insurance';
+import {
   websites as realestateWebsites,
   categoryOrder as realestateOrder,
   categoryConfig as realestateConfig,
@@ -70,6 +75,11 @@ export default function CategoryStartPage({
       websites: defaultWebsites,
       categoryOrder: defaultOrder,
       categoryConfig: defaultConfig,
+    },
+    insurance: {
+      websites: insuranceWebsites,
+      categoryOrder: insuranceOrder,
+      categoryConfig: insuranceConfig,
     },
     realestate: {
       websites: realestateWebsites,
