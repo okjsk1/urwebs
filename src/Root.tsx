@@ -72,6 +72,10 @@ export default function Root() {
             element={<Navigate to="/category/webdev" replace />}
           />
           <Route
+            path="/insurance"
+            element={<Navigate to="/category/insurance" replace />}
+          />
+          <Route
             path="/start"
             element={<Navigate to="/category/architecture" replace />}
           />

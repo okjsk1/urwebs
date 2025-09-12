@@ -1,5 +1,4 @@
-// src/data/categories.ts
-import type { FieldCategory } from "../types";
+import type { FieldCategory } from '../types';
 
 export const categories: FieldCategory[] = [
   {
