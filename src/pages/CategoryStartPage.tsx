@@ -52,7 +52,7 @@ export default function CategoryStartPage({
   jsonFile,
   storageNamespace = `favorites:${categorySlug}`,
   categoryTitleOverride,
-  showEmptyState = true,
+  showEmptyState = false,
 }: Props) {
   const navigate = useNavigate();
 

@@ -15,7 +15,7 @@ interface StartPageProps {
   onUpdateFavorites: (data: FavoritesData) => void;
   onClose: () => void;
   showDescriptions: boolean;
-  /** 즐겨찾기가 비어 있어도 소개(빈 상태) 화면을 보여줄지 여부 */
+  /** 즐겨찾기가 비어 있을 때 소개(빈 상태) 화면을 보여줄지 여부 */
   showEmptyState?: boolean;
   pageTitle?: string;
   categoryTitle?: string;
@@ -25,8 +25,6 @@ interface StartPageProps {
   loading?: boolean;
   onApplyStarter?: () => Promise<void> | void;
   onReset?: () => Promise<void> | void;
-  /** 즐겨찾기가 비었을 때 소개 화면을 표시할지 여부 */
-  showEmptyState?: boolean;
 }
 
 export function StartPage({
@@ -34,7 +32,7 @@ export function StartPage({
   onUpdateFavorites,
   onClose,
   showDescriptions,
-  showEmptyState = true,
+  showEmptyState = false,
   pageTitle = '나의 시작페이지',
   categoryTitle,
   websites,
@@ -43,7 +41,6 @@ export function StartPage({
   loading = false,
   onApplyStarter,
   onReset,
-  showEmptyState = true,
 }: StartPageProps) {
   // TODO: 필요 시 showEmptyState 사용해 빈 상태/소개 화면 토글
   // 현재는 타입 일치 목적의 최소 적용
