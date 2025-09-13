@@ -592,6 +592,7 @@ export default function App() {
                 onUpdateFavorites={setFavoritesData}
                 onClose={() => setCurrentView("home")}
                 showDescriptions={showDescriptions}
+                onContactClick={() => setIsContactModalOpen(true)}
               />
             )}
 
