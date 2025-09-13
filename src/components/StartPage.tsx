@@ -15,8 +15,6 @@ interface StartPageProps {
   onUpdateFavorites: (data: FavoritesData) => void;
   onClose: () => void;
   showDescriptions: boolean;
-  /** 즐겨찾기가 비어 있을 때 소개(빈 상태) 화면을 보여줄지 여부 */
-  showEmptyState?: boolean;
   pageTitle?: string;
   categoryTitle?: string;
   websites: Website[];
@@ -32,7 +30,6 @@ export function StartPage({
   onUpdateFavorites,
   onClose,
   showDescriptions,
-  showEmptyState = false,
   pageTitle = '나의 시작페이지',
   categoryTitle,
   websites,
@@ -42,8 +39,6 @@ export function StartPage({
   onApplyStarter,
   onReset,
 }: StartPageProps) {
-  // TODO: 필요 시 showEmptyState 사용해 빈 상태/소개 화면 토글
-  // 현재는 타입 일치 목적의 최소 적용
 
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
@@ -285,24 +280,6 @@ export function StartPage({
     favoritesData.widgets.length === 0 &&
     favoritesData.folders.length === 0;
   if (loading) return <div className="p-6">로딩 중…</div>;
-
-  if (isEmpty && showEmptyState) {
-    return (
-      <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 flex flex-col items-center justify-center text-center p-6">
-        <h1 className="text-3xl font-bold mb-4">나만의 시작페이지를 만들어 보세요</h1>
-        <p className="text-lg text-gray-600 mb-8">
-          버튼 한 번으로 추천 셋팅을 불러오고, 즐겨찾기와 위젯은 자유롭게 바꿀 수 있어요.
-        </p>
-        <button
-          onClick={handleStarter}
-          aria-label="나만의 시작페이지"
-          className="bg-blue-500 text-white px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-        >
-          나만의 시작페이지
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 overflow-auto">

@@ -37,7 +37,6 @@ function RoutedRealEstateRoleStartPage() {
       title="나의 시작페이지"
       storageNamespace={`favorites:realestate-${role}`}
       categoryTitleOverride={categoryTitle}
-      showEmptyState={false}
     />
   );
 }
