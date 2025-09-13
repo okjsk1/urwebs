@@ -5868,12 +5868,10 @@ html, body {
   .desktop-only { display: block !important; }
 }
 /* Card grid height alignment */
-:root { --card-h: 168px; } /* 필요 시 160~184px 내에서 조정 */
-.cards-6cols { grid-auto-rows: var(--card-h); } /* 동일 행 높이 */
+/* 폴더와 카드가 정사각형을 유지하도록 고정 높이를 제거 */
 .card,
 .folder-card {
-  min-height: var(--card-h);
-  max-height: var(--card-h);
+  aspect-ratio: 1 / 1;
   overflow: hidden;          /* 넘치면 숨김 */
   display: flex;
   flex-direction: column;
