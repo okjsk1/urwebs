@@ -38,6 +38,21 @@ import {
   categoryOrder as embeddedOrder,
   categoryConfig as embeddedConfig,
 } from '../data/websites.embedded';
+import {
+  websites as marketingWebsites,
+  categoryOrder as marketingOrder,
+  categoryConfig as marketingConfig,
+} from '../data/websites.marketing';
+import {
+  websites as designWebsites,
+  categoryOrder as designOrder,
+  categoryConfig as designConfig,
+} from '../data/websites.design';
+import {
+  websites as cloudWebsites,
+  categoryOrder as cloudOrder,
+  categoryConfig as cloudConfig,
+} from '../data/websites.cloud';
 
 import type { Website } from '../types';
 import categories from '../data/categories';
@@ -104,6 +119,21 @@ export default function CategoryStartPage({
       websites: webdevWebsites,
       categoryOrder: webdevOrder,
       categoryConfig: webdevConfig,
+    },
+    marketing: {
+      websites: marketingWebsites,
+      categoryOrder: marketingOrder,
+      categoryConfig: marketingConfig,
+    },
+    design: {
+      websites: designWebsites,
+      categoryOrder: designOrder,
+      categoryConfig: designConfig,
+    },
+    cloud: {
+      websites: cloudWebsites,
+      categoryOrder: cloudOrder,
+      categoryConfig: cloudConfig,
     },
     ...roleEntries,
   } as const;
