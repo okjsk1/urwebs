@@ -24,6 +24,11 @@ import {
   categoryConfig as webdevConfig,
 } from '../data/websites.webdev';
 import {
+  websites as dataAiWebsites,
+  categoryOrder as dataAiOrder,
+  categoryConfig as dataAiConfig,
+} from '../data/websites.data-ai';
+import {
   websites as insuranceWebsites,
   categoryOrder as insuranceOrder,
   categoryConfig as insuranceConfig,
@@ -99,6 +104,11 @@ export default function CategoryStartPage({
       websites: embeddedWebsites,
       categoryOrder: embeddedOrder,
       categoryConfig: embeddedConfig,
+    },
+    'data-ai': {
+      websites: dataAiWebsites,
+      categoryOrder: dataAiOrder,
+      categoryConfig: dataAiConfig,
     },
     webdev: {
       websites: webdevWebsites,
