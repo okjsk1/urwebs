@@ -130,10 +130,10 @@ export function StartPage({
     const isFavorited = favoritesData.items.includes(websiteId);
     const updatedItems = isFavorited
       ? favoritesData.items.filter((id) => id !== websiteId)
-      : [...favoritesData.items, websiteId];
+      : [websiteId, ...favoritesData.items];
     const updatedLayout = isFavorited
       ? (favoritesData.layout || []).filter((e) => e !== `item:${websiteId}`)
-      : [...(favoritesData.layout || []), `item:${websiteId}`];
+      : [`item:${websiteId}`, ...(favoritesData.layout || [])];
     onUpdateFavorites({ ...favoritesData, items: updatedItems, layout: updatedLayout });
   };
 
