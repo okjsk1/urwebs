@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import categoriesData from "../data/categories";
-import { insurancePersonaItems } from "@/modules/insurance/PersonaPicker";
+import { insurancePersonaItems } from "@/modules/insurance/personas";
 
 export default function MainLanding() {
   const categories = [...categoriesData].sort(
