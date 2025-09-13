@@ -94,7 +94,7 @@ export const categories: FieldCategory[] = [
     slug: 'insurance',
     title: '보험',
     emoji: '🛡️',
-    description: '보험 설계사·자동차보험 자료',
+    description: '보험(설계/GA) 관련 사이트',
     href: '/category/insurance',
   },
 ];
