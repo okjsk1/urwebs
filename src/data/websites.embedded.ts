@@ -87,4 +87,3 @@ export const categoryOrder = [
   '배포·스토어',
   '튜토리얼·학습(한국어/국내용)',
   '커뮤니티/QA',
-];
