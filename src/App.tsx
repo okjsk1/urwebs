@@ -34,6 +34,7 @@ import { getStarterData } from "./utils/startPageStorage";
 import { Skeleton } from "./components/ui/skeleton";
 import { useUIMode } from "./hooks/useUIMode";
 import { hasFavorites } from "./utils/fav";
+import { validateCategoryKeys } from "./utils/validateCategories";
 
 // ---------------------------
 // urwebs 키 세팅
@@ -398,6 +399,10 @@ export default function App() {
     }
     categorizedWebsites[website.category].push(website);
   });
+
+  useEffect(() => {
+    validateCategoryKeys(sitesToDisplay, categoryConfig, categoryOrder);
+  }, [sitesToDisplay, categoryConfig, categoryOrder]);
 
   // ---------------------------
   // 렌더

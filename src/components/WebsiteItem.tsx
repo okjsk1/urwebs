@@ -1,7 +1,7 @@
 import React from "react";
 import { Website } from "../types";
 import { trackVisit } from "../utils/visitTrack";
-import { Favicon } from "./Favicon";
+import { SiteIcon } from "./SiteIcon";
 
 interface WebsiteItemProps {
   website: Website;
@@ -42,7 +42,7 @@ export function WebsiteItem({
     >
       <div className="flex items-center justify-between gap-2 w-full">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Favicon domain={website.url} className="w-4 h-4 rounded border shrink-0" />
+          <SiteIcon website={website} size={16} className="w-4 h-4 rounded border shrink-0" />
           <a
             href={website.url}
             target="_blank"

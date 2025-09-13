@@ -5,6 +5,9 @@ export interface Website {
   url: string;
   description: string;
   id: string;
+  /** optional custom icon or emoji override */
+  icon?: string;
+  emoji?: string;
   summary?: string; // 새로운 요약 필드
   // 랭킹 계산을 위한 임시 지표
   clicks?: number;
@@ -17,7 +20,8 @@ export interface Website {
 export interface CategoryConfig {
   title: string;
   description?: string;
-  icon: string;
+  icon?: string;
+  emoji?: string;
   iconClass?: string;
 }
 
@@ -57,7 +61,8 @@ export interface FavoriteFolder {
 export interface FieldCategory {
   slug: string;
   title: string;
-  emoji: string;
+  icon?: string;
+  emoji?: string;
   description?: string;
   order?: number;
   /** (선택) 슬러그 대신 사용할 사용자 정의 링크 경로 또는 외부 링크 */
