@@ -5,6 +5,8 @@ import { personaBundles } from "./persona-bundles";
 import { sortSites } from "./sortSites";
 import "./categoryConfig"; // 보험 카테고리 아이콘을 런타임 등록(부작용 import)
 
+// TODO: 실제 URL 채우기, 퍼소나 세분화, 배지 색상 매핑 등 개선 필요
+
 // ★ 기존 카드 컴포넌트/스타일을 그대로 재사용합니다.
 //    프로젝트별 시그니처 차이를 흡수하기 위해 두 가지 사용 방식을 모두 지원합니다.
 import { CategoryCard } from "@/components/CategoryCard";

@@ -1,5 +1,7 @@
 import type { PersonaBundle } from "./taxonomy";
 
+// TODO: 필요 시 퍼소나 세분화(tags 기반 필터 등)
+
 export const personaBundles: PersonaBundle[] = [
   { persona:"consumer", defaultTags:["비교","청구","공시"], siteIds:[
     "ins-compare","ins-klia","ins-knia","ins-direct","ins-nhis",

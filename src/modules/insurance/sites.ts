@@ -1,5 +1,7 @@
 import type { Site } from "./taxonomy";
 
+// TODO: 실제 URL 채우기
+
 export const siteCatalog: Site[] = [
   // 공공/협회
   { id:"ins-fss",  title:"금융감독원 소비자포털", url:"", description:"민원·분쟁조정·소비자보호", sourceType:"public", tags:["민원","분쟁","규제"] },
