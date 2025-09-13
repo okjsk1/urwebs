@@ -13,9 +13,7 @@ import { trackVisit, buildFrequencyMap } from '../utils/visitTrack';
 import { sortByMode } from '../utils/sorters';
 import { toast } from 'sonner';
 import { SiteIcon } from './SiteIcon';
-import { GhostBtn, IconStarPlus, IconFolderPlus } from './ui/ghost-btn';
 import { AddFolderButton } from './AddFolderButton';
-import { saveBookmark } from '../services/bookmarks';
 
 interface FavoritesSectionProps {
   favoritesData: FavoritesData;
@@ -391,22 +389,6 @@ export function FavoritesSectionNew({
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  function onAddFavorite() {
-    const title = document.title;
-    const url = window.location.href;
-    saveBookmark({ title, url, favicon: null, folderId: null })
-      .then((r) => {
-        if (r.mode === 'guest')
-          toast('로그인 없이 임시로 담았어요. 로그인하면 저장됩니다.');
-        else toast('즐겨찾기에 추가했어요!');
-      })
-      .catch(() => toast('저장 실패: 잠시 후 다시 시도해주세요.'));
-  }
-
-  function onAddFolder() {
-    setShowNewFolderInput(true);
-  }
-
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedId(id);
     try {
@@ -724,14 +706,6 @@ export function FavoritesSectionNew({
           </div>
         )}
 
-        <div className="toolbar btn-group mb-4">
-          <GhostBtn icon={<IconStarPlus />} hint="Ctrl+D" onClick={onAddFavorite}>
-            이 페이지를 즐겨찾기에 추가
-          </GhostBtn>
-          <GhostBtn icon={<IconFolderPlus />} onClick={onAddFolder}>
-            폴더 추가
-          </GhostBtn>
-        </div>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
           {/* 즐겨찾기 리스트 */}
           <div className="space-y-2 lg:space-y-3 md:col-span-1 xl:col-span-1">
