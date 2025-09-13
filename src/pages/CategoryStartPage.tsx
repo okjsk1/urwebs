@@ -80,6 +80,11 @@ export default function CategoryStartPage({
       categoryOrder: defaultOrder,
       categoryConfig: defaultConfig,
     },
+    embedded: {
+      websites: embeddedWebsites,
+      categoryOrder: embeddedOrder,
+      categoryConfig: embeddedConfig,
+    },
     realestate: {
       websites: realestateWebsites,
       categoryOrder: realestateOrder,
