@@ -21,6 +21,12 @@ export default function MainLanding() {
           >
             나의 시작페이지로 이동
           </Link>
+          <Link
+            to="/personas"
+            className="mt-2 inline-block text-sm text-blue-600 underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            페르소나 구분 보기
+          </Link>
         </div>
 
         <figure className="w-full md:flex-1">
