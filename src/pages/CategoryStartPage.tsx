@@ -69,6 +69,26 @@ import {
   categoryOrder as cloudOrder,
   categoryConfig as cloudConfig,
 } from '../data/websites.cloud';
+import {
+  websites as testQaWebsites,
+  categoryOrder as testQaOrder,
+  categoryConfig as testQaConfig,
+} from '../data/websites.test-qa';
+import {
+  websites as securityWebsites,
+  categoryOrder as securityOrder,
+  categoryConfig as securityConfig,
+} from '../data/websites.security';
+import {
+  websites as productWebsites,
+  categoryOrder as productOrder,
+  categoryConfig as productConfig,
+} from '../data/websites.product';
+import {
+  websites as accountingWebsites,
+  categoryOrder as accountingOrder,
+  categoryConfig as accountingConfig,
+} from '../data/websites.accounting';
 
 import type { Website } from '../types';
 import categories from '../data/categories';
@@ -160,6 +180,26 @@ export default function CategoryStartPage({
       websites: cloudWebsites,
       categoryOrder: cloudOrder,
       categoryConfig: cloudConfig,
+    },
+    'test-qa': {
+      websites: testQaWebsites,
+      categoryOrder: testQaOrder,
+      categoryConfig: testQaConfig,
+    },
+    security: {
+      websites: securityWebsites,
+      categoryOrder: securityOrder,
+      categoryConfig: securityConfig,
+    },
+    product: {
+      websites: productWebsites,
+      categoryOrder: productOrder,
+      categoryConfig: productConfig,
+    },
+    accounting: {
+      websites: accountingWebsites,
+      categoryOrder: accountingOrder,
+      categoryConfig: accountingConfig,
     },
     ...roleEntries,
   } as const;
