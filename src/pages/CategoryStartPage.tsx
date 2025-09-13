@@ -164,8 +164,17 @@ export default function CategoryStartPage({
     ...roleEntries,
   } as const;
 
+  const baseCategory =
+    categories.find(
+      (c) => categorySlug === c.slug || categorySlug.startsWith(`${c.slug}-`),
+    )?.slug;
+
   const fallback =
-    dataMap[categorySlug as keyof typeof dataMap] ?? dataMap.architecture;
+    dataMap[categorySlug as keyof typeof dataMap] ??
+    (baseCategory
+      ? dataMap[baseCategory as keyof typeof dataMap]
+      : undefined) ??
+    dataMap.architecture;
 
   const [websites, setWebsites] = useState<Website[]>(fallback.websites);
   const [loading, setLoading] = useState(!!jsonFile);

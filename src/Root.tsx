@@ -8,38 +8,36 @@ import PostDetail from "./pages/PostDetail";
 import PostWrite from "./pages/PostWrite";
 import MainLanding from "./pages/MainLanding";
 import CategoryStartPage from "./pages/CategoryStartPage";
-import RealEstateRoleSelect from "./pages/RealEstateRoleSelect";
 import PersonaOverview from "./pages/PersonaOverview";
-import { PersonaPicker } from "@/modules/insurance/PersonaPicker";
 import InsurancePersonaPage from "@/modules/insurance/PersonaPage";
+import PersonaSelectPage from "./pages/PersonaSelectPage";
+import { personaCategories } from "@/data/personas";
 
-function RoutedCategoryStartPage() {
-  const { slug = "architecture" } = useParams();
+function RoutedCategoryPage() {
+  const { slug = "architecture" } = useParams<{ slug: string }>();
+
+  const personaCategory = personaCategories.find(
+    (p) => slug === p.slug || slug.startsWith(`${p.slug}-`),
+  );
+
+  if (personaCategory) {
+    const baseSlug = personaCategory.slug;
+    const persona = slug === baseSlug ? undefined : slug.slice(baseSlug.length + 1);
+
+    if (!persona && personaCategory.items.length > 1) {
+      return <PersonaSelectPage slug={baseSlug} />;
+    }
+
+    if (baseSlug === "insurance") {
+      return <InsurancePersonaPage persona={persona ?? ""} />;
+    }
+  }
+
   return (
     <CategoryStartPage
       categorySlug={slug}
       title="나의 시작페이지"
       storageNamespace={`favorites:${slug}`}
-    />
-  );
-}
-
-function RoutedRealEstateRoleStartPage() {
-  const { role = "student" } = useParams();
-  const titleMap = {
-    student: "부동산 - 학생",
-    agent: "부동산 - 공인중개사",
-    tenant: "부동산 - 임차인",
-    landlord: "부동산 - 임대인",
-    investor: "부동산 - 투자자",
-  } as const;
-  const categoryTitle = titleMap[role as keyof typeof titleMap] ?? "부동산";
-  return (
-    <CategoryStartPage
-      categorySlug={`realestate-${role}`}
-      title="나의 시작페이지"
-      storageNamespace={`favorites:realestate-${role}`}
-      categoryTitleOverride={categoryTitle}
     />
   );
 }
@@ -58,17 +56,7 @@ export default function Root() {
           {/* 구 라우트 호환: /fields/:slug -> /category/:slug */}
           <Route path="/fields/:slug" element={<RedirectFieldsToCategory />} />
           <Route path="/personas" element={<PersonaOverview />} />
-          <Route path="/category/realestate" element={<RealEstateRoleSelect />} />
-          <Route
-            path="/category/realestate/:role"
-            element={<RoutedRealEstateRoleStartPage />}
-          />
-          <Route path="/category/insurance" element={<PersonaPicker />} />
-          <Route
-            path="/category/insurance/:persona"
-            element={<InsurancePersonaPage />}
-          />
-          <Route path="/category/:slug" element={<RoutedCategoryStartPage />} />
+          <Route path="/category/:slug" element={<RoutedCategoryPage />} />
           <Route
             path="/architecture"
             element={<Navigate to="/category/architecture" replace />}
