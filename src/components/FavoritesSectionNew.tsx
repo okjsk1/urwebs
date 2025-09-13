@@ -169,7 +169,7 @@ function SimpleFolder({
 
   return (
     <div
-      className={`folder-card border-2 border-dashed p-3 rounded-lg flex flex-col transition-all cursor-move ${
+      className={`folder-card border-2 border-dashed p-3 rounded-lg flex flex-col items-start transition-all cursor-move ${
         isDraggingOver
           ? 'urwebs-drop-zone'
           : 'bg-gray-50 dark:bg-gray-800 dark:border-gray-600'
@@ -184,7 +184,7 @@ function SimpleFolder({
       onDragLeave={onDragLeaveFolder}
       onDrop={handleDrop}
     >
-      <div className="controls flex items-center gap-2 mb-2">
+      <div className="controls w-full flex items-center gap-2 mb-2">
         <span className="text-sm">📁</span>
 
         {isEditing ? (
@@ -239,7 +239,7 @@ function SimpleFolder({
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col gap-1">{children}</div>
+      <div className="w-full flex flex-col gap-1">{children}</div>
     </div>
   );
 }
@@ -522,15 +522,17 @@ export function FavoritesSectionNew({
   };
 
   const moveWebsiteToFolder = (websiteId: string, toFolderId: string) => {
-    const newData = { ...favoritesData };
-    newData.items = (newData.items || []).filter((id) => id !== websiteId);
-    newData.folders = (newData.folders || []).map((folder) => ({
-      ...folder,
-      items: folder.items.filter((id) => id !== websiteId),
-    }));
-    const folderIndex = newData.folders.findIndex((f) => f.id === toFolderId);
-    if (folderIndex >= 0) newData.folders[folderIndex].items.push(websiteId);
-    onUpdateFavorites(newData);
+    const updated: FavoritesData = {
+      ...favoritesData,
+      items: (favoritesData.items || []).filter((id) => id !== websiteId),
+      folders: (favoritesData.folders || []).map((f) =>
+        f.id === toFolderId
+          ? { ...f, items: [...new Set([...(f.items || []), websiteId])] }
+          : { ...f, items: (f.items || []).filter((id) => id !== websiteId) }
+      ),
+    };
+
+    onUpdateFavorites(updated);
   };
 
   const createFolder = () => {
