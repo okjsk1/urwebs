@@ -57,6 +57,15 @@ export const categories: FieldCategory[] = [
     icon: '📣',
     description: '콘텐츠 제작과 마케팅',
     href: '/category/marketing',
+    order: 8,
+  },
+  {
+    slug: 'accounting',
+    title: '회계/세무',
+    icon: '📊',
+    description: '회계와 세무 자료',
+    href: '/category/accounting',
+    order: 9,
   },
   {
     slug: 'video',
