@@ -28,6 +28,11 @@ import {
   categoryOrder as insuranceOrder,
   categoryConfig as insuranceConfig,
 } from '../data/websites.insurance';
+import {
+  websites as videoWebsites,
+  categoryOrder as videoOrder,
+  categoryConfig as videoConfig,
+} from '../data/websites.video';
 
 import type { Website } from '../types';
 import categories from '../data/categories';
@@ -79,6 +84,11 @@ export default function CategoryStartPage({
       websites: insuranceWebsites,
       categoryOrder: insuranceOrder,
       categoryConfig: insuranceConfig,
+    },
+    video: {
+      websites: videoWebsites,
+      categoryOrder: videoOrder,
+      categoryConfig: videoConfig,
     },
     webdev: {
       websites: webdevWebsites,
