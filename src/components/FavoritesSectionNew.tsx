@@ -12,7 +12,7 @@ import { NewsWidget } from './widgets/NewsWidget';
 import { trackVisit, buildFrequencyMap } from '../utils/visitTrack';
 import { sortByMode } from '../utils/sorters';
 import { toast } from 'sonner';
-import { Favicon } from './Favicon';
+import { SiteIcon } from './SiteIcon';
 import { GhostBtn, IconStarPlus, IconFolderPlus } from './ui/ghost-btn';
 import { saveBookmark } from '../services/bookmarks';
 
@@ -79,7 +79,7 @@ function SimpleWebsite({
       ref={dragRef}
     >
       <div className="left flex items-center gap-1 flex-1 min-w-0 h-full">
-        <Favicon domain={website.url} size={12} className="w-3 h-3 flex-shrink-0" />
+        <SiteIcon website={website} size={12} className="w-3 h-3 flex-shrink-0" />
         <a
           href={website.url}
           target="_blank"

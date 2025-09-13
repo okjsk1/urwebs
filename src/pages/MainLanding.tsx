@@ -45,7 +45,7 @@ export default function MainLanding() {
             const content = (
               <>
                 <span className="text-3xl" aria-hidden="true">
-                  {cat.emoji}
+                  {cat.icon ?? cat.emoji}
                 </span>
                 <span className="mt-2 font-medium">{cat.title}</span>
                 {cat.description && (

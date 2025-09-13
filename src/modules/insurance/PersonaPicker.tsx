@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 
 const items = [
-  { key:"consumer", label:"개인고객", emoji:"🙋" },
-  { key:"agent", label:"설계사", emoji:"💼" },
-  { key:"expert", label:"전문가", emoji:"🧠" },
-  { key:"corporate", label:"기업·단체", emoji:"🏢" },
-  { key:"licensePrep", label:"취업·수험", emoji:"📚" },
-  { key:"overseas", label:"해외/유학생", emoji:"🌏" },
+  { key: "consumer", label: "개인고객", icon: "🙋" },
+  { key: "agent", label: "설계사", icon: "💼" },
+  { key: "expert", label: "전문가", icon: "🧠" },
+  { key: "corporate", label: "기업·단체", icon: "🏢" },
+  { key: "licensePrep", label: "취업·수험", icon: "📚" },
+  { key: "overseas", label: "해외/유학생", icon: "🌏" },
 ];
 
 export function PersonaPicker() {
@@ -17,7 +17,7 @@ export function PersonaPicker() {
         {items.map(it=>(
           <Link key={it.key} to={`/category/insurance/${it.key}`}
             className="rounded-xl border p-5 hover:shadow">
-            <div className="text-3xl">{it.emoji}</div>
+            <div className="text-3xl">{it.icon}</div>
             <div className="mt-2 font-semibold">{it.label}</div>
           </Link>
         ))}

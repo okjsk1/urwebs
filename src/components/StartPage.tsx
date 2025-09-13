@@ -8,7 +8,8 @@ import { ClockWidget } from './widgets/ClockWidget';
 import { MemoWidget } from './widgets/MemoWidget';
 import { TodoWidget } from './widgets/TodoWidget';
 import { CategoryCard } from './CategoryCard';
-import { Favicon } from './Favicon';
+import { SiteIcon } from './SiteIcon';
+import { validateCategoryKeys } from '../utils/validateCategories';
 
 interface StartPageProps {
   favoritesData: FavoritesData;
@@ -174,7 +175,7 @@ export function StartPage({
               rel="noopener noreferrer"
               className="flex items-center gap-2 min-w-0"
             >
-              <Favicon domain={site.url} size={20} className="w-5 h-5 rounded flex-shrink-0" />
+              <SiteIcon website={site} size={20} className="w-5 h-5 rounded flex-shrink-0" />
               <h3 className="font-medium text-gray-800 truncate">{site.title}</h3>
             </a>
             <button
@@ -274,6 +275,10 @@ export function StartPage({
     });
     return acc;
   }, [websites, categoryOrder, categoryConfig]);
+
+  useEffect(() => {
+    validateCategoryKeys(websites, categoryConfig, categoryOrder);
+  }, [websites, categoryConfig, categoryOrder]);
 
   const isEmpty =
     favoritesData.items.length === 0 &&

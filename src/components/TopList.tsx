@@ -1,7 +1,7 @@
 import React from "react";
 import { websites, Website } from "../data/websites";
 import * as visitTrack from "../utils/visitTrack";
-import { Favicon } from "./Favicon";
+import { SiteIcon } from "./SiteIcon";
 
 const GLOBAL_TOP20: string[] = [
   "60",
@@ -77,7 +77,7 @@ export function TopList({ mode, onAddFavorite }: TopListProps) {
       <ul className="space-y-2">
         {items.map((site) => (
           <li key={site.id} className="flex items-start gap-2">
-            <Favicon domain={site.url} className="w-4 h-4 flex-shrink-0 mt-1" />
+            <SiteIcon website={site} size={16} className="w-4 h-4 flex-shrink-0 mt-1" />
             <div className="flex-1 overflow-hidden">
               <a
                 href={site.url}

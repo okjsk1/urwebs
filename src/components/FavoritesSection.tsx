@@ -1,6 +1,6 @@
 import React from "react";
 import { Website } from "../types";
-import { Favicon } from "./Favicon";
+import { SiteIcon } from "./SiteIcon";
 import { websites } from "../data/websites";
 
 interface FavoritesSectionProps {
@@ -73,7 +73,7 @@ export function FavoritesSection({
               onDrop={(e) => handleDrop(e, index)}
             >
               <div className="left flex items-center gap-2 min-w-0 flex-1">
-                <Favicon domain={website.url} className="w-4 h-4 flex-shrink-0" />
+                <SiteIcon website={website} size={16} className="w-4 h-4 flex-shrink-0" />
                 <a
                   href={website.url}
                   target="_blank"

@@ -5,7 +5,7 @@ import { WebsiteItem } from "./WebsiteItem";
 interface CategoryCardProps {
   category: string;
   sites: Website[];
-  config: CategoryConfig;
+  config?: CategoryConfig;
   showDescriptions: boolean;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
@@ -65,7 +65,7 @@ export function CategoryCard({
     <div className="urwebs-category-card h-full w-full min-w-0 rounded-xl border bg-white p-3 lg:p-4 flex flex-col shadow-sm dark:bg-gray-900">
       <div className="flex items-center gap-3 px-3 py-2">
         <span style={{ fontSize: "0.9rem" }} className="flex-shrink-0">
-          {config.icon}
+          {config?.icon ?? config?.emoji ?? "📁"}
         </span>
         <span
           style={{
@@ -74,7 +74,7 @@ export function CategoryCard({
             letterSpacing: "0.01em",
           }}
         >
-          {category}
+          {config?.title ?? category}
         </span>
       </div>
 
