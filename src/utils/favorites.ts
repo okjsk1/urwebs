@@ -1,28 +1,27 @@
-import { FavoritesData } from "../types";
+import { FavoritesData, FavoriteItem } from "../types";
 
-export function toggleFavorite(data: FavoritesData, websiteId: string): FavoritesData {
+export function toggleFavorite(
+  data: FavoritesData,
+  websiteId: string
+): FavoritesData {
   const newData: FavoritesData = {
-    items: data.items ? [...data.items] : [],
-    folders: data.folders ? data.folders.map(f => ({ ...f, items: [...(f.items || [])] })) : [],
-    widgets: data.widgets ? [...data.widgets] : [],
+    items: data.items ? data.items.map((i) => ({ ...i })) : [],
+    folders: data.folders ? data.folders.map((f) => ({ ...f })) : [],
+    widgets: data.widgets ? data.widgets.map((w) => ({ ...w })) : [],
     layout: data.layout ? [...data.layout] : [],
   };
 
-  const allIds = [
-    ...newData.items,
-    ...(newData.folders || []).flatMap(f => f.items || []),
-  ];
-  const isFavorited = allIds.includes(websiteId);
+  const index = newData.items.findIndex((i) => i.id === websiteId);
+  const isFavorited = index !== -1;
 
   if (isFavorited) {
-    newData.items = newData.items.filter(id => id !== websiteId);
-    newData.folders = (newData.folders || []).map(folder => ({
-      ...folder,
-      items: (folder.items || []).filter(id => id !== websiteId),
-    }));
-    newData.layout = (newData.layout || []).filter(entry => entry !== `item:${websiteId}`);
+    newData.items = newData.items.filter((i) => i.id !== websiteId);
+    newData.layout = (newData.layout || []).filter(
+      (entry) => entry !== `item:${websiteId}`
+    );
   } else {
-    newData.items = [...(newData.items || []), websiteId];
+    const newItem: FavoriteItem = { id: websiteId, parentId: null };
+    newData.items = [...newData.items, newItem];
     newData.layout = [...(newData.layout || []), `item:${websiteId}`];
   }
 

@@ -44,6 +44,8 @@ export interface Widget {
   data?: any;
   position?: { x: number; y: number };
   size?: { width: number; height: number };
+  /** optional parent folder id */
+  parentId?: string | null;
 }
 
 export type SortMode = 'manual' | 'alpha' | 'freq';
@@ -52,7 +54,6 @@ export type SortMode = 'manual' | 'alpha' | 'freq';
 export interface FavoriteFolder {
   id: string;
   name: string;
-  items: string[]; // website ids
   color?: string;
   sortMode?: SortMode;
 }
@@ -70,8 +71,14 @@ export interface FieldCategory {
 }
 
 // 즐겨찾기 구조 확장
+export interface FavoriteItem {
+  id: string;
+  /** parent folder id; null/undefined means root */
+  parentId?: string | null;
+}
+
 export interface FavoritesData {
-  items: string[];
+  items: FavoriteItem[];
   folders: FavoriteFolder[];
   widgets: Widget[];
   layout?: string[];
