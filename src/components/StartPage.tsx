@@ -4,6 +4,7 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useNavigate } from 'react-router-dom';
 import { Widget, FavoritesData, Website, CategoryConfigMap } from '../types';
+import { toggleFavorite as toggleFavoriteData } from '../utils/favorites';
 import { WeatherWidget } from './widgets/WeatherWidget';
 import { ClockWidget } from './widgets/ClockWidget';
 import { MemoWidget } from './widgets/MemoWidget';
@@ -117,7 +118,7 @@ export function StartPage({
     const name = prompt('폴더 이름을 입력하세요');
     if (!name) return;
     const id = `folder-${Date.now()}`;
-    const newFolder = { id, name, items: [] } as any;
+    const newFolder = { id, name };
     onUpdateFavorites({
       ...favoritesData,
       folders: [...favoritesData.folders, newFolder],
@@ -127,20 +128,15 @@ export function StartPage({
 
   // 즐겨찾기 토글(루트에 추가/제거)
   const handleToggleFavorite = (websiteId: string) => {
-    const isFavorited = favoritesData.items.includes(websiteId);
-    const updatedItems = isFavorited
-      ? favoritesData.items.filter((id) => id !== websiteId)
-      : [websiteId, ...favoritesData.items];
-    const updatedLayout = isFavorited
-      ? (favoritesData.layout || []).filter((e) => e !== `item:${websiteId}`)
-      : [`item:${websiteId}`, ...(favoritesData.layout || [])];
-    onUpdateFavorites({ ...favoritesData, items: updatedItems, layout: updatedLayout });
+    onUpdateFavorites(toggleFavoriteData(favoritesData, websiteId));
   };
 
   // ===== Layout build/sync =====
   const buildLayout = () => {
     const entries = [
-      ...favoritesData.items.map((id) => `item:${id}`),
+      ...favoritesData.items
+        .filter((i) => !i.parentId)
+        .map((i) => `item:${i.id}`),
       ...favoritesData.folders.map((f) => `folder:${f.id}`),
       ...favoritesData.widgets.map((w) => `widget:${w.id}`),
     ];
@@ -171,28 +167,28 @@ export function StartPage({
 
   // ✅ 핵심: 폴더로 이동(중복 방지 + 루트/레이아웃 제거)
   const moveItemToFolder = (websiteId: string, folderId: string) => {
-    const updatedFolders = favoritesData.folders.map((f) => {
-      if (f.id !== folderId) return f;
-      if (f.items?.includes(websiteId)) return f; // 중복 방지
-      return { ...f, items: [...(f.items || []), websiteId] };
-    });
-    const updatedItems = favoritesData.items.filter((id) => id !== websiteId);
-    const updatedLayout = (favoritesData.layout || []).filter((e) => e !== `item:${websiteId}`);
+    const updatedItems = favoritesData.items.map((i) =>
+      i.id === websiteId ? { ...i, parentId: folderId } : i,
+    );
+    const updatedLayout = (favoritesData.layout || []).filter(
+      (e) => e !== `item:${websiteId}`,
+    );
     onUpdateFavorites({
       ...favoritesData,
       items: updatedItems,
-      folders: updatedFolders,
       layout: updatedLayout,
     });
     setLayout((prev) => prev.filter((e) => e !== `item:${websiteId}`));
   };
 
-  // 폴더 내 사이트 제거
+  // 폴더 내 사이트 제거 → 루트로 이동
   const handleRemoveFromFolder = (folderId: string, websiteId: string) => {
-    const updatedFolders = favoritesData.folders.map((f) =>
-      f.id === folderId ? { ...f, items: (f.items || []).filter((id) => id !== websiteId) } : f,
+    const updatedItems = favoritesData.items.map((i) =>
+      i.id === websiteId ? { ...i, parentId: null } : i,
     );
-    onUpdateFavorites({ ...favoritesData, folders: updatedFolders });
+    const updatedLayout = [`item:${websiteId}`, ...(favoritesData.layout || [])];
+    onUpdateFavorites({ ...favoritesData, items: updatedItems, layout: updatedLayout });
+    setLayout((prev) => [`item:${websiteId}`, ...prev]);
   };
 
   // ===== Render cells =====
@@ -239,8 +235,9 @@ export function StartPage({
       const folder = favoritesData.folders.find((f) => f.id === id);
       if (!folder) return null;
 
-      const children = (folder.items || [])
-        .map((wid) => websites.find((s) => s.id === wid))
+      const children = favoritesData.items
+        .filter((i) => i.parentId === folder.id)
+        .map((i) => websites.find((s) => s.id === i.id))
         .filter(Boolean) as Website[];
 
       return (
@@ -349,7 +346,9 @@ export function StartPage({
   useEffect(() => {
     if (!favoritesData.layout || favoritesData.layout.length === 0) {
       const initial = [
-        ...favoritesData.items.map((id) => `item:${id}`),
+        ...favoritesData.items
+          .filter((i) => !i.parentId)
+          .map((i) => `item:${i.id}`),
         ...favoritesData.folders.map((f) => `folder:${f.id}`),
         ...favoritesData.widgets.map((w) => `widget:${w.id}`),
       ];
@@ -478,7 +477,7 @@ export function StartPage({
                         sites={categorizedWebsites[slug] || []}
                         config={categoryConfig[slug]}
                         showDescriptions={showDescriptions}
-                        favorites={favoritesData.items}
+                        favorites={favoritesData.items.map((i) => i.id)}
                         onToggleFavorite={handleToggleFavorite}
                       />
                     );
