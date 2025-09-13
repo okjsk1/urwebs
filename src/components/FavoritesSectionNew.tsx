@@ -14,6 +14,7 @@ import { sortByMode } from '../utils/sorters';
 import { toast } from 'sonner';
 import { SiteIcon } from './SiteIcon';
 import { GhostBtn, IconStarPlus, IconFolderPlus } from './ui/ghost-btn';
+import { AddFolderButton } from './AddFolderButton';
 import { saveBookmark } from '../services/bookmarks';
 
 interface FavoritesSectionProps {
@@ -661,13 +662,7 @@ export function FavoritesSectionNew({
 
           <WidgetSelector onAddWidget={addWidget} />
 
-          <button
-            onClick={() => setShowNewFolderInput(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm transition-colors"
-            type="button"
-          >
-            + 폴더 추가
-          </button>
+          <AddFolderButton onClick={() => setShowNewFolderInput(true)} />
 
           <button
             onClick={handleGuideShow}
