@@ -34,6 +34,11 @@ import {
   categoryConfig as insuranceConfig,
 } from '../data/websites.insurance';
 import {
+  websites as weddingWebsites,
+  categoryOrder as weddingOrder,
+  categoryConfig as weddingConfig,
+} from '../data/websites.wedding';
+import {
   websites as videoWebsites,
   categoryOrder as videoOrder,
   categoryConfig as videoConfig,
