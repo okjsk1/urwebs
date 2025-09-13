@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { User } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { BrandLogo } from "./BrandLogo";
 
 interface HeaderProps {
   onContactClick: () => void;
@@ -53,15 +54,10 @@ export function Header({
       <div className="max-w-screen-2xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between px-4 lg:px-8 pb-3 gap-3 lg:gap-6">
         <div className="flex items-center">
           <div className="brand cursor-pointer" onClick={onHomeClick}>
-            <h1
-              style={{
-                fontSize: "calc(1.5rem - 2px)",
-                color: "var(--main-point)",
-                letterSpacing: "0.01em",
-              }}
-            >
-              UrWebs
-            </h1>
+            <BrandLogo
+              size={40}
+              variant={isDarkMode ? "dark" : "default"}
+            />
             <p
               style={{
                 fontSize: "1rem",
