@@ -1,7 +1,6 @@
 // src/pages/CategoryStartPage.tsx
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { StartPage } from '../components/StartPage';
+import { CategoryPageLayout } from '../components/CategoryPageLayout';
 
 import {
   websites as defaultWebsites,
@@ -30,13 +29,7 @@ import {
   categoryConfig as insuranceConfig,
 } from '../data/websites.insurance';
 
-import type { FavoritesData, Website } from '../types';
-import {
-  loadFavoritesData,
-  saveFavoritesData,
-  applyStarter,
-  resetFavorites,
-} from '../utils/startPageStorage';
+import type { Website } from '../types';
 import categories from '../data/categories';
 import { buildAssetUrl } from '../utils/asset';
 
@@ -56,7 +49,6 @@ export default function CategoryStartPage({
   storageNamespace = `favorites:${categorySlug}`,
   categoryTitleOverride,
 }: Props) {
-  const navigate = useNavigate();
 
   // 카테고리별 로컬 폴백 데이터 맵
   const roleEntries = Object.entries(realestateRoleData).reduce(
@@ -99,24 +91,11 @@ export default function CategoryStartPage({
   const fallback =
     dataMap[categorySlug as keyof typeof dataMap] ?? dataMap.architecture;
 
-  const [favoritesData, setFavoritesData] = useState<FavoritesData>(() =>
-    loadFavoritesData(storageNamespace),
-  );
   const [websites, setWebsites] = useState<Website[]>(fallback.websites);
   const [loading, setLoading] = useState(!!jsonFile);
 
   const category = categories.find((c) => c.slug === categorySlug);
   const categoryTitle = categoryTitleOverride || category?.title || categorySlug;
-
-  // 페이지 타이틀
-  useEffect(() => {
-    document.title = `${categoryTitle} | ${title}`;
-  }, [categoryTitle, title]);
-
-  // 네임스페이스가 바뀌면 저장된 즐겨찾기 로드
-  useEffect(() => {
-    setFavoritesData(loadFavoritesData(storageNamespace));
-  }, [storageNamespace]);
 
   // 슬러그가 바뀌면 우선 폴백으로 채움(즉시 화면 표시)
   useEffect(() => {
@@ -152,32 +131,16 @@ export default function CategoryStartPage({
     };
   }, [jsonFile]);
 
-  // 즐겨찾기/위젯 변경 저장
-  useEffect(() => {
-    saveFavoritesData(favoritesData, storageNamespace);
-  }, [favoritesData, storageNamespace]);
-
-  const onApplyStarter = async () => applyStarter(setFavoritesData, storageNamespace);
-  const onReset = async () => resetFavorites(setFavoritesData, storageNamespace);
-
-  const isInsurance = categorySlug === 'insurance' || categorySlug.startsWith('insurance-');
-
   return (
-    <StartPage
-      favoritesData={favoritesData}
-      onUpdateFavorites={setFavoritesData}
-      onClose={() => navigate('/')}
-      showDescriptions={true}
-      pageTitle={title}
-      categoryTitle={categoryTitle}
+    <CategoryPageLayout
       websites={websites}
       categoryOrder={fallback.categoryOrder}
       categoryConfig={fallback.categoryConfig}
+      storageNamespace={storageNamespace}
+      pageTitle={title}
+      categoryTitle={categoryTitle}
       loading={loading}
-      onApplyStarter={onApplyStarter}
-      onReset={onReset}
-      showStartGuide={!isInsurance}
-      showDesktop={!isInsurance}
+      showDescriptions={true}
     />
   );
 }
