@@ -15,9 +15,11 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/((?!api|assets|images|favicon\\.ico).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/api/:match*", "destination": "/api/:match*" },
+    { "source": "/assets/:match*", "destination": "/assets/:match*" },
+    { "source": "/images/:match*", "destination": "/images/:match*" },
+    { "source": "/favicon.ico", "destination": "/favicon.ico" },
+    { "source": "/:match*", "destination": "/index.html" }
+
   ]
 }
