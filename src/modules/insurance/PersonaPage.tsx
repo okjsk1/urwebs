@@ -1,65 +1,92 @@
-import { useMemo } from "react";
-import { useParams } from "react-router-dom";
-import { useEffect } from "react";
+// src/modules/insurance/PersonaPage.tsx
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { StartPage } from "@/components/StartPage";
+import type { FavoritesData, Website } from "@/types";
+import {
+  loadFavoritesData,
+  saveFavoritesData,
+  applyStarter,
+  resetFavorites,
+} from "@/utils/startPageStorage";
 import { siteCatalog } from "./sites";
 import { personaBundles } from "./persona-bundles";
 import { sortSites } from "./sortSites";
-import { SiteCard } from "./SiteCard";
+
+const personaLabels: Record<string, string> = {
+  consumer: "개인고객",
+  agent: "설계사",
+  expert: "전문가",
+  corporate: "기업·단체",
+  licensePrep: "취업·수험",
+  overseas: "해외/유학생",
+};
 
 export default function InsurancePersonaPage() {
-  const { persona } = useParams();
+  const { persona = "" } = useParams<{ persona: string }>();
+  const navigate = useNavigate();
+
   const bundle = useMemo(
     () => personaBundles.find((b) => b.persona === persona),
     [persona],
   );
-  const id2site = useMemo(
-    () => Object.fromEntries(siteCatalog.map((s) => [s.id, s])),
-    [],
+
+  const websites = useMemo<Website[]>(() => {
+    if (!bundle) return [];
+    const id2site = Object.fromEntries(siteCatalog.map((s) => [s.id, s]));
+    return bundle.siteIds
+      .map((id) => id2site[id])
+      .filter((s): s is typeof siteCatalog[number] => Boolean(s && s.url))
+      .map((s) => ({
+        ...s,
+        category: "보험",
+        categorySlug: "insurance",
+      }))
+      .sort(sortSites);
+  }, [bundle]);
+
+  const storageNamespace = `favorites:insurance-${persona}`;
+  const [favoritesData, setFavoritesData] = useState<FavoritesData>(() =>
+    loadFavoritesData(storageNamespace),
   );
+
+  useEffect(() => {
+    setFavoritesData(loadFavoritesData(storageNamespace));
+  }, [storageNamespace]);
+
+  useEffect(() => {
+    saveFavoritesData(favoritesData, storageNamespace);
+  }, [favoritesData, storageNamespace]);
+
+  useEffect(() => {
+    const label = personaLabels[persona] || persona;
+    document.title = `보험 · ${label} | 나의 시작페이지`;
+  }, [persona]);
 
   if (!bundle) return <div className="p-6">잘못된 경로입니다.</div>;
 
-  const { sites, missingIds } = useMemo(() => {
-    const list: (typeof siteCatalog[number] & { category: string })[] = [];
-    const missing: string[] = [];
-    bundle.siteIds.forEach((id) => {
-      const s = id2site[id];
-      if (s) list.push({ ...s, category: "보험" });
-      else missing.push(id);
-    });
-    return { sites: list.sort(sortSites), missingIds: missing };
-  }, [bundle, id2site]);
+  const onApplyStarter = async () => applyStarter(setFavoritesData, storageNamespace);
+  const onReset = async () => resetFavorites(setFavoritesData, storageNamespace);
 
-  const emptyUrlCount = sites.filter((s) => !s.url).length;
-
-  useEffect(() => {
-    console.log("누락된 siteIds:", missingIds);
-    console.log("빈 URL 개수:", emptyUrlCount);
-    console.log(
-      "category 매핑 누락 여부:",
-      sites.some((s) => !(s as any).category),
-    );
-  }, [missingIds, emptyUrlCount, sites]);
+  const categoryTitle = `보험 · ${personaLabels[persona] || persona}`;
 
   return (
-    <div className="mx-auto max-w-6xl px-4">
-      <h1 className="text-xl font-bold my-4">보험 · {String(persona)}</h1>
-      {missingIds.length > 0 && (
-        <div className="mb-4 rounded bg-yellow-100 p-3 text-sm text-yellow-800">
-          누락된 siteIds: {missingIds.join(", ")}
-        </div>
-      )}
-      {sites.length === 0 ? (
-        <div className="p-6 text-center text-gray-500">
-          등록된 사이트가 없습니다
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {sites.map((s) => (
-            <SiteCard key={s.id} site={s} />
-          ))}
-        </div>
-      )}
-    </div>
+    <StartPage
+      favoritesData={favoritesData}
+      onUpdateFavorites={setFavoritesData}
+      onClose={() => navigate("/")}
+      showDescriptions={true}
+      pageTitle="나의 시작페이지"
+      categoryTitle={categoryTitle}
+      websites={websites}
+      categoryOrder={["insurance"]}
+      categoryConfig={{ insurance: { title: "보험" } }}
+      loading={false}
+      onApplyStarter={onApplyStarter}
+      onReset={onReset}
+      showStartGuide={false}
+      showDesktop={false}
+    />
   );
 }
+

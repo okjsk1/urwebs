@@ -1,5 +1,5 @@
 ok
 app: urwebs
-version: a92955a
-buildTime: 2025-09-13T14:39:34.164Z
-commit: feat: add board buttons to start page
+version: 1570f2b
+buildTime: 2025-09-13T14:49:24.333Z
+commit: feat: show favorites in folders immediately
