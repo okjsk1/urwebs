@@ -775,7 +775,7 @@ export function FavoritesSectionNew({
             <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
               📂 폴더
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 cards-6cols">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 cards-6cols">
               {Array.isArray(favoritesData.folders) &&
                 favoritesData.folders
                   .filter(Boolean)
