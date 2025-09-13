@@ -73,11 +73,11 @@ export const categories: FieldCategory[] = [
     href: '/category/architecture',
   },
   {
-    slug: 'embedded',
-    title: '임베디드/IoT & 게임',
-    icon: '🎮',
-    description: '임베디드와 게임 개발',
-    href: '/category/embedded',
+    slug: 'wedding',
+    title: '결혼',
+    icon: '💒',
+    description: '결혼 준비와 허니문',
+    href: '/category/wedding',
   },
   {
     slug: 'realestate',
