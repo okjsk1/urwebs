@@ -47,8 +47,6 @@ type Props = {
   storageNamespace?: string;
   /** 부동산 역할별 페이지 등에서 카테고리 제목 커스터마이즈 */
   categoryTitleOverride?: string;
-  /** 즐겨찾기가 비어 있어도 소개 화면을 건너뛸지 여부 */
-  showEmptyState?: boolean;
 };
 
 export default function CategoryStartPage({
@@ -57,7 +55,6 @@ export default function CategoryStartPage({
   jsonFile,
   storageNamespace = `favorites:${categorySlug}`,
   categoryTitleOverride,
-  showEmptyState = false,
 }: Props) {
   const navigate = useNavigate();
 
@@ -177,7 +174,6 @@ export default function CategoryStartPage({
       loading={loading}
       onApplyStarter={onApplyStarter}
       onReset={onReset}
-      showEmptyState={showEmptyState}
     />
   );
 }
