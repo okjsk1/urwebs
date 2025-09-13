@@ -49,6 +49,11 @@ import {
   categoryConfig as embeddedConfig,
 } from '../data/websites.embedded';
 import {
+  websites as architectureWorkerWebsites,
+  categoryOrder as architectureWorkerOrder,
+  categoryConfig as architectureWorkerConfig,
+} from '../data/websites.architecture.worker';
+import {
 
   websites as marketingWebsites,
   categoryOrder as marketingOrder,
@@ -100,6 +105,11 @@ export default function CategoryStartPage({
       websites: defaultWebsites,
       categoryOrder: defaultOrder,
       categoryConfig: defaultConfig,
+    },
+    'architecture-worker': {
+      websites: architectureWorkerWebsites,
+      categoryOrder: architectureWorkerOrder,
+      categoryConfig: architectureWorkerConfig,
     },
     embedded: {
       websites: embeddedWebsites,
