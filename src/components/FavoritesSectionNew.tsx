@@ -143,11 +143,16 @@ function SimpleFolder({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    // 폴더 강조 표시 제거
+    onDragLeaveFolder(e);
     try {
       const websiteId =
         e.dataTransfer.getData('websiteId') ||
         e.dataTransfer.getData('text/plain');
-      if (websiteId) onDropWebsite(websiteId, folder.id);
+      if (websiteId) {
+        onDropWebsite(websiteId, folder.id);
+      }
     } catch (err) {
       console.error('드롭 처리 실패:', err);
     }
@@ -171,7 +176,11 @@ function SimpleFolder({
       }`}
       draggable
       onDragStart={handleFolderDragStart}
-      onDragOver={onDragOverFolder}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        onDragOverFolder(e);
+      }}
       onDragLeave={onDragLeaveFolder}
       onDrop={handleDrop}
     >
