@@ -68,6 +68,8 @@ export interface FieldCategory {
   order?: number;
   /** (선택) 슬러그 대신 사용할 사용자 정의 링크 경로 또는 외부 링크 */
   href?: string;
+  /** (선택) 비활성화 여부 */
+  disabled?: boolean;
 }
 
 // 즐겨찾기 구조 확장

@@ -82,8 +82,14 @@ export default function MainLanding() {
             return (
               <Link
                 key={cat.slug}
-                to={cat.href ?? `/fields/${cat.slug}`}
-                className={className}
+                to={cat.href ?? `/category/${cat.slug}`}
+                className={`${className}${cat.disabled ? ' opacity-50 pointer-events-none' : ''}`}
+                aria-disabled={cat.disabled}
+                onClick={(e) => {
+                  if (cat.disabled) {
+                    e.preventDefault();
+                  }
+                }}
               >
                 {content}
               </Link>

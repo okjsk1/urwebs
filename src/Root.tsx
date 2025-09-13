@@ -1,4 +1,5 @@
 // src/Root.tsx
+import React from "react";
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
@@ -7,7 +8,6 @@ import PostDetail from "./pages/PostDetail";
 import PostWrite from "./pages/PostWrite";
 import MainLanding from "./pages/MainLanding";
 import CategoryStartPage from "./pages/CategoryStartPage";
-import FieldPage from "./pages/FieldPage";
 import RealEstateRoleSelect from "./pages/RealEstateRoleSelect";
 import PersonaOverview from "./pages/PersonaOverview";
 import { PersonaPicker } from "@/modules/insurance/PersonaPicker";
@@ -44,13 +44,19 @@ function RoutedRealEstateRoleStartPage() {
   );
 }
 
+function RedirectFieldsToCategory() {
+  const { slug } = useParams();
+  return <Navigate to={`/category/${slug ?? ""}`} replace />;
+}
+
 export default function Root() {
   return (
     <AppErrorBoundary>
       <>
         <Routes>
           <Route path="/" element={<MainLanding />} />
-          <Route path="/fields/:slug" element={<FieldPage />} />
+          {/* 구 라우트 호환: /fields/:slug -> /category/:slug */}
+          <Route path="/fields/:slug" element={<RedirectFieldsToCategory />} />
           <Route path="/personas" element={<PersonaOverview />} />
           <Route path="/category/realestate" element={<RealEstateRoleSelect />} />
           <Route
