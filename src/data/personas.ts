@@ -130,8 +130,8 @@ export const personaCategories: PersonaCategory[] = [
     slug: 'architecture',
     title: '건축/BIM/CAD/GIS',
     items: [
-      { slug: 'student', title: '학생' },
-      { slug: 'staff', title: '설계직원' },
+      { slug: 'student', title: '대학생' },
+      { slug: 'worker', title: '직장인' },
     ],
   },
   {

@@ -34,6 +34,11 @@ import {
   categoryConfig as insuranceConfig,
 } from '../data/websites.insurance';
 import {
+  websites as weddingWebsites,
+  categoryOrder as weddingOrder,
+  categoryConfig as weddingConfig,
+} from '../data/websites.wedding';
+import {
   websites as videoWebsites,
   categoryOrder as videoOrder,
   categoryConfig as videoConfig,
@@ -43,6 +48,11 @@ import {
   categoryOrder as embeddedOrder,
   categoryConfig as embeddedConfig,
 } from '../data/websites.embedded';
+import {
+  websites as architectureWorkerWebsites,
+  categoryOrder as architectureWorkerOrder,
+  categoryConfig as architectureWorkerConfig,
+} from '../data/websites.architecture.worker';
 import {
 
   websites as marketingWebsites,
@@ -59,6 +69,26 @@ import {
   categoryOrder as cloudOrder,
   categoryConfig as cloudConfig,
 } from '../data/websites.cloud';
+import {
+  websites as testQaWebsites,
+  categoryOrder as testQaOrder,
+  categoryConfig as testQaConfig,
+} from '../data/websites.test-qa';
+import {
+  websites as securityWebsites,
+  categoryOrder as securityOrder,
+  categoryConfig as securityConfig,
+} from '../data/websites.security';
+import {
+  websites as productWebsites,
+  categoryOrder as productOrder,
+  categoryConfig as productConfig,
+} from '../data/websites.product';
+import {
+  websites as accountingWebsites,
+  categoryOrder as accountingOrder,
+  categoryConfig as accountingConfig,
+} from '../data/websites.accounting';
 
 import type { Website } from '../types';
 import categories from '../data/categories';
@@ -95,6 +125,11 @@ export default function CategoryStartPage({
       websites: defaultWebsites,
       categoryOrder: defaultOrder,
       categoryConfig: defaultConfig,
+    },
+    'architecture-worker': {
+      websites: architectureWorkerWebsites,
+      categoryOrder: architectureWorkerOrder,
+      categoryConfig: architectureWorkerConfig,
     },
     embedded: {
       websites: embeddedWebsites,
@@ -146,11 +181,40 @@ export default function CategoryStartPage({
       categoryOrder: cloudOrder,
       categoryConfig: cloudConfig,
     },
+    'test-qa': {
+      websites: testQaWebsites,
+      categoryOrder: testQaOrder,
+      categoryConfig: testQaConfig,
+    },
+    security: {
+      websites: securityWebsites,
+      categoryOrder: securityOrder,
+      categoryConfig: securityConfig,
+    },
+    product: {
+      websites: productWebsites,
+      categoryOrder: productOrder,
+      categoryConfig: productConfig,
+    },
+    accounting: {
+      websites: accountingWebsites,
+      categoryOrder: accountingOrder,
+      categoryConfig: accountingConfig,
+    },
     ...roleEntries,
   } as const;
 
+  const baseCategory =
+    categories.find(
+      (c) => categorySlug === c.slug || categorySlug.startsWith(`${c.slug}-`),
+    )?.slug;
+
   const fallback =
-    dataMap[categorySlug as keyof typeof dataMap] ?? dataMap.architecture;
+    dataMap[categorySlug as keyof typeof dataMap] ??
+    (baseCategory
+      ? dataMap[baseCategory as keyof typeof dataMap]
+      : undefined) ??
+    dataMap.architecture;
 
   const [websites, setWebsites] = useState<Website[]>(fallback.websites);
   const [loading, setLoading] = useState(!!jsonFile);

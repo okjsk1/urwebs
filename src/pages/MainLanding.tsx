@@ -74,7 +74,7 @@ export default function MainLanding() {
                     {insurancePersonaItems.map((it) => (
                       <Link
                         key={it.key}
-                        to={`/category/insurance/${it.key}`}
+                        to={`/category/insurance-${it.key}`}
                         className="px-2 py-1 hover:underline"
                       >
                         <span className="mr-1">{it.icon}</span>

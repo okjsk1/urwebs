@@ -16,8 +16,13 @@ const personaLabels: Record<string, string> = {
   overseas: "해외/유학생",
 };
 
-export default function InsurancePersonaPage() {
-  const { persona = "" } = useParams<{ persona: string }>();
+type Props = {
+  persona?: string;
+};
+
+export default function InsurancePersonaPage({ persona: personaProp }: Props = {}) {
+  const params = useParams<{ persona?: string }>();
+  const persona = personaProp ?? params.persona ?? "";
 
   const bundle = useMemo(
     () => personaBundles.find((b) => b.persona === persona),
