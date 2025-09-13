@@ -21,8 +21,9 @@ export function toggleFavorite(
     );
   } else {
     const newItem: FavoriteItem = { id: websiteId, parentId: null };
-    newData.items = [...newData.items, newItem];
-    newData.layout = [...(newData.layout || []), `item:${websiteId}`];
+    // Insert the new favorite at the beginning of items and layout
+    newData.items = [newItem, ...newData.items];
+    newData.layout = [`item:${websiteId}`, ...(newData.layout || [])];
   }
 
   return newData;
