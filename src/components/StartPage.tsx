@@ -187,9 +187,13 @@ export function StartPage({
     setLayout((prev) => prev.filter((e) => e !== `item:${websiteId}`));
   };
 
-  // 폴더 펼침/접기
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
-  const toggleFolder = (fid: string) => setOpenFolders((s) => ({ ...s, [fid]: !s[fid] }));
+  // 폴더 내 사이트 제거
+  const handleRemoveFromFolder = (folderId: string, websiteId: string) => {
+    const updatedFolders = favoritesData.folders.map((f) =>
+      f.id === folderId ? { ...f, items: (f.items || []).filter((id) => id !== websiteId) } : f,
+    );
+    onUpdateFavorites({ ...favoritesData, folders: updatedFolders });
+  };
 
   // ===== Render cells =====
   const renderItemContent = (entry: string) => {
@@ -238,16 +242,9 @@ export function StartPage({
       const children = (folder.items || [])
         .map((wid) => websites.find((s) => s.id === wid))
         .filter(Boolean) as Website[];
-      const opened = !!openFolders[folder.id];
 
       return (
-        <div
-          className="h-full bg-white p-3 rounded-lg shadow-md border flex flex-col cursor-pointer"
-          onClick={() => toggleFolder(folder.id)}
-          role="button"
-          aria-expanded={opened}
-          title="클릭하면 폴더 펼침/접힘"
-        >
+        <div className="h-full bg-white p-3 rounded-lg shadow-md border flex flex-col">
           {/* header */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -260,27 +257,38 @@ export function StartPage({
           </div>
 
           {/* children */}
-          {opened && (
-            <div className="mt-1 grid grid-cols-1 gap-1 overflow-auto" style={{ maxHeight: '4.5rem' }}>
-              {children.length === 0 ? (
-                <div className="text-xs text-gray-400">비어 있음 (드래그해 추가)</div>
-              ) : (
-                children.map((site) => (
+          <div className="mt-1 grid grid-cols-1 gap-1 overflow-auto" style={{ maxHeight: '4.5rem' }}>
+            {children.length === 0 ? (
+              <div className="text-xs text-gray-400">비어 있음 (드래그해 추가)</div>
+            ) : (
+              children.map((site) => (
+                <div key={site.id} className="flex items-center gap-2 text-sm text-gray-700 truncate">
                   <a
-                    key={site.id}
                     href={site.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600 truncate"
-                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-2 flex-1 hover:text-blue-600 truncate"
                   >
                     <SiteIcon website={site} size={14} className="w-4 h-4 rounded" />
                     <span className="truncate">{site.title}</span>
                   </a>
-                ))
-              )}
-            </div>
-          )}
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleRemoveFromFolder(folder.id, site.id);
+                    }}
+                    className="w-4 h-4 flex items-center justify-center text-gray-400 hover:text-yellow-500"
+                    aria-label="즐겨찾기 제거"
+                    type="button"
+                  >
+                    <svg className="w-4 h-4 urwebs-star-icon favorited" viewBox="0 0 24 24" strokeWidth="1">
+                      <polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8" />
+                    </svg>
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       );
     }
