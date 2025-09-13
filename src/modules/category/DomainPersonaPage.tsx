@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { registry } from "./registry";
 import { sortSites } from "./sortSites";
 import { CategoryCard } from "@/components/CategoryCard";
+import { categoryConfig } from "@/data/websites";
 
 export default function DomainPersonaPage() {
   const { domain, persona } = useParams();
@@ -51,19 +52,25 @@ export default function DomainPersonaPage() {
           ))}
         </div>
       )}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {sites.map((s) => (
-          <CategoryCard
-            key={s.id}
-            id={s.id}
-            category={s.category}
-            title={s.title}
-            url={s.url || undefined}
-            description={s.description}
-            badge={s.sourceType}
-          />
-        ))}
-      </div>
+      <CategoryCard
+        category={domainData.label}
+        sites={sites.map((s) => ({
+          id: s.id,
+          category: s.category,
+          title: s.title,
+          url: s.url,
+          description: s.description,
+        }))}
+        config={
+          categoryConfig[domainData.label] || {
+            title: domainData.label,
+            icon: "",
+          }
+        }
+        showDescriptions
+        favorites={[]}
+        onToggleFavorite={() => {}}
+      />
     </div>
   );
 }

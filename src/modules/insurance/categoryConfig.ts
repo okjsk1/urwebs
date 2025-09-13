@@ -11,7 +11,7 @@ try {
 
   const categoryConfig = cfg?.categoryConfig;
   if (categoryConfig && !categoryConfig["보험"]) {
-    categoryConfig["보험"] = { icon: "🛡️", color: "#0EA5E9" };
+    categoryConfig["보험"] = { title: "보험", icon: "🛡️", color: "#0EA5E9" };
   }
 } catch {
   // 조용히 패스: 아이콘이 없어도 카드 자체는 렌더되도록
