@@ -67,6 +67,36 @@ export const websites: Website[] = [
   { category: "디자인/CSS", title: "Bootstrap", url: "https://getbootstrap.com/", description: "UI 컴포넌트 프레임워크", id: "WEB-CSS-004" },
   { category: "디자인/CSS", title: "Radix UI", url: "https://www.radix-ui.com/", description: "접근성 우선 컴포넌트", id: "WEB-CSS-005" },
 
+  /* ───────── 웹개발: 아이콘/에셋 ───────── */
+  { category: "아이콘/에셋", title: "Heroicons", url: "https://heroicons.com", description: "Tailwind 팀의 아이콘", id: "WEB-ICO-001" },
+  { category: "아이콘/에셋", title: "Lucide", url: "https://lucide.dev", description: "오픈소스 아이콘 세트", id: "WEB-ICO-002" },
+  { category: "아이콘/에셋", title: "Iconify", url: "https://icon-sets.iconify.design", description: "수천 종 아이콘 통합", id: "WEB-ICO-003" },
+  { category: "아이콘/에셋", title: "Phosphor Icons", url: "https://phosphoricons.com", description: "가변 굵기 아이콘", id: "WEB-ICO-004" },
+  { category: "아이콘/에셋", title: "SVG Repo", url: "https://www.svgrepo.com", description: "무료 SVG 모음", id: "WEB-ICO-005" },
+
+  /* ───────── 웹개발: 네트워킹/상태/폼 ───────── */
+  { category: "네트워킹/상태/폼", title: "Axios", url: "https://axios-http.com", description: "HTTP 클라이언트", id: "WEB-NET-001" },
+  { category: "네트워킹/상태/폼", title: "TanStack Query", url: "https://tanstack.com/query", description: "서버 상태 관리", id: "WEB-NET-002" },
+  { category: "네트워킹/상태/폼", title: "Redux Toolkit", url: "https://redux-toolkit.js.org", description: "Redux 상태 관리", id: "WEB-NET-003" },
+  { category: "네트워킹/상태/폼", title: "React Hook Form", url: "https://react-hook-form.com", description: "React 폼 라이브러리", id: "WEB-NET-004" },
+  { category: "네트워킹/상태/폼", title: "Zod", url: "https://zod.dev", description: "타입 안전 스키마", id: "WEB-NET-005" },
+
+  /* ───────── 웹개발: 데이터 시각화 ───────── */
+  { category: "데이터 시각화", title: "D3.js", url: "https://d3js.org", description: "강력한 데이터 시각화", id: "WEB-DV-001" },
+  { category: "데이터 시각화", title: "Recharts", url: "https://recharts.org", description: "React 차트 라이브러리", id: "WEB-DV-002" },
+  { category: "데이터 시각화", title: "Chart.js", url: "https://www.chartjs.org", description: "간단한 차트", id: "WEB-DV-003" },
+  { category: "데이터 시각화", title: "ECharts", url: "https://echarts.apache.org", description: "대용량 인터랙티브 차트", id: "WEB-DV-004" },
+  { category: "데이터 시각화", title: "Visx", url: "https://airbnb.io/visx", description: "D3와 React 유틸", id: "WEB-DV-005" },
+
+  /* ───────── 웹개발: 샌드박스/플레이그라운드 ───────── */
+  { category: "샌드박스/플레이그라운드", title: "CodeSandbox", url: "https://codesandbox.io", description: "온라인 코드 샌드박스", id: "WEB-SBX-001" },
+  { category: "샌드박스/플레이그라운드", title: "StackBlitz", url: "https://stackblitz.com", description: "브라우저 기반 IDE", id: "WEB-SBX-002" },
+  { category: "샌드박스/플레이그라운드", title: "CodePen", url: "https://codepen.io", description: "프론트엔드 실험", id: "WEB-SBX-003" },
+
+  /* ───────── 웹개발: 디버깅/개발자도구 ───────── */
+  { category: "디버깅/개발자도구", title: "Chrome DevTools", url: "https://developer.chrome.com/docs/devtools", description: "크롬 개발자 도구", id: "WEB-DBG-001" },
+  { category: "디버깅/개발자도구", title: "React DevTools", url: "https://react.dev/learn/react-developer-tools", description: "React 컴포넌트 디버깅", id: "WEB-DBG-002" },
+
   /* ───────── 웹개발: 학습/커뮤니티 ───────── */
   { category: "학습/커뮤니티", title: "freeCodeCamp", url: "https://www.freecodecamp.org/", description: "무료 코딩 코스", id: "WEB-LRN-001" },
   { category: "학습/커뮤니티", title: "Stack Overflow", url: "https://stackoverflow.com/", description: "개발 Q&A 커뮤니티", id: "WEB-LRN-002" },
@@ -92,6 +122,11 @@ export const categoryConfig: CategoryConfigMap = {
   '품질/코드': { title: '품질/코드', icon: '✅', iconClass: 'icon-teal' },
   '배포/호스팅': { title: '배포/호스팅', icon: '🚀', iconClass: 'icon-indigo' },
   '디자인/CSS': { title: '디자인/CSS', icon: '🎨', iconClass: 'icon-red' },
+  '아이콘/에셋': { title: '아이콘/에셋', icon: '🖼️', iconClass: 'icon-orange' },
+  '네트워킹/상태/폼': { title: '네트워킹/상태/폼', icon: '🔗', iconClass: 'icon-teal' },
+  '데이터 시각화': { title: '데이터 시각화', icon: '📊', iconClass: 'icon-yellow' },
+  '샌드박스/플레이그라운드': { title: '샌드박스/플레이그라운드', icon: '🧩', iconClass: 'icon-green' },
+  '디버깅/개발자도구': { title: '디버깅/개발자도구', icon: '🐞', iconClass: 'icon-gray' },
   '학습/커뮤니티': { title: '학습/커뮤니티', icon: '👥', iconClass: 'icon-gray' },
   '국내/레퍼런스': { title: '국내/레퍼런스', icon: '🇰🇷', iconClass: 'icon-blue' },
 };
@@ -106,6 +141,11 @@ export const categoryOrder = [
   '품질/코드',
   '배포/호스팅',
   '디자인/CSS',
+  '아이콘/에셋',
+  '네트워킹/상태/폼',
+  '데이터 시각화',
+  '샌드박스/플레이그라운드',
+  '디버깅/개발자도구',
   '학습/커뮤니티',
   '국내/레퍼런스',
 ];
