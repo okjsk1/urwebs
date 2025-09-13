@@ -9,6 +9,8 @@ import MainLanding from "./pages/MainLanding";
 import CategoryStartPage from "./pages/CategoryStartPage";
 import FieldPage from "./pages/FieldPage";
 import RealEstateRoleSelect from "./pages/RealEstateRoleSelect";
+import { PersonaPicker } from "@/modules/insurance/PersonaPicker";
+import InsurancePersonaPage from "@/modules/insurance/PersonaPage";
 
 function RoutedCategoryStartPage() {
   const { slug = "architecture" } = useParams();
@@ -52,6 +54,11 @@ export default function Root() {
           <Route
             path="/category/realestate/:role"
             element={<RoutedRealEstateRoleStartPage />}
+          />
+          <Route path="/category/insurance" element={<PersonaPicker />} />
+          <Route
+            path="/category/insurance/:persona"
+            element={<InsurancePersonaPage />}
           />
           <Route path="/category/:slug" element={<RoutedCategoryStartPage />} />
           <Route
