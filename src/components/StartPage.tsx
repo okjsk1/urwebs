@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useNavigate } from 'react-router-dom';
 import { Widget, FavoritesData, Website, CategoryConfigMap } from '../types';
 import { WeatherWidget } from './widgets/WeatherWidget';
 import { ClockWidget } from './widgets/ClockWidget';
@@ -27,6 +28,7 @@ interface StartPageProps {
   onReset?: () => Promise<void> | void;
   showStartGuide?: boolean;
   showDesktop?: boolean;
+  onContactClick?: () => void;
 }
 
 export function StartPage({
@@ -44,12 +46,17 @@ export function StartPage({
   onReset,
   showStartGuide = true,
   showDesktop = true,
+  onContactClick,
 }: StartPageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const navigate = useNavigate();
+  const handleNoticeClick = () => navigate('/notice');
+  const handleBoardClick = () => navigate('/free');
 
   // ===== UI states =====
   const [showWidgetPicker, setShowWidgetPicker] = useState(false);
@@ -377,6 +384,28 @@ export function StartPage({
 
       <div className="min-h-screen mx-auto px-4 md:px-6" style={{ maxWidth: '1440px' }}>
         <div className="py-8 space-y-12">
+          {/* Top links */}
+          <div className="flex justify-end gap-2">
+            <button
+              className="urwebs-btn-ghost flex items-center gap-2 text-sm"
+              onClick={handleNoticeClick}
+            >
+              📢 공지사항
+            </button>
+            <button
+              className="urwebs-btn-ghost flex items-center gap-2 text-sm"
+              onClick={handleBoardClick}
+            >
+              💬 자유게시판
+            </button>
+            <button
+              className="urwebs-btn-ghost flex items-center gap-2 text-sm"
+              onClick={() => onContactClick && onContactClick()}
+            >
+              📞 문의하기
+            </button>
+          </div>
+
           {/* Header */}
           <div className="flex justify-between items-center relative">
             <div className="flex gap-2">
