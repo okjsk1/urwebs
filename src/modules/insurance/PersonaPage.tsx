@@ -1,14 +1,11 @@
 // src/modules/insurance/PersonaPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { StartPage } from "@/components/StartPage";
+import { useParams } from "react-router-dom";
+import { FavoritesSectionNew } from "@/components/FavoritesSectionNew";
+import { CategoryCard } from "@/components/CategoryCard";
 import type { FavoritesData, Website } from "@/types";
-import {
-  loadFavoritesData,
-  saveFavoritesData,
-  applyStarter,
-  resetFavorites,
-} from "@/utils/startPageStorage";
+import { loadFavoritesData, saveFavoritesData } from "@/utils/startPageStorage";
+import { toggleFavorite as toggleFavoriteData } from "@/utils/favorites";
 import { siteCatalog } from "./sites";
 import { personaBundles } from "./persona-bundles";
 import { sortSites } from "./sortSites";
@@ -24,7 +21,6 @@ const personaLabels: Record<string, string> = {
 
 export default function InsurancePersonaPage() {
   const { persona = "" } = useParams<{ persona: string }>();
-  const navigate = useNavigate();
 
   const bundle = useMemo(
     () => personaBundles.find((b) => b.persona === persona),
@@ -65,28 +61,35 @@ export default function InsurancePersonaPage() {
 
   if (!bundle) return <div className="p-6">잘못된 경로입니다.</div>;
 
-  const onApplyStarter = async () => applyStarter(setFavoritesData, storageNamespace);
-  const onReset = async () => resetFavorites(setFavoritesData, storageNamespace);
+  const toggleFavorite = (id: string) => {
+    setFavoritesData((prev) => toggleFavoriteData(prev, id));
+  };
 
+  const favoriteIds = favoritesData.items.map((i) => i.id);
   const categoryTitle = `보험 · ${personaLabels[persona] || persona}`;
 
   return (
-    <StartPage
-      favoritesData={favoritesData}
-      onUpdateFavorites={setFavoritesData}
-      onClose={() => navigate("/")}
-      showDescriptions={true}
-      pageTitle="나의 시작페이지"
-      categoryTitle={categoryTitle}
-      websites={websites}
-      categoryOrder={["insurance"]}
-      categoryConfig={{ insurance: { title: "보험" } }}
-      loading={false}
-      onApplyStarter={onApplyStarter}
-      onReset={onReset}
-      showStartGuide={false}
-      showDesktop={false}
-    />
+    <div className="p-4">
+      <div className="mx-auto max-w-[1180px]">
+        {favoritesData.items.length > 0 && (
+          <FavoritesSectionNew
+            favoritesData={favoritesData}
+            onUpdateFavorites={setFavoritesData}
+          />
+        )}
+        <h2 className="mt-6 mb-4 text-xl font-bold">{categoryTitle}</h2>
+        <div className="grid grid-cols-6 gap-x-2 gap-y-4 min-w-0">
+          <CategoryCard
+            category="insurance"
+            sites={websites}
+            config={{ title: "보험" }}
+            showDescriptions={true}
+            favorites={favoriteIds}
+            onToggleFavorite={toggleFavorite}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 
