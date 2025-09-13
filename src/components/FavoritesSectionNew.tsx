@@ -460,7 +460,8 @@ export function FavoritesSectionNew({
       const newItem = { id: categoryWebsiteId, parentId: targetId || null };
       const newData = {
         ...favoritesData,
-        items: [...favoritesData.items, newItem],
+        items: [newItem, ...favoritesData.items],
+        layout: [`item:${categoryWebsiteId}`, ...(favoritesData.layout || [])],
       };
       onUpdateFavorites(newData);
       toast.success('즐겨찾기에 추가되었습니다.');
