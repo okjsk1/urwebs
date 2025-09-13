@@ -33,6 +33,11 @@ import {
   categoryOrder as videoOrder,
   categoryConfig as videoConfig,
 } from '../data/websites.video';
+import {
+  websites as embeddedWebsites,
+  categoryOrder as embeddedOrder,
+  categoryConfig as embeddedConfig,
+} from '../data/websites.embedded';
 
 import type { Website } from '../types';
 import categories from '../data/categories';
@@ -69,6 +74,11 @@ export default function CategoryStartPage({
       websites: defaultWebsites,
       categoryOrder: defaultOrder,
       categoryConfig: defaultConfig,
+    },
+    embedded: {
+      websites: embeddedWebsites,
+      categoryOrder: embeddedOrder,
+      categoryConfig: embeddedConfig,
     },
     realestate: {
       websites: realestateWebsites,
