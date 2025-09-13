@@ -2,6 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import categoriesData from "../data/categories";
+import { insurancePersonaItems } from "@/modules/insurance/PersonaPicker";
 
 export default function MainLanding() {
   const categories = [...categoriesData].sort(
@@ -64,6 +65,27 @@ export default function MainLanding() {
             const className =
               "flex flex-col items-center rounded-lg border bg-white p-4 text-center shadow-sm transition hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
 
+            // 보험 카테고리는 호버 시 바로 페르소나 선택을 표시
+            if (cat.slug === "insurance") {
+              return (
+                <div key={cat.slug} className="relative group">
+                  <div className={className}>{content}</div>
+                  <div className="absolute inset-0 hidden group-hover:flex flex-col items-center justify-center gap-2 rounded-lg border bg-white p-4 shadow">
+                    {insurancePersonaItems.map((it) => (
+                      <Link
+                        key={it.key}
+                        to={`/category/insurance/${it.key}`}
+                        className="px-2 py-1 hover:underline"
+                      >
+                        <span className="mr-1">{it.icon}</span>
+                        {it.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
             // href가 http로 시작하면 외부 링크, 아니면 내부 라우팅
             if (cat.href?.startsWith("http")) {
               return (
@@ -83,7 +105,7 @@ export default function MainLanding() {
               <Link
                 key={cat.slug}
                 to={cat.href ?? `/category/${cat.slug}`}
-                className={`${className}${cat.disabled ? ' opacity-50 pointer-events-none' : ''}`}
+                className={`${className}${cat.disabled ? " opacity-50 pointer-events-none" : ""}`}
                 aria-disabled={cat.disabled}
                 onClick={(e) => {
                   if (cat.disabled) {

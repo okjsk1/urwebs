@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-const items = [
+export const insurancePersonaItems = [
   { key: "consumer", label: "개인고객", icon: "🙋" },
   { key: "agent", label: "설계사", icon: "💼" },
   { key: "expert", label: "전문가", icon: "🧠" },
@@ -14,7 +14,7 @@ export function PersonaPicker() {
     <div className="mx-auto max-w-6xl px-4">
       <h1 className="text-center text-2xl font-bold my-6">보험 사용자 선택</h1>
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-        {items.map(it=>(
+        {insurancePersonaItems.map((it) => (
           <Link key={it.key} to={`/category/insurance/${it.key}`}
             className="rounded-xl border p-5 hover:shadow">
             <div className="text-3xl">{it.icon}</div>
