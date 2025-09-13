@@ -28,6 +28,16 @@ import {
   categoryOrder as insuranceOrder,
   categoryConfig as insuranceConfig,
 } from '../data/websites.insurance';
+import {
+  websites as videoWebsites,
+  categoryOrder as videoOrder,
+  categoryConfig as videoConfig,
+} from '../data/websites.video';
+import {
+  websites as embeddedWebsites,
+  categoryOrder as embeddedOrder,
+  categoryConfig as embeddedConfig,
+} from '../data/websites.embedded';
 
 import type { Website } from '../types';
 import categories from '../data/categories';
@@ -79,6 +89,16 @@ export default function CategoryStartPage({
       websites: insuranceWebsites,
       categoryOrder: insuranceOrder,
       categoryConfig: insuranceConfig,
+    },
+    video: {
+      websites: videoWebsites,
+      categoryOrder: videoOrder,
+      categoryConfig: videoConfig,
+    },
+    embedded: {
+      websites: embeddedWebsites,
+      categoryOrder: embeddedOrder,
+      categoryConfig: embeddedConfig,
     },
     webdev: {
       websites: webdevWebsites,
