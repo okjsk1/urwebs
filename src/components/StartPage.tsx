@@ -24,6 +24,9 @@ interface StartPageProps {
   loading?: boolean;
   onApplyStarter?: () => Promise<void> | void;
   onReset?: () => Promise<void> | void;
+  /** 전역 기본값은 true: 보험 라우트 등에서만 false로 전달하여 안내/바탕화면 숨김 */
+  showStartGuide?: boolean;
+  showDesktop?: boolean;
 }
 
 export function StartPage({
@@ -39,6 +42,8 @@ export function StartPage({
   loading = false,
   onApplyStarter,
   onReset,
+  showStartGuide = true,
+  showDesktop = true,
 }: StartPageProps) {
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -302,20 +307,24 @@ export function StartPage({
           {/* Header */}
           <div className="flex justify-between items-center">
             <div className="flex gap-2">
-              <button
-                onClick={handleStarter}
-                aria-label="나만의 시작페이지"
-                className="bg-blue-500 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-              >
-                나만의 시작페이지
-              </button>
-              <button
-                onClick={handleReset}
-                aria-label="기본 셋팅으로 리셋"
-                className="border border-blue-500 text-blue-500 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-              >
-                기본 셋팅으로 리셋
-              </button>
+              {showStartGuide && (
+                <>
+                  <button
+                    onClick={handleStarter}
+                    aria-label="나만의 시작페이지"
+                    className="bg-blue-500 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  >
+                    나만의 시작페이지
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    aria-label="기본 셋팅으로 리셋"
+                    className="border border-blue-500 text-blue-500 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  >
+                    기본 셋팅으로 리셋
+                  </button>
+                </>
+              )}
             </div>
             <div className="text-center flex-1">
               <h1 className="text-4xl font-bold text-gray-800 mb-2">{pageTitle}</h1>
@@ -336,7 +345,7 @@ export function StartPage({
 
           <DndProvider backend={HTML5Backend}>
             <div className="space-y-12">
-              {!isEmpty && (
+              {showDesktop && !isEmpty && (
                 <div>
                   <h2 className="text-2xl font-bold text-gray-800 mb-6">나의 바탕화면</h2>
                   <div className="grid grid-cols-6 gap-4">

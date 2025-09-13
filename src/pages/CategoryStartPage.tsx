@@ -160,6 +160,8 @@ export default function CategoryStartPage({
   const onApplyStarter = async () => applyStarter(setFavoritesData, storageNamespace);
   const onReset = async () => resetFavorites(setFavoritesData, storageNamespace);
 
+  const isInsurance = categorySlug === 'insurance' || categorySlug.startsWith('insurance-');
+
   return (
     <StartPage
       favoritesData={favoritesData}
@@ -174,6 +176,8 @@ export default function CategoryStartPage({
       loading={loading}
       onApplyStarter={onApplyStarter}
       onReset={onReset}
+      showStartGuide={!isInsurance}
+      showDesktop={!isInsurance}
     />
   );
 }
