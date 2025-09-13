@@ -20,5 +20,6 @@
     { "source": "/images/:match*", "destination": "/images/:match*" },
     { "source": "/favicon.ico", "destination": "/favicon.ico" },
     { "source": "/:match*", "destination": "/index.html" }
+
   ]
 }
