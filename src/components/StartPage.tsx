@@ -10,6 +10,7 @@ import { TodoWidget } from './widgets/TodoWidget';
 import { CategoryCard } from './CategoryCard';
 import { SiteIcon } from './SiteIcon';
 import { validateCategoryKeys } from '../utils/validateCategories';
+import { AddFolderButton } from './AddFolderButton';
 
 interface StartPageProps {
   favoritesData: FavoritesData;
@@ -127,6 +128,18 @@ export function StartPage({
       layout: [...(favoritesData.layout || []), `widget:${id}`],
     });
     setShowWidgetPicker(false);
+  };
+
+  const handleAddFolder = () => {
+    const name = prompt('폴더 이름을 입력하세요');
+    if (!name) return;
+    const id = `folder-${Date.now()}`;
+    const newFolder = { id, name, items: [] } as any;
+    onUpdateFavorites({
+      ...favoritesData,
+      folders: [...favoritesData.folders, newFolder],
+      layout: [...(favoritesData.layout || []), `folder:${id}`],
+    });
   };
 
   const handleToggleFavorite = (websiteId: string) => {
@@ -392,6 +405,7 @@ export function StartPage({
               >
                 위젯 추가
               </button>
+              <AddFolderButton onClick={handleAddFolder} />
               <button
                 onClick={onClose}
                 aria-label="닫기"
