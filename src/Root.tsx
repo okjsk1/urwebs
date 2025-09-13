@@ -9,16 +9,21 @@ import MainLanding from "./pages/MainLanding";
 import CategoryStartPage from "./pages/CategoryStartPage";
 import FieldPage from "./pages/FieldPage";
 import RealEstateRoleSelect from "./pages/RealEstateRoleSelect";
-import { PersonaPicker } from "@/modules/insurance/PersonaPicker";
-import InsurancePersonaPage from "@/modules/insurance/PersonaPage";
+import { DomainPersonaPicker } from "@/modules/category/DomainPersonaPicker";
+import DomainPersonaPage from "@/modules/category/DomainPersonaPage";
+import RegistryDiagnose from "@/modules/category/RegistryDiagnose";
+import { registry } from "@/modules/category/registry";
 
-function RoutedCategoryStartPage() {
-  const { slug = "architecture" } = useParams();
+function CategorySwitch() {
+  const { domain = "architecture" } = useParams();
+  if (registry.domains[domain]) {
+    return <DomainPersonaPicker />;
+  }
   return (
     <CategoryStartPage
-      categorySlug={slug}
+      categorySlug={domain}
       title="나의 시작페이지"
-      storageNamespace={`favorites:${slug}`}
+      storageNamespace={`favorites:${domain}`}
     />
   );
 }
@@ -55,12 +60,12 @@ export default function Root() {
             path="/category/realestate/:role"
             element={<RoutedRealEstateRoleStartPage />}
           />
-          <Route path="/category/insurance" element={<PersonaPicker />} />
           <Route
-            path="/category/insurance/:persona"
-            element={<InsurancePersonaPage />}
+            path="/category/:domain/:persona"
+            element={<DomainPersonaPage />}
           />
-          <Route path="/category/:slug" element={<RoutedCategoryStartPage />} />
+          <Route path="/category/:domain" element={<CategorySwitch />} />
+          <Route path="/__registry-diagnose" element={<RegistryDiagnose />} />
           <Route
             path="/architecture"
             element={<Navigate to="/category/architecture" replace />}
