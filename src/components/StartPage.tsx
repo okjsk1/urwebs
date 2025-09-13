@@ -52,6 +52,9 @@ export function StartPage({
     return () => clearInterval(timer);
   }, []);
 
+  // 위젯 추가 버튼 팝오버 상태
+  const [showWidgetPicker, setShowWidgetPicker] = useState(false);
+
   // 스타터팩/리셋 적용 중 로딩 가드
   const [isApplying, setIsApplying] = useState(false);
 
@@ -115,6 +118,17 @@ export function StartPage({
     }
   };
 
+  const handleAddWidget = (type: Widget['type']) => {
+    const id = `${type}-${Date.now()}`;
+    const newWidget: Widget = { id, type };
+    onUpdateFavorites({
+      ...favoritesData,
+      widgets: [...favoritesData.widgets, newWidget],
+      layout: [...(favoritesData.layout || []), `widget:${id}`],
+    });
+    setShowWidgetPicker(false);
+  };
+
   const handleToggleFavorite = (websiteId: string) => {
     const isFavorited = favoritesData.items.includes(websiteId);
     const updatedItems = isFavorited
@@ -163,6 +177,23 @@ export function StartPage({
       onUpdateFavorites({ ...favoritesData, layout: updated });
       return updated;
     });
+  };
+
+  const moveItemToFolder = (websiteId: string, folderId: string) => {
+    const updatedFolders = favoritesData.folders.map((f) =>
+      f.id === folderId ? { ...f, items: [...f.items, websiteId] } : f,
+    );
+    const updatedItems = favoritesData.items.filter((id) => id !== websiteId);
+    const updatedLayout = (favoritesData.layout || []).filter(
+      (e) => e !== `item:${websiteId}`,
+    );
+    onUpdateFavorites({
+      ...favoritesData,
+      items: updatedItems,
+      folders: updatedFolders,
+      layout: updatedLayout,
+    });
+    setLayout((prev) => prev.filter((e) => e !== `item:${websiteId}`));
   };
 
   const renderItemContent = (entry: string) => {
@@ -228,25 +259,44 @@ export function StartPage({
 
   const DesktopItem = ({ entry, index }: { entry: string; index: number }) => {
     const ref = React.useRef<HTMLDivElement>(null);
-    const [, drop] = useDrop({
+    const [{ isOver }, drop] = useDrop({
       accept: ITEM_TYPE,
-      drop: (item: { index: number }) => moveItem(item.index, index),
+      drop: (item: { index: number; entry: string }) =>
+        handleDrop(item, index, entry),
+      collect: (monitor) => ({ isOver: monitor.isOver({ shallow: true }) }),
     });
     const [{ isDragging }, drag] = useDrag({
       type: ITEM_TYPE,
-      item: { index },
+      item: { index, entry },
       collect: (monitor) => ({ isDragging: monitor.isDragging() }),
     });
     drag(drop(ref));
+    const isFolder = entry.startsWith('folder:');
     return (
       <div
         ref={ref}
-        className="h-24 cursor-move"
+        className={`h-24 cursor-move ${
+          isFolder && isOver ? 'border-2 border-blue-500 rounded-lg' : ''
+        }`}
         style={{ opacity: isDragging ? 0.5 : 1 }}
       >
         {renderItemContent(entry)}
       </div>
     );
+  };
+
+  const handleDrop = (
+    item: { index: number; entry: string },
+    targetIndex: number,
+    targetEntry: string,
+  ) => {
+    if (targetEntry.startsWith('folder:') && item.entry.startsWith('item:')) {
+      const websiteId = item.entry.split(':')[1];
+      const folderId = targetEntry.split(':')[1];
+      moveItemToFolder(websiteId, folderId);
+    } else {
+      moveItem(item.index, targetIndex);
+    }
   };
 
   const EmptyCell = ({ index }: { index: number }) => {
@@ -305,7 +355,7 @@ export function StartPage({
       <div className="min-h-screen mx-auto px-4 md:px-6" style={{ maxWidth: '1440px' }}>
         <div className="py-8 space-y-12">
           {/* Header */}
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center relative">
             <div className="flex gap-2">
               {showStartGuide && (
                 <>
@@ -334,14 +384,43 @@ export function StartPage({
               <p className="text-xl text-gray-600">{formatDate(currentTime)}</p>
               <p className="text-3xl font-mono text-blue-600 mt-2">{formatTime(currentTime)}</p>
             </div>
-            <button
-              onClick={onClose}
-              aria-label="닫기"
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              ✖ 닫기
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowWidgetPicker((v) => !v)}
+                aria-label="위젯 추가"
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                위젯 추가
+              </button>
+              <button
+                onClick={onClose}
+                aria-label="닫기"
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                ✖ 닫기
+              </button>
+            </div>
           </div>
+          {showWidgetPicker && (
+            <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg p-4 z-10">
+              <p className="mb-2 font-medium">위젯 선택</p>
+              {(['clock', 'weather', 'memo', 'todo'] as Widget['type'][]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => handleAddWidget(t)}
+                  className="block w-full text-left px-2 py-1 hover:bg-gray-100 rounded"
+                >
+                  {t}
+                </button>
+              ))}
+              <button
+                onClick={() => setShowWidgetPicker(false)}
+                className="mt-2 text-sm text-gray-500"
+              >
+                닫기
+              </button>
+            </div>
+          )}
 
           <DndProvider backend={HTML5Backend}>
             <div className="space-y-12">
