@@ -9,6 +9,7 @@ import MainLanding from "./pages/MainLanding";
 import CategoryStartPage from "./pages/CategoryStartPage";
 import FieldPage from "./pages/FieldPage";
 import RealEstateRoleSelect from "./pages/RealEstateRoleSelect";
+import PersonaOverview from "./pages/PersonaOverview";
 import { PersonaPicker } from "@/modules/insurance/PersonaPicker";
 import InsurancePersonaPage from "@/modules/insurance/PersonaPage";
 
@@ -50,6 +51,7 @@ export default function Root() {
         <Routes>
           <Route path="/" element={<MainLanding />} />
           <Route path="/fields/:slug" element={<FieldPage />} />
+          <Route path="/personas" element={<PersonaOverview />} />
           <Route path="/category/realestate" element={<RealEstateRoleSelect />} />
           <Route
             path="/category/realestate/:role"
