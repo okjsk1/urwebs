@@ -24,10 +24,30 @@ import {
   categoryConfig as webdevConfig,
 } from '../data/websites.webdev';
 import {
+  websites as dataAiWebsites,
+  categoryOrder as dataAiOrder,
+  categoryConfig as dataAiConfig,
+} from '../data/websites.data-ai';
+import {
   websites as insuranceWebsites,
   categoryOrder as insuranceOrder,
   categoryConfig as insuranceConfig,
 } from '../data/websites.insurance';
+import {
+  websites as videoWebsites,
+  categoryOrder as videoOrder,
+  categoryConfig as videoConfig,
+} from '../data/websites.video';
+import {
+  websites as embeddedWebsites,
+  categoryOrder as embeddedOrder,
+  categoryConfig as embeddedConfig,
+} from '../data/websites.embedded';
+import {
+  websites as weddingWebsites,
+  categoryOrder as weddingOrder,
+  categoryConfig as weddingConfig,
+} from '../data/websites.wedding';
 
 import type { Website } from '../types';
 import categories from '../data/categories';
@@ -79,6 +99,21 @@ export default function CategoryStartPage({
       websites: insuranceWebsites,
       categoryOrder: insuranceOrder,
       categoryConfig: insuranceConfig,
+    },
+    embedded: {
+      websites: embeddedWebsites,
+      categoryOrder: embeddedOrder,
+      categoryConfig: embeddedConfig,
+    },
+    wedding: {
+      websites: weddingWebsites,
+      categoryOrder: weddingOrder,
+      categoryConfig: weddingConfig,
+    },
+    'data-ai': {
+      websites: dataAiWebsites,
+      categoryOrder: dataAiOrder,
+      categoryConfig: dataAiConfig,
     },
     webdev: {
       websites: webdevWebsites,
