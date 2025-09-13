@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { User } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { BrandLogo } from "./BrandLogo";
@@ -7,7 +7,6 @@ interface HeaderProps {
   onContactClick: () => void;
   onHomepageClick: () => void;
   onHomeClick: () => void;
-  onStartPageClick: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   categoryTitle?: string;
@@ -21,7 +20,6 @@ export function Header({
   onContactClick,
   onHomepageClick,
   onHomeClick,
-  onStartPageClick,
   isDarkMode,
   onToggleDarkMode,
   categoryTitle,

@@ -18,7 +18,6 @@ import { CategoryCard } from "./components/CategoryCard";
 import { ContactModal } from "./components/ContactModal";
 import { Footer } from "./components/Footer";
 import { AddWebsiteModal } from "./components/AddWebsiteModal";
-import { StartPage } from "./components/StartPage";
 import { Onboarding } from "./components/Onboarding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import GuideSamples from "./components/GuideSamples";
@@ -86,8 +85,6 @@ export default function App() {
     return !localStorage.getItem(LS_KEYS.ONBOARD);
   });
 
-  // 뷰
-  const [currentView, setCurrentView] = useState<"home" | "startpage">("home");
 
   // 다크모드 초기값
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -349,8 +346,7 @@ export default function App() {
     }
   };
 
-  const handleHomeClick = () => setCurrentView("home");
-  const handleStartPageClick = () => setCurrentView("startpage");
+  const handleHomeClick = () => window.scrollTo({ top: 0 });
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   // 로그아웃
@@ -420,7 +416,6 @@ export default function App() {
           onContactClick={() => setIsContactModalOpen(true)}
           onHomepageClick={handleHomepageClick}
           onHomeClick={handleHomeClick}
-          onStartPageClick={handleStartPageClick}
           isDarkMode={isDarkMode}
           onToggleDarkMode={toggleDarkMode}
           // 로그인/회원가입 모달 열기
@@ -452,8 +447,7 @@ export default function App() {
           />
         )}
 
-        {currentView === "home" && (
-          <div
+        <div
             className="min-h-screen relative"
             style={{
               fontFamily:
@@ -585,16 +579,7 @@ export default function App() {
               </>
             )}
 
-            {/* startpage, contact, add-site, footer 는 SHOW_ONLY_CATEGORIES 일 땐 계속 숨김 */}
-            {!SHOW_ONLY_CATEGORIES && currentView === "startpage" && (
-              <StartPage
-                favoritesData={favoritesData}
-                onUpdateFavorites={setFavoritesData}
-                onClose={() => setCurrentView("home")}
-                showDescriptions={showDescriptions}
-                onContactClick={() => setIsContactModalOpen(true)}
-              />
-            )}
+        {/* contact, add-site, footer 는 SHOW_ONLY_CATEGORIES 일 땐 계속 숨김 */}
 
             {!SHOW_ONLY_CATEGORIES && isContactModalOpen && (
               <ContactModal
@@ -614,7 +599,6 @@ export default function App() {
 
             {!SHOW_ONLY_CATEGORIES && <Footer />}
           </div>
-        )}
       </>
     </ErrorBoundary>
   );
