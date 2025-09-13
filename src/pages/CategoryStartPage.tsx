@@ -116,12 +116,6 @@ export default function CategoryStartPage({
       categoryOrder: insuranceOrder,
       categoryConfig: insuranceConfig,
     },
-
-    embedded: {
-      websites: embeddedWebsites,
-      categoryOrder: embeddedOrder,
-      categoryConfig: embeddedConfig,
-    },
     wedding: {
       websites: weddingWebsites,
       categoryOrder: weddingOrder,
