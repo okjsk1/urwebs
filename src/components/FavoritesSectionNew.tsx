@@ -111,7 +111,7 @@ interface SimpleFolderProps {
   folder: FavoriteFolder;
   onRenameFolder: (folderId: string, newName: string) => void;
   onDeleteFolder: (folderId: string) => void;
-  onDropWebsite: (websiteId: string, toFolderId: string) => void;
+  onDropWebsite: (websiteId: string, toFolderId: string | null) => void;
   onDragOverFolder: (e: React.DragEvent) => void;
   onDragLeaveFolder: (e: React.DragEvent) => void;
   isDraggingOver?: boolean;
@@ -132,6 +132,7 @@ function SimpleFolder({
 }: SimpleFolderProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(folder.name);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleRename = () => {
     const value = editName.trim();
@@ -202,13 +203,17 @@ function SimpleFolder({
         ) : (
           <h3
             className="title text-gray-800 cursor-pointer hover:text-blue-600 transition-colors flex-1 dark:text-gray-200 dark:hover:text-blue-400"
-            onClick={() => {
+            onClick={() => setIsOpen((v) => !v)}
+            onDoubleClick={() => {
               setIsEditing(true);
               setEditName(folder.name);
             }}
-            title="클릭하여 이름 변경"
+            title="클릭하여 펼침/접힘, 더블클릭으로 이름 변경"
           >
             {folder.name}
+            <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+              ({React.Children.count(children)})
+            </span>
           </h3>
         )}
 
@@ -239,7 +244,7 @@ function SimpleFolder({
         </button>
       </div>
 
-      <div className="w-full flex flex-col gap-1">{children}</div>
+      {isOpen && <div className="w-full flex flex-col gap-1">{children}</div>}
     </div>
   );
 }
@@ -383,7 +388,6 @@ export function FavoritesSectionNew({
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [draggedFromFolderId, setDraggedFromFolderId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   function onAddFavorite() {
@@ -402,9 +406,8 @@ export function FavoritesSectionNew({
     setShowNewFolderInput(true);
   }
 
-  const handleDragStart = (e: React.DragEvent, id: string, fromFolderId?: string) => {
+  const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedId(id);
-    setDraggedFromFolderId(fromFolderId || null);
     try {
       e.dataTransfer.setData('websiteId', id);
 
@@ -446,93 +449,39 @@ export function FavoritesSectionNew({
 
     // 카테고리 → 즐겨찾기/폴더
     if (categoryWebsiteId) {
-      // 이미 있으면 skip
-      if (
-        favoritesData.items?.includes(categoryWebsiteId) ||
-        favoritesData.folders?.some((f) => f.items.includes(categoryWebsiteId))
-      ) {
+      const exists = favoritesData.items.some(
+        (i) => i.id === categoryWebsiteId
+      );
+      if (exists) {
         setDraggedId(null);
-        setDraggedFromFolderId(null);
         return;
       }
-
-      const newData = { ...favoritesData };
-      if (targetId) {
-        const folderIdx = newData.folders.findIndex((f) => f.id === targetId);
-        if (folderIdx !== -1) {
-          const items = newData.folders[folderIdx].items || [];
-          newData.folders[folderIdx].items = [...items, categoryWebsiteId];
-        } else {
-          newData.items = [...(newData.items || []), categoryWebsiteId];
-        }
-      } else {
-        newData.items = [...(newData.items || []), categoryWebsiteId];
-      }
-
+      const newItem = { id: categoryWebsiteId, parentId: targetId || null };
+      const newData = {
+        ...favoritesData,
+        items: [...favoritesData.items, newItem],
+      };
       onUpdateFavorites(newData);
       toast.success('즐겨찾기에 추가되었습니다.');
       setDraggedId(null);
-      setDraggedFromFolderId(null);
       return;
     }
 
     // 즐겨찾기 내부 이동
     if (favoriteWebsiteId) {
-      const sourceList: string[] = draggedFromFolderId
-        ? favoritesData.folders.find((f) => f.id === draggedFromFolderId)?.items || []
-        : favoritesData.items || [];
-
-      const destList: string[] = targetId
-        ? favoritesData.folders.find((f) => f.id === targetId)?.items || []
-        : favoritesData.items || [];
-
-      const newSource = Array.from(sourceList);
-      const idx = newSource.indexOf(favoriteWebsiteId);
-      if (idx === -1) return;
-      const [moved] = newSource.splice(idx, 1);
-
-      const newDest = Array.from(destList);
-      newDest.push(moved);
-
-      const newData = { ...favoritesData };
-
-      if (draggedFromFolderId) {
-        const srcFolder = newData.folders.find((f) => f.id === draggedFromFolderId);
-        if (srcFolder) srcFolder.items = newSource;
-      } else {
-        newData.items = newSource;
-      }
-
-      if (targetId) {
-        const destFolder = newData.folders.find((f) => f.id === targetId);
-        if (destFolder) destFolder.items = newDest;
-        else newData.items = newDest;
-      } else {
-        newData.items = newDest;
-      }
-
-      // 중복 제거
-      newData.items = [...new Set(newData.items)];
-      newData.folders.forEach((f) => (f.items = [...new Set(f.items)]));
-
-      onUpdateFavorites(newData);
+      moveWebsiteToFolder(favoriteWebsiteId, targetId || null);
       setDraggedId(null);
-      setDraggedFromFolderId(null);
     }
   };
 
-  const moveWebsiteToFolder = (websiteId: string, toFolderId: string) => {
-    const updated: FavoritesData = {
-      ...favoritesData,
-      items: (favoritesData.items || []).filter((id) => id !== websiteId),
-      folders: (favoritesData.folders || []).map((f) =>
-        f.id === toFolderId
-          ? { ...f, items: [...new Set([...(f.items || []), websiteId])] }
-          : { ...f, items: (f.items || []).filter((id) => id !== websiteId) }
-      ),
-    };
-
-    onUpdateFavorites(updated);
+  const moveWebsiteToFolder = (
+    websiteId: string,
+    toFolderId: string | null
+  ) => {
+    const newItems = favoritesData.items.map((item) =>
+      item.id === websiteId ? { ...item, parentId: toFolderId } : item
+    );
+    onUpdateFavorites({ ...favoritesData, items: newItems });
   };
 
   const createFolder = () => {
@@ -542,7 +491,6 @@ export function FavoritesSectionNew({
     const newFolder: FavoriteFolder = {
       id: Date.now().toString(),
       name,
-      items: [],
     };
 
     onUpdateFavorites({
@@ -561,6 +509,7 @@ export function FavoritesSectionNew({
       title: type,
       position: { x: 0, y: 0 },
       size: { width: 200, height: 150 },
+      parentId: null,
     };
 
     onUpdateFavorites({
@@ -578,15 +527,10 @@ export function FavoritesSectionNew({
 
   const removeFromFavorites = (websiteId: string) => {
     try {
-      const newData = { ...favoritesData };
-      newData.items = (newData.items || []).filter((id) => id && id !== websiteId);
-      newData.folders = (newData.folders || [])
-        .filter((folder) => folder && folder.id)
-        .map((folder) => ({
-          ...folder,
-          items: (folder?.items || []).filter((id) => id && id !== websiteId),
-        }));
-
+      const newData = {
+        ...favoritesData,
+        items: favoritesData.items.filter((i) => i.id !== websiteId),
+      };
       onUpdateFavorites(newData);
       toast.success('즐겨찾기에서 제거되었습니다.');
     } catch (e) {
@@ -606,16 +550,11 @@ export function FavoritesSectionNew({
 
   const deleteFolder = (folderId: string) => {
     const newData = { ...favoritesData };
-    newData.folders = (newData.folders || []).filter((f) => f && f.id);
-    newData.items = (newData.items || []).filter((id) => id);
-
-    const idx = newData.folders.findIndex((f) => f.id === folderId);
-    if (idx >= 0) {
-      const movedBack = (newData.folders[idx]?.items || []).filter((id) => id);
-      newData.items.push(...movedBack);
-      newData.folders = newData.folders.filter((f) => f.id !== folderId);
-      onUpdateFavorites(newData);
-    }
+    newData.items = newData.items.map((item) =>
+      item.parentId === folderId ? { ...item, parentId: null } : item
+    );
+    newData.folders = (newData.folders || []).filter((f) => f.id !== folderId);
+    onUpdateFavorites(newData);
   };
 
   const changeItemsSortMode = (mode: SortMode) => {
@@ -652,7 +591,9 @@ export function FavoritesSectionNew({
 
   const rootItems = sortByMode(
     Array.isArray(favoritesData.items)
-      ? favoritesData.items.filter(Boolean)
+      ? favoritesData.items
+          .filter((i) => !i.parentId)
+          .map((i) => i.id)
       : [],
     favoritesData.itemsSortMode || 'manual',
     freqMap,
@@ -826,7 +767,7 @@ export function FavoritesSectionNew({
                   onDragStart={(e) => handleDragStart(e, id)}
                   onDragOver={(e) => handleDragOver(e, id)}
                   onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, id)}
+                  onDrop={(e) => handleDrop(e, null)}
                   isDraggingOver={dragOverId === id}
                 />
               ))}
@@ -843,9 +784,9 @@ export function FavoritesSectionNew({
                 favoritesData.folders
                   .filter(Boolean)
                   .map((folder) => {
-                    const folderItems = Array.isArray(folder?.items)
-                      ? folder.items.filter(Boolean)
-                      : [];
+                    const folderItems = favoritesData.items
+                      .filter((i) => i.parentId === folder.id)
+                      .map((i) => i.id);
                     const sortedItems = sortByMode(
                       folderItems,
                       folder.sortMode || 'manual',
@@ -869,10 +810,10 @@ export function FavoritesSectionNew({
                             key={id}
                             websiteId={id}
                             onRemove={removeFromFavorites}
-                            onDragStart={(e) => handleDragStart(e, id, folder.id)}
+                            onDragStart={(e) => handleDragStart(e, id)}
                             onDragOver={(e) => handleDragOver(e, id)}
                             onDragLeave={handleDragLeave}
-                            onDrop={(e) => handleDrop(e, id)}
+                            onDrop={(e) => handleDrop(e, folder.id)}
                             isDraggingOver={dragOverId === id}
                           />
                         ))}
