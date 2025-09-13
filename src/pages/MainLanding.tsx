@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import categoriesData from "../data/categories";
-import { insurancePersonaItems } from "@/modules/insurance/PersonaPicker";
+import { personaCategories } from "@/data/personas";
 
 export default function MainLanding() {
   const categories = [...categoriesData].sort(
@@ -65,20 +65,21 @@ export default function MainLanding() {
             const className =
               "flex flex-col items-center rounded-lg border bg-white p-4 text-center shadow-sm transition hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
 
-            // 보험 카테고리는 호버 시 바로 페르소나 선택을 표시
-            if (cat.slug === "insurance") {
+            const personaCat = personaCategories.find(
+              (p) => p.slug === cat.slug,
+            );
+            if (personaCat && personaCat.items.length > 1) {
               return (
                 <div key={cat.slug} className="relative group">
                   <div className={className}>{content}</div>
                   <div className="absolute inset-0 hidden group-hover:flex flex-col items-center justify-center gap-2 rounded-lg border bg-white p-4 shadow">
-                    {insurancePersonaItems.map((it) => (
+                    {personaCat.items.map((p) => (
                       <Link
-                        key={it.key}
-                        to={`/category/insurance-${it.key}`}
+                        key={p.slug}
+                        to={`/category/${cat.slug}-${p.slug}`}
                         className="px-2 py-1 hover:underline"
                       >
-                        <span className="mr-1">{it.icon}</span>
-                        {it.label}
+                        {p.title}
                       </Link>
                     ))}
                   </div>
