@@ -1,5 +1,5 @@
-import { Link, useNavigate } from "react-router-dom";
-import { PinIcon } from "lucide-react@0.487.0";
+﻿import { Link, useNavigate } from "react-router-dom";
+import { PinIcon } from "lucide-react";
 import { Post } from "../libs/posts.repo";
 
 interface Props {
@@ -23,7 +23,7 @@ export default function PostItem({ post, index }: Props) {
       <td className="py-3">
         {isNotice ? (
           <span className="inline-flex items-center gap-1 text-red-500">
-            <PinIcon className="w-4 h-4" /> 공지
+            <PinIcon className="w-4 h-4" /> 怨듭?
           </span>
         ) : (
           index
@@ -45,4 +45,5 @@ export default function PostItem({ post, index }: Props) {
     </tr>
   );
 }
+
 

@@ -1,6 +1,7 @@
+// src/App.tsx
 // ⬇⬇ App.tsx 최상단 import 묶음에 추가/유지
 import { auth, db } from "./firebase";
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { User } from "firebase/auth";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { onSnapshot, writeBatch } from "firebase/firestore";
@@ -21,7 +22,6 @@ import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
 import { Onboarding } from "./components/Onboarding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import GuideSamples from "./components/GuideSamples";
 import { toast } from "sonner";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
@@ -32,7 +32,6 @@ import { toggleFavorite as toggleFavoriteData } from "./utils/favorites";
 import { parseFavoritesData, parseCustomSites } from "./utils/validation";
 import { getStarterData } from "./utils/startPageStorage";
 import { Skeleton } from "./components/ui/skeleton";
-import { useUIMode } from "./hooks/useUIMode";
 import { hasFavorites } from "./utils/fav";
 import { validateCategoryKeys } from "./utils/validateCategories";
 
@@ -95,8 +94,6 @@ export default function App() {
     return savedMode === "dark";
   });
 
-  // UI 모드(discovery/collect)
-  const { uiMode, setUIMode } = useUIMode(user);
   const hasFav = hasFavorites(favoritesData.folders, favoritesData.items);
 
   // ✅ 즐겨찾기 패널 오픈 상태 (오버레이)
@@ -108,7 +105,9 @@ export default function App() {
 
   // ESC 로 패널 닫기
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsFavOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFavOpen(false);
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -162,9 +161,7 @@ export default function App() {
       } else {
         try {
           const rawFav = localStorage.getItem(LS_KEYS.FAV);
-          let favData = parseFavoritesData(
-            rawFav ? JSON.parse(rawFav) : undefined
-          );
+          let favData = parseFavoritesData(rawFav ? JSON.parse(rawFav) : undefined);
           if (
             favData.items.length === 0 &&
             favData.folders.length === 0 &&
@@ -174,9 +171,7 @@ export default function App() {
             localStorage.setItem(LS_KEYS.FAV, JSON.stringify(favData));
           }
           const rawCustom = localStorage.getItem(LS_KEYS.CUSTOM);
-          const customData = parseCustomSites(
-            rawCustom ? JSON.parse(rawCustom) : undefined
-          );
+          const customData = parseCustomSites(rawCustom ? JSON.parse(rawCustom) : undefined);
           setFavoritesData(favData);
           setCustomSites(customData);
         } catch {
@@ -368,8 +363,8 @@ export default function App() {
     return (
       <div className="p-4 space-y-4" aria-label="로딩">
         <Skeleton className="h-6 w-1/3" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w/full" />
+        <Skeleton className="h-4 w/full" />
       </div>
     );
   }
@@ -416,6 +411,13 @@ export default function App() {
       }
     >
       <>
+        {/* 저장 중 배지 */}
+        {saving && (
+          <div className="fixed right-3 top-3 z-[10001] rounded bg-black/80 px-3 py-1 text-xs text-white">
+            저장 중...
+          </div>
+        )}
+
         <Header
           onContactClick={() => setIsContactModalOpen(true)}
           onHomepageClick={handleHomepageClick}
@@ -468,7 +470,6 @@ export default function App() {
                 {!SHOW_ONLY_CATEGORIES && (
                   <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
                 )}
-
 
                 {!SHOW_ONLY_CATEGORIES && showOnboarding && (
                   <Onboarding

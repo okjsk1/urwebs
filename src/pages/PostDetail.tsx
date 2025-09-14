@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useUserRole from "../hooks/useUserRole";
 import {
@@ -10,7 +10,7 @@ import {
 } from "../libs/posts.repo";
 import BoardLayout from "../components/BoardLayout";
 import { toast } from "sonner";
-import { PinIcon } from "lucide-react@0.487.0";
+import { PinIcon } from "lucide-react";
 
 interface Comment {
   id: number;
@@ -30,7 +30,7 @@ export default function PostDetail() {
     {
       id: 1,
       author: "익명",
-      content: "첫 댓글입니다.",
+      content: "첫 댓글입니다!",
       createdAt: new Date(),
     },
   ]);
@@ -57,7 +57,7 @@ export default function PostDetail() {
 
   const handleDelete = async () => {
     if (!post) return;
-    if (confirm("삭제하시겠습니까?")) {
+    if (confirm("정말 삭제하시겠습니까?")) {
       try {
         await deletePost(post.id);
         toast.success("게시글이 삭제되었습니다.");
@@ -138,10 +138,11 @@ export default function PostDetail() {
           placeholder="댓글을 입력하세요"
         />
         <button
+          type="button"
           className="mt-2 px-3 py-1 bg-blue-500 text-white rounded"
           onClick={addComment}
         >
-          댓글 달기
+          댓글 추가
         </button>
       </section>
       <div className="mt-8 space-y-2">
@@ -151,7 +152,7 @@ export default function PostDetail() {
               href={`/post/${prevPost.id}`}
               className="text-blue-500 hover:underline"
             >
-              ← 이전 글: {prevPost.title}
+              이전 글: {prevPost.title}
             </a>
           ) : (
             <span />
@@ -161,7 +162,7 @@ export default function PostDetail() {
               href={`/post/${nextPost.id}`}
               className="text-blue-500 hover:underline"
             >
-              다음 글: {nextPost.title} →
+              다음 글: {nextPost.title}
             </a>
           ) : (
             <span />
@@ -179,4 +180,3 @@ export default function PostDetail() {
     </BoardLayout>
   );
 }
-

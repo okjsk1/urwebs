@@ -132,6 +132,7 @@ function SimpleFolder({
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(folder.name);
   const [isOpen, setIsOpen] = useState(false);
+  const isFavorites = folder.id === 'favorites';
 
   const handleRename = () => {
     const value = editName.trim();
@@ -187,7 +188,7 @@ function SimpleFolder({
       <div className="controls w-full flex items-center gap-2 mb-2">
         <span className="text-sm">📁</span>
 
-        {isEditing ? (
+        {isEditing && !isFavorites ? (
           <div className="flex items-center gap-2 flex-1">
             <input
               type="text"
@@ -203,10 +204,14 @@ function SimpleFolder({
           <h3
             className="title text-gray-800 cursor-pointer hover:text-blue-600 transition-colors flex-1 dark:text-gray-200 dark:hover:text-blue-400"
             onClick={() => setIsOpen((v) => !v)}
-            onDoubleClick={() => {
-              setIsEditing(true);
-              setEditName(folder.name);
-            }}
+            onDoubleClick={
+              isFavorites
+                ? undefined
+                : () => {
+                    setIsEditing(true);
+                    setEditName(folder.name);
+                  }
+            }
             title="클릭하여 펼침/접힘, 더블클릭으로 이름 변경"
           >
             {folder.name}
@@ -233,14 +238,16 @@ function SimpleFolder({
           </select>
         </label>
 
-        <button
-          onClick={() => onDeleteFolder(folder.id)}
-          className="text-red-500 hover:text-red-700 text-xs"
-          type="button"
-          aria-label="폴더 삭제"
-        >
-          ✕
-        </button>
+        {!isFavorites && (
+          <button
+            onClick={() => onDeleteFolder(folder.id)}
+            className="text-red-500 hover:text-red-700 text-xs"
+            type="button"
+            aria-label="폴더 삭제"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {isOpen && <div className="w-full flex flex-col gap-1">{children}</div>}
@@ -439,11 +446,13 @@ export function FavoritesSectionNew({
         setDraggedId(null);
         return;
       }
-      const newItem = { id: categoryWebsiteId, parentId: targetId || null };
+      const newItem = {
+        id: categoryWebsiteId,
+        parentId: targetId || 'favorites',
+      };
       const newData = {
         ...favoritesData,
         items: [newItem, ...favoritesData.items],
-        layout: [`item:${categoryWebsiteId}`, ...(favoritesData.layout || [])],
       };
       onUpdateFavorites(newData);
       toast.success('즐겨찾기에 추가되었습니다.');
@@ -463,7 +472,9 @@ export function FavoritesSectionNew({
     toFolderId: string | null
   ) => {
     const newItems = favoritesData.items.map((item) =>
-      item.id === websiteId ? { ...item, parentId: toFolderId } : item
+      item.id === websiteId
+        ? { ...item, parentId: toFolderId || 'favorites' }
+        : item
     );
     onUpdateFavorites({ ...favoritesData, items: newItems });
   };
@@ -535,14 +546,10 @@ export function FavoritesSectionNew({
   const deleteFolder = (folderId: string) => {
     const newData = { ...favoritesData };
     newData.items = newData.items.map((item) =>
-      item.parentId === folderId ? { ...item, parentId: null } : item
+      item.parentId === folderId ? { ...item, parentId: 'favorites' } : item
     );
     newData.folders = (newData.folders || []).filter((f) => f.id !== folderId);
     onUpdateFavorites(newData);
-  };
-
-  const changeItemsSortMode = (mode: SortMode) => {
-    onUpdateFavorites({ ...favoritesData, itemsSortMode: mode });
   };
 
   const changeFolderSortMode = (folderId: string, mode: SortMode) => {
@@ -572,17 +579,27 @@ export function FavoritesSectionNew({
   }, []);
 
   const freqMap = buildFrequencyMap(); // [sorting]
-
-  const rootItems = sortByMode(
-    Array.isArray(favoritesData.items)
-      ? favoritesData.items
-          .filter((i) => !i.parentId)
-          .map((i) => i.id)
-      : [],
-    favoritesData.itemsSortMode || 'manual',
-    freqMap,
-    titleMap,
-  ); // [sorting]
+  const folders = useMemo(() => {
+    const arr = Array.isArray(favoritesData.folders)
+      ? favoritesData.folders.filter(Boolean)
+      : [];
+    const seen = new Set<string>();
+    const unique: FavoriteFolder[] = [];
+    arr.forEach((f) => {
+      if (f && !seen.has(f.id)) {
+        seen.add(f.id);
+        unique.push(f);
+      }
+    });
+    const idx = unique.findIndex((f) => f.id === 'favorites');
+    if (idx > 0) {
+      const [fav] = unique.splice(idx, 1);
+      unique.unshift(fav);
+    } else if (idx === -1) {
+      unique.unshift({ id: 'favorites', name: '즐겨찾기' });
+    }
+    return unique;
+  }, [favoritesData.folders]);
 
   const handleGuideShow = () => {
     if (onShowGuide) onShowGuide();
@@ -696,7 +713,7 @@ export function FavoritesSectionNew({
             <h3 className="font-medium text-gray-700 text-sm mb-3 dark:text-gray-200">
               🔧 위젯
             </h3>
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
               {(favoritesData.widgets || [])
                 .filter((w) => w && w.id)
                 .map((w) => (
@@ -706,97 +723,59 @@ export function FavoritesSectionNew({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
-          {/* 즐겨찾기 리스트 */}
-          <div className="space-y-2 lg:space-y-3 md:col-span-1 xl:col-span-1">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
-                📌 즐겨찾기
-              </h3>
-              {/* [sorting] */}
-              <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-200">
-                정렬:
-                <select
-                  value={favoritesData.itemsSortMode || 'manual'}
-                  onChange={(e) => changeItemsSortMode(e.target.value as SortMode)}
-                  className="border rounded px-1 py-0.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                  aria-label="정렬 모드 선택"
+        {/* 폴더들 */}
+        <div className="space-y-2 lg:space-y-3">
+          <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
+            📂 폴더
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 cards-6cols">
+            {folders.map((folder) => {
+              const folderItems = Array.from(
+                new Set(
+                  favoritesData.items
+                    .filter((i) => i.parentId === folder.id)
+                    .map((i) => i.id)
+                )
+              );
+              const sortedItems = sortByMode(
+                folderItems,
+                folder.sortMode || 'manual',
+                freqMap,
+                titleMap,
+              ); // [sorting]
+              return (
+                <SimpleFolder
+                  key={folder.id}
+                  folder={folder}
+                  onRenameFolder={renameFolder}
+                  onDeleteFolder={deleteFolder}
+                  onDropWebsite={moveWebsiteToFolder}
+                  onDragOverFolder={(e) => handleDragOver(e, folder.id)}
+                  onDragLeaveFolder={handleDragLeave}
+                  isDraggingOver={dragOverId === folder.id}
+                  onChangeSortMode={changeFolderSortMode} // [sorting]
                 >
-                  <option value="manual">수동</option>
-                  <option value="alpha">이름순</option>
-                  <option value="freq">접속순</option>
-                </select>
-              </label>
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              {rootItems.map((id) => (
-                <SimpleWebsite
-                  key={id}
-                  websiteId={id}
-                  onRemove={removeFromFavorites}
-                  onDragStart={(e) => handleDragStart(e, id)}
-                  onDragOver={(e) => handleDragOver(e, id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, null)}
-                  isDraggingOver={dragOverId === id}
-                />
-              ))}
-            </div>
-          </div>
+                  {sortedItems.map((id) => (
+                    <SimpleWebsite
+                      key={id}
+                      websiteId={id}
+                      onRemove={removeFromFavorites}
+                      onDragStart={(e) => handleDragStart(e, id)}
+                      onDragOver={(e) => handleDragOver(e, id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, folder.id)}
+                      isDraggingOver={dragOverId === id}
+                    />
+                  ))}
 
-          {/* 폴더들 */}
-          <div className="space-y-2 lg:space-y-3 md:col-span-5 xl:col-span-5">
-            <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
-              📂 폴더
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 cards-6cols">
-              {Array.isArray(favoritesData.folders) &&
-                favoritesData.folders
-                  .filter(Boolean)
-                  .map((folder) => {
-                    const folderItems = favoritesData.items
-                      .filter((i) => i.parentId === folder.id)
-                      .map((i) => i.id);
-                    const sortedItems = sortByMode(
-                      folderItems,
-                      folder.sortMode || 'manual',
-                      freqMap,
-                      titleMap,
-                    ); // [sorting]
-                    return (
-                      <SimpleFolder
-                        key={folder.id}
-                        folder={folder}
-                        onRenameFolder={renameFolder}
-                        onDeleteFolder={deleteFolder}
-                        onDropWebsite={moveWebsiteToFolder}
-                        onDragOverFolder={(e) => handleDragOver(e, folder.id)}
-                        onDragLeaveFolder={handleDragLeave}
-                        isDraggingOver={dragOverId === folder.id}
-                        onChangeSortMode={changeFolderSortMode} // [sorting]
-                      >
-                        {sortedItems.map((id) => (
-                          <SimpleWebsite
-                            key={id}
-                            websiteId={id}
-                            onRemove={removeFromFavorites}
-                            onDragStart={(e) => handleDragStart(e, id)}
-                            onDragOver={(e) => handleDragOver(e, id)}
-                            onDragLeave={handleDragLeave}
-                            onDrop={(e) => handleDrop(e, folder.id)}
-                            isDraggingOver={dragOverId === id}
-                          />
-                        ))}
-
-                        {sortedItems.length === 0 && (
-                          <p className="text-xs text-gray-500 italic dark:text-gray-400">
-                            폴더가 비어있습니다
-                          </p>
-                        )}
-                      </SimpleFolder>
-                    );
-                  })}
-            </div>
+                  {sortedItems.length === 0 && (
+                    <p className="text-xs text-gray-500 italic dark:text-gray-400">
+                      폴더가 비어있습니다
+                    </p>
+                  )}
+                </SimpleFolder>
+              );
+            })}
           </div>
         </div>
       </div>
