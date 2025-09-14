@@ -1,4 +1,7 @@
-import { FavoritesData, FavoriteItem } from "../types";
+import { FavoritesData, FavoriteItem, FavoriteFolder } from "../types";
+
+const FAVORITES_FOLDER_ID = "favorites";
+const FAVORITES_FOLDER_NAME = "즐겨찾기";
 
 export function toggleFavorite(
   data: FavoritesData,
@@ -11,19 +14,30 @@ export function toggleFavorite(
     layout: data.layout ? [...data.layout] : [],
   };
 
+  // Ensure favorites folder exists and is first in layout
+  if (!newData.folders.some((f) => f.id === FAVORITES_FOLDER_ID)) {
+    newData.folders.unshift({
+      id: FAVORITES_FOLDER_ID,
+      name: FAVORITES_FOLDER_NAME,
+    } as FavoriteFolder);
+  }
+  const folderKey = `folder:${FAVORITES_FOLDER_ID}`;
+  newData.layout = [
+    folderKey,
+    ...(newData.layout || []).filter((e) => e !== folderKey && !e.startsWith("item:")),
+  ];
+
   const index = newData.items.findIndex((i) => i.id === websiteId);
   const isFavorited = index !== -1;
 
   if (isFavorited) {
     newData.items = newData.items.filter((i) => i.id !== websiteId);
-    newData.layout = (newData.layout || []).filter(
-      (entry) => entry !== `item:${websiteId}`
-    );
   } else {
-    const newItem: FavoriteItem = { id: websiteId, parentId: null };
-    // Insert the new favorite at the beginning of items and layout
+    const newItem: FavoriteItem = {
+      id: websiteId,
+      parentId: FAVORITES_FOLDER_ID,
+    };
     newData.items = [newItem, ...newData.items];
-    newData.layout = [`item:${websiteId}`, ...(newData.layout || [])];
   }
 
   return newData;

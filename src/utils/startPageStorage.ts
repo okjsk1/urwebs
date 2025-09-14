@@ -2,6 +2,8 @@ import { FavoritesData, Widget, SortMode, FavoriteItem } from '../types';
 import starter from '../data/starter.json';
 
 const DEFAULT_STORAGE_KEY = 'favorites:default';
+const FAVORITES_FOLDER_ID = 'favorites';
+const FAVORITES_FOLDER_NAME = '즐겨찾기';
 
 interface StarterFolder {
   id: string;
@@ -22,11 +24,19 @@ const starterData = starter as StarterRaw;
 export function loadFavoritesData(ns = DEFAULT_STORAGE_KEY): FavoritesData {
   try {
     const raw = localStorage.getItem(ns);
-    if (!raw) return { items: [], folders: [], widgets: [], layout: [] };
+    if (!raw)
+      return {
+        items: [],
+        folders: [
+          { id: FAVORITES_FOLDER_ID, name: FAVORITES_FOLDER_NAME },
+        ],
+        widgets: [],
+        layout: [`folder:${FAVORITES_FOLDER_ID}`],
+      };
     const parsed = JSON.parse(raw);
 
-    const items: FavoriteItem[] = [];
-    const folders = Array.isArray(parsed.folders)
+    let items: FavoriteItem[] = [];
+    let folders = Array.isArray(parsed.folders)
       ? parsed.folders.map((f: any) => {
           const { id, name, color, sortMode } = f;
           if (Array.isArray(f.items)) {
@@ -47,12 +57,37 @@ export function loadFavoritesData(ns = DEFAULT_STORAGE_KEY): FavoritesData {
     }
 
     const widgets: Widget[] = Array.isArray(parsed.widgets) ? parsed.widgets : [];
-    const layout: string[] = Array.isArray(parsed.layout) ? parsed.layout : [];
+    let layout: string[] = Array.isArray(parsed.layout) ? parsed.layout : [];
+
+    // Ensure favorites folder exists and is placed first
+    if (!folders.some((f) => f.id === FAVORITES_FOLDER_ID)) {
+      folders = [
+        { id: FAVORITES_FOLDER_ID, name: FAVORITES_FOLDER_NAME },
+        ...folders,
+      ];
+    }
+    // Move any root items into the favorites folder
+    items = items.map((it) => ({
+      ...it,
+      parentId: it.parentId ?? FAVORITES_FOLDER_ID,
+    }));
+
+    // Remove item entries from layout and ensure favorites folder is first
+    layout = layout.filter((e) => !e.startsWith('item:'));
+    layout = [
+      `folder:${FAVORITES_FOLDER_ID}`,
+      ...layout.filter((e) => e !== `folder:${FAVORITES_FOLDER_ID}`),
+    ];
 
     return { items, folders, widgets, layout };
   } catch (e) {
     console.error('Failed to load favorites data', e);
-    return { items: [], folders: [], widgets: [], layout: [] };
+    return {
+      items: [],
+      folders: [{ id: FAVORITES_FOLDER_ID, name: FAVORITES_FOLDER_NAME }],
+      widgets: [],
+      layout: [`folder:${FAVORITES_FOLDER_ID}`],
+    };
   }
 }
 
@@ -70,16 +105,29 @@ export function getStarterData(): FavoritesData {
     type: w.type,
   }));
 
-  const folders = (starterData.folders || []).map((f) => ({
+  let folders = (starterData.folders || []).map((f) => ({
     id: f.id,
     name: f.name,
     color: f.color,
     sortMode: f.sortMode,
   }));
 
+  // Ensure favorites folder exists first
+  if (!folders.some((f) => f.id === FAVORITES_FOLDER_ID)) {
+    folders = [
+      { id: FAVORITES_FOLDER_ID, name: FAVORITES_FOLDER_NAME },
+      ...folders,
+    ];
+  } else {
+    folders = [
+      folders.find((f) => f.id === FAVORITES_FOLDER_ID)!,
+      ...folders.filter((f) => f.id !== FAVORITES_FOLDER_ID),
+    ];
+  }
+
   const items: FavoriteItem[] = [];
   (starterData.favorites || []).forEach((id) =>
-    items.push({ id, parentId: null })
+    items.push({ id, parentId: FAVORITES_FOLDER_ID })
   );
   (starterData.folders || []).forEach((f) => {
     (f.items || []).forEach((wid) =>
@@ -88,8 +136,10 @@ export function getStarterData(): FavoritesData {
   });
 
   const layout = [
-    ...items.filter((i) => !i.parentId).map((i) => `item:${i.id}`),
-    ...folders.map((f) => `folder:${f.id}`),
+    `folder:${FAVORITES_FOLDER_ID}`,
+    ...folders
+      .filter((f) => f.id !== FAVORITES_FOLDER_ID)
+      .map((f) => `folder:${f.id}`),
     ...widgets.map((w) => `widget:${w.id}`),
   ];
 
