@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react@0.487.0";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "./utils";
 
@@ -65,7 +65,7 @@ function Calendar({
     months: "flex flex-col gap-1",
     caption: "flex items-center justify-between mb-2",
     head_cell:
-      "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
+      "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem] text-center",
     cell: "w-8 h-8 text-center",
     day: "w-8 h-8 p-0 text-sm rounded hover:bg-accent",
     ...classNames,
@@ -77,6 +77,7 @@ function Calendar({
         <button
           type="button"
           onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
+          aria-label="이전 달"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -86,10 +87,12 @@ function Calendar({
         <button
           type="button"
           onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
+          aria-label="다음 달"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
+
       <div className={cls.months}>
         <div className="grid grid-cols-7 gap-1">
           {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
@@ -98,6 +101,7 @@ function Calendar({
             </div>
           ))}
         </div>
+
         {weeks.map((week, i) => (
           <div key={i} className="grid grid-cols-7 gap-1">
             {week.map((day, j) => (
@@ -123,4 +127,3 @@ function Calendar({
 }
 
 export { Calendar };
-

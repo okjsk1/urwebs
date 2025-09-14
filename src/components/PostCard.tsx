@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { PinIcon } from "lucide-react@0.487.0";
+﻿import { Link } from "react-router-dom";
+import { PinIcon } from "lucide-react";
 import { Post } from "../libs/posts.repo";
 
 interface Props {
@@ -23,12 +23,13 @@ export default function PostCard({ post, index }: Props) {
         {post.title}
       </Link>
       <div className="mt-1 text-sm text-gray-500 flex flex-wrap gap-2">
-        <span>{isNotice ? "공지" : `#${index}`}</span>
+        <span>{isNotice ? "怨듭?" : `#${index}`}</span>
         <span>{post.authorName}</span>
         <span>{date.toLocaleDateString()}</span>
-        <span>조회 {post.views ?? 0}</span>
+        <span>議고쉶 {post.views ?? 0}</span>
       </div>
     </div>
   );
 }
+
 

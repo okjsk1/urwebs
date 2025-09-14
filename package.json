@@ -2,7 +2,6 @@
   "name": "urwebs",
   "version": "0.1.0",
   "private": true,
-
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,7 +11,6 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix"
   },
-
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
@@ -60,14 +58,15 @@
     "tailwind-merge": "*",
     "vaul": "^1.1.2"
   },
-
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
-    "eslint": "^9.0.0",
-    "eslint-plugin-react": "^7.34.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
+    "@eslint/js": "^9.35.0",
+    "@vitejs/plugin-react-swc": "^4.0.1",
+    "eslint": "^9.35.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^15.0.0",
-    "typescript-eslint": "^8.0.0",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.43.0",
     "vitest": "^2.0.0"
   }
 }
