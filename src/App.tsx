@@ -13,7 +13,6 @@ import { Header } from "./components/Header";
 import { LoginModal } from "./components/LoginModal";
 import { SignupModal } from "./components/SignupModal";
 import { FloatingContact } from "./components/FloatingContact";
-import { FavoritesSectionNew } from "./components/FavoritesSectionNew";
 import { CategoryCard } from "./components/CategoryCard";
 import { ContactModal } from "./components/ContactModal";
 import { Footer } from "./components/Footer";
@@ -33,7 +32,6 @@ import { parseFavoritesData, parseCustomSites } from "./utils/validation";
 import { getStarterData } from "./utils/startPageStorage";
 import { Skeleton } from "./components/ui/skeleton";
 import { useUIMode } from "./hooks/useUIMode";
-import { hasFavorites } from "./utils/fav";
 import { validateCategoryKeys } from "./utils/validateCategories";
 
 // ---------------------------
@@ -97,20 +95,9 @@ export default function App() {
 
   // UI 모드(discovery/collect)
   const { uiMode, setUIMode } = useUIMode(user);
-  const hasFav = hasFavorites(favoritesData.folders, favoritesData.items);
-
-  // ✅ 즐겨찾기 패널 오픈 상태 (오버레이)
-  const [isFavOpen, setIsFavOpen] = useState(false);
 
   useEffect(() => {
     setupGuestMigration();
-  }, []);
-
-  // ESC 로 패널 닫기
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsFavOpen(false); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   // ---------------------------
@@ -482,18 +469,6 @@ export default function App() {
                   />
                 )}
 
-                {/* 즐겨찾기 & 폴더: 즐겨찾기가 있을 때만 상단에 표시 */}
-                {hasFav && (
-                  <FavoritesSectionNew
-                    favoritesData={favoritesData}
-                    onUpdateFavorites={setFavoritesData}
-                    onShowGuide={() => setShowOnboarding(true)}
-                    onSaveData={() => toast.success("설정이 저장되었습니다!")}
-                    onRequestLogin={() => setIsLoginModalOpen(true)}
-                    isLoggedIn={!!user}
-                  />
-                )}
-
                 {/* ✅ 메인: 카테고리 그리드 (항상 첫 화면에 보이게) */}
                 <section className="mt-6 w-full overflow-x-hidden">
                   <div className="mx-auto w-full max-w-[1180px] px-4 sm:px-5 lg:px-6">
@@ -515,75 +490,6 @@ export default function App() {
                 </section>
               </div>
             </div>
-
-            {/* ✅ 화면 오른쪽 위에 항상 떠있는 "즐겨찾기" 버튼 (클릭 가능) */}
-            <button
-              type="button"
-              onClick={() => setIsFavOpen(true)}
-              className="fixed right-4 top-20 z-50 px-4 py-2 rounded-md border bg-white shadow hover:shadow-lg hover:ring-4 focus:outline-hidden"
-              title="즐겨찾기 열기"
-            >
-              즐겨찾기
-            </button>
-
-            {/* ✅ 즐겨찾기 오버레이 패널 (레이아웃을 밀지 않음) */}
-            {isFavOpen && (
-              <>
-                {/* 백드롭 */}
-                <div
-                  className="fixed inset-0 bg-black/50 z-[9999]"
-                  onClick={() => setIsFavOpen(false)}
-                  aria-hidden
-                />
-                {/* 패널 (상단 고정) */}
-                <div
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="즐겨찾기와 폴더"
-                  className="fixed left-0 right-0 top-0 z-[10000] bg-white dark:bg-black border-b shadow-xl"
-                >
-                  {/* 헤더 */}
-                  <div className="h-12 px-4 flex items-center justify-between border-b">
-                    <strong className="text-sm">즐겨찾기 & 폴더</strong>
-                    <div className="flex gap-2">
-                      {/* 로그인 필요 시 안내 */}
-                      {!user && (
-                        <button
-                          className="px-3 py-1 rounded border hover:bg-gray-50"
-                          onClick={() => setIsLoginModalOpen(true)}
-                        >
-                          로그인
-                        </button>
-                      )}
-                      <button
-                        className="px-3 py-1 rounded border hover:bg-gray-50"
-                        onClick={() => setIsFavOpen(false)}
-                      >
-                        닫기 (Esc)
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 내용: FavoritesSectionNew를 그대로 삽입 (내부 스크롤) */}
-                  <div className="max-h-[300px] overflow-auto p-4 max-w-[1200px] mx-auto">
-                    {hasFav ? (
-                      <FavoritesSectionNew
-                        favoritesData={favoritesData}
-                        onUpdateFavorites={setFavoritesData}
-                        onShowGuide={() => setShowOnboarding(true)}
-                        onSaveData={() => toast.success("설정이 저장되었습니다!")}
-                        onRequestLogin={() => setIsLoginModalOpen(true)}
-                        isLoggedIn={!!user}
-                      />
-                    ) : (
-                      <div className="text-sm text-gray-600">
-                        아직 즐겨찾기가 없습니다. 사이트 카드의 ★ 아이콘을 눌러 추가해보세요.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
 
             {/* startpage, contact, add-site, footer 는 SHOW_ONLY_CATEGORIES 일 땐 계속 숨김 */}
             {!SHOW_ONLY_CATEGORIES && currentView === "startpage" && (
