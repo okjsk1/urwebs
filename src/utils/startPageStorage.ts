@@ -48,6 +48,10 @@ export function loadFavoritesData(ns = DEFAULT_STORAGE_KEY): FavoritesData {
         })
       : [];
 
+    folders = folders.filter(
+      (f, idx, self) => self.findIndex((x) => x.id === f.id) === idx
+    );
+
     if (Array.isArray(parsed.items)) {
       parsed.items.forEach((it: any) => {
         if (typeof it === 'string') items.push({ id: it, parentId: null });
@@ -55,6 +59,13 @@ export function loadFavoritesData(ns = DEFAULT_STORAGE_KEY): FavoritesData {
           items.push({ id: it.id, parentId: it.parentId ?? null });
       });
     }
+
+    const seen = new Set<string>();
+    items = items.filter((it) => {
+      if (seen.has(it.id)) return false;
+      seen.add(it.id);
+      return true;
+    });
 
     const widgets: Widget[] = Array.isArray(parsed.widgets) ? parsed.widgets : [];
     let layout: string[] = Array.isArray(parsed.layout) ? parsed.layout : [];

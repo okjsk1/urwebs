@@ -583,14 +583,22 @@ export function FavoritesSectionNew({
     const arr = Array.isArray(favoritesData.folders)
       ? favoritesData.folders.filter(Boolean)
       : [];
-    const idx = arr.findIndex((f) => f.id === 'favorites');
+    const seen = new Set<string>();
+    const unique: FavoriteFolder[] = [];
+    arr.forEach((f) => {
+      if (f && !seen.has(f.id)) {
+        seen.add(f.id);
+        unique.push(f);
+      }
+    });
+    const idx = unique.findIndex((f) => f.id === 'favorites');
     if (idx > 0) {
-      const [fav] = arr.splice(idx, 1);
-      arr.unshift(fav);
+      const [fav] = unique.splice(idx, 1);
+      unique.unshift(fav);
     } else if (idx === -1) {
-      arr.unshift({ id: 'favorites', name: '즐겨찾기' });
+      unique.unshift({ id: 'favorites', name: '즐겨찾기' });
     }
-    return arr;
+    return unique;
   }, [favoritesData.folders]);
 
   const handleGuideShow = () => {
@@ -722,9 +730,13 @@ export function FavoritesSectionNew({
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 cards-6cols">
             {folders.map((folder) => {
-              const folderItems = favoritesData.items
-                .filter((i) => i.parentId === folder.id)
-                .map((i) => i.id);
+              const folderItems = Array.from(
+                new Set(
+                  favoritesData.items
+                    .filter((i) => i.parentId === folder.id)
+                    .map((i) => i.id)
+                )
+              );
               const sortedItems = sortByMode(
                 folderItems,
                 folder.sortMode || 'manual',

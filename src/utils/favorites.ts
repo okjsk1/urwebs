@@ -40,5 +40,9 @@ export function toggleFavorite(
     newData.items = [newItem, ...newData.items];
   }
 
+  newData.items = newData.items.filter(
+    (item, idx, self) => self.findIndex((i) => i.id === item.id) === idx
+  );
+
   return newData;
 }
