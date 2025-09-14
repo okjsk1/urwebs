@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { FavoritesSectionNew } from "@/components/FavoritesSectionNew";
 import { CategoryCard } from "@/components/CategoryCard";
 import type { FavoritesData, Website, CategoryConfigMap } from "@/types";
 import { loadFavoritesData, saveFavoritesData } from "@/utils/startPageStorage";
@@ -69,12 +68,6 @@ export function CategoryPageLayout({
   return (
     <div className="p-4">
       <div className="mx-auto max-w-[1180px]">
-        {favoritesData.items.length > 0 && (
-          <FavoritesSectionNew
-            favoritesData={favoritesData}
-            onUpdateFavorites={setFavoritesData}
-          />
-        )}
         {categoryTitle && (
           <h2 className="mt-6 mb-4 text-xl font-bold">{categoryTitle}</h2>
         )}
