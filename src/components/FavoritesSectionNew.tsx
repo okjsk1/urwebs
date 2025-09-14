@@ -388,6 +388,7 @@ export function FavoritesSectionNew({
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [isTrayOver, setIsTrayOver] = useState(false);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedId(id);
@@ -456,6 +457,18 @@ export function FavoritesSectionNew({
       moveWebsiteToFolder(favoriteWebsiteId, targetId || null);
       setDraggedId(null);
     }
+  };
+
+  const handleTrayDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsTrayOver(true);
+  };
+
+  const handleTrayDragLeave = () => setIsTrayOver(false);
+
+  const handleTrayDrop = (e: React.DragEvent) => {
+    setIsTrayOver(false);
+    handleDrop(e, null);
   };
 
   const moveWebsiteToFolder = (
@@ -696,7 +709,7 @@ export function FavoritesSectionNew({
             <h3 className="font-medium text-gray-700 text-sm mb-3 dark:text-gray-200">
               🔧 위젯
             </h3>
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
               {(favoritesData.widgets || [])
                 .filter((w) => w && w.id)
                 .map((w) => (
@@ -706,28 +719,32 @@ export function FavoritesSectionNew({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-x-4 gap-y-6">
-          {/* 즐겨찾기 리스트 */}
-          <div className="space-y-2 lg:space-y-3 md:col-span-1 xl:col-span-1">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
-                📌 즐겨찾기
-              </h3>
-              {/* [sorting] */}
-              <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-200">
-                정렬:
-                <select
-                  value={favoritesData.itemsSortMode || 'manual'}
-                  onChange={(e) => changeItemsSortMode(e.target.value as SortMode)}
-                  className="border rounded px-1 py-0.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                  aria-label="정렬 모드 선택"
-                >
-                  <option value="manual">수동</option>
-                  <option value="alpha">이름순</option>
-                  <option value="freq">접속순</option>
-                </select>
-              </label>
-            </div>
+        <div
+          className={`mb-6 p-3 border rounded-lg ${isTrayOver ? 'urwebs-drop-zone' : ''}`}
+          onDragOver={handleTrayDragOver}
+          onDragLeave={handleTrayDragLeave}
+          onDrop={handleTrayDrop}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
+              📌 즐겨찾기
+            </h3>
+            {/* [sorting] */}
+            <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-200">
+              정렬:
+              <select
+                value={favoritesData.itemsSortMode || 'manual'}
+                onChange={(e) => changeItemsSortMode(e.target.value as SortMode)}
+                className="border rounded px-1 py-0.5 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                aria-label="정렬 모드 선택"
+              >
+                <option value="manual">수동</option>
+                <option value="alpha">이름순</option>
+                <option value="freq">접속순</option>
+              </select>
+            </label>
+          </div>
+          {rootItems.length > 0 ? (
             <div className="grid grid-cols-1 gap-2">
               {rootItems.map((id) => (
                 <SimpleWebsite
@@ -742,61 +759,65 @@ export function FavoritesSectionNew({
                 />
               ))}
             </div>
-          </div>
+          ) : (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              아직 즐겨찾기가 없습니다. 사이트 카드의 ★ 아이콘을 눌러 추가해보세요.
+            </p>
+          )}
+        </div>
 
-          {/* 폴더들 */}
-          <div className="space-y-2 lg:space-y-3 md:col-span-5 xl:col-span-5">
-            <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
-              📂 폴더
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 cards-6cols">
-              {Array.isArray(favoritesData.folders) &&
-                favoritesData.folders
-                  .filter(Boolean)
-                  .map((folder) => {
-                    const folderItems = favoritesData.items
-                      .filter((i) => i.parentId === folder.id)
-                      .map((i) => i.id);
-                    const sortedItems = sortByMode(
-                      folderItems,
-                      folder.sortMode || 'manual',
-                      freqMap,
-                      titleMap,
-                    ); // [sorting]
-                    return (
-                      <SimpleFolder
-                        key={folder.id}
-                        folder={folder}
-                        onRenameFolder={renameFolder}
-                        onDeleteFolder={deleteFolder}
-                        onDropWebsite={moveWebsiteToFolder}
-                        onDragOverFolder={(e) => handleDragOver(e, folder.id)}
-                        onDragLeaveFolder={handleDragLeave}
-                        isDraggingOver={dragOverId === folder.id}
-                        onChangeSortMode={changeFolderSortMode} // [sorting]
-                      >
-                        {sortedItems.map((id) => (
-                          <SimpleWebsite
-                            key={id}
-                            websiteId={id}
-                            onRemove={removeFromFavorites}
-                            onDragStart={(e) => handleDragStart(e, id)}
-                            onDragOver={(e) => handleDragOver(e, id)}
-                            onDragLeave={handleDragLeave}
-                            onDrop={(e) => handleDrop(e, folder.id)}
-                            isDraggingOver={dragOverId === id}
-                          />
-                        ))}
+        {/* 폴더들 */}
+        <div className="space-y-2 lg:space-y-3">
+          <h3 className="font-medium text-gray-700 text-sm dark:text-gray-200">
+            📂 폴더
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 cards-6cols">
+            {Array.isArray(favoritesData.folders) &&
+              favoritesData.folders
+                .filter(Boolean)
+                .map((folder) => {
+                  const folderItems = favoritesData.items
+                    .filter((i) => i.parentId === folder.id)
+                    .map((i) => i.id);
+                  const sortedItems = sortByMode(
+                    folderItems,
+                    folder.sortMode || 'manual',
+                    freqMap,
+                    titleMap,
+                  ); // [sorting]
+                  return (
+                    <SimpleFolder
+                      key={folder.id}
+                      folder={folder}
+                      onRenameFolder={renameFolder}
+                      onDeleteFolder={deleteFolder}
+                      onDropWebsite={moveWebsiteToFolder}
+                      onDragOverFolder={(e) => handleDragOver(e, folder.id)}
+                      onDragLeaveFolder={handleDragLeave}
+                      isDraggingOver={dragOverId === folder.id}
+                      onChangeSortMode={changeFolderSortMode} // [sorting]
+                    >
+                      {sortedItems.map((id) => (
+                        <SimpleWebsite
+                          key={id}
+                          websiteId={id}
+                          onRemove={removeFromFavorites}
+                          onDragStart={(e) => handleDragStart(e, id)}
+                          onDragOver={(e) => handleDragOver(e, id)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, folder.id)}
+                          isDraggingOver={dragOverId === id}
+                        />
+                      ))}
 
-                        {sortedItems.length === 0 && (
-                          <p className="text-xs text-gray-500 italic dark:text-gray-400">
-                            폴더가 비어있습니다
-                          </p>
-                        )}
-                      </SimpleFolder>
-                    );
-                  })}
-            </div>
+                      {sortedItems.length === 0 && (
+                        <p className="text-xs text-gray-500 italic dark:text-gray-400">
+                          폴더가 비어있습니다
+                        </p>
+                      )}
+                    </SimpleFolder>
+                  );
+                })}
           </div>
         </div>
       </div>
