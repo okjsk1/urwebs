@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Website, CategoryConfig } from "../types";
 import { WebsiteItem } from "./WebsiteItem";
+import { sortWebsitesByFavorites } from "../utils/favorites";
 
 interface CategoryCardProps {
   category: string;
@@ -19,23 +20,26 @@ export function CategoryCard({
   favorites,
   onToggleFavorite,
 }: CategoryCardProps) {
-  const safeSites = Array.isArray(sites) ? sites : [];
+  const sortedSites = useMemo(
+    () => sortWebsitesByFavorites(Array.isArray(sites) ? sites : [], favorites),
+    [sites, favorites],
+  );
   const [visibleCount, setVisibleCount] = useState(6);
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const loaderRef = useRef<HTMLLIElement | null>(null);
 
   const loadMore = useCallback(() => {
-    if (loading || visibleCount >= safeSites.length) return;
+    if (loading || visibleCount >= sortedSites.length) return;
     setLoading(true);
     setTimeout(() => {
       setVisibleCount((prev) => {
-        if (prev < 10) return Math.min(10, safeSites.length);
-        return Math.min(prev + 10, safeSites.length);
+        if (prev < 10) return Math.min(10, sortedSites.length);
+        return Math.min(prev + 10, sortedSites.length);
       });
       setLoading(false);
     }, 500);
-  }, [loading, visibleCount, safeSites.length]);
+  }, [loading, visibleCount, sortedSites.length]);
 
   useEffect(() => {
     if (!initialized) return;
@@ -57,9 +61,9 @@ export function CategoryCard({
   };
 
   const displaySites = showDescriptions
-    ? safeSites
-    : safeSites.slice(0, visibleCount);
-  const hasMore = visibleCount < safeSites.length;
+    ? sortedSites
+    : sortedSites.slice(0, visibleCount);
+  const hasMore = visibleCount < sortedSites.length;
 
   return (
     <div className="urwebs-category-card h-full w-full min-w-0 rounded-xl border bg-white p-3 lg:p-4 flex flex-col shadow-sm dark:bg-gray-900">
@@ -81,7 +85,7 @@ export function CategoryCard({
       {/* 사이트 목록 영역 */}
       <div className="flex-1 flex flex-col min-h-0 min-w-0 px-3 pb-4">
         <ul className="flex flex-col gap-0.5 overflow-x-hidden overflow-y-auto list-none">
-          {safeSites.length === 0 ? (
+          {sortedSites.length === 0 ? (
             <li className="flex flex-col items-center justify-center py-6 text-gray-500 text-xs">
               <span className="text-base mb-2">📭</span>
               <span>사이트가 없습니다</span>
@@ -116,7 +120,7 @@ export function CategoryCard({
             className="urwebs-more-btn mt-2 px-2 py-1 text-xs self-center"
             aria-label="더보기"
           >
-            ▼ 더보기 ({safeSites.length}개)
+            ▼ 더보기 ({sortedSites.length}개)
           </button>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { FavoritesData, FavoriteItem } from "../types";
+import { FavoritesData, FavoriteItem, Website } from "../types";
 
 export function toggleFavorite(
   data: FavoritesData,
@@ -27,4 +27,17 @@ export function toggleFavorite(
   }
 
   return newData;
+}
+
+export function sortWebsitesByFavorites(
+  websites: Website[],
+  favoriteIds: string[]
+): Website[] {
+  const favoriteSet = new Set(favoriteIds);
+  return [...websites].sort((a, b) => {
+    const aFav = favoriteSet.has(a.id);
+    const bFav = favoriteSet.has(b.id);
+    if (aFav === bFav) return 0;
+    return aFav ? -1 : 1;
+  });
 }

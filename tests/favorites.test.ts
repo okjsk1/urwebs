@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { toggleFavorite } from '../src/utils/favorites';
-import type { FavoritesData } from '../src/types';
+import { toggleFavorite, sortWebsitesByFavorites } from '../src/utils/favorites';
+import type { FavoritesData, Website } from '../src/types';
 
 describe('favorites management', () => {
   it('adds a favorite when not present', () => {
@@ -26,5 +26,15 @@ describe('favorites management', () => {
     };
     const updated = toggleFavorite(data, 'site1');
     expect(updated.items.some((i) => i.id === 'site1')).toBe(false);
+  });
+
+  it('sorts websites so favorites come first', () => {
+    const sites: Website[] = [
+      { id: 'a', category: 'c', title: 'A', url: 'a', description: '' },
+      { id: 'b', category: 'c', title: 'B', url: 'b', description: '' },
+      { id: 'c', category: 'c', title: 'C', url: 'c', description: '' },
+    ];
+    const sorted = sortWebsitesByFavorites(sites, ['b', 'c']);
+    expect(sorted.map((s) => s.id)).toEqual(['b', 'c', 'a']);
   });
 });
