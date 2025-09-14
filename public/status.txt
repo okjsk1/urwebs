@@ -1,5 +1,5 @@
 ok
 app: urwebs
-version: 1570f2b
-buildTime: 2025-09-13T14:49:24.333Z
-commit: feat: show favorites in folders immediately
+version: cc5767c9
+buildTime: 2025-09-14T04:02:51.048Z
+commit: Merge pull request #217 from okjsk1/codex/create-insurancepersonaitems-file-and-update-imports
