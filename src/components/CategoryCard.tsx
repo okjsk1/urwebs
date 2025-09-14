@@ -7,8 +7,6 @@ interface CategoryCardProps {
   sites: Website[];
   config?: CategoryConfig;
   showDescriptions: boolean;
-  favorites: string[];
-  onToggleFavorite: (id: string) => void;
 }
 
 export function CategoryCard({
@@ -16,8 +14,6 @@ export function CategoryCard({
   sites,
   config,
   showDescriptions,
-  favorites,
-  onToggleFavorite,
 }: CategoryCardProps) {
   const safeSites = Array.isArray(sites) ? sites : [];
   const [visibleCount, setVisibleCount] = useState(6);
@@ -93,8 +89,6 @@ export function CategoryCard({
                   key={website.id}
                   website={website}
                   isDraggable={false}
-                  isFavorited={favorites.includes(website.id)}
-                  onToggleFavorite={onToggleFavorite}
                   showDescription={showDescriptions}
                 />
               ))}
