@@ -5204,7 +5204,7 @@ html {
 
 .urwebs-favorite-item {
   background: var(--favorite-item-bg);
-  border: 1.5px solid var(--border-urwebs);
+  border: 2px solid var(--border-urwebs);
   cursor: move;
   border-radius: .5rem;
   transition: box-shadow .15s, border-color .15s;
