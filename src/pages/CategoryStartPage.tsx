@@ -98,7 +98,6 @@ type Props = {
   categorySlug: string;
   title?: string;
   jsonFile?: string;
-  storageNamespace?: string;
   /** 부동산 역할별 페이지 등에서 카테고리 제목 커스터마이즈 */
   categoryTitleOverride?: string;
 };
@@ -107,7 +106,6 @@ export default function CategoryStartPage({
   categorySlug,
   title = '나의 시작페이지',
   jsonFile,
-  storageNamespace = `favorites:${categorySlug}`,
   categoryTitleOverride,
 }: Props) {
 
@@ -261,7 +259,6 @@ export default function CategoryStartPage({
       websites={websites}
       categoryOrder={fallback.categoryOrder}
       categoryConfig={fallback.categoryConfig}
-      storageNamespace={storageNamespace}
       pageTitle={title}
       categoryTitle={categoryTitle}
       loading={loading}

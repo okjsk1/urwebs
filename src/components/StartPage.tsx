@@ -477,8 +477,6 @@ export function StartPage({
                         sites={categorizedWebsites[slug] || []}
                         config={categoryConfig[slug]}
                         showDescriptions={showDescriptions}
-                        favorites={favoritesData.items.map((i) => i.id)}
-                        onToggleFavorite={handleToggleFavorite}
                       />
                     );
                   })}

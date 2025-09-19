@@ -43,7 +43,6 @@ export default function InsurancePersonaPage({ persona: personaProp }: Props = {
       .sort(sortSites);
   }, [bundle]);
 
-  const storageNamespace = `favorites:insurance-${persona}`;
   const categoryTitle = `보험 · ${personaLabels[persona] || persona}`;
 
   if (!bundle) return <div className="p-6">잘못된 경로입니다.</div>;
@@ -53,7 +52,6 @@ export default function InsurancePersonaPage({ persona: personaProp }: Props = {
       websites={websites}
       categoryOrder={["insurance"]}
       categoryConfig={{ insurance: { title: "보험" } }}
-      storageNamespace={storageNamespace}
       pageTitle="나의 시작페이지"
       categoryTitle={categoryTitle}
       showDescriptions={true}
