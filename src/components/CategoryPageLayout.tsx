@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { CategoryCard } from "@/components/CategoryCard";
-import type { FavoritesData, Website, CategoryConfigMap } from "@/types";
-import { loadFavoritesData, saveFavoritesData } from "@/utils/startPageStorage";
-import { toggleFavorite as toggleFavoriteData } from "@/utils/favorites";
+import type { Website, CategoryConfigMap } from "@/types";
 import { validateCategoryKeys } from "@/utils/validateCategories";
 
 interface CategoryPageLayoutProps {
@@ -20,23 +18,13 @@ export function CategoryPageLayout({
   websites,
   categoryOrder,
   categoryConfig,
-  storageNamespace,
+  storageNamespace: _storageNamespace,
   pageTitle,
   categoryTitle,
   showDescriptions = true,
   loading = false,
 }: CategoryPageLayoutProps) {
-  const [favoritesData, setFavoritesData] = useState<FavoritesData>(() =>
-    loadFavoritesData(storageNamespace),
-  );
-
-  useEffect(() => {
-    setFavoritesData(loadFavoritesData(storageNamespace));
-  }, [storageNamespace]);
-
-  useEffect(() => {
-    saveFavoritesData(favoritesData, storageNamespace);
-  }, [favoritesData, storageNamespace]);
+  void _storageNamespace;
 
   useEffect(() => {
     document.title = categoryTitle
@@ -60,11 +48,6 @@ export function CategoryPageLayout({
 
   if (loading) return <div className="p-6">로딩 중…</div>;
 
-  const toggleFavorite = (id: string) => {
-    setFavoritesData((prev) => toggleFavoriteData(prev, id));
-  };
-  const favoriteIds = favoritesData.items.map((i) => i.id);
-
   return (
     <div className="p-4">
       <div className="mx-auto max-w-[1180px]">
@@ -79,8 +62,6 @@ export function CategoryPageLayout({
               sites={categorizedWebsites[slug] || []}
               config={categoryConfig[slug]}
               showDescriptions={showDescriptions}
-              favorites={favoriteIds}
-              onToggleFavorite={toggleFavorite}
             />
           ))}
         </div>
