@@ -1,4 +1,4 @@
-// ⬇⬇ App.tsx 최상단 import 묶음에 추가/유지
+// src/App.tsx
 import { auth, db } from "./firebase";
 import React, { useState, useEffect, useRef } from "react";
 import type { User } from "firebase/auth";
@@ -20,7 +20,6 @@ import { AddWebsiteModal } from "./components/AddWebsiteModal";
 import { StartPage } from "./components/StartPage";
 import { Onboarding } from "./components/Onboarding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import GuideSamples from "./components/GuideSamples";
 import { toast } from "sonner";
 
 import { websites, categoryConfig, categoryOrder } from "./data/websites";
@@ -47,8 +46,7 @@ const LS_KEYS = {
 const EMPTY_FAVORITES: FavoritesData = { items: [], folders: [], widgets: [], layout: [] };
 
 // ✅ 메인엔 카테고리만 보이도록 유지
-// 기존 설정에서는 카테고리만 보여서 '사이트 추가' 버튼이 동작하지 않았습니다.
-// 기능 사용을 위해 기본값을 false로 변경합니다.
+// 기능 사용을 위해 기본값을 false로 설정
 const SHOW_ONLY_CATEGORIES = false;
 
 export default function App() {
@@ -73,7 +71,7 @@ export default function App() {
   });
   const [customSites, setCustomSites] = useState<CustomSite[]>([]);
   const showDescriptions = true;
-  const [saving, setSaving] = useState(false);
+  const [_saving, setSaving] = useState(false); // 읽지 않는 값은 _prefix로 경고 방지
 
   // 기타 모달
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -96,6 +94,7 @@ export default function App() {
   // UI 모드(discovery/collect)
   const { uiMode, setUIMode } = useUIMode(user);
 
+  // 게스트 데이터 마이그레이션
   useEffect(() => {
     setupGuestMigration();
   }, []);
@@ -149,9 +148,7 @@ export default function App() {
       } else {
         try {
           const rawFav = localStorage.getItem(LS_KEYS.FAV);
-          let favData = parseFavoritesData(
-            rawFav ? JSON.parse(rawFav) : undefined
-          );
+          let favData = parseFavoritesData(rawFav ? JSON.parse(rawFav) : undefined);
           if (
             favData.items.length === 0 &&
             favData.folders.length === 0 &&
@@ -161,9 +158,7 @@ export default function App() {
             localStorage.setItem(LS_KEYS.FAV, JSON.stringify(favData));
           }
           const rawCustom = localStorage.getItem(LS_KEYS.CUSTOM);
-          const customData = parseCustomSites(
-            rawCustom ? JSON.parse(rawCustom) : undefined
-          );
+          const customData = parseCustomSites(rawCustom ? JSON.parse(rawCustom) : undefined);
           setFavoritesData(favData);
           setCustomSites(customData);
         } catch {
@@ -248,16 +243,17 @@ export default function App() {
   }, [isDarkMode]);
 
   // ---------------------------
-  // 커스텀 사이트 로드
+  // 커스텀 사이트 모달 오픈 이벤트
   // ---------------------------
   const handleOpenAddSiteModalRef = useRef(() => {
     setIsAddSiteModalOpen(true);
   });
 
   useEffect(() => {
-    window.addEventListener("openAddSiteModal", handleOpenAddSiteModalRef.current);
+    const handler = handleOpenAddSiteModalRef.current; // ref.current를 지역 변수로 고정
+    window.addEventListener("openAddSiteModal", handler);
     return () => {
-      window.removeEventListener("openAddSiteModal", handleOpenAddSiteModalRef.current);
+      window.removeEventListener("openAddSiteModal", handler);
     };
   }, []);
 
@@ -351,6 +347,13 @@ export default function App() {
     sessionStorage.removeItem(LS_KEYS.CUSTOM);
   };
 
+
+  // ✅ 훅은 최상위에서 호출, 내부에서 가드/검증
+  useEffect(() => {
+    // categoryConfig / categoryOrder는 import된 상수이므로 deps에 넣지 않음
+    validateCategoryKeys(sitesToDisplay, categoryConfig, categoryOrder);
+  }, [sitesToDisplay]);
+
   if (authLoading) {
     return (
       <div className="p-4 space-y-4" aria-label="로딩">
@@ -365,10 +368,9 @@ export default function App() {
   // 목록 구성
   // ---------------------------
   const allWebsites: Website[] = [...websites, ...(customSites || [])];
-
   const favSet = new Set(getAllFavoriteIds());
 
-  // 카테고리 그리드에는 즐겨찾기 제외(기존 로직 유지)
+  // 카테고리 그리드에는 즐겨찾기 제외
   const categorizedWebsites: Record<string, Website[]> = {};
   const sitesToDisplay = allWebsites.filter((site) => site && !favSet.has(site.id));
   const seenIds = new Set<string>();
@@ -387,9 +389,6 @@ export default function App() {
     categorizedWebsites[website.category].push(website);
   });
 
-  useEffect(() => {
-    validateCategoryKeys(sitesToDisplay, categoryConfig, categoryOrder);
-  }, [sitesToDisplay, categoryConfig, categoryOrder]);
 
   // ---------------------------
   // 렌더
@@ -456,7 +455,6 @@ export default function App() {
                   <FloatingContact onContactClick={() => setIsContactModalOpen(true)} />
                 )}
 
-
                 {!SHOW_ONLY_CATEGORIES && showOnboarding && (
                   <Onboarding
                     onOpenAddSite={() =>
@@ -480,7 +478,7 @@ export default function App() {
                           sites={categorizedWebsites[category] || []}
                           config={categoryConfig[category]}
                           showDescriptions={showDescriptions}
-                          // ✅ (핵심) 즐겨찾기 상태 & 토글 연결
+                          // ✅ 즐겨찾기 상태 & 토글 연결
                           favorites={getAllFavoriteIds()}
                           onToggleFavorite={toggleFavorite}
                         />
@@ -491,7 +489,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* startpage, contact, add-site, footer 는 SHOW_ONLY_CATEGORIES 일 땐 계속 숨김 */}
+            {/* startpage, contact, add-site, footer 는 SHOW_ONLY_CATEGORIES 일 땐 숨김 */}
             {!SHOW_ONLY_CATEGORIES && currentView === "startpage" && (
               <StartPage
                 favoritesData={favoritesData}
@@ -503,10 +501,7 @@ export default function App() {
             )}
 
             {!SHOW_ONLY_CATEGORIES && isContactModalOpen && (
-              <ContactModal
-                isOpen={isContactModalOpen}
-                onClose={() => setIsContactModalOpen(false)}
-              />
+              <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
             )}
 
             {!SHOW_ONLY_CATEGORIES && isAddSiteModalOpen && (
