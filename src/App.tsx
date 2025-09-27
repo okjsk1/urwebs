@@ -45,9 +45,8 @@ const LS_KEYS = {
 
 const EMPTY_FAVORITES: FavoritesData = { items: [], folders: [], widgets: [], layout: [] };
 
-// ✅ 메인엔 카테고리만 보이도록 유지
-// 기능 사용을 위해 기본값을 false로 설정
-const SHOW_ONLY_CATEGORIES = false;
+// ✅ 메인 화면에서는 카테고리만 노출 (즐겨찾기 탭 숨김)
+const SHOW_ONLY_CATEGORIES = true;
 
 export default function App() {
   // 모달들
