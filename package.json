@@ -69,5 +69,8 @@
             "test": "vitest run",
             "lint": "eslint \"src/**/*.{ts,tsx}\"",
             "typecheck": "tsc --noEmit"
+      },
+      "optionalDependencies": {
+            "@rollup/rollup-linux-x64-gnu": "^4.21.0"
       }
 }
