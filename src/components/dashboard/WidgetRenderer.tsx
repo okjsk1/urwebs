@@ -1,5 +1,6 @@
 import { renderWidget } from "@/lib/registry";
 import {
+  StarterPackGroup,
   StarterPackSection,
   StarterPackTopic,
   WidgetInstance,
@@ -10,10 +11,11 @@ interface WidgetRendererProps {
   section: StarterPackSection;
   topic: StarterPackTopic;
   widgets: WidgetInstance[];
+  group?: StarterPackGroup;
 }
 
-export function WidgetRenderer({ section, topic, widgets }: WidgetRendererProps) {
-  const context: WidgetRenderContext = { section, topic };
+export function WidgetRenderer({ section, topic, widgets, group }: WidgetRendererProps) {
+  const context: WidgetRenderContext = { section, topic, group };
 
   return (
     <>

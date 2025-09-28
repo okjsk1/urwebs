@@ -1,16 +1,18 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { WidgetGrid } from "@/components/dashboard/WidgetGrid";
 import { WidgetRenderer } from "@/components/dashboard/WidgetRenderer";
-import { findSection, findTopic } from "@/data/starterpacks";
+import { findGroup, findSection, findTopic } from "@/data/starterpacks";
 
 interface StarterPackPageProps {
   sectionSlug: string;
   topicSlug: string;
+  groupSlug?: string;
 }
 
-export default function StarterPackPage({ sectionSlug, topicSlug }: StarterPackPageProps) {
+export default function StarterPackPage({ sectionSlug, topicSlug, groupSlug }: StarterPackPageProps) {
   const section = findSection(sectionSlug);
   const topic = findTopic(sectionSlug, topicSlug);
+  const group = findGroup(sectionSlug, topicSlug, groupSlug);
 
   if (!section || !topic) {
     return (
@@ -22,10 +24,16 @@ export default function StarterPackPage({ sectionSlug, topicSlug }: StarterPackP
     );
   }
 
+  const widgets = group?.widgets ?? topic.widgets ?? [];
+  const pageTitle = group
+    ? `${section.title} · ${topic.title} · ${group.title}`
+    : `${section.title} · ${topic.title}`;
+  const description = group?.description ?? topic.description;
+
   return (
-    <DashboardLayout title={`${section.title} · ${topic.title}`} description={topic.description}>
+    <DashboardLayout title={pageTitle} description={description}>
       <WidgetGrid>
-        <WidgetRenderer section={section} topic={topic} widgets={topic.widgets} />
+        <WidgetRenderer section={section} topic={topic} group={group} widgets={widgets} />
       </WidgetGrid>
     </DashboardLayout>
   );
