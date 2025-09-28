@@ -1,5 +1,6 @@
 import { StarterPackGroup, StarterPackSection, WidgetInstance } from "@/types/widgets";
 
+
 const pmLinks: WidgetInstance = {
   id: "pm-links",
   kind: "links",
@@ -641,6 +642,7 @@ export const starterPackSections: StarterPackSection[] = [
     description: "업무 효율을 높이는 실전 도구 모음",
     topics: [
       {
+
         slug: "product-manager",
         title: "프로덕트 매니저",
         description: "하루 업무를 체계적으로 관리하는 PM 전용 스타터팩",
@@ -648,6 +650,7 @@ export const starterPackSections: StarterPackSection[] = [
         groups: pmGroups,
       },
       {
+
         slug: "it-development",
         title: "IT / 개발",
         description: "개발자 팀을 위한 생산성 도구",
