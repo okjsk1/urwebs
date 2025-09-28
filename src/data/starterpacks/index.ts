@@ -790,7 +790,7 @@ export const starterPackSections: StarterPackSection[] = [
         slug: "design-architecture",
         title: "디자인 / 건축",
         description: "디자인과 설계 프로젝트 관리를 위한 큐레이션",
-        widgets: designGroups[0]?.widgets,
+        widgets: designGroups[0].widgets,
         groups: designGroups,
         subtopics: [
           {

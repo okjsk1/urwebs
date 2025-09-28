@@ -1,4 +1,3 @@
-import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { WidgetGrid } from "@/components/dashboard/WidgetGrid";
 import { WidgetRenderer } from "@/components/dashboard/WidgetRenderer";
@@ -10,7 +9,6 @@ interface StarterPackPageProps {
 }
 
 export default function StarterPackPage({ sectionSlug, topicSlug }: StarterPackPageProps) {
-  const [searchParams] = useSearchParams();
   const section = findSection(sectionSlug);
   const topic = findTopic(sectionSlug, topicSlug);
 
@@ -24,20 +22,17 @@ export default function StarterPackPage({ sectionSlug, topicSlug }: StarterPackP
     );
   }
 
-  const groupSlug = searchParams.get("group") ?? undefined;
-  const group = groupSlug
-    ? findGroup(sectionSlug, topicSlug, groupSlug)
-    : findGroup(sectionSlug, topicSlug);
+  const group = findGroup(sectionSlug, topicSlug);
   const pageTitle = group
     ? `${section.title} · ${topic.title} · ${group.title}`
     : `${section.title} · ${topic.title}`;
   const description = group?.description ?? topic.description;
-  const widgetsToRender = group?.widgets ?? topic.widgets ?? [];
+  const widgetsToRender = topic.widgets ?? [];
 
   return (
     <DashboardLayout title={pageTitle} description={description}>
       <WidgetGrid>
-        <WidgetRenderer section={section} topic={topic} widgets={widgetsToRender} group={group} />
+        <WidgetRenderer section={section} topic={topic} widgets={widgetsToRender} />
       </WidgetGrid>
     </DashboardLayout>
   );
