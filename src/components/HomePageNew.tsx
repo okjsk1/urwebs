@@ -1,3 +1,4 @@
+import React from 'react';
 import { CategoryHoverCard } from './CategoryHoverCard';
 import { 
   Clipboard, 
@@ -58,8 +59,10 @@ const categories: Category[] = [
     title: '건축/BIM/CAD/GIS',
     description: '건축 건설 관련 솔루션',
     subCategories: [
-      { id: 'student', title: '학생', description: '건축 학과 학생 대상 사이트' },
-      { id: 'professional', title: '직장인', description: '실무 건축가 및 설계사 대상' }
+      { id: 'interior', title: '인테리어', description: '인테리어 디자인 및 시공' },
+      { id: 'design', title: '설계', description: '건축 설계 및 도면' },
+      { id: 'bim', title: 'BIM', description: 'BIM 모델링 및 관리' },
+      { id: 'student', title: '학생', description: '건축 학과 학생 대상 사이트' }
     ]
   },
   {
@@ -228,18 +231,69 @@ interface HomePageProps {
 
 export function HomePageNew({ onCategorySelect }: HomePageProps) {
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-6">
-        {categories.map((category) => (
-          <CategoryHoverCard
-            key={category.id}
-            icon={category.icon}
-            title={category.title}
-            description={category.description}
-            subCategories={category.subCategories}
-            onClick={(subCategoryId) => onCategorySelect(category.id, subCategoryId)}
-          />
-        ))}
+    <div className="min-h-screen bg-white">
+      {/* 상단 히어로 섹션 */}
+      <div className="relative bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+          {/* 작은 장식용 아이콘들 */}
+          <div className="flex justify-center mb-8 space-x-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <span className="text-2xl">🏢</span>
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <span className="text-2xl">💰</span>
+            </div>
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+              <span className="text-2xl">💻</span>
+            </div>
+            <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center">
+              <span className="text-2xl">🎨</span>
+            </div>
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            커뮤니티에서 만든{' '}
+            <span className="text-blue-600">라이브러리</span>,{' '}
+            <span className="text-purple-600">플러그인</span>,{' '}
+            <br />
+            <span className="text-blue-600">아이콘 세트</span> 등을 살펴보세요.
+          </h1>
+          
+          {/* 검색창 */}
+          <div className="flex justify-center mt-8 mb-32">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center justify-center pointer-events-none">
+                <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                className="block w-60 pl-10 pr-3 py-3 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="건축, 웹개발, 디자이너와 같은 리소스 검색"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 여백 추가 */}
+      <div className="h-5"></div>
+      
+      {/* 카테고리 섹션 */}
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-6">
+          {categories.map((category) => (
+            <CategoryHoverCard
+              key={category.id}
+              icon={category.icon}
+              title={category.title}
+              description={category.description}
+              subCategories={category.subCategories}
+              onClick={(subCategoryId) => onCategorySelect(category.id, subCategoryId)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

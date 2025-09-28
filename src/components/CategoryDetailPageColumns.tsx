@@ -25,10 +25,10 @@ interface CategoryData {
 }
 
 const getCategoryData = (categoryId: string, subCategory: string): CategoryData => {
-  // 건축 카테고리 예시 데이터
-  if (categoryId === 'architecture') {
+  // 건축 카테고리 - 설계 서브카테고리
+  if (categoryId === 'architecture' && subCategory === 'design') {
     return {
-      title: '건축/BIM/CAD/GIS',
+      title: '건축/BIM/CAD/GIS - 설계',
       categories: [
         {
           name: '법규/코드',
@@ -132,6 +132,115 @@ const getCategoryData = (categoryId: string, subCategory: string): CategoryData 
       ]
     };
   }
+
+  // 건축 카테고리 - 학생 서브카테고리
+  if (categoryId === 'architecture' && subCategory === 'student') {
+    return {
+      title: '건축/BIM/CAD/GIS - 학생',
+      categories: [
+        {
+          name: '건축 레퍼런스',
+          sites: [
+            { id: 'student1', name: 'ArchDaily', description: '세계 최대 건축 사례 DB, 도면·사진·설계설명 풍부', url: 'https://www.archdaily.com' },
+            { id: 'student2', name: 'Dezeen', description: '최신 건축·인테리어 뉴스 및 트렌드', url: 'https://www.dezeen.com' },
+            { id: 'student3', name: 'DesignBoom', description: '건축/제품/예술 융합 레퍼런스', url: 'https://www.designboom.com' },
+            { id: 'student4', name: 'SPACE(공간사)', description: '국내 대표 건축·인테리어 전문 매체', url: 'https://vmspace.com' }
+          ]
+        },
+        {
+          name: '이미지 & 무드보드',
+          sites: [
+            { id: 'student5', name: 'Pinterest Architecture', description: '아이디어·무드보드 검색 필수', url: 'https://www.pinterest.com' },
+            { id: 'student6', name: 'Behance Architecture', description: '포트폴리오/작품 레퍼런스', url: 'https://www.behance.net' }
+          ]
+        },
+        {
+          name: '툴 & 자료',
+          sites: [
+            { id: 'student7', name: 'SketchUp 3D Warehouse', description: '무료 3D 모델 공유 플랫폼', url: 'https://3dwarehouse.sketchup.com' },
+            { id: 'student8', name: 'Autodesk Education', description: 'AutoCAD, Revit 학생 무료 라이선스', url: 'https://www.autodesk.com/education/edu-software/overview' },
+            { id: 'student9', name: 'GrabCAD Library', description: '구조·기계·BIM 모델 데이터 공유', url: 'https://grabcad.com/library' }
+          ]
+        },
+        {
+          name: '뉴스/저널/학술',
+          sites: [
+            { id: 'student10', name: '대한건축학회', description: '논문, 학술지, 건축 학회 활동', url: 'https://www.aik.or.kr' },
+            { id: 'student11', name: '건축세계 (C3Korea)', description: '건축 전문 매거진', url: 'http://www.c3korea.net' },
+            { id: 'student12', name: 'Architizer', description: '건축사무소/프로젝트 DB, 영감 얻기 좋음', url: 'https://architizer.com' }
+          ]
+        },
+        {
+          name: '공모전 & 대외활동',
+          sites: [
+            { id: 'student13', name: 'ArchiArt', description: '건축 관련 공모전/대외활동 정보', url: 'https://www.archiart.co.kr' },
+            { id: 'student14', name: 'Competitions Archi', description: '국제 건축 공모전 모음', url: 'https://competitions.archi' }
+          ]
+        },
+        {
+          name: '자료/커뮤니티',
+          sites: [
+            { id: 'student15', name: '세움터 (eais)', description: '건축 인허가, 법규 확인 (학생 과제 참고용)', url: 'https://www.eais.go.kr' },
+            { id: 'student16', name: '디자인하우스', description: '인테리어 사례·자재 브랜드 정보', url: 'https://designhouse.co.kr' },
+            { id: 'student17', name: '네이버 카페/블로그', description: '건축학과 커뮤니티 - 도면 공유, 과제 팁, 포트폴리오 피드백', url: 'https://cafe.naver.com' }
+          ]
+        },
+        {
+          name: '멀티미디어 학습',
+          sites: [
+            { id: 'student18', name: 'The B1M (YouTube)', description: '최신 건축 트렌드·테크놀로지', url: 'https://www.youtube.com/@TheB1M' },
+            { id: 'student19', name: 'How to Architect (YouTube)', description: '건축 개념/과제 팁', url: 'https://www.youtube.com/@HowtoArchitect' }
+          ]
+        }
+      ]
+    };
+  }
+
+  // 건축 카테고리 - BIM 서브카테고리
+  if (categoryId === 'architecture' && subCategory === 'bim') {
+    return {
+      title: '건축/BIM/CAD/GIS - BIM',
+      categories: [
+        {
+          name: 'BIM 도구',
+          sites: [
+            // 나중에 추가할 예정
+          ]
+        }
+      ]
+    };
+  }
+
+  // 건축 카테고리 - 인테리어 서브카테고리
+  if (categoryId === 'architecture' && subCategory === 'interior') {
+    return {
+      title: '건축/BIM/CAD/GIS - 인테리어',
+      categories: [
+        {
+          name: '인테리어 디자인',
+          sites: [
+            // 나중에 추가할 예정
+          ]
+        }
+      ]
+    };
+  }
+
+  // 건축 카테고리 - 기본 (서브카테고리 없음)
+  if (categoryId === 'architecture' && !subCategory) {
+    return {
+      title: '건축/BIM/CAD/GIS',
+      categories: [
+        {
+          name: '전체',
+          sites: [
+            // 나중에 추가할 예정
+          ]
+        }
+      ]
+    };
+  }
+
 // 금융/투자 카테고리 - 기본 (서브카테고리 없음)
 if (categoryId === 'finance' && !subCategory) {
   return {
@@ -825,8 +934,24 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
       } catch (e) {
         console.error('Failed to parse folders:', e);
       }
+    } else {
+      // 처음 들어왔을 때 필수 사이트들이 들어간 폴더 생성
+      const essentialSites = data.categories
+        .flatMap(cat => cat.sites.slice(0, 3)) // 각 카테고리에서 상위 3개 사이트
+        .slice(0, 6); // 최대 6개까지만
+      
+      const initialFolders: Folder[] = [
+        {
+          id: 'essential',
+          name: '필수 사이트',
+          sites: essentialSites.map(site => site.id)
+        }
+      ];
+      
+      setFolders(initialFolders);
+      localStorage.setItem(`folders_${categoryId}`, JSON.stringify(initialFolders));
     }
-  }, [categoryId]);
+  }, [categoryId, data.categories]);
 
   const toggleFavorite = (siteId: string) => {
     const newFavorites = new Set(favorites);
@@ -920,144 +1045,138 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* 스타터팩 섹션 */}
+      {/* 1. 필수사이트 섹션 */}
       <div className="mb-12">
+        {false && (
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-3 rounded-full shadow-lg">
-            <span className="text-lg font-bold">🚀 스타터팩</span>
+            <span className="text-lg font-bold">🚀</span>
             <span className="text-sm opacity-90">정말 필요한 핵심 사이트들</span>
           </div>
         </div>
-           {/* 전문 위젯 섹션 */}
-           <div className="mb-8">
+        )}
+
+         {/* 카테고리별 폴더 */}
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+           {data.categories.map((category, index) => (
+             <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
+               <div className="flex items-center justify-between mb-3">
+                 <div className="flex items-center gap-2">
+                   <Folder className="w-4 h-4 text-blue-500" />
+                   <h3 className="text-sm font-bold text-gray-900 truncate">{category.name}</h3>
+                   <span className="text-xs text-gray-500">({category.sites.filter(site => !favorites.has(site.id)).length})</span>
+                 </div>
+               </div>
+               
+               <div 
+                 className="min-h-[120px] p-2 border-2 border-dashed border-blue-200 rounded-lg"
+                 onDragOver={handleDragOver}
+                 onDrop={() => handleDrop(`category_${index}`)}
+               >
+                 {category.sites
+                   .filter(site => !favorites.has(site.id))
+                   .slice(0, 6)
+                   .map((site) => (
+                     <div
+                       key={site.id}
+                       className="bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 rounded p-1 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-400 group mb-1 flex items-center"
+                       onClick={() => window.open(site.url, '_blank')}
+                       draggable
+                       onDragStart={() => handleDragStart(site.id)}
+                     >
+                       <div className="flex items-center gap-1 flex-1 min-w-0">
+                         <img 
+                           src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=12`}
+                           alt=""
+                           className="w-3 h-3 flex-shrink-0"
+                           onError={(e) => {
+                             e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"%3E%3Crect width="16" height="16" fill="%23e5e7eb"/%3E%3Ctext x="8" y="12" text-anchor="middle" font-size="10" fill="%236b7280"%3E🌐%3C/text%3E%3C/svg%3E';
+                           }}
+                         />
+                         <h4 className="font-medium text-gray-900 text-xs truncate group-hover:text-blue-600 flex-1 min-w-0">
+                           {site.name}
+                         </h4>
+                       </div>
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           toggleFavorite(site.id);
+                         }}
+                         className="text-blue-500 hover:text-blue-700 transition-colors flex-shrink-0"
+                       >
+                         <span className="text-xs">⭐</span>
+                       </button>
+                     </div>
+                   ))}
+                 {category.sites.filter(site => !favorites.has(site.id)).length > 3 && (
+                   <div className="text-xs text-gray-500 text-center mt-1">
+                     +{category.sites.filter(site => !favorites.has(site.id)).length - 3}개 더
+                   </div>
+                 )}
+                 {category.sites.filter(site => !favorites.has(site.id)).length === 0 && (
+                   <div className="flex items-center justify-center text-gray-400 text-xs h-16">
+                     사이트를 여기로 드래그하세요
+                   </div>
+                 )}
+               </div>
+             </div>
+           ))}
+         </div>
+      </div>
+
+      {/* 2. 즐겨찾기목록 섹션 */}
+      {Array.from(favorites).length > 0 && (
+        <div className="mb-8">
+          {false && (
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-3 rounded-full shadow-lg">
-              <span className="text-lg font-bold">🛠️ 전문 도구</span>
-              <span className="text-sm opacity-90">업무에 필요한 전문 위젯들</span>
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-full shadow-lg">
+              <span className="text-lg font-bold">⭐</span>
+              <span className="text-sm opacity-90">즐겨찾기 목록</span>
             </div>
           </div>
+          )}
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-            {/* 날씨 위젯 */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-lg">🌤️</span>
+          {/* 폴더 생성 모달 */}
+          {showCreateFolder && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-96 max-w-md mx-4">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">새 폴더 만들기</h3>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder="폴더명을 입력하세요"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+                  autoFocus
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      createFolder();
+                    }
+                  }}
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={createFolder}
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                  >
+                    만들기
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCreateFolder(false);
+                      setNewFolderName('');
+                    }}
+                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors"
+                  >
+                    취소
+                  </button>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">날씨 정보</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="bg-blue-50 rounded-lg p-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">현재 온도</span>
-                    <span className="text-lg font-bold text-blue-600">22°C</span>
-                  </div>
-                </div>
-                <div className="bg-green-50 rounded-lg p-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">습도</span>
-                    <span className="text-lg font-bold text-green-600">65%</span>
-                  </div>
-                </div>
-                <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
-                  상세 날씨 보기
-                </button>
               </div>
             </div>
+          )}
 
-            {/* 단위 변환기 */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-lg">📐</span>
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">단위 변환기</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="bg-purple-50 rounded-lg p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">길이</span>
-                    <span className="text-lg font-bold text-purple-600">1m = 3.28ft</span>
-                  </div>
-                </div>
-                <div className="bg-pink-50 rounded-lg p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">면적</span>
-                    <span className="text-lg font-bold text-pink-600">1㎡ = 10.76ft²</span>
-                  </div>
-                </div>
-                <button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
-                  변환기 열기
-                </button>
-              </div>
-            </div>
-
-            {/* To-Do List */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-lg">✅</span>
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">할 일 목록</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm text-gray-700">설계도 검토</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm text-gray-700">현장 점검</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm text-gray-700">보고서 작성</span>
-                </div>
-                <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors mt-3">
-                  새 할 일 추가
-                </button>
-              </div>
-            </div>
-
-            {/* 계산기 */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-lg">🧮</span>
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">전문 계산기</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="bg-green-50 rounded-lg p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">면적 계산</span>
-                    <span className="text-lg font-bold text-green-600">㎡</span>
-                  </div>
-                </div>
-                <div className="bg-blue-50 rounded-lg p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">부피 계산</span>
-                    <span className="text-lg font-bold text-blue-600">㎥</span>
-                  </div>
-                </div>
-                <button className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
-                  계산기 열기
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* 즐겨찾기된 사이트들을 스타터팩에 표시 */}
-        {Array.from(favorites).length > 0 && (
-          <div className="mb-8">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-full shadow-lg">
-                <span className="text-lg font-bold">⭐ 나의 즐겨찾기</span>
-                <span className="text-sm opacity-90">선택한 사이트들</span>
-              </div>
-            </div>
-            
-            {/* 폴더들 */}
+          {/* 폴더들 - 가로 배치 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
             {folders.map((folder) => {
               const folderSites = folder.sites.map(siteId => {
                 return data.categories
@@ -1066,62 +1185,65 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
               }).filter(Boolean);
               
               return (
-                <div key={folder.id} className="mb-6">
+                <div key={folder.id} className="bg-white rounded-lg border border-gray-200 p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Folder className="w-5 h-5 text-blue-500" />
-                      <h3 className="text-lg font-bold text-gray-900">{folder.name}</h3>
-                      <span className="text-sm text-gray-500">({folderSites.length})</span>
+                      <Folder className="w-4 h-4 text-blue-500" />
+                      <h3 className="text-sm font-bold text-gray-900 truncate">{folder.name}</h3>
+                      <span className="text-xs text-gray-500">({folderSites.length})</span>
                     </div>
                     <button
                       onClick={() => deleteFolder(folder.id)}
                       className="text-red-500 hover:text-red-700 transition-colors"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3" />
                     </button>
                   </div>
                   
                   <div 
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 min-h-[100px] p-4 border-2 border-dashed border-blue-200 rounded-lg"
+                    className="min-h-[80px] p-2 border-2 border-dashed border-blue-200 rounded-lg"
                     onDragOver={handleDragOver}
                     onDrop={() => handleDrop(folder.id)}
                   >
-                    {folderSites.map((site) => (
+                    {folderSites.slice(0, 3).map((site) => (
                       <div
                         key={site.id}
-                        className="bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-blue-400 group"
+                        className="bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 rounded p-1 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-400 group mb-1 flex items-center"
                         onClick={() => window.open(site.url, '_blank')}
                         draggable
                         onDragStart={() => handleDragStart(site.id)}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 flex-1">
-                            <img 
-                              src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=16`}
-                              alt=""
-                              className="w-4 h-4 flex-shrink-0"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                            <h4 className="font-semibold text-gray-900 text-sm truncate group-hover:text-blue-600">
-                              {site.name}
-                            </h4>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeSiteFromFolder(site.id, folder.id);
+                        <div className="flex items-center gap-1 flex-1 min-w-0">
+                          <img 
+                            src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=12`}
+                            alt=""
+                            className="w-3 h-3 flex-shrink-0"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"%3E%3Crect width="16" height="16" fill="%23e5e7eb"/%3E%3Ctext x="8" y="12" text-anchor="middle" font-size="10" fill="%236b7280"%3E🌐%3C/text%3E%3C/svg%3E';
                             }}
-                            className="text-blue-500 hover:text-blue-700 transition-colors"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
+                          />
+                          <h4 className="font-medium text-gray-900 text-xs truncate group-hover:text-blue-600 flex-1 min-w-0">
+                            {site.name}
+                          </h4>
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSiteFromFolder(site.id, folder.id);
+                          }}
+                          className="text-blue-500 hover:text-blue-700 transition-colors flex-shrink-0"
+                        >
+                          <X className="w-2 h-2" />
+                        </button>
                       </div>
                     ))}
+                    {folderSites.length > 3 && (
+                      <div className="text-xs text-gray-500 text-center mt-1">
+                        +{folderSites.length - 3}개 더
+                      </div>
+                    )}
                     {folderSites.length === 0 && (
-                      <div className="col-span-full flex items-center justify-center text-gray-400 text-sm">
+                      <div className="flex items-center justify-center text-gray-400 text-xs h-16">
                         사이트를 여기로 드래그하세요
                       </div>
                     )}
@@ -1130,166 +1252,74 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
               );
             })}
             
-            {/* 폴더 생성 버튼 */}
-            <div className="mb-6">
-              {!showCreateFolder ? (
-                <button
-                  onClick={() => setShowCreateFolder(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                >
-                  <FolderPlus className="w-4 h-4" />
-                  새 폴더 만들기
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    placeholder="폴더 이름을 입력하세요"
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onKeyPress={(e) => e.key === 'Enter' && createFolder()}
-                    autoFocus
-                  />
-                  <button
-                    onClick={createFolder}
-                    className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowCreateFolder(false);
-                      setNewFolderName('');
-                    }}
-                    className="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-            
-            {/* 폴더에 속하지 않은 즐겨찾기 사이트들 */}
-            {getUnfolderedSites().length > 0 && (
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3">기타 즐겨찾기</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-                  {getUnfolderedSites().map((siteId) => {
-                    const site = data.categories
-                      .flatMap(cat => cat.sites)
-                      .find(s => s.id === siteId);
-                    
-                    if (!site) return null;
-                    
-                    return (
-                      <div
-                        key={site.id}
-                        className="bg-gradient-to-br from-yellow-50 to-orange-50 hover:from-yellow-100 hover:to-orange-100 border-2 border-yellow-200 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-yellow-400 group"
-                        onClick={() => window.open(site.url, '_blank')}
-                        draggable
-                        onDragStart={() => handleDragStart(site.id)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 flex-1">
-                            <img 
-                              src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=16`}
-                              alt=""
-                              className="w-4 h-4 flex-shrink-0"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                            <h4 className="font-semibold text-gray-900 text-sm truncate group-hover:text-yellow-600">
-                              {site.name}
-                            </h4>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(site.id);
-                            }}
-                            className="text-yellow-500 hover:text-yellow-600 transition-colors"
-                          >
-                            <span className="text-sm">⭐</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+            {/* 폴더 추가 버튼 */}
+            <div 
+              className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4 flex flex-col items-center justify-center min-h-[120px] hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 cursor-pointer"
+              onClick={() => setShowCreateFolder(true)}
+            >
+              <div className="text-center">
+                <FolderPlus className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <h3 className="text-sm font-medium text-gray-500 mb-1">새 폴더 추가</h3>
+                <p className="text-xs text-gray-400">클릭하여 폴더 생성</p>
               </div>
-            )}
+            </div>
           </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-          {data.categories.map((category, index) => (
-            <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-              {/* 컬럼 헤더 */}
-              <div className="bg-white border-b border-gray-200 p-4 text-center">
-  <h3 className="text-gray-900 font-bold text-sm leading-tight">
-    {category.name}
-  </h3>
-</div>
-
-              {/* 사이트 목록 (스타터팩은 상위 3개만) */}
-              <div className="p-1 space-y-1 max-h-[600px] overflow-y-auto">
-              {category.sites
-  .filter(site => !favorites.has(site.id)) // 즐겨찾기된 사이트는 제외
-  .map((site) => (
-                  <div
-                    key={site.id}
-                    className="bg-gray-50 hover:bg-white border border-gray-200 rounded-lg p-2 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-pink-300 group h-14 flex flex-col justify-between"
-                    onClick={() => window.open(site.url, '_blank')}
-                  >
-                    {/* 파비콘 + 사이트 이름 */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2 flex-1">
-                        <img 
-                          src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=16`}
-                          alt=""
-                          className="w-4 h-4 flex-shrink-0"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
+          
+          
+          {/* 폴더에 속하지 않은 즐겨찾기 사이트들 */}
+          {getUnfolderedSites().length > 0 && (
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-3">즐겨찾기</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+                {getUnfolderedSites().map((siteId) => {
+                  const site = data.categories
+                    .flatMap(cat => cat.sites)
+                    .find(s => s.id === siteId);
+                  
+                  if (!site) return null;
+                  
+                  return (
+                    <div
+                      key={site.id}
+                      className="bg-gradient-to-br from-yellow-50 to-orange-50 hover:from-yellow-100 hover:to-orange-100 border-2 border-gray-800 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-gray-900 group"
+                      onClick={() => window.open(site.url, '_blank')}
+                      draggable
+                      onDragStart={() => handleDragStart(site.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <img 
+                            src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=16`}
+                            alt=""
+                            className="w-4 h-4 flex-shrink-0"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"%3E%3Crect width="16" height="16" fill="%23e5e7eb"/%3E%3Ctext x="8" y="12" text-anchor="middle" font-size="10" fill="%236b7280"%3E🌐%3C/text%3E%3C/svg%3E';
+                            }}
+                          />
+                          <h4 className="font-semibold text-gray-900 text-sm truncate group-hover:text-yellow-600 flex-1 min-w-0">
+                            {site.name}
+                          </h4>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(site.id);
                           }}
-                        />
-                        <h4 className="font-medium text-gray-900 text-sm truncate group-hover:text-pink-600">
-                          {site.name}
-                        </h4>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(site.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-<span 
-                          className={`text-sm ${
-                            favorites.has(site.id) 
-                              ? 'text-yellow-500' 
-                              : 'text-gray-400 hover:text-yellow-500'
-                          }`}
+                          className="text-yellow-500 hover:text-yellow-600 transition-colors"
                         >
-                          {favorites.has(site.id) ? '⭐' : '☆'}
-                        </span>
-                      </button>
+                          <span className="text-sm">⭐</span>
+                        </button>
+                      </div>
                     </div>
-                    
-                    {/* 사이트 설명 */}
-                    <p className="text-xs text-gray-600 truncate">
-                      {site.description}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
-          ))}
+          )}
         </div>
-      </div>
+      )}
 
-      {/* 추가 추천 섹션 */}
+      {/* 3. 추천사이트목록 섹션 */}
       <div className="mb-8">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-full shadow-lg">
@@ -1319,8 +1349,8 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
                   onClick={() => window.open(site.url, '_blank')}
                 >
 {/* 파비콘 + 사이트 이름 */}
-<div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 flex-1">
+<div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                       <img 
                         src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=16`}
                         alt=""
@@ -1329,7 +1359,7 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
                           e.currentTarget.style.display = 'none';
                         }}
                       />
-                      <h4 className="font-semibold text-gray-900 text-xs leading-tight truncate group-hover:text-blue-600">
+                      <h4 className="font-bold text-gray-900 text-xs leading-tight truncate group-hover:text-blue-600 flex-1 min-w-0">
                         {site.name}
                       </h4>
                     </div>
@@ -1340,7 +1370,7 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
                         e.stopPropagation();
                         toggleFavorite(site.id);
                       }}
-                      className="p-0.5 h-5 w-5 flex-shrink-0 ml-1"
+                      className="p-0.5 h-5 w-5 flex-shrink-0 ml-2"
                     >
 <span 
   className={`text-xs border border-gray-200 rounded ${
@@ -1355,8 +1385,8 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
                     </Button>
                   </div>
 
-                  {/* 설명 */}
-                  <p className="text-xs text-gray-600 leading-relaxed overflow-hidden text-ellipsis line-clamp-1">
+                  {/* 설명 - 사이트 이름과 같은 열에서 시작 */}
+                  <p className="text-xs text-gray-600 leading-relaxed overflow-hidden text-ellipsis line-clamp-1 ml-12" style={{ textIndent: '24px' }}>
                     {site.description}
                   </p>
                 </div>
@@ -1364,6 +1394,126 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
             </div>
           </div>
         ))}
+      </div>
+
+      {/* 4. 위젯 섹션 */}
+      <div className="mb-8">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-3 rounded-full shadow-lg">
+            <span className="text-lg font-bold">🛠️</span>
+            <span className="text-sm opacity-90">업무에 필요한 전문 위젯들</span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          {/* 날씨 위젯 */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-lg">🌤️</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">날씨 정보</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="bg-blue-50 rounded-lg p-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">현재 온도</span>
+                  <span className="text-lg font-bold text-blue-600">22°C</span>
+                </div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">습도</span>
+                  <span className="text-lg font-bold text-green-600">65%</span>
+                </div>
+              </div>
+              <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                상세 날씨 보기
+              </button>
+            </div>
+          </div>
+
+          {/* 단위 변환기 */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-lg">📐</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">단위 변환기</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="bg-purple-50 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">길이</span>
+                  <span className="text-lg font-bold text-purple-600">1m = 3.28ft</span>
+                </div>
+              </div>
+              <div className="bg-pink-50 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">면적</span>
+                  <span className="text-lg font-bold text-pink-600">1㎡ = 10.76ft²</span>
+                </div>
+              </div>
+              <button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                변환기 열기
+              </button>
+            </div>
+          </div>
+
+          {/* To-Do List */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-lg">✅</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">할 일 목록</h3>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input type="checkbox" className="rounded" />
+                <span className="text-sm text-gray-700">설계도 검토</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" className="rounded" />
+                <span className="text-sm text-gray-700">현장 점검</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" className="rounded" />
+                <span className="text-sm text-gray-700">보고서 작성</span>
+              </div>
+              <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors mt-3">
+                새 할 일 추가
+              </button>
+            </div>
+          </div>
+
+          {/* 계산기 */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-lg">🧮</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">전문 계산기</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="bg-green-50 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">면적 계산</span>
+                  <span className="text-lg font-bold text-green-600">㎡</span>
+                </div>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">부피 계산</span>
+                  <span className="text-lg font-bold text-blue-600">㎥</span>
+                </div>
+              </div>
+              <button className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                계산기 열기
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 통계 정보 */}
