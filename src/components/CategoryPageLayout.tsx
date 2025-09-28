@@ -17,11 +17,17 @@ export function CategoryPageLayout({
   websites,
   categoryOrder,
   categoryConfig,
+
+  storageNamespace: _storageNamespace,
+
   pageTitle,
   categoryTitle,
   showDescriptions = true,
   loading = false,
 }: CategoryPageLayoutProps) {
+
+  void _storageNamespace;
+
 
   useEffect(() => {
     document.title = categoryTitle

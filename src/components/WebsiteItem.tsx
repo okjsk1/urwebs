@@ -1,4 +1,3 @@
-import React from "react";
 import { Website } from "../types";
 import { trackVisit } from "../utils/visitTrack";
 import { SiteIcon } from "./SiteIcon";
@@ -6,6 +5,7 @@ import { SiteIcon } from "./SiteIcon";
 interface WebsiteItemProps {
   website: Website;
   showDescription: boolean;
+
   isDraggable?: boolean;
   onDragStart?: (e: React.DragEvent, website: Website) => void;
 }
@@ -23,15 +23,20 @@ export function WebsiteItem({
     onDragStart?.(e, website);
   };
 
+
   return (
     <li
       className="urwebs-website-item relative flex w-full flex-col items-start min-h-9 rounded-md min-w-0 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
       style={{ height: showDescription ? "auto" : undefined }}
-      draggable={isDraggable}
-      onDragStart={handleDragStart}
     >
-      <div className="flex items-center gap-2 w-full">
-        <SiteIcon website={website} size={16} className="w-4 h-4 rounded border shrink-0" />
+
+      <div className="flex items-center gap-2 min-w-0 w-full">
+        <SiteIcon
+          website={website}
+          size={16}
+          className="w-4 h-4 rounded border shrink-0"
+        />
+
         <a
           href={website.url}
           target="_blank"

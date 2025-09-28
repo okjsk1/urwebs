@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Website, CategoryConfig } from "../types";
 import { WebsiteItem } from "./WebsiteItem";
 
@@ -89,6 +89,7 @@ export function CategoryCard({
                   key={website.id}
                   website={website}
                   isDraggable={false}
+
                   showDescription={showDescriptions}
                 />
               ))}
