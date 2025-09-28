@@ -25,12 +25,20 @@ export interface WidgetInstance<TKind extends WidgetKind = WidgetKind> {
   layout?: WidgetLayout;
 }
 
+export interface StarterPackSubtopic {
+  slug: string;
+  title: string;
+  description?: string;
+  groupSlug?: string;
+}
+
 export interface StarterPackTopic {
   slug: string;
   title: string;
   description?: string;
   widgets?: WidgetInstance[];
   groups?: StarterPackGroup[];
+  subtopics?: StarterPackSubtopic[];
 }
 
 export interface StarterPackSection {
