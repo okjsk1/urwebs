@@ -39,19 +39,53 @@ export default function AppLandingPage() {
               {isOpen && (
                 <div className="border-t border-slate-100 bg-slate-50 px-6 py-5">
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {section.topics.map((topic) => (
-                      <Link
-                        key={topic.slug}
-                        to={`/app/${section.slug}/${topic.slug}`}
-                        className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 transition hover:border-blue-200 hover:bg-blue-50"
-                      >
-                        <div>
-                          <p className="font-medium">{topic.title}</p>
-                          {topic.description && <p className="mt-1 text-xs text-slate-500">{topic.description}</p>}
+                    {section.topics.map((topic) => {
+                      const hasSubtopics = topic.subtopics && topic.subtopics.length > 0;
+                      const topicUrl = `/app/${section.slug}/${topic.slug}`;
+
+                      return (
+                        <div
+                          key={topic.slug}
+                          className={`relative ${hasSubtopics ? "group" : ""}`}
+                        >
+                          <Link
+                            to={topicUrl}
+                            className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 transition hover:border-blue-200 hover:bg-blue-50"
+                            aria-haspopup={hasSubtopics ? "true" : undefined}
+                          >
+                            <div>
+                              <p className="font-medium">{topic.title}</p>
+                              {topic.description && <p className="mt-1 text-xs text-slate-500">{topic.description}</p>}
+                            </div>
+                            <span className="text-xs font-semibold text-blue-500">바로가기 →</span>
+                          </Link>
+                          {hasSubtopics && (
+                            <div className="pointer-events-none absolute left-0 top-full z-20 hidden w-full min-w-[240px] flex-col gap-2 pt-2 group-hover:pointer-events-auto group-hover:flex group-focus-within:pointer-events-auto group-focus-within:flex">
+                              <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-xl">
+                                <p className="mb-2 text-xs font-semibold text-slate-400">세부 카테고리</p>
+                                <div className="flex flex-col gap-1">
+                                  {topic.subtopics!.map((subtopic) => {
+                                    const subtopicUrl = `${topicUrl}${subtopic.groupSlug ? `?group=${subtopic.groupSlug}` : ""}`;
+                                    return (
+                                      <Link
+                                        key={subtopic.slug}
+                                        to={subtopicUrl}
+                                        className="pointer-events-auto rounded-md px-3 py-2 text-sm text-slate-600 transition hover:bg-blue-50 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-600"
+                                      >
+                                        <span className="block font-medium text-slate-700">{subtopic.title}</span>
+                                        {subtopic.description && (
+                                          <span className="mt-0.5 block text-xs text-slate-500">{subtopic.description}</span>
+                                        )}
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <span className="text-xs font-semibold text-blue-500">바로가기 →</span>
-                      </Link>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
