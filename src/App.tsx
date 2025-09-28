@@ -26,7 +26,6 @@ import { websites, categoryConfig, categoryOrder } from "./data/websites";
 import { FavoritesData, CustomSite, Website } from "./types";
 import "./App.css";
 import { applyPreset } from "./utils/applyPreset";
-import { toggleFavorite as toggleFavoriteData } from "./utils/favorites";
 import { parseFavoritesData, parseCustomSites } from "./utils/validation";
 import { getStarterData } from "./utils/startPageStorage";
 import { Skeleton } from "./components/ui/skeleton";
@@ -271,18 +270,6 @@ export default function App() {
     return [...items, ...folderItems];
   };
 
-  const toggleFavorite = (websiteId: string) => {
-    try {
-      const newData = toggleFavoriteData(favoritesData, websiteId);
-      const isCurrentlyFavorited = getAllFavoriteIds().includes(websiteId);
-      setFavoritesData(newData);
-      toast.success(
-        isCurrentlyFavorited ? "즐겨찾기에서 제거되었습니다." : "즐겨찾기에 추가되었습니다."
-      );
-    } catch (e) {
-      toast.error("즐겨찾기 변경에 실패했습니다.");
-    }
-  };
 
   const handleAddFav = (id: string) => {
     try {
@@ -477,9 +464,11 @@ export default function App() {
                           sites={categorizedWebsites[category] || []}
                           config={categoryConfig[category]}
                           showDescriptions={showDescriptions}
+
                           // ✅ 즐겨찾기 상태 & 토글 연결
                           favorites={getAllFavoriteIds()}
                           onToggleFavorite={toggleFavorite}
+
                         />
                       ))}
                     </div>

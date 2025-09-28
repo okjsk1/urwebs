@@ -7,7 +7,6 @@ interface CategoryPageLayoutProps {
   websites: Website[];
   categoryOrder: string[];
   categoryConfig: CategoryConfigMap;
-  storageNamespace: string;
   pageTitle: string;
   categoryTitle?: string;
   showDescriptions?: boolean;
@@ -18,13 +17,17 @@ export function CategoryPageLayout({
   websites,
   categoryOrder,
   categoryConfig,
+
   storageNamespace: _storageNamespace,
+
   pageTitle,
   categoryTitle,
   showDescriptions = true,
   loading = false,
 }: CategoryPageLayoutProps) {
+
   void _storageNamespace;
+
 
   useEffect(() => {
     document.title = categoryTitle

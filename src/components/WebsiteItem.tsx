@@ -5,22 +5,38 @@ import { SiteIcon } from "./SiteIcon";
 interface WebsiteItemProps {
   website: Website;
   showDescription: boolean;
+
+  isDraggable?: boolean;
+  onDragStart?: (e: React.DragEvent, website: Website) => void;
 }
 
-export function WebsiteItem({ website, showDescription }: WebsiteItemProps) {
+export function WebsiteItem({
+  website,
+  showDescription,
+  isDraggable = false,
+  onDragStart,
+}: WebsiteItemProps) {
   if (!website?.url || !website?.title) return null;
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("websiteId", website.id);
+    onDragStart?.(e, website);
+  };
+
 
   return (
     <li
       className="urwebs-website-item relative flex w-full flex-col items-start min-h-9 rounded-md min-w-0 hover:bg-gray-100 focus-within:ring-2 focus-within:ring-blue-400"
       style={{ height: showDescription ? "auto" : undefined }}
     >
+
       <div className="flex items-center gap-2 min-w-0 w-full">
         <SiteIcon
           website={website}
           size={16}
           className="w-4 h-4 rounded border shrink-0"
         />
+
         <a
           href={website.url}
           target="_blank"

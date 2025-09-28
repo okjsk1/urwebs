@@ -88,6 +88,8 @@ export function CategoryCard({
                 <WebsiteItem
                   key={website.id}
                   website={website}
+                  isDraggable={false}
+
                   showDescription={showDescriptions}
                 />
               ))}
