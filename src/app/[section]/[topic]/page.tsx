@@ -6,13 +6,11 @@ import { findGroup, findSection, findTopic } from "@/data/starterpacks";
 interface StarterPackPageProps {
   sectionSlug: string;
   topicSlug: string;
-  groupSlug?: string;
 }
 
-export default function StarterPackPage({ sectionSlug, topicSlug, groupSlug }: StarterPackPageProps) {
+export default function StarterPackPage({ sectionSlug, topicSlug }: StarterPackPageProps) {
   const section = findSection(sectionSlug);
   const topic = findTopic(sectionSlug, topicSlug);
-  const group = findGroup(sectionSlug, topicSlug, groupSlug);
 
   if (!section || !topic) {
     return (
@@ -24,7 +22,7 @@ export default function StarterPackPage({ sectionSlug, topicSlug, groupSlug }: S
     );
   }
 
-  const widgets = group?.widgets ?? topic.widgets ?? [];
+  const group = findGroup(sectionSlug, topicSlug);
   const pageTitle = group
     ? `${section.title} · ${topic.title} · ${group.title}`
     : `${section.title} · ${topic.title}`;
@@ -33,7 +31,7 @@ export default function StarterPackPage({ sectionSlug, topicSlug, groupSlug }: S
   return (
     <DashboardLayout title={pageTitle} description={description}>
       <WidgetGrid>
-        <WidgetRenderer section={section} topic={topic} group={group} widgets={widgets} />
+        <WidgetRenderer section={section} topic={topic} widgets={topic.widgets} />
       </WidgetGrid>
     </DashboardLayout>
   );
