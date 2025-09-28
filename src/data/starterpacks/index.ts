@@ -79,9 +79,14 @@ const workGroups: StarterPackGroup[] = [
           description: "Vue 3 가이드 및 베스트 프랙티스",
         },
         {
-          title: "CSS-Tricks",
-          url: "https://css-tricks.com",
-          description: "실전 CSS 패턴과 UI 팁",
+          title: "Svelte Tutorial",
+          url: "https://learn.svelte.dev/tutorial/welcome-to-svelte",
+          description: "Svelte 공식 인터랙티브 튜토리얼",
+        },
+        {
+          title: "MDN CSS",
+          url: "https://developer.mozilla.org/ko/docs/Web/CSS",
+          description: "CSS 레이아웃과 스타일링 참고서",
         },
       ],
     },
@@ -101,6 +106,11 @@ const workGroups: StarterPackGroup[] = [
           description: "Spring 입문 및 확장 튜토리얼",
         },
         {
+          title: "Django 공식 문서",
+          url: "https://docs.djangoproject.com/ko/",
+          description: "Django 웹 프레임워크 학습",
+        },
+        {
           title: "FastAPI 공식 문서",
           url: "https://fastapi.tiangolo.com",
           description: "현대적인 Python 백엔드 프레임워크",
@@ -113,19 +123,24 @@ const workGroups: StarterPackGroup[] = [
       description: "Python, R, TensorFlow, 시각화",
       links: [
         {
-          title: "TensorFlow Tutorials",
-          url: "https://www.tensorflow.org/tutorials",
-          description: "머신러닝 모델 구축 실습",
-        },
-        {
-          title: "Kaggle",
-          url: "https://www.kaggle.com",
-          description: "데이터셋과 경쟁으로 실력 향상",
+          title: "Python 공식 문서",
+          url: "https://docs.python.org/ko/3/tutorial/index.html",
+          description: "데이터 처리를 위한 Python 기본기",
         },
         {
           title: "R for Data Science",
           url: "https://r4ds.hadley.nz",
           description: "R 기반 데이터 분석 가이드",
+        },
+        {
+          title: "TensorFlow Tutorials",
+          url: "https://www.tensorflow.org/tutorials",
+          description: "머신러닝 모델 구축 실습",
+        },
+        {
+          title: "Tableau Public Gallery",
+          url: "https://public.tableau.com/app/gallery",
+          description: "데이터 시각화 인사이트 모음",
         },
       ],
     },
@@ -148,6 +163,11 @@ const workGroups: StarterPackGroup[] = [
           title: "CI/CD with GitHub Actions",
           url: "https://docs.github.com/actions",
           description: "자동화 파이프라인 구축",
+        },
+        {
+          title: "AWS Well-Architected",
+          url: "https://aws.amazon.com/ko/architecture/well-architected/",
+          description: "클라우드 아키텍처 베스트 프랙티스",
         },
       ],
     },
@@ -186,14 +206,14 @@ const workGroups: StarterPackGroup[] = [
           description: "디자인 템플릿과 UI 킷",
         },
         {
-          title: "Adobe Creative Cloud",
-          url: "https://creativecloud.adobe.com",
-          description: "Photoshop 및 Illustrator 학습",
+          title: "Adobe Photoshop Learn & Support",
+          url: "https://helpx.adobe.com/kr/photoshop/tutorials.html",
+          description: "Photoshop 공식 튜토리얼",
         },
         {
-          title: "Dribbble",
-          url: "https://dribbble.com",
-          description: "디자인 트렌드 영감",
+          title: "Adobe Illustrator Learn & Support",
+          url: "https://helpx.adobe.com/kr/illustrator/tutorials.html",
+          description: "Illustrator 벡터 디자인 학습",
         },
       ],
     },
@@ -225,19 +245,19 @@ const workGroups: StarterPackGroup[] = [
       description: "AutoCAD, Revit, BIM",
       links: [
         {
-          title: "Autodesk Education",
-          url: "https://www.autodesk.com/education",
-          description: "AutoCAD 및 Revit 학습",
+          title: "AutoCAD Learn",
+          url: "https://www.autodesk.com/learning",
+          description: "AutoCAD 공식 튜토리얼",
+        },
+        {
+          title: "Autodesk Revit Resources",
+          url: "https://www.autodesk.com/products/revit/overview",
+          description: "Revit 기능과 학습 리소스",
         },
         {
           title: "BIM Forum",
           url: "https://bimforum.org",
           description: "BIM 표준과 사례",
-        },
-        {
-          title: "ArchDaily",
-          url: "https://www.archdaily.com",
-          description: "건축 디자인 인사이트",
         },
       ],
     },
@@ -247,19 +267,19 @@ const workGroups: StarterPackGroup[] = [
       description: "3D, 마감재, 재료 DB",
       links: [
         {
-          title: "Houzz",
-          url: "https://www.houzz.com",
-          description: "인테리어 영감과 자료",
-        },
-        {
-          title: "Archilovers",
-          url: "https://www.archilovers.com",
-          description: "전세계 인테리어 사례",
-        },
-        {
           title: "SketchUp Learn",
           url: "https://learn.sketchup.com",
           description: "3D 모델링 튜토리얼",
+        },
+        {
+          title: "마감재 가이드 (LX하우시스)",
+          url: "https://www.lxhausys.co.kr/product/interior-film",
+          description: "국내 마감재 트렌드",
+        },
+        {
+          title: "Material Bank",
+          url: "https://www.materialbank.com/",
+          description: "글로벌 인테리어 재료 DB",
         },
       ],
     },
@@ -325,9 +345,9 @@ const workGroups: StarterPackGroup[] = [
           description: "CRM 실습 코스",
         },
         {
-          title: "Harvard Business Review",
-          url: "https://hbr.org",
-          description: "경영 전략 아티클",
+          title: "Oracle NetSuite Training",
+          url: "https://www.netsuite.com/portal/services/training.shtml",
+          description: "클라우드 ERP 운영 가이드",
         },
       ],
     },

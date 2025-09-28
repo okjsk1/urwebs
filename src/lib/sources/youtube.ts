@@ -2,19 +2,19 @@ import { VideoItem } from "@/types/sources";
 
 const mockVideos: VideoItem[] = [
   {
-    id: "1",
-    title: "프로덕트 매니저를 위한 우선순위 설정",
-    url: "https://www.youtube.com/watch?v=example1",
+    id: "fe-1",
+    title: "React와 Vue 상태관리 비교",
+    url: "https://www.youtube.com/watch?v=example-fe",
   },
   {
-    id: "2",
-    title: "캠핑 장비 초보자 가이드",
-    url: "https://www.youtube.com/watch?v=example2",
+    id: "devops-1",
+    title: "Docker · Kubernetes DevOps 파이프라인 구축",
+    url: "https://www.youtube.com/watch?v=example-devops",
   },
   {
-    id: "3",
-    title: "퇴근 후 투자 공부 루틴",
-    url: "https://www.youtube.com/watch?v=example3",
+    id: "design-1",
+    title: "Figma로 디자인 시스템 설계하기",
+    url: "https://www.youtube.com/watch?v=example-design",
   },
 ];
 
