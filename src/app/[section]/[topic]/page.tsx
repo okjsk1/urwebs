@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { WidgetGrid } from "@/components/dashboard/WidgetGrid";
 import { WidgetRenderer } from "@/components/dashboard/WidgetRenderer";
@@ -6,13 +7,12 @@ import { findGroup, findSection, findTopic } from "@/data/starterpacks";
 interface StarterPackPageProps {
   sectionSlug: string;
   topicSlug: string;
-  groupSlug?: string;
 }
 
-export default function StarterPackPage({ sectionSlug, topicSlug, groupSlug }: StarterPackPageProps) {
+export default function StarterPackPage({ sectionSlug, topicSlug }: StarterPackPageProps) {
+  const [searchParams] = useSearchParams();
   const section = findSection(sectionSlug);
   const topic = findTopic(sectionSlug, topicSlug);
-  const group = findGroup(sectionSlug, topicSlug, groupSlug);
 
   if (!section || !topic) {
     return (
@@ -24,16 +24,20 @@ export default function StarterPackPage({ sectionSlug, topicSlug, groupSlug }: S
     );
   }
 
-  const widgets = group?.widgets ?? topic.widgets ?? [];
+  const groupSlug = searchParams.get("group") ?? undefined;
+  const group = groupSlug
+    ? findGroup(sectionSlug, topicSlug, groupSlug)
+    : findGroup(sectionSlug, topicSlug);
   const pageTitle = group
     ? `${section.title} · ${topic.title} · ${group.title}`
     : `${section.title} · ${topic.title}`;
   const description = group?.description ?? topic.description;
+  const widgetsToRender = group?.widgets ?? topic.widgets ?? [];
 
   return (
     <DashboardLayout title={pageTitle} description={description}>
       <WidgetGrid>
-        <WidgetRenderer section={section} topic={topic} group={group} widgets={widgets} />
+        <WidgetRenderer section={section} topic={topic} widgets={widgetsToRender} group={group} />
       </WidgetGrid>
     </DashboardLayout>
   );

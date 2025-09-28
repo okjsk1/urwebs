@@ -100,6 +100,357 @@ const remoteGroups: StarterPackGroup[] = [
   },
 ];
 
+const itLinks: WidgetInstance = {
+  id: "work-it-links",
+  kind: "links",
+  props: {
+    links: [
+      { title: "GitHub", url: "https://github.com", description: "코드 저장소 관리" },
+      { title: "Jira", url: "https://www.atlassian.com/software/jira", description: "이슈 트래킹" },
+      { title: "Swagger", url: "https://swagger.io", description: "API 명세 확인" },
+    ],
+  },
+};
+
+const itChecklist: WidgetInstance = {
+  id: "work-it-checklist",
+  kind: "checklist",
+  props: {
+    storageKey: "work-it-daily",
+    items: [
+      { id: "standup", label: "데일리 스탠드업 준비" },
+      { id: "review", label: "코드 리뷰 처리" },
+      { id: "deploy", label: "배포 일정 확인" },
+    ],
+  },
+};
+
+const itCalendar: WidgetInstance = {
+  id: "work-it-calendar",
+  kind: "calendar",
+  props: {},
+};
+
+const itGroups: StarterPackGroup[] = [
+  {
+    slug: "dev-collab",
+    title: "개발 협업",
+    description: "팀과 소통하고 작업 현황을 빠르게 확인하세요.",
+    widgets: [itLinks, itChecklist],
+  },
+  {
+    slug: "dev-schedule",
+    title: "개발 일정 관리",
+    description: "스프린트 계획과 중요한 마일스톤을 놓치지 마세요.",
+    widgets: [itCalendar],
+  },
+];
+
+const graphicDesignLinks: WidgetInstance = {
+  id: "work-design-graphic-links",
+  kind: "links",
+  props: {
+    links: [
+      { title: "Figma", url: "https://www.figma.com", description: "실시간 협업 디자인" },
+      { title: "Adobe Photoshop", url: "https://www.adobe.com/products/photoshop.html", description: "이미지 편집" },
+      {
+        title: "Adobe Illustrator",
+        url: "https://www.adobe.com/products/illustrator.html",
+        description: "벡터 그래픽 작업",
+      },
+    ],
+  },
+};
+
+const graphicDesignVideos: WidgetInstance = {
+  id: "work-design-graphic-videos",
+  kind: "videos",
+  props: {
+    query: "graphic design workflow",
+  },
+};
+
+const uiuxPrototypeLinks: WidgetInstance = {
+  id: "work-design-uiux-prototype",
+  kind: "links",
+  props: {
+    links: [
+      { title: "Framer", url: "https://www.framer.com", description: "하이파이 프로토타입" },
+      { title: "ProtoPie", url: "https://www.protopie.io", description: "인터랙션 프로토타이핑" },
+      { title: "Maze", url: "https://maze.co", description: "사용성 테스트 자동화" },
+    ],
+  },
+};
+
+const uiuxSystemLinks: WidgetInstance = {
+  id: "work-design-uiux-systems",
+  kind: "links",
+  props: {
+    links: [
+      { title: "Storybook", url: "https://storybook.js.org", description: "컴포넌트 라이브러리" },
+      { title: "Zeroheight", url: "https://zeroheight.com", description: "디자인 시스템 문서화" },
+      {
+        title: "Design Systems Repo",
+        url: "https://designsystemsrepo.com",
+        description: "디자인 시스템 사례",
+      },
+    ],
+  },
+};
+
+const architectureLinks: WidgetInstance = {
+  id: "work-design-architecture-links",
+  kind: "links",
+  props: {
+    links: [
+      { title: "AutoCAD", url: "https://www.autodesk.com/products/autocad", description: "도면 설계 표준" },
+      { title: "Revit", url: "https://www.autodesk.com/products/revit", description: "BIM 모델링" },
+      { title: "BIMobject", url: "https://www.bimobject.com", description: "BIM 라이브러리" },
+    ],
+  },
+};
+
+const architectureWorkflowVideos: WidgetInstance = {
+  id: "work-design-architecture-videos",
+  kind: "videos",
+  props: {
+    query: "Revit BIM workflow",
+  },
+};
+
+const interiorLinks: WidgetInstance = {
+  id: "work-design-interior-links",
+  kind: "links",
+  props: {
+    links: [
+      { title: "SketchUp", url: "https://www.sketchup.com", description: "3D 공간 설계" },
+      { title: "3ds Max", url: "https://www.autodesk.com/products/3ds-max", description: "비주얼라이제이션" },
+      { title: "V-Ray", url: "https://www.chaos.com/vray", description: "실감 렌더링" },
+    ],
+  },
+};
+
+const interiorMaterialLinks: WidgetInstance = {
+  id: "work-design-interior-materials",
+  kind: "links",
+  props: {
+    links: [
+      { title: "Material Bank", url: "https://www.materialbank.com", description: "마감재 샘플 검색" },
+      { title: "Architonic", url: "https://www.architonic.com", description: "재료/제품 DB" },
+      { title: "Pinterest Interior", url: "https://www.pinterest.com/categories/home_decor/", description: "인테리어 레퍼런스" },
+    ],
+  },
+};
+
+const designGroups: StarterPackGroup[] = [
+  {
+    slug: "graphic-design",
+    title: "그래픽 디자인",
+    description: "Figma와 Adobe 도구로 그래픽 워크플로우를 정리하세요.",
+    widgets: [graphicDesignLinks, graphicDesignVideos],
+  },
+  {
+    slug: "ui-ux",
+    title: "UI/UX",
+    description: "프로토타입과 디자인 시스템을 함께 운영해보세요.",
+    widgets: [uiuxPrototypeLinks, uiuxSystemLinks],
+  },
+  {
+    slug: "architecture-design",
+    title: "건축 설계",
+    description: "BIM 중심의 설계 도구와 레퍼런스를 모았습니다.",
+    widgets: [architectureLinks, architectureWorkflowVideos],
+  },
+  {
+    slug: "interior-design",
+    title: "인테리어",
+    description: "3D 모델링과 마감재 자료를 한 곳에서 확인하세요.",
+    widgets: [interiorLinks, interiorMaterialLinks],
+  },
+];
+
+const businessLinks: WidgetInstance = {
+  id: "work-business-links",
+  kind: "links",
+  props: {
+    links: [
+      { title: "Notion", url: "https://www.notion.so", description: "기획 문서 협업" },
+      { title: "Google Analytics", url: "https://analytics.google.com", description: "지표 확인" },
+      { title: "Miro", url: "https://miro.com", description: "아이디어 보드" },
+    ],
+  },
+};
+
+const businessChecklist: WidgetInstance = {
+  id: "work-business-checklist",
+  kind: "checklist",
+  props: {
+    storageKey: "work-business-weekly",
+    items: [
+      { id: "okr", label: "주간 OKR 리뷰" },
+      { id: "report", label: "성과 리포트 업데이트" },
+      { id: "meeting", label: "주요 미팅 준비" },
+    ],
+  },
+};
+
+const businessGroups: StarterPackGroup[] = [
+  {
+    slug: "business-planning",
+    title: "전략 기획",
+    description: "비즈니스 전략 수립에 필요한 자료를 모았습니다.",
+    widgets: [businessLinks],
+  },
+  {
+    slug: "business-ops",
+    title: "운영 체크리스트",
+    description: "경영 실무를 위한 주요 업무를 관리하세요.",
+    widgets: [businessChecklist],
+  },
+];
+
+const marketingLinks: WidgetInstance = {
+  id: "work-marketing-links",
+  kind: "links",
+  props: {
+    links: [
+      { title: "Meta Ads", url: "https://www.facebook.com/business/ads", description: "캠페인 관리" },
+      { title: "Google Trends", url: "https://trends.google.com", description: "트렌드 분석" },
+      { title: "Canva", url: "https://www.canva.com", description: "콘텐츠 제작" },
+    ],
+  },
+};
+
+const marketingChecklist: WidgetInstance = {
+  id: "work-marketing-checklist",
+  kind: "checklist",
+  props: {
+    storageKey: "work-marketing-campaign",
+    items: [
+      { id: "campaign", label: "캠페인 성과 확인" },
+      { id: "content", label: "콘텐츠 일정 검토" },
+      { id: "report", label: "주요 지표 공유" },
+    ],
+  },
+};
+
+const marketingVideos: WidgetInstance = {
+  id: "work-marketing-videos",
+  kind: "videos",
+  props: {
+    query: "marketing strategy",
+  },
+};
+
+const marketingGroups: StarterPackGroup[] = [
+  {
+    slug: "marketing-insight",
+    title: "마케팅 인사이트",
+    description: "시장과 트렌드를 빠르게 파악하세요.",
+    widgets: [marketingLinks, marketingVideos],
+  },
+  {
+    slug: "marketing-ops",
+    title: "캠페인 운영",
+    description: "캠페인 일정을 점검하고 공유하세요.",
+    widgets: [marketingChecklist],
+  },
+];
+
+const operationsLinks: WidgetInstance = {
+  id: "work-operations-links",
+  kind: "links",
+  props: {
+    links: [
+      { title: "국세청 홈택스", url: "https://www.hometax.go.kr", description: "세무 신고" },
+      { title: "법제처 국가법령정보센터", url: "https://www.law.go.kr", description: "법령 검색" },
+      { title: "워크플로이", url: "https://workflowy.com", description: "업무 정리" },
+    ],
+  },
+};
+
+const operationsChecklist: WidgetInstance = {
+  id: "work-operations-checklist",
+  kind: "checklist",
+  props: {
+    storageKey: "work-operations-monthly",
+    items: [
+      { id: "tax", label: "세무 신고 일정 확인" },
+      { id: "contract", label: "계약서 검토" },
+      { id: "admin", label: "사무 물품 정비" },
+    ],
+  },
+};
+
+const operationsCalendar: WidgetInstance = {
+  id: "work-operations-calendar",
+  kind: "calendar",
+  props: {},
+};
+
+const operationsGroups: StarterPackGroup[] = [
+  {
+    slug: "operations-reference",
+    title: "법무 · 행정 자료",
+    description: "업무에 필요한 행정 문서를 빠르게 찾으세요.",
+    widgets: [operationsLinks],
+  },
+  {
+    slug: "operations-schedule",
+    title: "정기 업무 관리",
+    description: "회계와 사무 일정을 체계적으로 관리하세요.",
+    widgets: [operationsChecklist, operationsCalendar],
+  },
+];
+
+const researchLinks: WidgetInstance = {
+  id: "work-research-links",
+  kind: "links",
+  props: {
+    links: [
+      { title: "Google Scholar", url: "https://scholar.google.com", description: "학술 자료 검색" },
+      { title: "DBpia", url: "https://www.dbpia.co.kr", description: "국내 논문 검색" },
+      { title: "Zotero", url: "https://www.zotero.org", description: "자료 관리" },
+    ],
+  },
+};
+
+const researchChecklist: WidgetInstance = {
+  id: "work-research-checklist",
+  kind: "checklist",
+  props: {
+    storageKey: "work-research-weekly",
+    items: [
+      { id: "reading", label: "논문 리딩" },
+      { id: "experiment", label: "실험/수업 준비" },
+      { id: "note", label: "결과 정리" },
+    ],
+  },
+};
+
+const researchVideos: WidgetInstance = {
+  id: "work-research-videos",
+  kind: "videos",
+  props: {
+    query: "research methods",
+  },
+};
+
+const researchGroups: StarterPackGroup[] = [
+  {
+    slug: "research-reference",
+    title: "연구 자료",
+    description: "최신 연구 동향을 살펴보세요.",
+    widgets: [researchLinks, researchVideos],
+  },
+  {
+    slug: "research-routine",
+    title: "학습 루틴",
+    description: "연구와 수업 준비를 위한 일정과 할 일을 정리하세요.",
+    widgets: [researchChecklist],
+  },
+];
+
 const campingChecklist: WidgetInstance = {
   id: "camping-checklist",
   kind: "checklist",
@@ -427,6 +778,74 @@ export const starterPackSections: StarterPackSection[] = [
         description: "분산팀을 위한 협업 툴 모음",
         widgets: [remoteLinks, remoteWeather, remoteVideos],
         groups: remoteGroups,
+      },
+      {
+        slug: "it-development",
+        title: "IT / 개발",
+        description: "개발자 팀을 위한 생산성 도구",
+        widgets: [itLinks, itChecklist, itCalendar],
+        groups: itGroups,
+      },
+      {
+        slug: "design-architecture",
+        title: "디자인 / 건축",
+        description: "디자인과 설계 프로젝트 관리를 위한 큐레이션",
+        widgets: designGroups[0]?.widgets,
+        groups: designGroups,
+        subtopics: [
+          {
+            slug: "graphic-design",
+            title: "그래픽 디자인",
+            description: "Figma, Photoshop, Illustrator",
+            groupSlug: "graphic-design",
+          },
+          {
+            slug: "ui-ux",
+            title: "UI/UX",
+            description: "프로토타입, 디자인 시스템",
+            groupSlug: "ui-ux",
+          },
+          {
+            slug: "architecture-design",
+            title: "건축 설계",
+            description: "AutoCAD, Revit, BIM",
+            groupSlug: "architecture-design",
+          },
+          {
+            slug: "interior-design",
+            title: "인테리어",
+            description: "3D, 마감재, 재료 DB",
+            groupSlug: "interior-design",
+          },
+        ],
+      },
+      {
+        slug: "business-management",
+        title: "기획 / 경영",
+        description: "경영 전략과 실무 운영을 동시에 챙겨보세요.",
+        widgets: [businessLinks, businessChecklist],
+        groups: businessGroups,
+      },
+      {
+        slug: "marketing-media",
+        title: "마케팅 / 미디어",
+        description: "마케팅 캠페인과 콘텐츠 운영을 위한 필수 위젯",
+        widgets: [marketingLinks, marketingChecklist, marketingVideos],
+        groups: marketingGroups,
+      },
+      {
+        slug: "operations-admin",
+        title: "회계 / 법무 / 사무",
+        description: "행정과 지원 업무를 체계적으로 관리하세요.",
+        widgets: [operationsLinks, operationsChecklist, operationsCalendar],
+        groups: operationsGroups,
+      },
+      {
+        slug: "education-research",
+        title: "교육 / 연구",
+        description: "교육자와 연구자를 위한 루틴과 자료 정리",
+        widgets: [researchLinks, researchChecklist, researchVideos],
+        groups: researchGroups,
       },
     ],
   },
