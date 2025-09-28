@@ -407,6 +407,152 @@ const photoGroups: StarterPackGroup[] = [
   },
 ];
 
+const bakingChecklist: WidgetInstance = {
+  id: "baking-checklist",
+  kind: "checklist",
+  props: {
+    storageKey: "home-baking",
+    items: [
+      { id: "preheat", label: "오븐 예열" },
+      { id: "measure", label: "재료 계량" },
+      { id: "cooling", label: "식힘망 준비" },
+    ],
+  },
+};
+
+const bakingLinks: WidgetInstance = {
+  id: "baking-links",
+  kind: "links",
+  props: {
+    links: [
+      { title: "Breadtopia", url: "https://breadtopia.com", description: "천연 발효 빵 레시피" },
+      {
+        title: "만개의 레시피 베이킹",
+        url: "https://www.10000recipe.com/recipe/list.html?q=%EB%B2%A0%EC%9D%B4%ED%82%B9",
+        description: "한글 레시피 모음",
+      },
+    ],
+  },
+};
+
+const bakingVideos: WidgetInstance = {
+  id: "baking-videos",
+  kind: "videos",
+  props: {
+    query: "홈 베이킹",
+  },
+};
+
+const bakingGroups: StarterPackGroup[] = [
+  {
+    slug: "baking-prep",
+    title: "굽기 준비",
+    description: "재료와 도구를 미리 준비해보세요.",
+    widgets: [bakingChecklist],
+  },
+  {
+    slug: "baking-study",
+    title: "레시피 탐색",
+    description: "새로운 레시피와 튜토리얼을 찾아보세요.",
+    widgets: [bakingLinks, bakingVideos],
+  },
+];
+
+const gardeningChecklist: WidgetInstance = {
+  id: "gardening-checklist",
+  kind: "checklist",
+  props: {
+    storageKey: "urban-gardening",
+    items: [
+      { id: "watering", label: "물 주기 일정 확인" },
+      { id: "repot", label: "분갈이 준비" },
+      { id: "fertilizer", label: "비료 주기 기록" },
+    ],
+  },
+};
+
+const gardeningLinks: WidgetInstance = {
+  id: "gardening-links",
+  kind: "links",
+  props: {
+    links: [
+      {
+        title: "가드닝 인포",
+        url: "https://www.sisul.or.kr/open_content/forest/gardening/",
+        description: "도시 정원 가이드",
+      },
+      {
+        title: "국립수목원 식물도감",
+        url: "https://nature.go.kr/kbi/plant/plantSearchList.do",
+        description: "식물 관리 정보",
+      },
+    ],
+  },
+};
+
+const gardeningCalendar: WidgetInstance = {
+  id: "gardening-calendar",
+  kind: "calendar",
+  props: {},
+};
+
+const gardeningGroups: StarterPackGroup[] = [
+  {
+    slug: "gardening-routine",
+    title: "가드닝 루틴",
+    description: "식물 관리 루틴을 기록해보세요.",
+    widgets: [gardeningChecklist, gardeningCalendar],
+  },
+  {
+    slug: "gardening-reference",
+    title: "식물 정보",
+    description: "키우는 식물 정보를 찾아보고 저장하세요.",
+    widgets: [gardeningLinks],
+  },
+];
+
+const musicPracticeChecklist: WidgetInstance = {
+  id: "music-practice-checklist",
+  kind: "checklist",
+  props: {
+    storageKey: "music-practice",
+    items: [
+      { id: "warmup", label: "워밍업 스케일" },
+      { id: "technique", label: "테크닉 연습" },
+      { id: "repertoire", label: "레퍼토리 곡 반복" },
+    ],
+  },
+};
+
+const musicPracticeCalendar: WidgetInstance = {
+  id: "music-practice-calendar",
+  kind: "calendar",
+  props: {},
+};
+
+const musicPracticeVideos: WidgetInstance = {
+  id: "music-practice-videos",
+  kind: "videos",
+  props: {
+    query: "악기 연습 루틴",
+  },
+};
+
+const musicPracticeGroups: StarterPackGroup[] = [
+  {
+    slug: "practice-plan",
+    title: "연습 계획",
+    description: "연습 루틴과 스케줄을 정리하세요.",
+    widgets: [musicPracticeChecklist, musicPracticeCalendar],
+  },
+  {
+    slug: "practice-inspiration",
+    title: "연주 레퍼런스",
+    description: "연주 팁과 튜토리얼을 확인하세요.",
+    widgets: [musicPracticeVideos],
+  },
+];
+
 const investLinks: WidgetInstance = {
   id: "invest-links",
   kind: "links",
@@ -712,6 +858,27 @@ export const starterPackSections: StarterPackSection[] = [
         description: "촬영 계획과 영감을 한 번에",
         widgets: [photoLinks, photoCalendar],
         groups: photoGroups,
+      },
+      {
+        slug: "home-baking",
+        title: "홈 베이킹",
+        description: "집에서 만드는 베이커리 실습 루틴",
+        widgets: [bakingChecklist, bakingLinks, bakingVideos],
+        groups: bakingGroups,
+      },
+      {
+        slug: "urban-gardening",
+        title: "홈 가드닝",
+        description: "반려식물을 위한 관리와 정보 수집",
+        widgets: [gardeningChecklist, gardeningCalendar, gardeningLinks],
+        groups: gardeningGroups,
+      },
+      {
+        slug: "music-practice",
+        title: "악기 연습",
+        description: "꾸준한 연습 루틴과 레슨 자료",
+        widgets: [musicPracticeChecklist, musicPracticeCalendar, musicPracticeVideos],
+        groups: musicPracticeGroups,
       },
     ],
   },
