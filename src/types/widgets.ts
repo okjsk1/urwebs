@@ -29,7 +29,8 @@ export interface StarterPackTopic {
   slug: string;
   title: string;
   description?: string;
-  widgets: WidgetInstance[];
+  widgets?: WidgetInstance[];
+  groups?: StarterPackGroup[];
 }
 
 export interface StarterPackSection {
@@ -37,12 +38,21 @@ export interface StarterPackSection {
   title: string;
   description?: string;
   topics: StarterPackTopic[];
+  groups?: StarterPackGroup[];
   icon?: ReactNode;
+}
+
+export interface StarterPackGroup {
+  slug: string;
+  title: string;
+  description?: string;
+  widgets: WidgetInstance[];
 }
 
 export interface WidgetRenderContext {
   section: StarterPackSection;
   topic: StarterPackTopic;
+  group?: StarterPackGroup;
 }
 
 export interface WidgetComponentProps<
