@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { Header } from './components/Header';
 import { HomePageNew } from './components/HomePageNew';
 import { CategoryDetailPageColumns } from './components/CategoryDetailPageColumns';
-import { CustomStartPageNew } from './components/CustomStartPageNew';
 import { NoticePage } from './components/NoticePage';
 import { CommunityPage } from './components/CommunityPage';
 import { ContactPage } from './components/ContactPage';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'category' | 'custom' | 'notice' | 'community' | 'contact'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'category' | 'notice' | 'community' | 'contact'>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
 
@@ -24,9 +23,6 @@ export default function App() {
     setSelectedSubCategory('');
   };
 
-  const handleNavigateCustom = () => {
-    setCurrentPage('custom');
-  };
 
   const handleNavigateNotice = () => {
     setCurrentPage('notice');
@@ -40,6 +36,7 @@ export default function App() {
     setCurrentPage('contact');
   };
 
+
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'home':
@@ -51,8 +48,6 @@ export default function App() {
             subCategory={selectedSubCategory}
           />
         );
-      case 'custom':
-        return <CustomStartPageNew />;
       case 'notice':
         return <NoticePage />;
       case 'community':
@@ -69,7 +64,6 @@ export default function App() {
       <Header 
         currentPage={currentPage} 
         onNavigateHome={handleNavigateHome}
-        onNavigateCustom={handleNavigateCustom}
         onNavigateNotice={handleNavigateNotice}
         onNavigateCommunity={handleNavigateCommunity}
         onNavigateContact={handleNavigateContact}

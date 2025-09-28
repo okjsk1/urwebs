@@ -4,7 +4,6 @@ import { Button } from './ui/button';
 interface HeaderProps {
   currentPage: string;
   onNavigateHome: () => void;
-  onNavigateCustom: () => void;
   onNavigateNotice: () => void;
   onNavigateCommunity: () => void;
   onNavigateContact: () => void;
@@ -13,7 +12,6 @@ interface HeaderProps {
 export function Header({ 
   currentPage, 
   onNavigateHome, 
-  onNavigateCustom, 
   onNavigateNotice,
   onNavigateCommunity,
   onNavigateContact 
@@ -66,17 +64,6 @@ export function Header({
           >
             <HelpCircle className="w-4 h-4 mr-1" />
             문의하기
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onNavigateCustom}
-            className={`flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors ${
-              currentPage === 'custom' ? 'bg-blue-50 border-blue-300' : ''
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            나만의 시작페이지
           </Button>
         </nav>
       </div>

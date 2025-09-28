@@ -87,7 +87,7 @@ export function SiteCard({ name, description, url, tags, category, isFavorite = 
             className="p-1 h-6 w-6 flex-shrink-0 hover:bg-yellow-50 rounded-full"
           >
             <Star 
-              className={`w-4 h-4 ${isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400 hover:text-yellow-500'}`} 
+              className={`w-4 h-4 border border-gray-300 rounded ${isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400 hover:text-yellow-500'}`} 
             />
           </Button>
         )}

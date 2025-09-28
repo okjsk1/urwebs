@@ -1763,10 +1763,6 @@ export function CategoryDetailPage({ categoryId, subCategory }: CategoryDetailPa
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="mb-8 text-center">
-        <h2 className="text-4xl font-bold text-gray-900 mb-3">{data.title}</h2>
-        <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto rounded"></div>
-      </div>
       
       <div className="space-y-12">
         {sortedCategories.map((category, categoryIndex) => (

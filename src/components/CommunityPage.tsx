@@ -171,16 +171,6 @@ export function CommunityPage() {
   if (selectedPost) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Button
-            variant="outline"
-            onClick={() => setSelectedPost(null)}
-            className="mb-4"
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            목록으로 돌아가기
-          </Button>
-        </div>
 
         <Card className="p-8 mb-6">
           <div className="border-b border-gray-200 pb-6 mb-6">

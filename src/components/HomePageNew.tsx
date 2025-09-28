@@ -63,6 +63,16 @@ const categories: Category[] = [
     ]
   },
   {
+    id: 'finance',
+    icon: DollarSign,
+    title: '금융/투자',
+    description: '주식, 코인 등 투자',
+    subCategories: [
+      { id: 'stock', title: '주식', description: '주식 투자 및 분석' },
+      { id: 'crypto', title: '코인', description: '암호화폐 거래 및 정보' }
+    ]
+  },
+  {
     id: 'development',
     icon: Code,
     title: '개발/기획',
@@ -106,16 +116,6 @@ const categories: Category[] = [
     icon: Shield,
     title: '보험',
     description: '보험 상품 및 관리'
-  },
-  {
-    id: 'finance',
-    icon: DollarSign,
-    title: '금융/투자',
-    description: '주식, 코인 등 투자',
-    subCategories: [
-      { id: 'stock', title: '주식', description: '주식 투자 및 분석' },
-      { id: 'crypto', title: '코인', description: '암호화폐 거래 및 정보' }
-    ]
   },
   {
     id: 'education',

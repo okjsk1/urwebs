@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { ArrowLeft } from 'lucide-react';
-
+import { ArrowLeft, Heart, FolderPlus, Folder, X, Plus } from 'lucide-react';
 interface Site {
   id: string;
   name: string;
   description: string;
   url: string;
+}
+
+interface Folder {
+  id: string;
+  name: string;
+  sites: string[]; // site IDs
 }
 
 interface Category {
@@ -127,6 +132,129 @@ const getCategoryData = (categoryId: string, subCategory: string): CategoryData 
       ]
     };
   }
+// 금융/투자 카테고리 - 기본 (서브카테고리 없음)
+if (categoryId === 'finance' && !subCategory) {
+  return {
+    title: '금융/투자',
+    categories: [
+      {
+        name: '주식 투자',
+        sites: [
+          { id: 'stock1', name: '키움증권 영웅문', description: '온라인 주식거래', url: 'https://www1.kiwoomhero.com' },
+          { id: 'stock2', name: '토스증권', description: '간편 주식투자', url: 'https://tossinvest.com' },
+          { id: 'stock3', name: '네이버 금융', description: '종목 토론방, 증권사 리포트', url: 'https://finance.naver.com' },
+          { id: 'stock4', name: 'DART', description: '금융감독원 전자공시', url: 'https://dart.fss.or.kr' },
+          { id: 'stock5', name: 'Yahoo Finance', description: '글로벌 주식 정보', url: 'https://finance.yahoo.com' },
+          { id: 'stock6', name: 'Bloomberg', description: '금융 뉴스 및 시장 데이터', url: 'https://www.bloomberg.com' }
+        ]
+      },
+      {
+        name: '코인 투자',
+        sites: [
+          { id: 'crypto1', name: '업비트', description: '국내 1위 가상자산 거래소', url: 'https://upbit.com' },
+          { id: 'crypto2', name: '빗썸', description: '암호화폐 거래소', url: 'https://www.bithumb.com' },
+          { id: 'crypto3', name: '바이낸스', description: '글로벌 암호화폐 거래소', url: 'https://www.binance.com' },
+          { id: 'crypto4', name: '코인마켓캡', description: '암호화폐 시세 정보', url: 'https://coinmarketcap.com' },
+          { id: 'crypto5', name: '코인게코', description: '암호화폐 추적 서비스', url: 'https://www.coingecko.com' },
+          { id: 'crypto6', name: '트레이딩뷰', description: '차트 분석 도구', url: 'https://www.tradingview.com' }
+        ]
+      }
+    ]
+  };
+}
+
+// 금융/투자 카테고리 - 주식
+if (categoryId === 'finance' && subCategory === 'stock') {
+  return {
+    title: '금융/투자 - 주식',
+    categories: [
+      {
+        name: '거래 플랫폼',
+        sites: [
+          { id: 'st1', name: '키움증권 영웅문', description: '온라인 주식거래', url: 'https://www1.kiwoomhero.com' },
+          { id: 'st2', name: '삼성증권', description: 'mPOP 주식거래', url: 'https://www.samsungpop.com' },
+          { id: 'st3', name: '미래에셋대우', description: 'mPAM 주식거래', url: 'https://securities.miraeasset.com' },
+          { id: 'st4', name: '토스증권', description: '간편 주식투자', url: 'https://tossinvest.com' },
+          { id: 'st5', name: 'NH투자증권', description: 'WTS 주식거래', url: 'https://www.nhqv.com' },
+          { id: 'st6', name: '카카오페이증권', description: '간편 투자 서비스', url: 'https://securities.kakaopay.com' }
+        ]
+      },
+      {
+        name: '정보/분석',
+        sites: [
+          { id: 'st7', name: '네이버 금융', description: '종목 토론방, 증권사 리포트 요약', url: 'https://finance.naver.com' },
+          { id: 'st8', name: '다음 금융', description: '실시간 시세, 뉴스 큐레이션', url: 'https://finance.daum.net' },
+          { id: 'st9', name: 'DART', description: '금융감독원 전자공시', url: 'https://dart.fss.or.kr' },
+          { id: 'st10', name: 'KIND', description: '한국거래소 전자공시', url: 'https://kind.krx.co.kr' },
+          { id: 'st11', name: '씽크풀', description: '개미 투자자 커뮤니티', url: 'https://www.thinkpool.com' },
+          { id: 'st12', name: 'KRX 한국거래소', description: '실시간 시세, 시장정보', url: 'https://www.krx.co.kr' }
+        ]
+      },
+      {
+        name: '증권사 리서치',
+        sites: [
+          { id: 'st13', name: 'NH투자증권 리서치', description: 'NH투자증권 애널리스트 리포트', url: 'https://www.nhqv.com/research' },
+          { id: 'st14', name: '신한투자증권 리서치', description: '신한투자증권 리서치센터', url: 'https://www.shinhaninvest.com/research' },
+          { id: 'st15', name: '미래에셋증권 리서치', description: '미래에셋 리서치 리포트', url: 'https://www.miraeasset.com/research' },
+          { id: 'st16', name: '삼성증권 리서치', description: '삼성증권 애널리스트 의견', url: 'https://www.samsungpop.com/research' },
+          { id: 'st17', name: 'KB증권 리서치', description: 'KB증권 투자정보', url: 'https://www.kbsec.co.kr/research' },
+          { id: 'st18', name: 'SK증권 리서치', description: 'SK증권 시장분석', url: 'https://www.sks.co.kr/research' }
+        ]
+      },
+      {
+        name: '해외주식',
+        sites: [
+          { id: 'st19', name: 'Yahoo Finance', description: '글로벌 주식 정보', url: 'https://finance.yahoo.com' },
+          { id: 'st20', name: 'Bloomberg', description: '금융 뉴스 및 시장 데이터', url: 'https://www.bloomberg.com' },
+          { id: 'st21', name: 'MarketWatch', description: '미국 주식 시장 정보', url: 'https://www.marketwatch.com' },
+          { id: 'st22', name: 'Investing.com', description: '글로벌 투자 정보', url: 'https://www.investing.com' },
+          { id: 'st23', name: 'TD Ameritrade', description: '미국 주식 거래', url: 'https://www.tdameritrade.com' },
+          { id: 'st24', name: 'Interactive Brokers', description: '글로벌 증권 거래', url: 'https://www.interactivebrokers.com' }
+        ]
+      }
+    ]
+  };
+}
+
+// 금융/투자 카테고리 - 코인
+if (categoryId === 'finance' && subCategory === 'crypto') {
+  return {
+    title: '금융/투자 - 코인',
+    categories: [
+      {
+        name: '거래소',
+        sites: [
+          { id: 'cr1', name: '업비트', description: '국내 1위 코인거래소', url: 'https://upbit.com' },
+          { id: 'cr2', name: '빗썸', description: '국내 대형 거래소', url: 'https://www.bithumb.com' },
+          { id: 'cr3', name: '코인원', description: '국내 코인거래소', url: 'https://coinone.co.kr' },
+          { id: 'cr4', name: '바이낸스', description: '글로벌 거래소', url: 'https://www.binance.com' },
+          { id: 'cr5', name: '코빗', description: '국내 비트코인 거래소', url: 'https://www.korbit.co.kr' },
+          { id: 'cr6', name: '고팩스', description: '국내 암호화폐 거래소', url: 'https://www.gopax.co.kr' }
+        ]
+      },
+      {
+        name: '정보/분석',
+        sites: [
+          { id: 'cr7', name: '코인마켓캡', description: '코인 시가총액 정보', url: 'https://coinmarketcap.com' },
+          { id: 'cr8', name: '코인게코', description: '코인 가격 추적', url: 'https://www.coingecko.com' },
+          { id: 'cr9', name: '트레이딩뷰', description: '차트 분석 도구', url: 'https://www.tradingview.com' },
+          { id: 'cr10', name: '코인데스크', description: '블록체인 뉴스', url: 'https://www.coindesk.com' },
+          { id: 'cr11', name: '코인텔레그래프', description: '암호화폐 뉴스', url: 'https://cointelegraph.com' },
+          { id: 'cr12', name: '디센트', description: '블록체인 한국 뉴스', url: 'https://decent.fund' }
+        ]
+      },
+      {
+        name: '커뮤니티',
+        sites: [
+          { id: 'cr13', name: '레딧 암호화폐', description: 'Reddit 암호화폐 커뮤니티', url: 'https://www.reddit.com/r/cryptocurrency' },
+          { id: 'cr14', name: '비트코인토크', description: '한국 암호화폐 커뮤니티', url: 'https://bitcointalk.org' },
+          { id: 'cr15', name: '디스코드 암호화폐', description: '암호화폐 디스코드 서버', url: 'https://discord.gg/cryptocurrency' },
+          { id: 'cr16', name: '텔레그램 암호화폐', description: '암호화폐 텔레그램 채널', url: 'https://t.me/cryptocurrency' }
+        ]
+      }
+    ]
+  };
+}
 
   // 개발 카테고리
   if (categoryId === 'development') {
@@ -674,6 +802,10 @@ interface CategoryDetailPageColumnsProps {
 
 export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryDetailPageColumnsProps) {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [draggedSite, setDraggedSite] = useState<string | null>(null);
   const data = getCategoryData(categoryId, subCategory);
 
   useEffect(() => {
@@ -685,12 +817,30 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
         console.error('Failed to parse favorites:', e);
       }
     }
+    
+    const savedFolders = localStorage.getItem(`folders_${categoryId}`);
+    if (savedFolders) {
+      try {
+        setFolders(JSON.parse(savedFolders));
+      } catch (e) {
+        console.error('Failed to parse folders:', e);
+      }
+    }
   }, [categoryId]);
 
   const toggleFavorite = (siteId: string) => {
     const newFavorites = new Set(favorites);
-    if (newFavorites.has(siteId)) {
+    const wasFavorite = newFavorites.has(siteId);
+    
+    if (wasFavorite) {
       newFavorites.delete(siteId);
+      // 폴더에서도 제거
+      const updatedFolders = folders.map(folder => ({
+        ...folder,
+        sites: folder.sites.filter(id => id !== siteId)
+      }));
+      setFolders(updatedFolders);
+      localStorage.setItem(`folders_${categoryId}`, JSON.stringify(updatedFolders));
     } else {
       newFavorites.add(siteId);
     }
@@ -698,37 +848,461 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
     localStorage.setItem(`favorites_${categoryId}`, JSON.stringify([...newFavorites]));
   };
 
+  const createFolder = () => {
+    if (newFolderName.trim()) {
+      const newFolder: Folder = {
+        id: Date.now().toString(),
+        name: newFolderName.trim(),
+        sites: []
+      };
+      const updatedFolders = [...folders, newFolder];
+      setFolders(updatedFolders);
+      localStorage.setItem(`folders_${categoryId}`, JSON.stringify(updatedFolders));
+      setNewFolderName('');
+      setShowCreateFolder(false);
+    }
+  };
+
+  const deleteFolder = (folderId: string) => {
+    const updatedFolders = folders.filter(f => f.id !== folderId);
+    setFolders(updatedFolders);
+    localStorage.setItem(`folders_${categoryId}`, JSON.stringify(updatedFolders));
+  };
+
+  const addSiteToFolder = (siteId: string, folderId: string) => {
+    const updatedFolders = folders.map(folder => {
+      if (folder.id === folderId) {
+        return {
+          ...folder,
+          sites: [...folder.sites, siteId]
+        };
+      }
+      return folder;
+    });
+    setFolders(updatedFolders);
+    localStorage.setItem(`folders_${categoryId}`, JSON.stringify(updatedFolders));
+  };
+
+  const removeSiteFromFolder = (siteId: string, folderId: string) => {
+    const updatedFolders = folders.map(folder => {
+      if (folder.id === folderId) {
+        return {
+          ...folder,
+          sites: folder.sites.filter(id => id !== siteId)
+        };
+      }
+      return folder;
+    });
+    setFolders(updatedFolders);
+    localStorage.setItem(`folders_${categoryId}`, JSON.stringify(updatedFolders));
+  };
+
+  const handleDragStart = (siteId: string) => {
+    setDraggedSite(siteId);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (folderId: string) => {
+    if (draggedSite) {
+      addSiteToFolder(draggedSite, folderId);
+      setDraggedSite(null);
+    }
+  };
+
+  // 폴더에 속하지 않은 즐겨찾기 사이트들
+  const getUnfolderedSites = () => {
+    const folderedSites = new Set(folders.flatMap(f => f.sites));
+    return Array.from(favorites).filter(siteId => !folderedSites.has(siteId));
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* 헤더 */}
-      <div className="mb-8">
-        <div className="flex items-center gap-4 mb-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.history.back()}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            돌아가기
-          </Button>
-        </div>
-        
+      {/* 스타터팩 섹션 */}
+      <div className="mb-12">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">
-              {data.title}
-            </h1>
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-3 rounded-full shadow-lg">
+            <span className="text-lg font-bold">🚀 스타터팩</span>
+            <span className="text-sm opacity-90">정말 필요한 핵심 사이트들</span>
           </div>
+        </div>
+           {/* 전문 위젯 섹션 */}
+           <div className="mb-8">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-3 rounded-full shadow-lg">
+              <span className="text-lg font-bold">🛠️ 전문 도구</span>
+              <span className="text-sm opacity-90">업무에 필요한 전문 위젯들</span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+            {/* 날씨 위젯 */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg">🌤️</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">날씨 정보</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="bg-blue-50 rounded-lg p-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">현재 온도</span>
+                    <span className="text-lg font-bold text-blue-600">22°C</span>
+                  </div>
+                </div>
+                <div className="bg-green-50 rounded-lg p-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">습도</span>
+                    <span className="text-lg font-bold text-green-600">65%</span>
+                  </div>
+                </div>
+                <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                  상세 날씨 보기
+                </button>
+              </div>
+            </div>
+
+            {/* 단위 변환기 */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg">📐</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">단위 변환기</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="bg-purple-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">길이</span>
+                    <span className="text-lg font-bold text-purple-600">1m = 3.28ft</span>
+                  </div>
+                </div>
+                <div className="bg-pink-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">면적</span>
+                    <span className="text-lg font-bold text-pink-600">1㎡ = 10.76ft²</span>
+                  </div>
+                </div>
+                <button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                  변환기 열기
+                </button>
+              </div>
+            </div>
+
+            {/* To-Do List */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg">✅</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">할 일 목록</h3>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm text-gray-700">설계도 검토</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm text-gray-700">현장 점검</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm text-gray-700">보고서 작성</span>
+                </div>
+                <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors mt-3">
+                  새 할 일 추가
+                </button>
+              </div>
+            </div>
+
+            {/* 계산기 */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg">🧮</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">전문 계산기</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="bg-green-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">면적 계산</span>
+                    <span className="text-lg font-bold text-green-600">㎡</span>
+                  </div>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">부피 계산</span>
+                    <span className="text-lg font-bold text-blue-600">㎥</span>
+                  </div>
+                </div>
+                <button className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                  계산기 열기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* 즐겨찾기된 사이트들을 스타터팩에 표시 */}
+        {Array.from(favorites).length > 0 && (
+          <div className="mb-8">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-full shadow-lg">
+                <span className="text-lg font-bold">⭐ 나의 즐겨찾기</span>
+                <span className="text-sm opacity-90">선택한 사이트들</span>
+              </div>
+            </div>
+            
+            {/* 폴더들 */}
+            {folders.map((folder) => {
+              const folderSites = folder.sites.map(siteId => {
+                return data.categories
+                  .flatMap(cat => cat.sites)
+                  .find(s => s.id === siteId);
+              }).filter(Boolean);
+              
+              return (
+                <div key={folder.id} className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Folder className="w-5 h-5 text-blue-500" />
+                      <h3 className="text-lg font-bold text-gray-900">{folder.name}</h3>
+                      <span className="text-sm text-gray-500">({folderSites.length})</span>
+                    </div>
+                    <button
+                      onClick={() => deleteFolder(folder.id)}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div 
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 min-h-[100px] p-4 border-2 border-dashed border-blue-200 rounded-lg"
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(folder.id)}
+                  >
+                    {folderSites.map((site) => (
+                      <div
+                        key={site.id}
+                        className="bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-blue-400 group"
+                        onClick={() => window.open(site.url, '_blank')}
+                        draggable
+                        onDragStart={() => handleDragStart(site.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-1">
+                            <img 
+                              src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=16`}
+                              alt=""
+                              className="w-4 h-4 flex-shrink-0"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                            <h4 className="font-semibold text-gray-900 text-sm truncate group-hover:text-blue-600">
+                              {site.name}
+                            </h4>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeSiteFromFolder(site.id, folder.id);
+                            }}
+                            className="text-blue-500 hover:text-blue-700 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {folderSites.length === 0 && (
+                      <div className="col-span-full flex items-center justify-center text-gray-400 text-sm">
+                        사이트를 여기로 드래그하세요
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* 폴더 생성 버튼 */}
+            <div className="mb-6">
+              {!showCreateFolder ? (
+                <button
+                  onClick={() => setShowCreateFolder(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                >
+                  <FolderPlus className="w-4 h-4" />
+                  새 폴더 만들기
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    placeholder="폴더 이름을 입력하세요"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onKeyPress={(e) => e.key === 'Enter' && createFolder()}
+                    autoFocus
+                  />
+                  <button
+                    onClick={createFolder}
+                    className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCreateFolder(false);
+                      setNewFolderName('');
+                    }}
+                    className="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* 폴더에 속하지 않은 즐겨찾기 사이트들 */}
+            {getUnfolderedSites().length > 0 && (
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-3">기타 즐겨찾기</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+                  {getUnfolderedSites().map((siteId) => {
+                    const site = data.categories
+                      .flatMap(cat => cat.sites)
+                      .find(s => s.id === siteId);
+                    
+                    if (!site) return null;
+                    
+                    return (
+                      <div
+                        key={site.id}
+                        className="bg-gradient-to-br from-yellow-50 to-orange-50 hover:from-yellow-100 hover:to-orange-100 border-2 border-yellow-200 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-yellow-400 group"
+                        onClick={() => window.open(site.url, '_blank')}
+                        draggable
+                        onDragStart={() => handleDragStart(site.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-1">
+                            <img 
+                              src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=16`}
+                              alt=""
+                              className="w-4 h-4 flex-shrink-0"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                            <h4 className="font-semibold text-gray-900 text-sm truncate group-hover:text-yellow-600">
+                              {site.name}
+                            </h4>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(site.id);
+                            }}
+                            className="text-yellow-500 hover:text-yellow-600 transition-colors"
+                          >
+                            <span className="text-sm">⭐</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          {data.categories.map((category, index) => (
+            <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+              {/* 컬럼 헤더 */}
+              <div className="bg-white border-b border-gray-200 p-4 text-center">
+  <h3 className="text-gray-900 font-bold text-sm leading-tight">
+    {category.name}
+  </h3>
+</div>
+
+              {/* 사이트 목록 (스타터팩은 상위 3개만) */}
+              <div className="p-1 space-y-1 max-h-[600px] overflow-y-auto">
+              {category.sites
+  .filter(site => !favorites.has(site.id)) // 즐겨찾기된 사이트는 제외
+  .map((site) => (
+                  <div
+                    key={site.id}
+                    className="bg-gray-50 hover:bg-white border border-gray-200 rounded-lg p-2 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-pink-300 group h-14 flex flex-col justify-between"
+                    onClick={() => window.open(site.url, '_blank')}
+                  >
+                    {/* 파비콘 + 사이트 이름 */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 flex-1">
+                        <img 
+                          src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=16`}
+                          alt=""
+                          className="w-4 h-4 flex-shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <h4 className="font-medium text-gray-900 text-sm truncate group-hover:text-pink-600">
+                          {site.name}
+                        </h4>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(site.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+<span 
+                          className={`text-sm ${
+                            favorites.has(site.id) 
+                              ? 'text-yellow-500' 
+                              : 'text-gray-400 hover:text-yellow-500'
+                          }`}
+                        >
+                          {favorites.has(site.id) ? '⭐' : '☆'}
+                        </span>
+                      </button>
+                    </div>
+                    
+                    {/* 사이트 설명 */}
+                    <p className="text-xs text-gray-600 truncate">
+                      {site.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* 6컬럼 레이아웃 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      {/* 추가 추천 섹션 */}
+      <div className="mb-8">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-full shadow-lg">
+            <span className="text-lg font-bold">💡 추가 추천</span>
+            <span className="text-sm opacity-90">더 많은 유용한 사이트들</span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         {data.categories.map((category, index) => (
           <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             {/* 컬럼 헤더 */}
-            <div className="bg-gradient-to-r from-pink-300 to-rose-400 p-4 text-center">
+            <div className="bg-gradient-to-r from-blue-300 to-purple-400 p-4 text-center">
               <h3 className="text-white font-bold text-sm leading-tight">
                 {category.name}
               </h3>
@@ -736,17 +1310,29 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
 
             {/* 사이트 목록 */}
             <div className="p-3 space-y-3 max-h-[800px] overflow-y-auto">
-              {category.sites.map((site) => (
+            {category.sites
+  .filter(site => !favorites.has(site.id)) // 즐겨찾기된 사이트는 제외
+  .map((site) => (
                 <div
                   key={site.id}
-                  className="bg-gray-50 hover:bg-white border border-gray-200 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-pink-300 group h-16 flex flex-col justify-between"
+                  className="bg-gray-50 hover:bg-white border border-gray-200 rounded-lg p-2 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-300 group h-16 flex flex-col justify-between"
                   onClick={() => window.open(site.url, '_blank')}
                 >
-                  {/* 사이트 이름과 즐겨찾기 */}
-                  <div className="flex items-start justify-between">
-                    <h4 className="font-semibold text-gray-900 text-xs leading-tight truncate flex-1 group-hover:text-pink-600">
-                      {site.name}
-                    </h4>
+{/* 파비콘 + 사이트 이름 */}
+<div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <img 
+                        src={`https://www.google.com/s2/favicons?domain=${new URL(site.url).hostname}&sz=16`}
+                        alt=""
+                        className="w-4 h-4 flex-shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <h4 className="font-semibold text-gray-900 text-xs leading-tight truncate group-hover:text-blue-600">
+                        {site.name}
+                      </h4>
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -756,11 +1342,16 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
                       }}
                       className="p-0.5 h-5 w-5 flex-shrink-0 ml-1"
                     >
-                      <span 
-                        className={`text-xs ${favorites.has(site.id) ? 'text-yellow-500' : 'text-gray-300 hover:text-gray-400'}`}
-                      >
-                        ⭐
-                      </span>
+<span 
+  className={`text-xs border border-gray-200 rounded ${
+    favorites.has(site.id) 
+      ? 'text-yellow-500' 
+      : 'text-gray-300 hover:text-yellow-400'
+  }`}
+  style={{ fontSize: '12px', lineHeight: '1', padding: '2px' }}
+>
+  {favorites.has(site.id) ? '★' : '☆'}
+</span>
                     </Button>
                   </div>
 
@@ -776,17 +1367,19 @@ export function CategoryDetailPageColumns({ categoryId, subCategory }: CategoryD
       </div>
 
       {/* 통계 정보 */}
-      <div className="mt-12 text-center">
-        <div className="bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl p-6 border border-pink-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-2">카테고리 정보</h3>
-          <p className="text-gray-600">
-            <span className="font-bold text-pink-600">{data.categories.length}</span>개 분야에서 
-            <span className="font-bold text-rose-600 ml-1">
-              {data.categories.reduce((total, cat) => total + cat.sites.length, 0)}
-            </span>개의 전문 사이트를 제공합니다.
-          </p>
-        </div>
-      </div>
+<div className="mt-12 text-center">
+  <div className="bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl p-6 border border-pink-100">
+    <h3 className="text-lg font-bold text-gray-900 mb-2">카테고리 정보</h3>
+    <p className="text-gray-600">
+      <span className="font-bold text-pink-600">{data.categories.length}</span>개 분야에서 
+      <span className="font-bold text-rose-600 ml-1">
+        {data.categories.reduce((total, cat) => total + cat.sites.length, 0)}
+      </span>개의 사이트를 운영 중입니다.
+    </p>
+  </div>
+</div>
+
+</div>
     </div>
   );
 }
