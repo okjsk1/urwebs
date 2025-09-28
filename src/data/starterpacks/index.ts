@@ -1,5 +1,63 @@
 import { StarterPackGroup, StarterPackSection, WidgetInstance } from "@/types/widgets";
 
+
+const pmLinks: WidgetInstance = {
+  id: "pm-links",
+  kind: "links",
+  title: "협업 툴 바로가기",
+  props: {
+    links: [
+      { title: "Jira", url: "https://jira.atlassian.com", description: "이슈 및 스프린트 관리" },
+      { title: "Notion", url: "https://www.notion.so", description: "회의록과 문서 정리" },
+      { title: "Figma", url: "https://www.figma.com", description: "디자인 스펙 확인" },
+    ],
+  },
+};
+
+const pmChecklist: WidgetInstance = {
+  id: "pm-checklist",
+  kind: "checklist",
+  props: {
+    storageKey: "pm-daily",
+    items: [
+      { id: "1", label: "데일리 스탠드업 준비" },
+      { id: "2", label: "이슈 업데이트 확인" },
+      { id: "3", label: "팀 공지 작성" },
+    ],
+  },
+};
+
+const pmCalendar: WidgetInstance = {
+  id: "pm-calendar",
+  kind: "calendar",
+  props: {
+    highlightDates: [],
+  },
+};
+
+const pmMusic: WidgetInstance = {
+  id: "pm-music",
+  kind: "music",
+  props: {
+    query: "focus",
+  },
+};
+
+const pmGroups: StarterPackGroup[] = [
+  {
+    slug: "alignment",
+    title: "팀 협업 준비",
+    description: "팀과의 협업을 위한 핵심 도구를 빠르게 모았습니다.",
+    widgets: [pmLinks, pmChecklist],
+  },
+  {
+    slug: "planning",
+    title: "계획과 집중",
+    description: "일정을 정리하고 몰입을 돕는 위젯입니다.",
+    widgets: [pmCalendar, pmMusic],
+  },
+];
+
 const itLinks: WidgetInstance = {
   id: "work-it-links",
   kind: "links",
@@ -584,6 +642,15 @@ export const starterPackSections: StarterPackSection[] = [
     description: "업무 효율을 높이는 실전 도구 모음",
     topics: [
       {
+
+        slug: "product-manager",
+        title: "프로덕트 매니저",
+        description: "하루 업무를 체계적으로 관리하는 PM 전용 스타터팩",
+        widgets: [pmLinks, pmChecklist, pmCalendar, pmMusic],
+        groups: pmGroups,
+      },
+      {
+
         slug: "it-development",
         title: "IT / 개발",
         description: "개발자 팀을 위한 생산성 도구",
