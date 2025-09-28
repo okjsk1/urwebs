@@ -1,105 +1,5 @@
 import { StarterPackGroup, StarterPackSection, WidgetInstance } from "@/types/widgets";
 
-const pmLinks: WidgetInstance = {
-  id: "pm-links",
-  kind: "links",
-  title: "협업 툴 바로가기",
-  props: {
-    links: [
-      { title: "Jira", url: "https://jira.atlassian.com", description: "이슈 및 스프린트 관리" },
-      { title: "Notion", url: "https://www.notion.so", description: "회의록과 문서 정리" },
-      { title: "Figma", url: "https://www.figma.com", description: "디자인 스펙 확인" },
-    ],
-  },
-};
-
-const pmChecklist: WidgetInstance = {
-  id: "pm-checklist",
-  kind: "checklist",
-  props: {
-    storageKey: "pm-daily",
-    items: [
-      { id: "1", label: "데일리 스탠드업 준비" },
-      { id: "2", label: "이슈 업데이트 확인" },
-      { id: "3", label: "팀 공지 작성" },
-    ],
-  },
-};
-
-const pmCalendar: WidgetInstance = {
-  id: "pm-calendar",
-  kind: "calendar",
-  props: {
-    highlightDates: [],
-  },
-};
-
-const pmMusic: WidgetInstance = {
-  id: "pm-music",
-  kind: "music",
-  props: {
-    query: "focus",
-  },
-};
-
-const pmGroups: StarterPackGroup[] = [
-  {
-    slug: "alignment",
-    title: "팀 협업 준비",
-    description: "팀과의 협업을 위한 핵심 도구를 빠르게 모았습니다.",
-    widgets: [pmLinks, pmChecklist],
-  },
-  {
-    slug: "planning",
-    title: "계획과 집중",
-    description: "일정을 정리하고 몰입을 돕는 위젯입니다.",
-    widgets: [pmCalendar, pmMusic],
-  },
-];
-
-const remoteLinks: WidgetInstance = {
-  id: "remote-links",
-  kind: "links",
-  props: {
-    links: [
-      { title: "Slack", url: "https://slack.com", description: "팀 커뮤니케이션" },
-      { title: "Zoom", url: "https://zoom.us", description: "화상회의" },
-      { title: "Linear", url: "https://linear.app", description: "이슈 트래킹" },
-    ],
-  },
-};
-
-const remoteWeather: WidgetInstance = {
-  id: "remote-weather",
-  kind: "weather",
-  props: {
-    city: "서울",
-  },
-};
-
-const remoteVideos: WidgetInstance = {
-  id: "remote-videos",
-  kind: "videos",
-  props: {
-    query: "remote work",
-  },
-};
-
-const remoteGroups: StarterPackGroup[] = [
-  {
-    slug: "toolkit",
-    title: "협업 툴킷",
-    description: "분산 팀을 위한 커뮤니케이션 툴 모음",
-    widgets: [remoteLinks],
-  },
-  {
-    slug: "remote-life",
-    title: "원격 근무 루틴",
-    description: "쾌적한 원격 근무 환경을 위한 위젯",
-    widgets: [remoteWeather, remoteVideos],
-  },
-];
-
 const itLinks: WidgetInstance = {
   id: "work-it-links",
   kind: "links",
@@ -683,20 +583,6 @@ export const starterPackSections: StarterPackSection[] = [
     title: "업무",
     description: "업무 효율을 높이는 실전 도구 모음",
     topics: [
-      {
-        slug: "product-manager",
-        title: "프로덕트 매니저",
-        description: "하루 업무를 체계적으로 관리하는 PM 전용 스타터팩",
-        widgets: [pmLinks, pmChecklist, pmCalendar, pmMusic],
-        groups: pmGroups,
-      },
-      {
-        slug: "remote-work",
-        title: "원격 근무",
-        description: "분산팀을 위한 협업 툴 모음",
-        widgets: [remoteLinks, remoteWeather, remoteVideos],
-        groups: remoteGroups,
-      },
       {
         slug: "it-development",
         title: "IT / 개발",
