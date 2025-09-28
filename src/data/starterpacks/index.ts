@@ -57,49 +57,6 @@ const pmGroups: StarterPackGroup[] = [
   },
 ];
 
-const remoteLinks: WidgetInstance = {
-  id: "remote-links",
-  kind: "links",
-  props: {
-    links: [
-      { title: "Slack", url: "https://slack.com", description: "팀 커뮤니케이션" },
-      { title: "Zoom", url: "https://zoom.us", description: "화상회의" },
-      { title: "Linear", url: "https://linear.app", description: "이슈 트래킹" },
-    ],
-  },
-};
-
-const remoteWeather: WidgetInstance = {
-  id: "remote-weather",
-  kind: "weather",
-  props: {
-    city: "서울",
-  },
-};
-
-const remoteVideos: WidgetInstance = {
-  id: "remote-videos",
-  kind: "videos",
-  props: {
-    query: "remote work",
-  },
-};
-
-const remoteGroups: StarterPackGroup[] = [
-  {
-    slug: "toolkit",
-    title: "협업 툴킷",
-    description: "분산 팀을 위한 커뮤니케이션 툴 모음",
-    widgets: [remoteLinks],
-  },
-  {
-    slug: "remote-life",
-    title: "원격 근무 루틴",
-    description: "쾌적한 원격 근무 환경을 위한 위젯",
-    widgets: [remoteWeather, remoteVideos],
-  },
-];
-
 const itLinks: WidgetInstance = {
   id: "work-it-links",
   kind: "links",
@@ -689,13 +646,6 @@ export const starterPackSections: StarterPackSection[] = [
         description: "하루 업무를 체계적으로 관리하는 PM 전용 스타터팩",
         widgets: [pmLinks, pmChecklist, pmCalendar, pmMusic],
         groups: pmGroups,
-      },
-      {
-        slug: "remote-work",
-        title: "원격 근무",
-        description: "분산팀을 위한 협업 툴 모음",
-        widgets: [remoteLinks, remoteWeather, remoteVideos],
-        groups: remoteGroups,
       },
       {
         slug: "it-development",
