@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Download, Copy, QrCode } from 'lucide-react';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
+import QRCodeLib from 'qrcode';
 
 interface QRCodeState {
   url: string;
@@ -10,73 +11,24 @@ interface QRCodeState {
   size: number;
 }
 
-// 간단한 QR 코드 생성 (실제로는 qrcode 라이브러리 사용 권장)
-const generateQRCode = (text: string, size: number = 150): string => {
-  // 간단한 QR 코드 시뮬레이션 (실제 구현에서는 qrcode 라이브러리 사용)
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  
-  if (!ctx) return '';
-  
-  // 배경
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, size, size);
-  
-  // QR 코드 패턴 생성 (간단한 시뮬레이션)
-  const moduleSize = Math.floor(size / 25);
-  const modules = 25;
-  
-  // 텍스트 해시를 기반으로 패턴 생성
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = ((hash << 5) - hash + text.charCodeAt(i)) & 0xffffffff;
-  }
-  
-  // 시드 기반 랜덤 패턴
-  const seededRandom = (seed: number) => {
-    const x = Math.sin(seed) * 10000;
-    return x - Math.floor(x);
-  };
-  
-  ctx.fillStyle = '#000000';
-  for (let row = 0; row < modules; row++) {
-    for (let col = 0; col < modules; col++) {
-      const seed = hash + row * modules + col;
-      if (seededRandom(seed) > 0.5) {
-        ctx.fillRect(col * moduleSize, row * moduleSize, moduleSize, moduleSize);
+// 실제 QR 코드 생성
+const generateQRCode = async (text: string, size: number = 150): Promise<string> => {
+  try {
+    const options = {
+      width: size,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
       }
-    }
+    };
+    
+    const qrDataUrl = await QRCodeLib.toDataURL(text, options);
+    return qrDataUrl;
+  } catch (error) {
+    console.error('QR 코드 생성 실패:', error);
+    return '';
   }
-  
-  // 코너 마커 추가
-  const markerSize = moduleSize * 7;
-  ctx.fillStyle = '#000000';
-  // 좌상단
-  ctx.fillRect(0, 0, markerSize, markerSize);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(moduleSize, moduleSize, markerSize - 2 * moduleSize, markerSize - 2 * moduleSize);
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(2 * moduleSize, 2 * moduleSize, markerSize - 4 * moduleSize, markerSize - 4 * moduleSize);
-  
-  // 우상단
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(size - markerSize, 0, markerSize, markerSize);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(size - markerSize + moduleSize, moduleSize, markerSize - 2 * moduleSize, markerSize - 2 * moduleSize);
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(size - markerSize + 2 * moduleSize, 2 * moduleSize, markerSize - 4 * moduleSize, markerSize - 4 * moduleSize);
-  
-  // 좌하단
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(0, size - markerSize, markerSize, markerSize);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(moduleSize, size - markerSize + moduleSize, markerSize - 2 * moduleSize, markerSize - 2 * moduleSize);
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(2 * moduleSize, size - markerSize + 2 * moduleSize, markerSize - 4 * moduleSize, markerSize - 4 * moduleSize);
-  
-  return canvas.toDataURL('image/png');
 };
 
 export const QRCodeWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWidget }) => {
@@ -92,8 +44,9 @@ export const QRCodeWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
   // QR 코드 생성
   useEffect(() => {
     if (state.url) {
-      const qrDataUrl = generateQRCode(state.url, state.size);
-      setState(prev => ({ ...prev, qrDataUrl }));
+      generateQRCode(state.url, state.size).then(qrDataUrl => {
+        setState(prev => ({ ...prev, qrDataUrl }));
+      });
     }
   }, [state.url, state.size]);
 

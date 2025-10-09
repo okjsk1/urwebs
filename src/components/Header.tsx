@@ -83,8 +83,16 @@ export function Header({
           </Button>
         </nav>
         
-        {/* 구글 로그인 */}
+        {/* 다크모드 토글 & 구글 로그인 */}
         <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </Button>
           <GoogleAuth />
         </div>
       </div>

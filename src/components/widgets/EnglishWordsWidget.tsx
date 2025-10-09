@@ -61,6 +61,8 @@ interface EnglishWordsState {
   newWord: Partial<Word>;
   editingWord: string | null;
   hintLevel: number;
+  autoPlay: boolean;
+  autoPlayInterval: number; // 초 단위
 }
 
 const DEFAULT_WORDS: Word[] = [
@@ -147,12 +149,15 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
       showAddForm: false,
       newWord: { level: 'intermediate' },
       editingWord: null,
-      hintLevel: 2
+      hintLevel: 2,
+      autoPlay: false,
+      autoPlayInterval: 3 // 기본 3초
     });
     return saved;
   });
 
   const quizInputRef = useRef<HTMLInputElement>(null);
+  const autoPlayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 상태 저장
   useEffect(() => {
@@ -168,6 +173,31 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
       currentIndex: Math.min(prev.currentIndex, queue.length - 1)
     }));
   }, [state.words, state.settings]);
+
+  // 자동 재생 기능
+  useEffect(() => {
+    if (state.autoPlay && state.studyMode === 'flashcard' && state.studyQueue.length > 0) {
+      autoPlayTimerRef.current = setInterval(() => {
+        setState(prev => ({
+          ...prev,
+          currentIndex: (prev.currentIndex + 1) % prev.studyQueue.length,
+          showAnswer: false
+        }));
+      }, state.autoPlayInterval * 1000);
+    } else {
+      if (autoPlayTimerRef.current) {
+        clearInterval(autoPlayTimerRef.current);
+        autoPlayTimerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (autoPlayTimerRef.current) {
+        clearInterval(autoPlayTimerRef.current);
+        autoPlayTimerRef.current = null;
+      }
+    };
+  }, [state.autoPlay, state.autoPlayInterval, state.studyMode, state.studyQueue.length]);
 
   // 키보드 단축키
   useEffect(() => {
@@ -190,6 +220,10 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
             e.preventDefault();
             checkQuizAnswer();
           }
+          break;
+        case ' ':
+          e.preventDefault();
+          toggleAutoPlay();
           break;
       }
     };
@@ -337,6 +371,14 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
 
   const showMoreHint = useCallback(() => {
     setState(prev => ({ ...prev, hintLevel: Math.min(prev.hintLevel + 1, 5) }));
+  }, []);
+
+  const toggleAutoPlay = useCallback(() => {
+    setState(prev => ({ ...prev, autoPlay: !prev.autoPlay }));
+  }, []);
+
+  const updateAutoPlayInterval = useCallback((interval: number) => {
+    setState(prev => ({ ...prev, autoPlayInterval: interval }));
   }, []);
 
   const exportWords = useCallback(() => {
@@ -633,6 +675,36 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
             </div>
           </div>
 
+          {/* 자동 재생 컨트롤 */}
+          {state.studyMode === 'flashcard' && (
+            <div className="flex items-center justify-center gap-2 p-2 bg-gray-50 rounded">
+              <Button 
+                size="sm" 
+                variant={state.autoPlay ? "default" : "outline"}
+                className="h-6 text-xs"
+                onClick={toggleAutoPlay}
+                aria-label="자동 재생"
+              >
+                {state.autoPlay ? '⏸️' : '▶️'}
+                {state.autoPlay ? '정지' : '자동재생'}
+              </Button>
+              {state.autoPlay && (
+                <select
+                  value={state.autoPlayInterval}
+                  onChange={(e) => updateAutoPlayInterval(Number(e.target.value))}
+                  className="text-xs px-1 py-1 border border-gray-300 rounded"
+                  aria-label="자동 재생 간격"
+                >
+                  <option value={1}>1초</option>
+                  <option value={2}>2초</option>
+                  <option value={3}>3초</option>
+                  <option value={5}>5초</option>
+                  <option value={10}>10초</option>
+                </select>
+              )}
+            </div>
+          )}
+
           {/* 네비게이션 */}
           <div className="flex justify-between items-center">
             <Button 
@@ -640,7 +712,7 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
               variant="outline" 
               className="h-6 text-xs"
               onClick={prevWord}
-              disabled={state.studyQueue.length <= 1}
+              disabled={state.studyQueue.length <= 1 || state.autoPlay}
               aria-label="이전 단어"
             >
               <ChevronLeft className="w-3 h-3 mr-1" />
@@ -651,6 +723,7 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
               variant="outline" 
               className="h-6 text-xs"
               onClick={shuffleQueue}
+              disabled={state.autoPlay}
               aria-label="단어 섞기"
             >
               <Shuffle className="w-3 h-3 mr-1" />
@@ -661,7 +734,7 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
               variant="outline" 
               className="h-6 text-xs"
               onClick={nextWord}
-              disabled={state.studyQueue.length <= 1}
+              disabled={state.studyQueue.length <= 1 || state.autoPlay}
               aria-label="다음 단어"
             >
               다음

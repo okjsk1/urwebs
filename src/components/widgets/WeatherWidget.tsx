@@ -175,7 +175,8 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
     return `${speed} km/h`;
   }, [state.units]);
 
-  const getWeatherColor = useCallback((condition: string) => {
+  const getWeatherColor = useCallback((condition: string | undefined) => {
+    if (!condition) return 'text-gray-600';
     if (condition.includes('맑음')) return 'text-yellow-600';
     if (condition.includes('구름')) return 'text-gray-600';
     if (condition.includes('비')) return 'text-blue-600';
@@ -183,7 +184,8 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
     return 'text-gray-600';
   }, []);
 
-  const getBackgroundColor = useCallback((condition: string) => {
+  const getBackgroundColor = useCallback((condition: string | undefined) => {
+    if (!condition) return 'bg-gradient-to-br from-gray-100 to-gray-200';
     if (condition.includes('맑음')) return 'bg-gradient-to-br from-yellow-100 to-orange-100';
     if (condition.includes('구름')) return 'bg-gradient-to-br from-gray-100 to-gray-200';
     if (condition.includes('비')) return 'bg-gradient-to-br from-blue-100 to-blue-200';
@@ -191,27 +193,30 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
     return 'bg-gradient-to-br from-gray-100 to-gray-200';
   }, []);
 
+  // 데이터가 없을 때 기본값 사용
+  const weatherData = state.weatherData || DEFAULT_WEATHER_DATA;
+
   return (
-    <div className={`p-3 h-full ${getBackgroundColor(state.weatherData.condition)}`}>
+    <div className={`p-3 h-full ${getBackgroundColor(weatherData.condition)}`}>
       <div className="text-center mb-3">
-        <div className="text-3xl mb-1">{state.weatherData.icon}</div>
+        <div className="text-3xl mb-1">{weatherData.icon}</div>
         <h4 className="font-semibold text-sm text-gray-800">날씨</h4>
         <div className="flex items-center justify-center gap-1 text-xs text-gray-600">
           <MapPin className="w-3 h-3" />
-          <span>{state.weatherData.location}</span>
+          <span>{weatherData.location}</span>
         </div>
       </div>
 
       {/* 현재 날씨 */}
       <div className="text-center mb-3">
         <div className="text-3xl font-bold text-gray-800 mb-1">
-          {formatTemperature(state.weatherData.temperature)}
+          {formatTemperature(weatherData.temperature)}
         </div>
-        <div className={`text-sm font-medium ${getWeatherColor(state.weatherData.condition)}`}>
-          {state.weatherData.condition}
+        <div className={`text-sm font-medium ${getWeatherColor(weatherData.condition)}`}>
+          {weatherData.condition}
         </div>
         <div className="text-xs text-gray-600 mt-1">
-          체감온도 {formatTemperature(state.weatherData.feelsLike)}
+          체감온도 {formatTemperature(weatherData.feelsLike)}
         </div>
       </div>
 
@@ -222,7 +227,7 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
             <Droplets className="w-3 h-3 text-blue-600" />
             <span className="text-xs text-gray-600">습도</span>
           </div>
-          <div className="text-sm font-bold text-gray-800">{state.weatherData.humidity}%</div>
+          <div className="text-sm font-bold text-gray-800">{weatherData.humidity}%</div>
         </div>
         
         <div className="bg-white/50 rounded-lg p-2 text-center">
@@ -230,7 +235,7 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
             <Wind className="w-3 h-3 text-gray-600" />
             <span className="text-xs text-gray-600">바람</span>
           </div>
-          <div className="text-sm font-bold text-gray-800">{formatWindSpeed(state.weatherData.windSpeed)}</div>
+          <div className="text-sm font-bold text-gray-800">{formatWindSpeed(weatherData.windSpeed)}</div>
         </div>
         
         <div className="bg-white/50 rounded-lg p-2 text-center">
@@ -238,7 +243,7 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
             <Eye className="w-3 h-3 text-purple-600" />
             <span className="text-xs text-gray-600">가시거리</span>
           </div>
-          <div className="text-sm font-bold text-gray-800">{state.weatherData.visibility}km</div>
+          <div className="text-sm font-bold text-gray-800">{weatherData.visibility}km</div>
         </div>
         
         <div className="bg-white/50 rounded-lg p-2 text-center">
@@ -246,7 +251,7 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
             <Thermometer className="w-3 h-3 text-red-600" />
             <span className="text-xs text-gray-600">온도</span>
           </div>
-          <div className="text-sm font-bold text-gray-800">{formatTemperature(state.weatherData.temperature)}</div>
+          <div className="text-sm font-bold text-gray-800">{formatTemperature(weatherData.temperature)}</div>
         </div>
       </div>
 
@@ -426,7 +431,7 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
 
       {/* 마지막 업데이트 */}
       <div className="text-center text-xs text-gray-500 mt-2">
-        마지막 업데이트: {state.weatherData.lastUpdated}
+        마지막 업데이트: {weatherData.lastUpdated}
       </div>
     </div>
   );

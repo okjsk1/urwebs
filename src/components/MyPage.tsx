@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, Music, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
+import { auth } from '../firebase/config';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // 위젯 컴포넌트들 import
 import {
@@ -416,7 +418,7 @@ const getDefaultWidgets = (): Widget[] => [
 
 export function MyPage() {
   const { theme, toggleTheme } = useTheme();
-  const [isEditMode, setIsEditMode] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null);
   const [draggedWidget, setDraggedWidget] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -497,6 +499,11 @@ export function MyPage() {
   });
 
   // 사용자 정보 (실제로는 인증 시스템에서 가져와야 함)
+  // 이메일에서 사용자 이름 추출 함수
+  const getUsernameFromEmail = (email: string) => {
+    return email.split('@')[0];
+  };
+
   const [currentUser, setCurrentUser] = useState({
     id: 'user123',
     name: '김사용자',
@@ -506,6 +513,7 @@ export function MyPage() {
   const [pageTitle, setPageTitle] = useState("'김사용자'님의 페이지");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(pageTitle);
+  const [isTitleManuallyEdited, setIsTitleManuallyEdited] = useState(false);
   
   // 페이지 관리 상태
   const [pages, setPages] = useState([
@@ -518,11 +526,98 @@ export function MyPage() {
     }
   ]);
   const [currentPageId, setCurrentPageId] = useState('page1');
+
+  // Firebase 인증 상태 감지 및 사용자 정보 업데이트
+  useEffect(() => {
+    // LocalStorage에서 수동 편집 플래그 확인
+    const savedManualEditFlag = localStorage.getItem('isTitleManuallyEdited');
+    if (savedManualEditFlag === 'true') {
+      setIsTitleManuallyEdited(true);
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const username = getUsernameFromEmail(firebaseUser.email || '');
+        const newTitle = `'${username}'님의 페이지`;
+        
+        setCurrentUser({
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || username,
+          email: firebaseUser.email || ''
+        });
+        
+        // 사용자가 수동으로 제목을 편집한 경우에는 자동 업데이트 하지 않음
+        if (savedManualEditFlag !== 'true') {
+          // 페이지 제목 자동 업데이트
+          setPageTitle(newTitle);
+          setTempTitle(newTitle);
+          
+          // 첫 번째 페이지 제목도 업데이트
+          setPages(prevPages => {
+            const updatedPages = [...prevPages];
+            if (updatedPages[0]) {
+              updatedPages[0].title = newTitle;
+            }
+            return updatedPages;
+          });
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const [showPageManager, setShowPageManager] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showIntroModal, setShowIntroModal] = useState(false);
   const [editingWidget, setEditingWidget] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+
+  // 처음 방문 시 소개 모달 또는 템플릿 선택 모달 자동으로 표시
+  useEffect(() => {
+    const shouldShowTemplateAfterLogin = localStorage.getItem('shouldShowTemplateAfterLogin');
+    
+    console.log('=== MyPage 모달 체크 ===');
+    console.log('currentUser:', currentUser);
+    console.log('shouldShowTemplateAfterLogin:', shouldShowTemplateAfterLogin);
+    
+    // 로그인 후 템플릿 선택 플래그가 있으면 템플릿 모달 표시
+    if (currentUser && shouldShowTemplateAfterLogin === 'true') {
+      console.log('→ 로그인 후 템플릿 모달 표시');
+      setShowTemplateModal(true);
+      localStorage.setItem(`hasVisitedMyPage_${currentUser.id}`, 'true');
+      localStorage.removeItem('shouldShowTemplateAfterLogin');
+      return;
+    }
+    
+    // 사용자별 방문 기록 확인
+    const userVisitKey = currentUser ? `hasVisitedMyPage_${currentUser.id}` : 'hasVisitedMyPage_guest';
+    const hasVisitedMyPage = localStorage.getItem(userVisitKey);
+    const savedPages = currentUser ? localStorage.getItem(`myPages_${currentUser.id}`) : null;
+    
+    console.log('userVisitKey:', userVisitKey);
+    console.log('hasVisitedMyPage:', hasVisitedMyPage);
+    console.log('savedPages:', savedPages);
+    
+    // 로그아웃 시 기존 방문 기록 삭제
+    if (!currentUser) {
+      // 비로그인 상태일 때는 기존 방문 기록을 무시하고 소개 모달 표시
+      console.log('→ 비로그인 사용자: 소개 모달 표시 (기존 기록 무시)');
+      setShowIntroModal(true);
+      return;
+    }
+    
+    // 처음 방문하거나 저장된 페이지가 없는 경우
+    if (!hasVisitedMyPage || !savedPages) {
+      // 로그인한 사용자 - 템플릿 모달 표시
+      console.log('→ 로그인 사용자: 템플릿 모달 표시');
+      setShowTemplateModal(true);
+      localStorage.setItem(userVisitKey, 'true');
+    } else {
+      console.log('→ 이미 방문한 사용자: 모달 표시 안함');
+    }
+  }, [currentUser]);
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [showWidgetModal, setShowWidgetModal] = useState(false);
@@ -558,191 +653,76 @@ export function MyPage() {
   // 템플릿 정의
   const templates = {
     profile: {
-      name: '프로필 / 링크 모음',
-      description: '프로필 사진, 소개, SNS 링크, QR코드',
+      name: '프로필',
+      description: '개인 소개와 정보를 공유하세요',
       icon: '👤',
+      color: '#3B82F6',
       widgets: [
-        { id: '1', type: 'profile_card', x: 0, y: 0, width: 900, height: 300, title: '프로필 카드', content: {
-          name: '김사용자',
-          nickname: '@username',
-          bio: '개발자 & 디자이너',
-          profileImage: '',
-          socialLinks: [
-            { platform: 'Instagram', url: 'https://instagram.com', icon: '📷' },
-            { platform: 'YouTube', url: 'https://youtube.com', icon: '📺' },
-            { platform: 'Blog', url: 'https://blog.com', icon: '📝' },
-            { platform: 'Email', url: 'mailto:user@example.com', icon: '📧' }
-          ]
-        }, zIndex: 1 },
-        { id: '2', type: 'qr_code', x: 305, y: 0, width: 300, height: 300, title: 'QR 코드', content: {
-          url: window.location.href,
-          size: 150
-        }, zIndex: 1 }
+        { id: '1', type: 'contact', x: 0, y: 0, width: 300, height: 300, title: '연락처', content: {}, zIndex: 1 },
+        { id: '2', type: 'social', x: 305, y: 0, width: 300, height: 300, title: '소셜 링크', content: {}, zIndex: 1 },
+        { id: '3', type: 'qr_code', x: 610, y: 0, width: 300, height: 300, title: 'QR 코드', content: {}, zIndex: 1 }
+      ]
+    },
+    links: {
+      name: '링크 모음',
+      description: '자주 사용하는 링크를 한곳에',
+      icon: '🔗',
+      color: '#10B981',
+      widgets: [
+        { id: '1', type: 'bookmark', x: 0, y: 0, width: 300, height: 300, title: '북마크', content: {}, zIndex: 1 },
+        { id: '2', type: 'social', x: 305, y: 0, width: 300, height: 300, title: '소셜 링크', content: {}, zIndex: 1 },
+        { id: '3', type: 'qr_code', x: 610, y: 0, width: 300, height: 300, title: 'QR 코드', content: {}, zIndex: 1 }
       ]
     },
     portfolio: {
       name: '포트폴리오',
-      description: '프로젝트 갤러리, 상세보기, 연락처, 다운로드',
+      description: '작업과 프로젝트를 멋지게 소개하세요',
       icon: '💼',
+      color: '#8B5CF6',
       widgets: [
-        { id: '1', type: 'portfolio_header', x: 0, y: 0, width: 900, height: 300, title: '포트폴리오 헤더', content: {
-          name: '김사용자',
-          title: 'Frontend Developer',
-          bio: '사용자 경험을 중시하는 개발자입니다'
-        }, zIndex: 1 },
-        { id: '2', type: 'project_gallery', x: 0, y: 305, width: 900, height: 300, title: '프로젝트 갤러리', content: {
-          projects: [
-            { id: '1', title: '웹사이트 리뉴얼', image: '', description: 'React 기반 웹사이트', tools: ['React', 'TypeScript'] },
-            { id: '2', title: '모바일 앱', image: '', description: 'React Native 앱', tools: ['React Native', 'Firebase'] }
-          ]
-        }, zIndex: 1 },
-        { id: '3', type: 'contact_buttons', x: 0, y: 605, width: 600, height: 300, title: '연락처', content: {
-          email: 'user@example.com',
-          phone: '010-1234-5678',
-          social: ['Instagram', 'LinkedIn']
-        }, zIndex: 1 },
-        { id: '4', type: 'download_section', x: 605, y: 605, width: 300, height: 300, title: '다운로드', content: {
-          resume: '이력서.pdf',
-          portfolio: '포트폴리오.pdf'
-        }, zIndex: 1 }
+        { id: '1', type: 'github_repo', x: 0, y: 0, width: 300, height: 300, title: 'GitHub', content: {}, zIndex: 1 },
+        { id: '2', type: 'contact', x: 305, y: 0, width: 300, height: 300, title: '연락처', content: {}, zIndex: 1 },
+        { id: '3', type: 'stats', x: 610, y: 0, width: 300, height: 300, title: '통계', content: {}, zIndex: 1 }
       ]
     },
-    business: {
-      name: '비즈니스 / 가게 소개',
-      description: '가게 정보, 메뉴, 지도, 영업시간, 후기',
-      icon: '🏪',
+    productivity: {
+      name: '생산성 대시보드',
+      description: '할일, 목표, 습관을 관리하세요',
+      icon: '📊',
+      color: '#F59E0B',
       widgets: [
-        { id: '1', type: 'business_header', x: 0, y: 0, width: 900, height: 300, title: '가게 소개', content: {
-          name: '맛있는 카페',
-          description: '신선한 원두로 만드는 특별한 커피',
-          logo: '',
-          mainImage: ''
-        }, zIndex: 1 },
-        { id: '2', type: 'menu_section', x: 0, y: 305, width: 900, height: 300, title: '메뉴', content: {
-          items: [
-            { name: '아메리카노', price: '4000원', description: '진한 에스프레소', image: '' },
-            { name: '라떼', price: '4500원', description: '부드러운 우유거품', image: '' }
-          ]
-        }, zIndex: 1 },
-        { id: '3', type: 'business_info', x: 0, y: 605, width: 600, height: 300, title: '영업정보', content: {
-          hours: '평일 08:00-22:00\n주말 09:00-21:00',
-          phone: '02-1234-5678',
-          address: '서울시 강남구'
-        }, zIndex: 1 },
-        { id: '4', type: 'map_section', x: 605, y: 605, width: 300, height: 300, title: '지도', content: {
-          address: '서울시 강남구 테헤란로 123',
-          mapUrl: 'https://map.naver.com'
-        }, zIndex: 1 }
+        { id: '1', type: 'todo', x: 0, y: 0, width: 300, height: 300, title: '할 일', content: {}, zIndex: 1 },
+        { id: '2', type: 'goal', x: 305, y: 0, width: 300, height: 300, title: '목표', content: {}, zIndex: 1 },
+        { id: '3', type: 'habit', x: 610, y: 0, width: 300, height: 300, title: '습관', content: {}, zIndex: 1 }
       ]
     },
-    event: {
-      name: '행사 / 초대장',
-      description: '행사 정보, D-Day 카운터, RSVP 폼, 갤러리',
-      icon: '🎉',
+    finance: {
+      name: '금융 대시보드',
+      description: '주식, 암호화폐, 환율을 확인하세요',
+      icon: '💰',
+      color: '#EF4444',
       widgets: [
-        { id: '1', type: 'event_header', x: 0, y: 0, width: 900, height: 300, title: '행사 소개', content: {
-          title: '2024 신년 파티',
-          date: '2024-01-15',
-          time: '19:00-22:00',
-          location: '서울시 강남구 파티홀',
-          description: '함께 즐거운 시간을 보내요!',
-          poster: ''
-        }, zIndex: 1 },
-        { id: '2', type: 'countdown', x: 0, y: 305, width: 600, height: 300, title: 'D-Day', content: {
-          targetDate: '2024-01-15',
-          message: '행사까지'
-        }, zIndex: 1 },
-        { id: '3', type: 'rsvp_form', x: 605, y: 305, width: 300, height: 300, title: '참석 확인', content: {
-          fields: ['이름', '인원', '메시지'],
-          submitButton: '참석 확인'
-        }, zIndex: 1 },
-        { id: '4', type: 'event_gallery', x: 0, y: 605, width: 900, height: 300, title: '행사 갤러리', content: {
-          images: ['', '', '']
-        }, zIndex: 1 }
+        { id: '1', type: 'stock', x: 0, y: 0, width: 300, height: 300, title: '주식', content: {}, zIndex: 1 },
+        { id: '2', type: 'crypto', x: 305, y: 0, width: 300, height: 300, title: '암호화폐', content: {}, zIndex: 1 },
+        { id: '3', type: 'exchange', x: 610, y: 0, width: 300, height: 300, title: '환율', content: {}, zIndex: 1 }
       ]
     },
-    blog: {
-      name: '블로그 / 뉴스피드',
-      description: '글 목록, 상세보기, 태그, 공유',
-      icon: '📝',
+    social: {
+      name: '소셜 미디어',
+      description: '소셜 링크, 음악, 명언 공유',
+      icon: '🌟',
+      color: '#EC4899',
       widgets: [
-        { id: '1', type: 'blog_header', x: 0, y: 0, width: 900, height: 300, title: '블로그 헤더', content: {
-          title: '김사용자의 블로그',
-          description: '개발과 일상을 기록합니다',
-          profile: ''
-        }, zIndex: 1 },
-        { id: '2', type: 'post_list', x: 0, y: 305, width: 900, height: 300, title: '글 목록', content: {
-          posts: [
-            { id: '1', title: 'React Hooks 완벽 가이드', date: '2024-01-10', excerpt: 'React Hooks에 대해 알아보자', thumbnail: '', tags: ['React', 'JavaScript'] },
-            { id: '2', title: 'TypeScript 타입 시스템', date: '2024-01-08', excerpt: 'TypeScript의 강력한 타입 시스템', thumbnail: '', tags: ['TypeScript'] }
-          ]
-        }, zIndex: 1 },
-        { id: '3', type: 'blog_sidebar', x: 0, y: 605, width: 300, height: 300, title: '사이드바', content: {
-          categories: ['개발', '일상', '리뷰'],
-          recentPosts: ['최근 글 1', '최근 글 2']
-        }, zIndex: 1 }
-      ]
-    },
-    shop: {
-      name: '상품 / 판매 (라이트 커머스)',
-      description: '상품 카드, 옵션 선택, 문의/주문, 후기',
-      icon: '🛍️',
-      widgets: [
-        { id: '1', type: 'shop_header', x: 0, y: 0, width: 900, height: 300, title: '쇼핑몰 헤더', content: {
-          brandName: '브랜드 이름',
-          description: '고품질 상품을 만나보세요',
-          logo: ''
-        }, zIndex: 1 },
-        { id: '2', type: 'product_grid', x: 0, y: 305, width: 900, height: 300, title: '상품 목록', content: {
-          products: [
-            { id: '1', name: '상품 1', price: '29,000원', image: '', description: '상품 설명', options: ['S', 'M', 'L'] },
-            { id: '2', name: '상품 2', price: '39,000원', image: '', description: '상품 설명', options: ['빨강', '파랑', '검정'] }
-          ]
-        }, zIndex: 1 },
-        { id: '3', type: 'contact_order', x: 0, y: 605, width: 600, height: 300, title: '주문/문의', content: {
-          kakao: '카카오톡 문의',
-          email: '이메일 문의',
-          phone: '전화 주문'
-        }, zIndex: 1 },
-        { id: '4', type: 'reviews', x: 605, y: 605, width: 300, height: 300, title: '후기', content: {
-          averageRating: 4.5,
-          reviewCount: 23,
-          recentReviews: ['정말 좋아요!', '배송 빠름']
-        }, zIndex: 1 }
-      ]
-    },
-    team: {
-      name: '팀 / 동호회 / 프로젝트',
-      description: '팀 소개, 멤버, 활동 갤러리, 일정, 가입폼',
-      icon: '👥',
-      widgets: [
-        { id: '1', type: 'team_header', x: 0, y: 0, width: 900, height: 300, title: '팀 소개', content: {
-          teamName: '개발 동아리',
-          description: '함께 성장하는 개발자들의 모임',
-          logo: ''
-        }, zIndex: 1 },
-        { id: '2', type: 'member_grid', x: 0, y: 305, width: 900, height: 300, title: '멤버 소개', content: {
-          members: [
-            { name: '김리더', role: '팀장', image: '', description: '프론트엔드 개발자' },
-            { name: '이개발', role: '개발자', image: '', description: '백엔드 개발자' }
-          ]
-        }, zIndex: 1 },
-        { id: '3', type: 'activity_calendar', x: 0, y: 605, width: 600, height: 300, title: '활동 일정', content: {
-          events: [
-            { date: '2024-01-20', title: '정기 모임' },
-            { date: '2024-01-27', title: '프로젝트 발표' }
-          ]
-        }, zIndex: 1 },
-        { id: '4', type: 'join_form', x: 605, y: 605, width: 300, height: 300, title: '가입 신청', content: {
-          fields: ['이름', '연락처', '관심분야'],
-          submitButton: '가입 신청'
-        }, zIndex: 1 }
+        { id: '1', type: 'social', x: 0, y: 0, width: 300, height: 300, title: '소셜 링크', content: {}, zIndex: 1 },
+        { id: '2', type: 'music', x: 305, y: 0, width: 300, height: 300, title: '음악', content: {}, zIndex: 1 },
+        { id: '3', type: 'quote', x: 610, y: 0, width: 300, height: 300, title: '명언', content: {}, zIndex: 1 }
       ]
     },
     custom: {
-      name: '커스텀',
+      name: '빈 캔버스',
       description: '빈 페이지에서 자유롭게 시작',
       icon: '🎨',
+      color: '#64748B',
       widgets: []
     }
   };
@@ -1379,7 +1359,9 @@ export function MyPage() {
 
 
   // 위젯 추가
-  const addWidget = (type: string) => {
+  const addWidget = useCallback((type: string) => {
+    console.log('addWidget 호출됨:', type);
+    
     // 위젯 크기 결정
     let width = cellWidth; // 기본 전체 컬럼 너비
     let height = cellHeight; // 기본 높이
@@ -1395,21 +1377,25 @@ export function MyPage() {
       height = cellHeight / 2 - spacing; // 1/2 높이
     }
     
-    const position = getNextAvailablePosition(width, height);
-    
-    const newWidget: Widget = {
-      id: Date.now().toString(),
-      type: type as any,
-      x: position.x,
-      y: position.y,
-      width,
-      height,
-      title: allWidgets.find(w => w.type === type)?.name || '새 위젯',
-      content: type === 'bookmark' ? { bookmarks: [] } : undefined,
-      zIndex: Math.max(...widgets.map(w => w.zIndex || 1), 1) + 1
-    };
-    setWidgets([...widgets, newWidget]);
-  };
+    setWidgets(prevWidgets => {
+      const position = getNextAvailablePosition(width, height);
+      
+      const newWidget: Widget = {
+        id: Date.now().toString(),
+        type: type as any,
+        x: position.x,
+        y: position.y,
+        width,
+        height,
+        title: allWidgets.find(w => w.type === type)?.name || '새 위젯',
+        content: type === 'bookmark' ? { bookmarks: [] } : undefined,
+        zIndex: Math.max(...prevWidgets.map(w => w.zIndex || 1), 1) + 1
+      };
+      
+      console.log('새 위젯 추가:', newWidget);
+      return [...prevWidgets, newWidget];
+    });
+  }, [cellWidth, cellHeight, spacing]);
 
   // 위젯 삭제
   const removeWidget = (id: string) => {
@@ -1418,6 +1404,34 @@ export function MyPage() {
       setSelectedWidget(null);
     }
   };
+
+  // 페이지 저장
+  const savePage = useCallback(() => {
+    const updatedPages = pages.map(page => {
+      if (page.id === currentPageId) {
+        return {
+          ...page,
+          title: pageTitle,
+          widgets: widgets
+        };
+      }
+      return page;
+    });
+    
+    setPages(updatedPages);
+    localStorage.setItem('myPages', JSON.stringify(updatedPages));
+    
+    // 성공 메시지
+    const message = document.createElement('div');
+    message.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000]';
+    message.textContent = '✓ 저장되었습니다';
+    document.body.appendChild(message);
+    setTimeout(() => {
+      message.remove();
+    }, 2000);
+    
+    console.log('페이지 저장됨:', updatedPages);
+  }, [pages, currentPageId, pageTitle, widgets]);
 
   // 위젯 업데이트
   const updateWidget = useCallback((id: string, updates: Partial<Widget>) => {
@@ -1649,13 +1663,17 @@ export function MyPage() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'ADD_WIDGET') {
+        console.log('메시지 수신:', event.data.widgetType);
         addWidget(event.data.widgetType);
       }
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+    return () => {
+      console.log('이벤트 리스너 제거');
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [addWidget]);
 
   // 각 컬럼의 마지막 위젯과 컬럼 하단 여백에 마우스 오버 시 위젯 추가 기능
   const getColumnLastWidget = (columnIndex: number) => {
@@ -3350,6 +3368,17 @@ export function MyPage() {
                         if (e.key === 'Enter') {
                           setPageTitle(tempTitle);
                           setIsEditingTitle(false);
+                          setIsTitleManuallyEdited(true);
+                          localStorage.setItem('isTitleManuallyEdited', 'true');
+                          // 현재 페이지의 제목도 업데이트
+                          setPages(prevPages => {
+                            const updatedPages = [...prevPages];
+                            const currentPageIndex = updatedPages.findIndex(p => p.id === currentPageId);
+                            if (currentPageIndex !== -1) {
+                              updatedPages[currentPageIndex].title = tempTitle;
+                            }
+                            return updatedPages;
+                          });
                         } else if (e.key === 'Escape') {
                           setTempTitle(pageTitle);
                           setIsEditingTitle(false);
@@ -3358,33 +3387,76 @@ export function MyPage() {
                       onBlur={() => {
                         setPageTitle(tempTitle);
                         setIsEditingTitle(false);
+                        setIsTitleManuallyEdited(true);
+                        localStorage.setItem('isTitleManuallyEdited', 'true');
+                        // 현재 페이지의 제목도 업데이트
+                        setPages(prevPages => {
+                          const updatedPages = [...prevPages];
+                          const currentPageIndex = updatedPages.findIndex(p => p.id === currentPageId);
+                          if (currentPageIndex !== -1) {
+                            updatedPages[currentPageIndex].title = tempTitle;
+                          }
+                          return updatedPages;
+                        });
                       }}
                     />
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <h1 
-                      className="text-xl font-bold text-gray-800 cursor-pointer hover:text-blue-600 transition-colors"
+                      className={`text-xl font-bold text-gray-800 ${isEditMode ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
                       onClick={() => {
-                        setIsEditingTitle(true);
-                        setTempTitle(pageTitle);
+                        if (isEditMode) {
+                          setIsEditingTitle(true);
+                          setTempTitle(pageTitle);
+                        }
                       }}
-                      title="클릭하여 제목 변경"
+                      title={isEditMode ? "클릭하여 제목 변경" : pageTitle}
                     >
                       {pageTitle}
                     </h1>
-                    <Edit className="w-4 h-4 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors" 
-                          onClick={() => {
-                            setIsEditingTitle(true);
-                            setTempTitle(pageTitle);
-                          }}
-                          title="제목 변경" />
+                    {isEditMode && (
+                      <Edit className="w-4 h-4 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors" 
+                            onClick={() => {
+                              setIsEditingTitle(true);
+                              setTempTitle(pageTitle);
+                            }}
+                            title="제목 변경" />
+                    )}
                   </div>
                 )}
               </div>
             </div>
 
             <div className="flex items-center gap-2">
+              {/* 저장 버튼 - 편집 모드에서만 표시 */}
+              {isEditMode && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    savePage();
+                  }}
+                  className="bg-green-600 text-white hover:bg-green-700"
+                  title="현재 페이지 저장"
+                >
+                  <Save className="w-4 h-4 mr-1" />
+                  저장
+                </Button>
+              )}
+
+              {/* 편집 모드 토글 버튼 */}
+              <Button
+                variant={isEditMode ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setIsEditMode(!isEditMode)}
+                className={isEditMode ? "bg-blue-600 text-white hover:bg-blue-700" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"}
+                title={isEditMode ? "보기 모드로 전환" : "편집 모드로 전환"}
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                {isEditMode ? "편집 완료" : "편집"}
+              </Button>
+
               {/* 페이지 관리 버튼 */}
             <Button
                 variant="ghost"
@@ -3495,6 +3567,128 @@ export function MyPage() {
         </div>
       )}
 
+      {/* 소개 모달 - 로그인하지 않은 사용자용 */}
+      {showIntroModal && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden">
+            {/* 헤더 */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white text-center">
+              <h1 className="text-4xl font-bold mb-3">나만의 페이지 만들기</h1>
+              <p className="text-blue-100 text-lg">당신만의 멋진 웹사이트를 무료로 시작하세요</p>
+            </div>
+
+            {/* 본문 */}
+            <div className="p-8">
+              {/* 샘플 이미지 */}
+              <div className="mb-8">
+                <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 border-2 border-gray-200">
+                  {/* 미니 브라우저 프레임 */}
+                  <div className="absolute top-8 left-8 flex gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  </div>
+                  
+                  {/* URL 바 */}
+                  <div className="mt-8 mb-6 bg-white rounded-lg shadow-md p-3 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm font-mono text-blue-600">urwebs.com/@{currentUser?.name || 'yourname'}</span>
+                  </div>
+
+                  {/* 페이지 미리보기 */}
+                  <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
+                    {/* 프로필 섹션 */}
+                    <div className="flex items-center gap-4 pb-4 border-b">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-2xl">
+                        👤
+                      </div>
+                      <div>
+                        <div className="font-bold text-lg text-gray-800">당신의 이름</div>
+                        <div className="text-sm text-gray-500">@yourname</div>
+                      </div>
+                    </div>
+
+                    {/* 위젯 그리드 */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 text-center">
+                        <div className="text-2xl mb-2">📱</div>
+                        <div className="text-xs font-semibold text-gray-700">소셜 링크</div>
+                      </div>
+                      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 text-center">
+                        <div className="text-2xl mb-2">📊</div>
+                        <div className="text-xs font-semibold text-gray-700">통계</div>
+                      </div>
+                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 text-center">
+                        <div className="text-2xl mb-2">📧</div>
+                        <div className="text-xs font-semibold text-gray-700">연락처</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 기능 소개 */}
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Zap className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-800 mb-1">빠른 시작</h3>
+                  <p className="text-sm text-gray-600">템플릿 선택으로 5분 만에 완성</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Star className="w-6 h-6 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-800 mb-1">무료 제공</h3>
+                  <p className="text-sm text-gray-600">모든 기능을 무료로 사용</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Palette className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-800 mb-1">자유로운 커스터마이징</h3>
+                  <p className="text-sm text-gray-600">위젯 추가/삭제/배치 자유롭게</p>
+                </div>
+              </div>
+
+              {/* URL 예시 */}
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8 text-center">
+                <div className="text-sm text-gray-600 mb-2">당신의 전용 URL</div>
+                <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 font-mono">
+                  urwebs.com/@yourname
+                </div>
+                <div className="text-sm text-gray-500 mt-2">로그인하면 자동으로 생성됩니다</div>
+              </div>
+
+              {/* 버튼 */}
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowIntroModal(false)}
+                  className="flex-1 h-14 text-base"
+                >
+                  나중에 하기
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowIntroModal(false);
+                    // 로그인 후 템플릿 선택하도록 플래그 저장
+                    localStorage.setItem('shouldShowTemplateAfterLogin', 'true');
+                    // 로그인 유도
+                    alert('헤더의 "Google 로그인" 버튼을 클릭하여 시작하세요!\n\n로그인하면 자동으로 템플릿 선택 화면이 나타납니다.');
+                  }}
+                  className="flex-1 h-14 text-base bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold"
+                >
+                  <Zap className="w-5 h-5 mr-2" />
+                  무료로 만들기
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 템플릿 선택 모달 */}
       {showTemplateModal && (
         <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center">
@@ -3504,19 +3698,201 @@ export function MyPage() {
               <p className="text-gray-600">새 페이지에 사용할 템플릿을 선택하세요</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Object.entries(templates).map(([key, template]) => (
                 <div
                   key={key}
-                  className="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer group"
+                  className="border-2 border-gray-200 rounded-xl overflow-hidden hover:border-blue-500 hover:shadow-xl transition-all cursor-pointer group"
                   onClick={() => createPageWithTemplate(key)}
                 >
-                  <div className="text-center">
-                    <div className="text-4xl mb-4">{template.icon}</div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">{template.name}</h3>
-                    <p className="text-sm text-gray-600 mb-4">{template.description}</p>
-                    <div className="text-xs text-gray-500">
-                      위젯 {template.widgets.length}개
+                  {/* 레이아웃 미리보기 */}
+                  <div 
+                    className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 h-32 flex items-center justify-center relative"
+                    style={{ backgroundColor: template.color ? `${template.color}15` : '#f3f4f6' }}
+                  >
+                    <div className="absolute top-2 left-2 text-2xl">{template.icon}</div>
+                    
+                    {/* 실제 위젯 모습 미리보기 */}
+                    {template.widgets.length > 0 ? (
+                      <div className="flex gap-1 scale-50 origin-center">
+                        {template.widgets.map((widget, index) => (
+                          <div
+                            key={index}
+                            className="w-16 h-20 bg-white rounded border border-gray-200 shadow-sm group-hover:shadow-md transition-shadow relative overflow-hidden"
+                          >
+                            {/* 위젯 헤더 */}
+                            <div className="h-3 bg-gray-100 flex items-center justify-between px-0.5">
+                              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                              <div className="flex gap-0.5">
+                                <div className="w-1 h-1 bg-gray-400 rounded"></div>
+                                <div className="w-1 h-1 bg-gray-400 rounded"></div>
+                              </div>
+                            </div>
+                            
+                            {/* 위젯 콘텐츠 */}
+                            <div className="p-0.5 h-full">
+                              {/* 북마크 위젯 */}
+                              {widget.type === 'bookmark' && (
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-0.5">
+                                    <div className="w-0.5 h-0.5 bg-blue-500 rounded"></div>
+                                    <div className="w-1.5 h-0.5 bg-gray-300 rounded"></div>
+                                  </div>
+                                  <div className="w-full h-0.5 bg-gray-200 rounded"></div>
+                                  <div className="flex gap-0.5">
+                                    <div className="w-1.5 h-0.5 bg-blue-100 rounded"></div>
+                                    <div className="w-1.5 h-0.5 bg-gray-100 rounded"></div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* 소셜 위젯 */}
+                              {widget.type === 'social' && (
+                                <div className="space-y-0.5">
+                                  <div className="grid grid-cols-2 gap-0.5">
+                                    <div className="w-1.5 h-1 bg-blue-100 rounded"></div>
+                                    <div className="w-1.5 h-1 bg-red-100 rounded"></div>
+                                    <div className="w-1.5 h-1 bg-green-100 rounded"></div>
+                                    <div className="w-1.5 h-1 bg-purple-100 rounded"></div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* QR 코드 위젯 */}
+                              {widget.type === 'qr_code' && (
+                                <div className="flex flex-col items-center justify-center h-full">
+                                  <div className="w-3 h-3 bg-gray-800 rounded grid grid-cols-2 gap-px p-px">
+                                    <div className="bg-white rounded-sm"></div>
+                                    <div className="bg-gray-800 rounded-sm"></div>
+                                    <div className="bg-gray-800 rounded-sm"></div>
+                                    <div className="bg-white rounded-sm"></div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* GitHub 위젯 */}
+                              {widget.type === 'github_repo' && (
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-0.5">
+                                    <div className="w-0.5 h-0.5 bg-gray-800 rounded"></div>
+                                    <div className="w-1 h-0.5 bg-gray-300 rounded"></div>
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <div className="w-full h-0.5 bg-gray-200 rounded"></div>
+                                    <div className="w-3/4 h-0.5 bg-gray-200 rounded"></div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* 연락처 위젯 */}
+                              {widget.type === 'contact' && (
+                                <div className="space-y-0.5">
+                                  <div className="flex gap-0.5">
+                                    <div className="w-0.5 h-0.5 bg-blue-500 rounded"></div>
+                                    <div className="w-1 h-0.5 bg-gray-200 rounded"></div>
+                                  </div>
+                                  <div className="flex gap-0.5">
+                                    <div className="w-0.5 h-0.5 bg-green-500 rounded"></div>
+                                    <div className="w-1 h-0.5 bg-gray-200 rounded"></div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* 통계 위젯 */}
+                              {widget.type === 'stats' && (
+                                <div className="space-y-0.5">
+                                  <div className="flex justify-between">
+                                    <div className="w-0.5 h-1.5 bg-blue-500 rounded-t"></div>
+                                    <div className="w-0.5 h-1 bg-green-500 rounded-t"></div>
+                                    <div className="w-0.5 h-2 bg-purple-500 rounded-t"></div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* 할 일 위젯 */}
+                              {widget.type === 'todo' && (
+                                <div className="space-y-0.5">
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-0.5">
+                                      <div className="w-0.5 h-0.5 border border-gray-400 rounded"></div>
+                                      <div className="w-1.5 h-0.5 bg-gray-300 rounded"></div>
+                                    </div>
+                                    <div className="flex items-center gap-0.5">
+                                      <div className="w-0.5 h-0.5 border border-gray-400 rounded"></div>
+                                      <div className="w-2 h-0.5 bg-gray-300 rounded"></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* 주식 위젯 */}
+                              {widget.type === 'stock' && (
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-0.5">
+                                    <div className="w-0.5 h-0.5 bg-green-500 rounded"></div>
+                                    <div className="w-1 h-0.5 bg-gray-300 rounded"></div>
+                                  </div>
+                                  <div className="w-full h-0.5 bg-gray-200 rounded"></div>
+                                  <div className="w-full h-0.5 bg-green-100 rounded"></div>
+                                </div>
+                              )}
+                              
+                              {/* 뉴스 위젯 */}
+                              {widget.type === 'news' && (
+                                <div className="space-y-0.5">
+                                  <div className="space-y-0.5">
+                                    <div className="w-full h-0.5 bg-gray-200 rounded"></div>
+                                    <div className="w-3/4 h-0.5 bg-gray-200 rounded"></div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* 날씨 위젯 */}
+                              {widget.type === 'weather' && (
+                                <div className="flex flex-col items-center justify-center h-full">
+                                  <div className="text-[4px]">☀️</div>
+                                  <div className="w-1 h-0.5 bg-gray-200 rounded"></div>
+                                </div>
+                              )}
+                              
+                              {/* 계산기 위젯 */}
+                              {widget.type === 'calculator' && (
+                                <div className="space-y-0.5">
+                                  <div className="grid grid-cols-3 gap-0.5">
+                                    {[1,2,3,4,5,6].map(i => (
+                                      <div key={i} className="w-1 h-0.5 bg-gray-200 rounded"></div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* 기본 위젯 (기타) */}
+                              {!['bookmark', 'social', 'qr_code', 'github_repo', 'contact', 'stats', 'todo', 'stock', 'news', 'weather', 'calculator'].includes(widget.type) && (
+                                <div className="flex flex-col items-center justify-center h-full">
+                                  <div className="w-1.5 h-1.5 bg-gray-200 rounded"></div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-4xl opacity-30">📄</div>
+                    )}
+                  </div>
+                  
+                  {/* 템플릿 정보 */}
+                  <div className="p-4 bg-white">
+                    <h3 className="text-base font-bold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors">
+                      {template.name}
+                    </h3>
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                      {template.description}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span className="px-2 py-1 bg-gray-100 rounded-full">
+                        위젯 {template.widgets.length}개
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -3536,7 +3912,8 @@ export function MyPage() {
           </div>
         )}
 
-      <div className="w-full px-2 py-4">
+      {!showTemplateModal && (
+        <div className="w-full px-2 py-4">
 
 
 
@@ -3564,8 +3941,18 @@ export function MyPage() {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center text-gray-500 max-w-md">
                 <div className="text-2xl mb-4">🎨</div>
-                <div className="text-xl font-semibold mb-3">시작페이지가 비어있습니다</div>
-                <div className="text-sm mb-4">각 컬럼의 마지막 위젯이나 컬럼 하단에 마우스를 올려 위젯을 추가해보세요</div>
+                {isEditMode ? (
+                  <>
+                    <div className="text-xl font-semibold mb-3">시작페이지가 비어있습니다</div>
+                    <div className="text-sm mb-4">위 툴바의 "편집 완료" 버튼을 누르면 편집 모드를 종료할 수 있습니다</div>
+                    <div className="text-sm mb-4">각 컬럼의 마지막 위젯이나 컬럼 하단에 마우스를 올려 위젯을 추가해보세요</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-xl font-semibold mb-3">페이지가 비어있습니다</div>
+                    <div className="text-sm mb-4">위 툴바의 "편집" 버튼을 눌러 위젯을 추가해보세요</div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -4544,8 +4931,8 @@ export function MyPage() {
           </div>
         )}
 
-
-      </div>
+        </div>
+      )}
     </div>
   );
 }
