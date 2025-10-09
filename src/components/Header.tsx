@@ -1,7 +1,10 @@
-import { Settings, Bell, MessageSquare, HelpCircle, Home, Sun, Moon } from 'lucide-react';
+import { Settings, Bell, MessageSquare, HelpCircle, Home, Sun, Moon, Shield } from 'lucide-react';
 import { Button } from './ui/button';
 import { GoogleAuth } from './auth/GoogleAuth';
 import { useTheme } from '../contexts/ThemeContext';
+import { auth } from '../firebase/config';
+import { useEffect, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface HeaderProps {
   currentPage: string;
@@ -10,6 +13,7 @@ interface HeaderProps {
   onNavigateCommunity: () => void;
   onNavigateContact: () => void;
   onNavigateMyPage: () => void;
+  onNavigateAdminInquiries: () => void;
 }
 
 export function Header({ 
@@ -18,9 +22,20 @@ export function Header({
   onNavigateNotice,
   onNavigateCommunity,
   onNavigateContact,
-  onNavigateMyPage 
+  onNavigateMyPage,
+  onNavigateAdminInquiries
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
+  const [currentUser, setCurrentUser] = useState(auth.currentUser);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const isAdmin = currentUser?.email === 'okjsk1@gmail.com';
   return (
     <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -81,6 +96,21 @@ export function Header({
             <Home className="w-4 h-4 mr-1" />
             나의 페이지
           </Button>
+          
+          {/* 관리자 전용 버튼 */}
+          {isAdmin && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onNavigateAdminInquiries}
+              className={`text-gray-700 hover:text-purple-600 transition-colors ${
+                currentPage === 'admin-inquiries' ? 'text-purple-600 bg-purple-50' : ''
+              }`}
+            >
+              <Shield className="w-4 h-4 mr-1" />
+              문의 관리
+            </Button>
+          )}
         </nav>
         
         {/* 다크모드 토글 & 구글 로그인 */}

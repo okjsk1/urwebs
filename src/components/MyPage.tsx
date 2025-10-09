@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, Music, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw } from 'lucide-react';
+import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, Music, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
-import { auth } from '../firebase/config';
-import { onAuthStateChanged } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase/config';
+import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 
 // 위젯 컴포넌트들 import
 import {
@@ -40,10 +40,27 @@ import {
   ColorPickerWidget,
   BookmarkWidget,
   StatsWidget,
-  ContactWidget,
   EnglishWordsWidget,
   SocialWidget
 } from './widgets';
+
+// 위젯 사이즈 타입 정의
+type WidgetSize = '1x1' | '2x1' | '3x1';
+
+// 위젯 사이즈별 크기 계산 함수
+const getWidgetDimensions = (size: WidgetSize, cellWidth: number, cellHeight: number, spacing: number) => {
+  const sizeMap = {
+    '1x1': { cols: 1, rows: 1 },
+    '2x1': { cols: 2, rows: 1 },
+    '3x1': { cols: 3, rows: 1 }
+  };
+  
+  const { cols, rows } = sizeMap[size];
+  return {
+    width: cols * cellWidth + (cols - 1) * spacing,
+    height: rows * cellHeight + (rows - 1) * spacing
+  };
+};
 
 interface Widget {
   id: string;
@@ -55,6 +72,7 @@ interface Widget {
   title: string;
   content?: any;
   zIndex?: number;
+  size?: WidgetSize; // 위젯 사이즈 추가
 }
 
 interface Bookmark {
@@ -107,18 +125,19 @@ const getDefaultWidgets = (): Widget[] => [
     type: 'weather',
     x: 0,
     y: 0,
-    width: 450,
-    height: 200,
+    width: 155,
+    height: 75,
     title: '날씨',
-    zIndex: 1
+    zIndex: 1,
+    size: '2x1'
   },
   {
     id: '2',
     type: 'todo',
-    x: 455, // 450 + 5
+    x: 160, // 155 + 5
     y: 0,
-    width: 450,
-    height: 200,
+    width: 155,
+    height: 75,
     title: '할 일',
     content: {
       todos: [
@@ -127,15 +146,16 @@ const getDefaultWidgets = (): Widget[] => [
         { id: '3', text: '디자인 꾸미기', completed: false }
       ]
     },
-    zIndex: 1
+    zIndex: 1,
+    size: '2x1'
   },
   {
     id: '3',
     type: 'bookmark',
-    x: 910, // 455 + 455
-    y: 0,
-    width: 450,
-    height: 200,
+    x: 0,
+    y: 80, // 75 + 5
+    width: 155,
+    height: 75,
     title: '즐겨찾기',
     content: {
       bookmarks: [
@@ -145,275 +165,20 @@ const getDefaultWidgets = (): Widget[] => [
         { id: '4', name: '깃허브', url: 'https://github.com', icon: '💻', color: 'bg-gray-100' },
       ]
     },
-    zIndex: 1
+    zIndex: 1,
+    size: '2x1'
   },
   {
     id: '4',
     type: 'crypto',
-    x: 1365, // 910 + 455
-    y: 0,
-    width: 450,
-    height: 200,
+    x: 160,
+    y: 80,
+    width: 155,
+    height: 75,
     title: '암호화폐',
-    zIndex: 1
+    zIndex: 1,
+    size: '2x1'
   },
-  {
-    id: '5',
-    type: 'news',
-    x: 0,
-    y: 245, // 240 + 5
-    width: 450,
-    height: 200,
-    title: '뉴스',
-    zIndex: 1
-  },
-  {
-    id: '6',
-    type: 'music',
-    x: 455, // 450 + 5
-    y: 245, // 240 + 5
-    width: 450,
-    height: 200,
-    title: '음악',
-    zIndex: 1
-  },
-  {
-    id: '7',
-    type: 'calendar',
-    x: 910, // 455 + 455
-    y: 245, // 240 + 5
-    width: 450,
-    height: 200,
-    title: '캘린더',
-    zIndex: 1
-  },
-  {
-    id: '8',
-    type: 'goal',
-    x: 1365, // 910 + 455
-    y: 245, // 240 + 5
-    width: 450,
-    height: 200,
-    title: '목표',
-    content: {
-      goals: [
-        { id: '1', text: '운동하기', progress: 60, target: 100 },
-        { id: '2', text: '책 읽기', progress: 30, target: 50 },
-        { id: '3', text: '프로젝트 완료', progress: 80, target: 100 }
-      ]
-    },
-    zIndex: 1
-  },
-  {
-    id: '9',
-    type: 'habit',
-    x: 0,
-    y: 490, // 245 + 245
-    width: 450,
-    height: 200,
-    title: '습관',
-    content: {
-      habits: [
-        { id: '1', text: '물 마시기', streak: 7, completed: true },
-        { id: '2', text: '일기 쓰기', streak: 3, completed: false },
-        { id: '3', text: '산책하기', streak: 12, completed: true }
-      ]
-    },
-    zIndex: 1
-  },
-  {
-    id: '10',
-    type: 'timer',
-    x: 455, // 450 + 5
-    y: 490, // 245 + 245
-    width: 645, // 2x1 사이즈 (450 + 195)
-    height: 200,
-    title: '타이머',
-    content: {
-      time: 1500, // 25분
-      isRunning: false,
-      mode: 'pomodoro'
-    },
-    zIndex: 1
-  },
-  {
-    id: '11',
-    type: 'search',
-    x: 910, // 455 + 455
-    y: 490, // 245 + 245
-    width: 450,
-    height: 200,
-    title: '검색',
-    content: {
-      searchHistory: [
-        { id: '1', query: 'React hooks', time: '2시간 전' },
-        { id: '2', query: 'TypeScript', time: '1일 전' },
-        { id: '3', query: 'CSS Grid', time: '3일 전' }
-      ]
-    },
-    zIndex: 1
-  },
-  {
-    id: '12',
-    type: 'email',
-    x: 1365, // 910 + 455
-    y: 490, // 245 + 245
-    width: 450,
-    height: 200,
-    title: '이메일',
-    content: {
-      emails: [
-        { id: '1', from: '김과장', subject: '월간 보고서 검토', time: '10분 전', unread: true },
-        { id: '2', from: '이대리', subject: '프로젝트 일정 변경', time: '1시간 전', unread: false },
-        { id: '3', from: '박팀장', subject: '회의 자료 공유', time: '3시간 전', unread: true }
-      ]
-    },
-    zIndex: 1
-  },
-  {
-    id: '13',
-    type: 'meeting',
-    x: 0,
-    y: 735, // 490 + 245
-    width: 450,
-    height: 200,
-    title: '회의실 예약',
-    content: {
-      meetings: [
-        { id: '1', room: 'A회의실', time: '14:00-15:00', title: '주간 미팅', status: 'reserved' },
-        { id: '2', room: 'B회의실', time: '15:30-16:30', title: '프로젝트 검토', status: 'available' },
-        { id: '3', room: 'C회의실', time: '17:00-18:00', title: '고객 미팅', status: 'reserved' }
-      ]
-    },
-    zIndex: 1
-  },
-  {
-    id: '14',
-    type: 'expense',
-    x: 455, // 450 + 5
-    y: 735, // 490 + 245
-    width: 450,
-    height: 200,
-    title: '가계부',
-    content: {
-      expenses: [
-        { id: '1', category: '식비', amount: 15000, date: '2024-01-15', memo: '점심' },
-        { id: '2', category: '교통비', amount: 5000, date: '2024-01-15', memo: '지하철' },
-        { id: '3', category: '카페', amount: 4500, date: '2024-01-15', memo: '아메리카노' }
-      ],
-      total: 24500
-    },
-    zIndex: 1
-  },
-  {
-    id: '15',
-    type: 'converter',
-    x: 910, // 455 + 455
-    y: 735, // 490 + 245
-    width: 450,
-    height: 200,
-    title: '단위 변환',
-    content: {
-      conversions: [
-        { from: 'USD', to: 'KRW', rate: 1320.50 },
-        { from: 'EUR', to: 'KRW', rate: 1435.20 },
-        { from: 'JPY', to: 'KRW', rate: 8.95 }
-      ]
-    },
-    zIndex: 1
-  },
-  {
-    id: '16',
-    type: 'note',
-    x: 1365, // 910 + 455
-    y: 735, // 490 + 245
-    width: 450,
-    height: 200,
-    title: '빠른 메모',
-    content: {
-      notes: [
-        { id: '1', text: '내일 회의 준비하기', time: '10:30', pinned: true },
-        { id: '2', text: '보고서 마감일 확인', time: '14:20', pinned: false },
-        { id: '3', text: '고객사 연락하기', time: '16:45', pinned: false }
-      ]
-    },
-    zIndex: 1
-  },
-  {
-    id: '17',
-    type: 'news',
-    x: 0,
-    y: 980, // 735 + 245
-    width: 450,
-    height: 300,
-    title: '뉴스',
-    content: {
-      articles: [
-        { id: '1', title: '한국 경제 성장률 상승', source: '연합뉴스', time: '2시간 전', category: '경제' },
-        { id: '2', title: '새로운 AI 기술 개발', source: '조선일보', time: '4시간 전', category: '기술' },
-        { id: '3', title: '환경 정책 발표', source: '동아일보', time: '6시간 전', category: '정치' },
-        { id: '4', title: '스포츠 경기 결과', source: '스포츠조선', time: '8시간 전', category: '스포츠' }
-      ]
-    },
-    zIndex: 1
-  },
-  {
-    id: '18',
-    type: 'shopping',
-    x: 455, // 450 + 5
-    y: 980, // 735 + 245
-    width: 450,
-    height: 200,
-    title: '쇼핑',
-    content: {
-      sites: [
-        { name: '11번가', url: 'https://www.11st.co.kr', icon: '🛒' },
-        { name: 'G마켓', url: 'https://www.gmarket.co.kr', icon: '🛍️' },
-        { name: '인터파크', url: 'https://www.interpark.com', icon: '🎫' },
-        { name: '옥션', url: 'https://www.auction.co.kr', icon: '🔨' },
-        { name: '위메프', url: 'https://www.wemakeprice.com', icon: '💸' },
-        { name: '쿠팡', url: 'https://www.coupang.com', icon: '📦' }
-      ]
-    },
-    zIndex: 1
-  },
-  {
-    id: '19',
-    type: 'travel',
-    x: 910, // 455 + 455
-    y: 980, // 735 + 245
-    width: 450,
-    height: 200,
-    title: '여행',
-    content: {
-      sites: [
-        { name: 'Booking', url: 'https://www.booking.com', icon: '🏨' },
-        { name: 'Tripadvisor', url: 'https://www.tripadvisor.com', icon: '🗺️' },
-        { name: 'Expedia', url: 'https://www.expedia.com', icon: '✈️' },
-        { name: 'Skyscanner', url: 'https://www.skyscanner.co.kr', icon: '🔍' },
-        { name: 'Airbnb', url: 'https://www.airbnb.co.kr', icon: '🏠' },
-        { name: '아고다', url: 'https://www.agoda.com', icon: '🌏' }
-      ]
-    },
-    zIndex: 1
-  },
-  {
-    id: '20',
-    type: 'sports',
-    x: 1365, // 910 + 455
-    y: 980, // 735 + 245
-    width: 450,
-    height: 200,
-    title: '스포츠',
-    content: {
-      news: [
-        { id: '1', title: '프리미어리그 경기 결과', league: 'EPL', time: '1시간 전' },
-        { id: '2', title: 'K리그 경기 일정', league: 'K리그', time: '3시간 전' },
-        { id: '3', title: '올림픽 준비 상황', league: '올림픽', time: '5시간 전' }
-      ]
-    },
-    zIndex: 1
-  }
 ];
 
 export function MyPage() {
@@ -426,9 +191,11 @@ export function MyPage() {
   const [isReordering, setIsReordering] = useState(false);
   
   // 그리드 설정 상수
-  const cellWidth = 300;
-  const cellHeight = 300;
   const spacing = 5;
+  
+  // 동적 셀 크기 계산 (4컬럼에 맞춰 페이지 너비 활용)
+  const [cellWidth, setCellWidth] = useState(75);
+  const [cellHeight, setCellHeight] = useState(75);
   
   // 위젯 상태 관리
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -504,11 +271,11 @@ export function MyPage() {
     return email.split('@')[0];
   };
 
-  const [currentUser, setCurrentUser] = useState({
-    id: 'user123',
-    name: '김사용자',
-    email: 'user123@example.com'
-  });
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
 
   const [pageTitle, setPageTitle] = useState("'김사용자'님의 페이지");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -561,6 +328,10 @@ export function MyPage() {
             return updatedPages;
           });
         }
+      } else {
+        // 로그아웃 시 currentUser를 null로 설정
+        console.log('Firebase 로그아웃 감지 - currentUser를 null로 설정');
+        setCurrentUser(null);
       }
     });
 
@@ -573,6 +344,26 @@ export function MyPage() {
   const [editingWidget, setEditingWidget] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  
+  // 페이지 관리 패널 외부 클릭 감지용 ref
+  const pageManagerRef = useRef<HTMLDivElement>(null);
+
+  // 페이지 관리 패널 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showPageManager && pageManagerRef.current && !pageManagerRef.current.contains(event.target as Node)) {
+        setShowPageManager(false);
+      }
+    };
+
+    if (showPageManager) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPageManager]);
 
   // 처음 방문 시 소개 모달 또는 템플릿 선택 모달 자동으로 표시
   useEffect(() => {
@@ -600,22 +391,27 @@ export function MyPage() {
     console.log('hasVisitedMyPage:', hasVisitedMyPage);
     console.log('savedPages:', savedPages);
     
-    // 로그아웃 시 기존 방문 기록 삭제
+    // 비로그인 상태
     if (!currentUser) {
-      // 비로그인 상태일 때는 기존 방문 기록을 무시하고 소개 모달 표시
-      console.log('→ 비로그인 사용자: 소개 모달 표시 (기존 기록 무시)');
-      setShowIntroModal(true);
+      // 처음 방문한 경우에만 소개 모달 표시
+      if (!hasVisitedMyPage) {
+        console.log('→ 비로그인 사용자 첫 방문: 소개 모달 표시');
+        setShowIntroModal(true);
+        localStorage.setItem(userVisitKey, 'true');
+      } else {
+        console.log('→ 비로그인 사용자 재방문: 모달 표시 안함');
+      }
       return;
     }
     
-    // 처음 방문하거나 저장된 페이지가 없는 경우
+    // 로그인 상태: 처음 방문하거나 저장된 페이지가 없는 경우
     if (!hasVisitedMyPage || !savedPages) {
       // 로그인한 사용자 - 템플릿 모달 표시
-      console.log('→ 로그인 사용자: 템플릿 모달 표시');
+      console.log('→ 로그인 사용자 첫 방문: 템플릿 모달 표시');
       setShowTemplateModal(true);
       localStorage.setItem(userVisitKey, 'true');
     } else {
-      console.log('→ 이미 방문한 사용자: 모달 표시 안함');
+      console.log('→ 이미 방문한 로그인 사용자: 모달 표시 안함');
     }
   }, [currentUser]);
 
@@ -624,7 +420,67 @@ export function MyPage() {
   const [showBackgroundModal, setShowBackgroundModal] = useState(false);
   const [showFontModal, setShowFontModal] = useState(false);
 
+  // 저장된 페이지 불러오기
+  useEffect(() => {
+    if (currentUser) {
+      const savedPagesData = localStorage.getItem(`myPages_${currentUser.id}`);
+      if (savedPagesData) {
+        try {
+          const loadedPages = JSON.parse(savedPagesData);
+          console.log('저장된 페이지 불러오기:', loadedPages);
+          setPages(loadedPages);
+          
+          // 활성 페이지 찾기
+          const activePage = loadedPages.find((p: any) => p.isActive) || loadedPages[0];
+          if (activePage) {
+            setCurrentPageId(activePage.id);
+            setPageTitle(activePage.title);
+            setWidgets(activePage.widgets || []);
+          }
+        } catch (error) {
+          console.error('페이지 로드 실패:', error);
+        }
+      }
+    }
+  }, [currentUser]);
+
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // 페이지 크기에 따른 동적 셀 크기 계산
+  useEffect(() => {
+    const updateCellSize = () => {
+      if (canvasRef.current) {
+        const containerWidth = canvasRef.current.offsetWidth;
+        const numColumns = 4;
+        const totalSpacingWidth = (numColumns - 1) * spacing; // 3개의 간격
+        const calculatedCellWidth = Math.floor((containerWidth - totalSpacingWidth) / numColumns);
+        
+        setCellWidth(calculatedCellWidth);
+        setCellHeight(calculatedCellWidth); // 정사각형으로 설정
+        console.log('셀 크기 업데이트:', calculatedCellWidth, '컨테이너 너비:', containerWidth);
+      }
+    };
+
+    updateCellSize();
+    window.addEventListener('resize', updateCellSize);
+    return () => window.removeEventListener('resize', updateCellSize);
+  }, [spacing]);
+
+  // 셀 크기 변경 시 기존 위젯들 크기 업데이트
+  useEffect(() => {
+    setWidgets(prevWidgets => prevWidgets.map((widget, index) => {
+      const col = index % 4;
+      const row = Math.floor(index / 4);
+      
+      return {
+        ...widget,
+        width: cellWidth,
+        height: cellHeight,
+        x: col * (cellWidth + spacing),
+        y: row * (cellHeight + spacing)
+      };
+    }));
+  }, [cellWidth, cellHeight, spacing]);
 
   // 현재 페이지의 위젯들 가져오기
   const currentPage = pages.find(page => page.id === currentPageId);
@@ -634,16 +490,13 @@ export function MyPage() {
     return pageWidgets.map((widget, index) => {
       const col = index % 4;
       const row = Math.floor(index / 4);
-      const spacing = 5;
-      const cellWidth = 300;
-      const cellHeight = 300;
       
       return {
         ...widget,
-        width: cellWidth,
-        height: widget.height || cellHeight,
-        x: col * (cellWidth + spacing),
-        y: row * (cellHeight + spacing)
+        width: widget.width || 300, // 기존 크기 유지하거나 기본값 사용
+        height: widget.height || 300,
+        x: widget.x || col * (300 + 5),
+        y: widget.y || row * (300 + 5)
       };
     });
   });
@@ -658,9 +511,9 @@ export function MyPage() {
       icon: '👤',
       color: '#3B82F6',
       widgets: [
-        { id: '1', type: 'contact', x: 0, y: 0, width: 300, height: 300, title: '연락처', content: {}, zIndex: 1 },
-        { id: '2', type: 'social', x: 305, y: 0, width: 300, height: 300, title: '소셜 링크', content: {}, zIndex: 1 },
-        { id: '3', type: 'qr_code', x: 610, y: 0, width: 300, height: 300, title: 'QR 코드', content: {}, zIndex: 1 }
+        { id: '1', type: 'contact', x: 0, y: 0, width: 75, height: 75, title: '연락처', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'social', x: 80, y: 0, width: 75, height: 75, title: '소셜 링크', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'qr_code', x: 160, y: 0, width: 75, height: 75, title: 'QR 코드', content: {}, zIndex: 1, size: '1x1' }
       ]
     },
     links: {
@@ -669,9 +522,9 @@ export function MyPage() {
       icon: '🔗',
       color: '#10B981',
       widgets: [
-        { id: '1', type: 'bookmark', x: 0, y: 0, width: 300, height: 300, title: '북마크', content: {}, zIndex: 1 },
-        { id: '2', type: 'social', x: 305, y: 0, width: 300, height: 300, title: '소셜 링크', content: {}, zIndex: 1 },
-        { id: '3', type: 'qr_code', x: 610, y: 0, width: 300, height: 300, title: 'QR 코드', content: {}, zIndex: 1 }
+        { id: '1', type: 'bookmark', x: 0, y: 0, width: 75, height: 75, title: '북마크', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'social', x: 80, y: 0, width: 75, height: 75, title: '소셜 링크', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'qr_code', x: 160, y: 0, width: 75, height: 75, title: 'QR 코드', content: {}, zIndex: 1, size: '1x1' }
       ]
     },
     portfolio: {
@@ -680,9 +533,9 @@ export function MyPage() {
       icon: '💼',
       color: '#8B5CF6',
       widgets: [
-        { id: '1', type: 'github_repo', x: 0, y: 0, width: 300, height: 300, title: 'GitHub', content: {}, zIndex: 1 },
-        { id: '2', type: 'contact', x: 305, y: 0, width: 300, height: 300, title: '연락처', content: {}, zIndex: 1 },
-        { id: '3', type: 'stats', x: 610, y: 0, width: 300, height: 300, title: '통계', content: {}, zIndex: 1 }
+        { id: '1', type: 'github_repo', x: 0, y: 0, width: 75, height: 75, title: 'GitHub', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'contact', x: 80, y: 0, width: 75, height: 75, title: '연락처', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'stats', x: 160, y: 0, width: 75, height: 75, title: '통계', content: {}, zIndex: 1, size: '1x1' }
       ]
     },
     productivity: {
@@ -691,9 +544,9 @@ export function MyPage() {
       icon: '📊',
       color: '#F59E0B',
       widgets: [
-        { id: '1', type: 'todo', x: 0, y: 0, width: 300, height: 300, title: '할 일', content: {}, zIndex: 1 },
-        { id: '2', type: 'goal', x: 305, y: 0, width: 300, height: 300, title: '목표', content: {}, zIndex: 1 },
-        { id: '3', type: 'habit', x: 610, y: 0, width: 300, height: 300, title: '습관', content: {}, zIndex: 1 }
+        { id: '1', type: 'todo', x: 0, y: 0, width: 75, height: 75, title: '할 일', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'goal', x: 80, y: 0, width: 75, height: 75, title: '목표', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'habit', x: 160, y: 0, width: 75, height: 75, title: '습관', content: {}, zIndex: 1, size: '1x1' }
       ]
     },
     finance: {
@@ -702,9 +555,9 @@ export function MyPage() {
       icon: '💰',
       color: '#EF4444',
       widgets: [
-        { id: '1', type: 'stock', x: 0, y: 0, width: 300, height: 300, title: '주식', content: {}, zIndex: 1 },
-        { id: '2', type: 'crypto', x: 305, y: 0, width: 300, height: 300, title: '암호화폐', content: {}, zIndex: 1 },
-        { id: '3', type: 'exchange', x: 610, y: 0, width: 300, height: 300, title: '환율', content: {}, zIndex: 1 }
+        { id: '1', type: 'stock', x: 0, y: 0, width: 75, height: 75, title: '주식', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'crypto', x: 80, y: 0, width: 75, height: 75, title: '암호화폐', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'exchange', x: 160, y: 0, width: 75, height: 75, title: '환율', content: {}, zIndex: 1, size: '1x1' }
       ]
     },
     social: {
@@ -713,9 +566,9 @@ export function MyPage() {
       icon: '🌟',
       color: '#EC4899',
       widgets: [
-        { id: '1', type: 'social', x: 0, y: 0, width: 300, height: 300, title: '소셜 링크', content: {}, zIndex: 1 },
-        { id: '2', type: 'music', x: 305, y: 0, width: 300, height: 300, title: '음악', content: {}, zIndex: 1 },
-        { id: '3', type: 'quote', x: 610, y: 0, width: 300, height: 300, title: '명언', content: {}, zIndex: 1 }
+        { id: '1', type: 'social', x: 0, y: 0, width: 75, height: 75, title: '소셜 링크', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'music', x: 80, y: 0, width: 75, height: 75, title: '음악', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'quote', x: 160, y: 0, width: 75, height: 75, title: '명언', content: {}, zIndex: 1, size: '1x1' }
       ]
     },
     custom: {
@@ -735,33 +588,43 @@ export function MyPage() {
   const createPageWithTemplate = (templateKey: string) => {
     const template = templates[templateKey as keyof typeof templates];
     const newPageId = `page${Date.now()}`;
-    const newPage = {
-      id: newPageId,
-      title: template.name,
-      widgets: template.widgets,
-      createdAt: new Date().toISOString(),
-      isActive: false
-    };
     
-    setPages(prev => prev.map(page => ({ ...page, isActive: false })).concat(newPage));
-    setCurrentPageId(newPageId);
-    setPageTitle(newPage.title);
-    // 새 페이지 생성 시에도 위젯 크기와 위치를 업데이트
-    setWidgets(newPage.widgets.map((widget, index) => {
+    // 위젯 위치 설정 (동적 크기 사용)
+    const positionedWidgets = template.widgets.map((widget, index) => {
       const col = index % 4;
       const row = Math.floor(index / 4);
-      const spacing = 5;
-      const cellWidth = 300;
-      const cellHeight = 300;
       
       return {
         ...widget,
+        id: `${widget.type}_${Date.now()}_${index}`, // 고유 ID 생성
         width: cellWidth,
-        height: widget.height || cellHeight,
+        height: cellHeight,
         x: col * (cellWidth + spacing),
         y: row * (cellHeight + spacing)
       };
-    }));
+    });
+    
+    const newPage = {
+      id: newPageId,
+      title: template.name,
+      widgets: positionedWidgets,
+      createdAt: new Date().toISOString(),
+      isActive: true
+    };
+    
+    // 페이지 목록 업데이트
+    const updatedPages = pages.map(page => ({ ...page, isActive: false })).concat(newPage);
+    setPages(updatedPages);
+    setCurrentPageId(newPageId);
+    setPageTitle(newPage.title);
+    setWidgets(positionedWidgets);
+    
+    // localStorage에 즉시 저장
+    if (currentUser) {
+      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
+      console.log('템플릿으로 페이지 생성 및 저장 완료:', newPage);
+    }
+    
     setShowTemplateModal(false);
     setShowPageManager(false);
   };
@@ -771,18 +634,15 @@ export function MyPage() {
     if (targetPage) {
       setCurrentPageId(pageId);
       setPageTitle(targetPage.title);
-      // 페이지 전환 시에도 위젯 크기와 위치를 업데이트
+      // 페이지 전환 시에도 위젯 크기와 위치를 업데이트 (동적 크기 사용)
       setWidgets(targetPage.widgets.map((widget, index) => {
         const col = index % 4;
         const row = Math.floor(index / 4);
-        const spacing = 5;
-        const cellWidth = 320;
-        const cellHeight = 240;
         
         return {
           ...widget,
           width: cellWidth,
-          height: widget.height || cellHeight,
+          height: cellHeight,
           x: col * (cellWidth + spacing),
           y: row * (cellHeight + spacing)
         };
@@ -1146,14 +1006,11 @@ export function MyPage() {
     setWidgets(defaultWidgets.map((widget, index) => {
       const col = index % 4;
       const row = Math.floor(index / 4);
-      const spacing = 5;
-      const cellWidth = 300;
-      const cellHeight = 300;
       
       return {
         ...widget,
         width: cellWidth,
-        height: widget.height || cellHeight,
+        height: cellHeight,
         x: col * (cellWidth + spacing),
         y: row * (cellHeight + spacing)
       };
@@ -1258,7 +1115,6 @@ export function MyPage() {
         { type: 'colorpicker', name: '컬러 팔레트', icon: Palette, description: '색상 생성 및 선택' },
         { type: 'bookmark', name: '즐겨찾기', icon: Link, description: '자주 사용하는 링크' },
         { type: 'stats', name: '통계 차트', icon: BarChart3, description: '데이터 시각화' },
-        { type: 'contact', name: '문의하기', icon: ContactIcon, description: '사이트 개설자에게 문의' },
       ]
     },
 
@@ -1359,38 +1215,29 @@ export function MyPage() {
 
 
   // 위젯 추가
-  const addWidget = useCallback((type: string) => {
-    console.log('addWidget 호출됨:', type);
+  const addWidget = useCallback((type: string, size: WidgetSize = '1x1') => {
+    console.log('addWidget 호출됨:', type, 'size:', size);
     
-    // 위젯 크기 결정
-    let width = cellWidth; // 기본 전체 컬럼 너비
-    let height = cellHeight; // 기본 높이
-    
-    if (type === 'weather_small') {
-      width = cellWidth / 2 - spacing; // 1/2 너비
-      height = cellHeight / 2 - spacing; // 1/2 높이
-    } else if (type === 'weather_medium') {
-      width = cellWidth - spacing; // 전체 너비
-      height = cellHeight / 2 - spacing; // 1/2 높이
-    } else if (type === 'timer') {
-      width = cellWidth * 2 - spacing; // 2컬럼 너비
-      height = cellHeight / 2 - spacing; // 1/2 높이
-    }
+    // 위젯 크기 결정 (사이즈 기반)
+    const dimensions = getWidgetDimensions(size, cellWidth, cellHeight, spacing);
+    const width = dimensions.width;
+    const height = dimensions.height;
     
     setWidgets(prevWidgets => {
-      const position = getNextAvailablePosition(width, height);
-      
-      const newWidget: Widget = {
-        id: Date.now().toString(),
-        type: type as any,
-        x: position.x,
-        y: position.y,
-        width,
-        height,
-        title: allWidgets.find(w => w.type === type)?.name || '새 위젯',
-        content: type === 'bookmark' ? { bookmarks: [] } : undefined,
-        zIndex: Math.max(...prevWidgets.map(w => w.zIndex || 1), 1) + 1
-      };
+    const position = getNextAvailablePosition(width, height);
+    
+    const newWidget: Widget = {
+      id: Date.now().toString(),
+      type: type as any,
+      x: position.x,
+      y: position.y,
+      width,
+      height,
+      title: allWidgets.find(w => w.type === type)?.name || '새 위젯',
+      content: type === 'bookmark' ? { bookmarks: [] } : undefined,
+      zIndex: 1, // 모든 새 위젯은 기본 Z-index로 설정
+      size: size // 위젯 사이즈 추가
+  };
       
       console.log('새 위젯 추가:', newWidget);
       return [...prevWidgets, newWidget];
@@ -1419,7 +1266,15 @@ export function MyPage() {
     });
     
     setPages(updatedPages);
-    localStorage.setItem('myPages', JSON.stringify(updatedPages));
+    
+    // 사용자별로 저장
+    if (currentUser) {
+      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
+      console.log('페이지 저장됨 (사용자:', currentUser.id, '):', updatedPages);
+    } else {
+      localStorage.setItem('myPages', JSON.stringify(updatedPages));
+      console.log('페이지 저장됨 (게스트):', updatedPages);
+    }
     
     // 성공 메시지
     const message = document.createElement('div');
@@ -1429,9 +1284,7 @@ export function MyPage() {
     setTimeout(() => {
       message.remove();
     }, 2000);
-    
-    console.log('페이지 저장됨:', updatedPages);
-  }, [pages, currentPageId, pageTitle, widgets]);
+  }, [pages, currentPageId, pageTitle, widgets, currentUser]);
 
   // 위젯 업데이트
   const updateWidget = useCallback((id: string, updates: Partial<Widget>) => {
@@ -1442,9 +1295,11 @@ export function MyPage() {
   const selectWidget = (id: string) => {
     if (isEditMode) {
       setSelectedWidget(id);
-      // z-index를 최상위로 (드래그 중이 아닐 때만)
+      // z-index를 최상위로 (드래그 중이 아닐 때만) - 하지만 페이지 관리 패널보다는 낮게
       if (!draggedWidget) {
-        updateWidget(id, { zIndex: Math.max(...widgets.map(w => w.zIndex || 1), 1) + 1 });
+        const maxWidgetZIndex = Math.max(...widgets.map(w => w.zIndex || 1), 1);
+        const newZIndex = Math.min(maxWidgetZIndex + 1, 9999); // 페이지 관리 패널(z-[999999])보다 낮게 제한
+        updateWidget(id, { zIndex: newZIndex });
       }
     }
   };
@@ -1663,8 +1518,8 @@ export function MyPage() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'ADD_WIDGET') {
-        console.log('메시지 수신:', event.data.widgetType);
-        addWidget(event.data.widgetType);
+        console.log('메시지 수신:', event.data.widgetType, 'size:', event.data.size);
+        addWidget(event.data.widgetType, event.data.size || '1x1');
       }
     };
 
@@ -2134,11 +1989,11 @@ export function MyPage() {
       <div
         className={`relative h-full overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200 ${
           isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
-        } ${isDragging ? 'opacity-75 z-50' : 'z-10'} ${
+        } ${isDragging ? 'opacity-75' : ''} ${
           dragOverWidget === widget.id && draggedWidget !== widget.id ? 'ring-2 ring-green-500 bg-green-50' : ''
         }`}
         style={{
-          zIndex: isDragging ? 50 : isSelected ? 20 : 10
+          zIndex: isDragging ? 10 : isSelected ? 5 : 1
         }}
         onClick={() => selectWidget(widget.id)}
         onMouseEnter={() => {
@@ -2262,23 +2117,84 @@ export function MyPage() {
               <input
                 type="text"
                 placeholder="이름"
+                id={`contact-name-${widget.id}`}
                 className="w-full p-2 text-xs border rounded"
               />
               <input
                 type="email"
                 placeholder="이메일"
+                id={`contact-email-${widget.id}`}
+                className="w-full p-2 text-xs border rounded"
+              />
+              <input
+                type="tel"
+                placeholder="연락처 (예: 010-1234-5678)"
+                id={`contact-phone-${widget.id}`}
                 className="w-full p-2 text-xs border rounded"
               />
               <textarea
                 placeholder="문의 내용"
+                id={`contact-message-${widget.id}`}
                 className="w-full p-2 text-xs border rounded h-16 resize-none"
               />
               <Button
                 size="sm"
                 className="w-full text-xs"
-                onClick={() => {
-                  // 실제로는 서버로 이메일 전송
-                  alert('문의가 전송되었습니다!');
+                onClick={async () => {
+                  const nameInput = document.getElementById(`contact-name-${widget.id}`) as HTMLInputElement;
+                  const emailInput = document.getElementById(`contact-email-${widget.id}`) as HTMLInputElement;
+                  const phoneInput = document.getElementById(`contact-phone-${widget.id}`) as HTMLInputElement;
+                  const messageInput = document.getElementById(`contact-message-${widget.id}`) as HTMLTextAreaElement;
+                  
+                  const name = nameInput?.value || '';
+                  const email = emailInput?.value || '';
+                  const phone = phoneInput?.value || '';
+                  const message = messageInput?.value || '';
+                  
+                  if (!name || !email || !message) {
+                    alert('이름, 이메일, 문의 내용은 필수입니다.');
+                    return;
+                  }
+                  
+                  try {
+                    // Web3Forms로 이메일 전송 (가장 간단한 방법!)
+                    // 설정: https://web3forms.com 에서 무료 API 키 받기 (1분 소요)
+                    
+                    const response = await fetch('https://api.web3forms.com/submit', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        access_key: 'YOUR_WEB3FORMS_ACCESS_KEY', // web3forms.com에서 받은 키 입력
+                        subject: `[문의] ${name}님의 문의`,
+                        from_name: name,
+                        email: email, // 보낸 사람 이메일
+                        phone: phone,
+                        message: message,
+                        to_email: currentUser?.email || 'your-email@example.com', // 받는 사람 (사이트 개설자)
+                      }),
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                      console.log('이메일 전송 성공:', data);
+                      alert('문의가 성공적으로 전송되었습니다! ✅');
+                      
+                      // 폼 초기화
+                      if (nameInput) nameInput.value = '';
+                      if (emailInput) emailInput.value = '';
+                      if (phoneInput) phoneInput.value = '';
+                      if (messageInput) messageInput.value = '';
+                    } else {
+                      throw new Error(data.message || '전송 실패');
+                    }
+                    
+                  } catch (error) {
+                    console.error('이메일 전송 실패:', error);
+                    alert('문의 전송에 실패했습니다. 다시 시도해주세요. ❌');
+                  }
                 }}
               >
                 전송
@@ -3341,7 +3257,7 @@ export function MyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
       {/* 상단 툴바 */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
+      <div className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
         <div className="w-full px-2 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -3407,8 +3323,8 @@ export function MyPage() {
                       className={`text-xl font-bold text-gray-800 ${isEditMode ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
                       onClick={() => {
                         if (isEditMode) {
-                          setIsEditingTitle(true);
-                          setTempTitle(pageTitle);
+                        setIsEditingTitle(true);
+                        setTempTitle(pageTitle);
                         }
                       }}
                       title={isEditMode ? "클릭하여 제목 변경" : pageTitle}
@@ -3416,12 +3332,12 @@ export function MyPage() {
                       {pageTitle}
                     </h1>
                     {isEditMode && (
-                      <Edit className="w-4 h-4 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors" 
-                            onClick={() => {
-                              setIsEditingTitle(true);
-                              setTempTitle(pageTitle);
-                            }}
-                            title="제목 변경" />
+                    <Edit className="w-4 h-4 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors" 
+                          onClick={() => {
+                            setIsEditingTitle(true);
+                            setTempTitle(pageTitle);
+                          }}
+                          title="제목 변경" />
                     )}
                   </div>
                 )}
@@ -3429,39 +3345,36 @@ export function MyPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* 저장 버튼 - 편집 모드에서만 표시 */}
-              {isEditMode && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => {
-                    savePage();
-                  }}
-                  className="bg-green-600 text-white hover:bg-green-700"
-                  title="현재 페이지 저장"
-                >
-                  <Save className="w-4 h-4 mr-1" />
-                  저장
-                </Button>
-              )}
-
               {/* 편집 모드 토글 버튼 */}
               <Button
                 variant={isEditMode ? "default" : "ghost"}
                 size="sm"
-                onClick={() => setIsEditMode(!isEditMode)}
-                className={isEditMode ? "bg-blue-600 text-white hover:bg-blue-700" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"}
-                title={isEditMode ? "보기 모드로 전환" : "편집 모드로 전환"}
+                onClick={() => {
+                  if (isEditMode) {
+                    // 편집 완료 시 자동 저장
+                    savePage();
+                  }
+                  setIsEditMode(!isEditMode);
+                }}
+                className={isEditMode 
+                  ? "bg-orange-400 hover:bg-orange-500 text-black font-semibold" 
+                  : "text-gray-600 hover:text-orange-600 hover:bg-orange-50"
+                }
+                title={isEditMode ? "저장하고 보기 모드로 전환" : "편집 모드로 전환"}
               >
-                <Edit className="w-4 h-4 mr-1" />
+                {isEditMode ? <Save className="w-4 h-4 mr-1" /> : <Edit className="w-4 h-4 mr-1" />}
                 {isEditMode ? "편집 완료" : "편집"}
-              </Button>
+            </Button>
 
               {/* 페이지 관리 버튼 */}
             <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowPageManager(!showPageManager)}
+                onClick={() => {
+                  console.log('페이지 관리 버튼 클릭됨, 현재 상태:', showPageManager);
+                  setShowPageManager(!showPageManager);
+                  console.log('새로운 상태:', !showPageManager);
+                }}
                 className="text-gray-600 hover:text-blue-600 hover:bg-blue-50"
                 title="페이지 관리"
               >
@@ -3469,17 +3382,23 @@ export function MyPage() {
                 페이지 ({pages.length})
             </Button>
             
-              {/* 빠른 액션 버튼들 */}
-              <div className="flex items-center gap-1">
+              {/* 공개/비공개 토글 버튼 */}
             <Button 
-                  variant="ghost"
+                variant={shareSettings.isPublic ? "default" : "ghost"}
                   size="sm"
               onClick={toggleShare}
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
+                className={shareSettings.isPublic 
+                  ? "bg-green-500 hover:bg-green-600 text-white font-semibold" 
+                  : "text-gray-600 hover:text-green-600 hover:bg-green-50"
+                }
                   title={shareSettings.isPublic ? '비공개로 변경' : '공개로 변경'}
             >
-              {shareSettings.isPublic ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+              {shareSettings.isPublic ? <Unlock className="w-4 h-4 mr-1" /> : <Lock className="w-4 h-4 mr-1" />}
+              {shareSettings.isPublic ? "공개하기" : "비공개하기"}
             </Button>
+            
+              {/* 빠른 액션 버튼들 */}
+              <div className="flex items-center gap-1">
 
                 <Button 
                   variant="ghost"
@@ -3509,17 +3428,28 @@ export function MyPage() {
 
       {/* 페이지 관리 패널 */}
       {showPageManager && (
-        <div className="absolute top-16 left-4 z-50 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-gray-200/50 p-4 min-w-[300px]">
+        <div ref={pageManagerRef} className="fixed top-16 right-4 z-[999999] bg-white border-4 border-red-500 rounded-xl shadow-2xl p-4 min-w-[400px] max-w-[500px]" style={{zIndex: 999999, position: 'fixed'}}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-gray-800">페이지 관리</h3>
+            <div className="flex items-center gap-2">
               <Button
                 size="sm"
-              onClick={createNewPage}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={createNewPage}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-              <Plus className="w-4 h-4 mr-1" />
-              새 페이지
+                <Plus className="w-4 h-4 mr-1" />
+                새 페이지
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowPageManager(false)}
+                className="text-gray-500 hover:text-gray-700"
+                title="닫기"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
           
           <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -3570,56 +3500,56 @@ export function MyPage() {
       {/* 소개 모달 - 로그인하지 않은 사용자용 */}
       {showIntroModal && (
         <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* 헤더 */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white text-center">
-              <h1 className="text-4xl font-bold mb-3">나만의 페이지 만들기</h1>
-              <p className="text-blue-100 text-lg">당신만의 멋진 웹사이트를 무료로 시작하세요</p>
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white text-center">
+              <h1 className="text-2xl font-bold mb-2">나만의 페이지 만들기</h1>
+              <p className="text-blue-100 text-sm">당신만의 멋진 웹사이트를 무료로 시작하세요</p>
             </div>
 
             {/* 본문 */}
-            <div className="p-8">
+            <div className="p-6">
               {/* 샘플 이미지 */}
-              <div className="mb-8">
-                <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 border-2 border-gray-200">
+              <div className="mb-6">
+                <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border-2 border-gray-200">
                   {/* 미니 브라우저 프레임 */}
-                  <div className="absolute top-8 left-8 flex gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  <div className="absolute top-4 left-4 flex gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                    <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
                   </div>
                   
                   {/* URL 바 */}
-                  <div className="mt-8 mb-6 bg-white rounded-lg shadow-md p-3 flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-mono text-blue-600">urwebs.com/@{currentUser?.name || 'yourname'}</span>
+                  <div className="mt-6 mb-4 bg-white rounded-lg shadow-sm p-2 flex items-center gap-2">
+                    <Globe className="w-3 h-3 text-gray-400" />
+                    <span className="text-xs font-mono text-blue-600">urwebs.com/@{currentUser?.name || 'yourname'}</span>
                   </div>
 
                   {/* 페이지 미리보기 */}
-                  <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
+                  <div className="bg-white rounded-lg shadow-md p-4 space-y-3">
                     {/* 프로필 섹션 */}
-                    <div className="flex items-center gap-4 pb-4 border-b">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-2xl">
+                    <div className="flex items-center gap-3 pb-3 border-b">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-xl">
                         👤
                       </div>
                       <div>
-                        <div className="font-bold text-lg text-gray-800">당신의 이름</div>
-                        <div className="text-sm text-gray-500">@yourname</div>
+                        <div className="font-bold text-sm text-gray-800">당신의 이름</div>
+                        <div className="text-xs text-gray-500">@yourname</div>
                       </div>
                     </div>
 
                     {/* 위젯 그리드 */}
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 text-center">
-                        <div className="text-2xl mb-2">📱</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 text-center">
+                        <div className="text-xl mb-1">📱</div>
                         <div className="text-xs font-semibold text-gray-700">소셜 링크</div>
                       </div>
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 text-center">
-                        <div className="text-2xl mb-2">📊</div>
+                      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 text-center">
+                        <div className="text-xl mb-1">📊</div>
                         <div className="text-xs font-semibold text-gray-700">통계</div>
                       </div>
-                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 text-center">
-                        <div className="text-2xl mb-2">📧</div>
+                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 text-center">
+                        <div className="text-xl mb-1">📧</div>
                         <div className="text-xs font-semibold text-gray-700">연락처</div>
                       </div>
                     </div>
@@ -3628,59 +3558,65 @@ export function MyPage() {
               </div>
 
               {/* 기능 소개 */}
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-3 gap-3 mb-6">
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Zap className="w-6 h-6 text-blue-600" />
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Zap className="w-5 h-5 text-blue-600" />
                   </div>
-                  <h3 className="font-semibold text-gray-800 mb-1">빠른 시작</h3>
-                  <p className="text-sm text-gray-600">템플릿 선택으로 5분 만에 완성</p>
+                  <h3 className="font-semibold text-sm text-gray-800 mb-0.5">빠른 시작</h3>
+                  <p className="text-xs text-gray-600">5분 만에 완성</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Star className="w-6 h-6 text-green-600" />
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Star className="w-5 h-5 text-green-600" />
                   </div>
-                  <h3 className="font-semibold text-gray-800 mb-1">무료 제공</h3>
-                  <p className="text-sm text-gray-600">모든 기능을 무료로 사용</p>
+                  <h3 className="font-semibold text-sm text-gray-800 mb-0.5">무료 제공</h3>
+                  <p className="text-xs text-gray-600">모든 기능 무료</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Palette className="w-6 h-6 text-purple-600" />
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Palette className="w-5 h-5 text-purple-600" />
                   </div>
-                  <h3 className="font-semibold text-gray-800 mb-1">자유로운 커스터마이징</h3>
-                  <p className="text-sm text-gray-600">위젯 추가/삭제/배치 자유롭게</p>
+                  <h3 className="font-semibold text-sm text-gray-800 mb-0.5">커스터마이징</h3>
+                  <p className="text-xs text-gray-600">자유로운 배치</p>
                 </div>
               </div>
 
               {/* URL 예시 */}
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8 text-center">
-                <div className="text-sm text-gray-600 mb-2">당신의 전용 URL</div>
-                <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 font-mono">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-6 text-center">
+                <div className="text-xs text-gray-600 mb-1">당신의 전용 URL</div>
+                <div className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 font-mono">
                   urwebs.com/@yourname
                 </div>
-                <div className="text-sm text-gray-500 mt-2">로그인하면 자동으로 생성됩니다</div>
+                <div className="text-xs text-gray-500 mt-1">로그인하면 자동으로 생성됩니다</div>
               </div>
 
               {/* 버튼 */}
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <Button
                   variant="outline"
                   onClick={() => setShowIntroModal(false)}
-                  className="flex-1 h-14 text-base"
+                  className="flex-1 h-12"
                 >
                   나중에 하기
                 </Button>
                 <Button
-                  onClick={() => {
-                    setShowIntroModal(false);
-                    // 로그인 후 템플릿 선택하도록 플래그 저장
-                    localStorage.setItem('shouldShowTemplateAfterLogin', 'true');
-                    // 로그인 유도
-                    alert('헤더의 "Google 로그인" 버튼을 클릭하여 시작하세요!\n\n로그인하면 자동으로 템플릿 선택 화면이 나타납니다.');
+                  onClick={async () => {
+                    try {
+                      // 로그인 후 템플릿 선택하도록 플래그 저장
+                      localStorage.setItem('shouldShowTemplateAfterLogin', 'true');
+                      // Google 로그인 팝업 띄우기
+                      await signInWithPopup(auth, googleProvider);
+                      // 로그인 성공 시 모달 닫기 (useEffect에서 템플릿 모달을 자동으로 열어줌)
+                      setShowIntroModal(false);
+                    } catch (error) {
+                      console.error('Google 로그인 실패:', error);
+                      alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                    }
                   }}
-                  className="flex-1 h-14 text-base bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold"
+                  className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold"
                 >
-                  <Zap className="w-5 h-5 mr-2" />
+                  <Zap className="w-4 h-4 mr-2" />
                   무료로 만들기
                 </Button>
               </div>
@@ -3891,7 +3827,7 @@ export function MyPage() {
                     </p>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <span className="px-2 py-1 bg-gray-100 rounded-full">
-                        위젯 {template.widgets.length}개
+                      위젯 {template.widgets.length}개
                       </span>
                     </div>
                   </div>
@@ -3913,7 +3849,7 @@ export function MyPage() {
         )}
 
       {!showTemplateModal && (
-        <div className="w-full px-2 py-4">
+      <div className="w-full px-2 py-4 pb-24">
 
 
 
@@ -3943,9 +3879,9 @@ export function MyPage() {
                 <div className="text-2xl mb-4">🎨</div>
                 {isEditMode ? (
                   <>
-                    <div className="text-xl font-semibold mb-3">시작페이지가 비어있습니다</div>
+                <div className="text-xl font-semibold mb-3">시작페이지가 비어있습니다</div>
                     <div className="text-sm mb-4">위 툴바의 "편집 완료" 버튼을 누르면 편집 모드를 종료할 수 있습니다</div>
-                    <div className="text-sm mb-4">각 컬럼의 마지막 위젯이나 컬럼 하단에 마우스를 올려 위젯을 추가해보세요</div>
+                <div className="text-sm mb-4">각 컬럼의 마지막 위젯이나 컬럼 하단에 마우스를 올려 위젯을 추가해보세요</div>
                   </>
                 ) : (
                   <>
@@ -3984,7 +3920,7 @@ export function MyPage() {
                     addArea.style.top = `${rect.bottom + 5}px`;
                     addArea.style.width = `${widget.width}px`;
                     addArea.style.height = '60px';
-                    addArea.style.zIndex = '1000';
+                    addArea.style.zIndex = '5';
                     addArea.innerHTML = '<div class="text-blue-600 font-medium text-sm">+ 위젯 추가</div>';
                     addArea.onclick = openWidgetShop;
                     document.body.appendChild(addArea);
@@ -4019,7 +3955,7 @@ export function MyPage() {
                   top: bottomY,
                   width: cellWidth,
                   height: '60px',
-                  zIndex: 10
+                  zIndex: 2
                 }}
                 onMouseEnter={(e) => {
                   const target = e.currentTarget;
@@ -4191,8 +4127,7 @@ export function MyPage() {
                             { type: 'converter', name: '단위 변환', icon: '🧮', description: '단위 변환기' },
                             { type: 'colorpicker', name: '컬러 팔레트', icon: '🎨', description: '색상 생성기' },
                             { type: 'qr', name: 'QR 코드', icon: '📱', description: 'QR 코드 생성' },
-                            { type: 'password', name: '비밀번호', icon: '🔒', description: '비밀번호 생성' },
-                            { type: 'contact', name: '문의하기', icon: '📞', description: '사이트 개설자에게 문의' }
+                            { type: 'password', name: '비밀번호', icon: '🔒', description: '비밀번호 생성' }
                           ]
                         },
                         education: {
@@ -4260,7 +4195,7 @@ export function MyPage() {
                         // 위젯 그리드 업데이트
                         const grid = document.getElementById('widget-grid');
                         grid.innerHTML = category.widgets.map(widget => \`
-                          <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer" onclick="addWidget('\${widget.type}')">
+                          <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer" onclick="showSizeOptions('\${widget.type}')">
                             <div class="text-center">
                               <div class="w-16 h-16 bg-gray-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
                                 <span class="text-2xl">\${widget.icon}</span>
@@ -4275,12 +4210,41 @@ export function MyPage() {
                         \`).join('');
                       }
                       
-                      function addWidget(widgetType) {
+                      function addWidget(widgetType, size = '1x1') {
                         window.opener.postMessage({
                           type: 'ADD_WIDGET',
-                          widgetType: widgetType
+                          widgetType: widgetType,
+                          size: size
                         }, '*');
                         window.close();
+                      }
+                      
+                      function showSizeOptions(widgetType) {
+                        const sizeOptions = document.createElement('div');
+                        sizeOptions.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+                        sizeOptions.innerHTML = \`
+                          <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">위젯 크기 선택</h3>
+                            <div class="grid grid-cols-3 gap-3 mb-6">
+                              <button onclick="addWidget('\${widgetType}', '1x1')" class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                                <div class="w-full h-8 bg-blue-100 rounded mb-2"></div>
+                                <span class="text-sm font-medium">1x1</span>
+                              </button>
+                              <button onclick="addWidget('\${widgetType}', '2x1')" class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                                <div class="w-full h-8 bg-blue-100 rounded mb-2"></div>
+                                <span class="text-sm font-medium">2x1</span>
+                              </button>
+                              <button onclick="addWidget('\${widgetType}', '3x1')" class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                                <div class="w-full h-8 bg-blue-100 rounded mb-2"></div>
+                                <span class="text-sm font-medium">3x1</span>
+                              </button>
+                            </div>
+                            <button onclick="this.closest('.fixed').remove()" class="w-full py-2 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+                              취소
+                            </button>
+                          </div>
+                        \`;
+                        document.body.appendChild(sizeOptions);
                       }
                       
                       // 페이지 로드 시 카테고리 렌더링
@@ -4933,6 +4897,7 @@ export function MyPage() {
 
         </div>
       )}
+
     </div>
   );
 }

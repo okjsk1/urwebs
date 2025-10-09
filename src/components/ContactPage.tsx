@@ -17,6 +17,8 @@ import {
   AlertCircle,
   HelpCircle
 } from 'lucide-react';
+import { db } from '../firebase/config';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 interface ContactForm {
   name: string;
@@ -87,23 +89,39 @@ export function ContactPage() {
     { value: 'high', label: '높음', color: 'bg-red-100 text-red-800' }
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('문의 내용:', form);
-    setIsSubmitted(true);
     
-    // 3초 후 폼 리셋
-    setTimeout(() => {
-      setIsSubmitted(false);
-      setForm({
-        name: '',
-        email: '',
-        subject: '',
-        category: 'general',
-        message: '',
-        priority: 'medium'
+    try {
+      // Firestore에 문의 내역 저장
+      await addDoc(collection(db, 'inquiries'), {
+        ...form,
+        status: 'pending', // 대기중
+        createdAt: serverTimestamp(),
+        inquiryNumber: `INQ-${Date.now().toString().slice(-6)}`,
+        isRead: false, // 읽지 않음
       });
-    }, 3000);
+      
+      console.log('문의 내용이 저장되었습니다:', form);
+      setIsSubmitted(true);
+      
+      // 3초 후 폼 리셋
+      setTimeout(() => {
+        setIsSubmitted(false);
+        setForm({
+          name: '',
+          email: '',
+          subject: '',
+          category: 'general',
+          message: '',
+          priority: 'medium'
+        });
+      }, 3000);
+      
+    } catch (error) {
+      console.error('문의 저장 실패:', error);
+      alert('문의 전송에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
   const handleInputChange = (field: keyof ContactForm, value: string) => {

@@ -7,10 +7,11 @@ import { NoticePage } from './components/NoticePage';
 import { CommunityPage } from './components/CommunityPage';
 import { ContactPage } from './components/ContactPage';
 import { MyPage } from './components/MyPage';
+import { AdminInquiriesPage } from './components/AdminInquiriesPage';
 // Firebase는 config.ts에서 초기화됩니다
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'category' | 'notice' | 'community' | 'contact' | 'mypage'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'category' | 'notice' | 'community' | 'contact' | 'mypage' | 'admin-inquiries'>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
 
@@ -43,6 +44,9 @@ export default function App() {
     setCurrentPage('mypage');
   };
 
+  const handleNavigateAdminInquiries = () => {
+    setCurrentPage('admin-inquiries');
+  };
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -63,6 +67,8 @@ export default function App() {
         return <ContactPage />;
       case 'mypage':
         return <MyPage />;
+      case 'admin-inquiries':
+        return <AdminInquiriesPage />;
       default:
         return <HomePageNew onCategorySelect={handleCategorySelect} />;
     }
@@ -79,6 +85,7 @@ export default function App() {
             onNavigateCommunity={handleNavigateCommunity}
             onNavigateContact={handleNavigateContact}
             onNavigateMyPage={handleNavigateMyPage}
+            onNavigateAdminInquiries={handleNavigateAdminInquiries}
           />
         )}
         
