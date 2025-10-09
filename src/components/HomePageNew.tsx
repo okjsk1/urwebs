@@ -35,7 +35,19 @@ import {
   Shirt,
   Trophy,
   Coffee,
-  Zap
+  Zap,
+  Lightbulb,
+  Puzzle,
+  Activity,
+  Sparkles,
+  Headphones,
+  Wrench,
+  Clock,
+  Star,
+  Eye,
+  ThumbsUp,
+  User,
+  ArrowRight
 } from 'lucide-react';
 
 interface SubCategory {
@@ -59,175 +71,139 @@ const categories: Category[] = [
     title: '건축/BIM/CAD/GIS',
     description: '건축 건설 관련 솔루션',
     subCategories: [
-      { id: 'interior', title: '인테리어', description: '인테리어 디자인 및 시공' },
       { id: 'design', title: '설계', description: '건축 설계 및 도면' },
-      { id: 'bim', title: 'BIM', description: 'BIM 모델링 및 관리' },
       { id: 'student', title: '학생', description: '건축 학과 학생 대상 사이트' }
     ]
-  },
-  {
-    id: 'finance',
-    icon: DollarSign,
-    title: '금융/투자',
-    description: '주식, 코인 등 투자',
-    subCategories: [
-      { id: 'stock', title: '주식', description: '주식 투자 및 분석' },
-      { id: 'crypto', title: '코인', description: '암호화폐 거래 및 정보' }
-    ]
-  },
-  {
-    id: 'development',
-    icon: Code,
-    title: '개발/기획',
-    description: '개발 기획 및 관리'
-  },
-  {
-    id: 'ui-ux',
-    icon: Palette,
-    title: 'UI/UX 디자인',
-    description: '디자인 및 사용자 경험'
-  },
-  {
-    id: 'content-creator',
-    icon: Video,
-    title: '콘텐츠 크리에이터',
-    description: '영상 및 콘텐츠 제작',
-    subCategories: [
-      { id: 'youtuber', title: '유튜버', description: '유튜브 콘텐츠 제작' },
-      { id: 'streamer', title: '스트리머', description: '라이브 방송 및 스트리밍' }
-    ]
-  },
-  {
-    id: 'wedding',
-    icon: Heart,
-    title: '결혼/웨딩',
-    description: '결혼 준비 및 웨딩'
-  },
-  {
-    id: 'real-estate',
-    icon: Home,
-    title: '부동산',
-    description: '부동산 관련 정보',
-    subCategories: [
-      { id: 'landlord', title: '임대인', description: '임대 관리 및 운영' },
-      { id: 'tenant', title: '임차인', description: '임대 물건 찾기 및 관리' },
-      { id: 'agent', title: '공인중개사', description: '중개업무 및 자격관리' }
-    ]
-  },
-  {
-    id: 'insurance',
-    icon: Shield,
-    title: '보험',
-    description: '보험 상품 및 관리'
-  },
-  {
-    id: 'education',
-    icon: GraduationCap,
-    title: '교육',
-    description: '교육 및 학습'
-  },
-  {
-    id: 'travel',
-    icon: Plane,
-    title: '여행',
-    description: '여행 계획 및 예약'
-  },
-  {
-    id: 'gaming',
-    icon: Gamepad2,
-    title: '게임',
-    description: '게임 정보 및 커뮤니티'
-  },
-  {
-    id: 'cooking',
-    icon: Utensils,
-    title: '요리/레시피',
-    description: '요리 레시피 및 맛집 정보'
-  },
-  {
-    id: 'accounting',
-    icon: Calculator,
-    title: '회계/세무',
-    description: '회계 및 세무 관리'
-  },
-  {
-    id: 'marketing',
-    icon: Megaphone,
-    title: '마케팅',
-    description: '디지털 마케팅 및 광고'
-  },
-  {
-    id: 'photography',
-    icon: Camera,
-    title: '사진/영상',
-    description: '사진 및 영상 편집'
-  },
-  {
-    id: 'music',
-    icon: Music,
-    title: '음악',
-    description: '음악 제작 및 스트리밍'
-  },
-  {
-    id: 'fitness',
-    icon: Dumbbell,
-    title: '운동/건강',
-    description: '운동 및 건강 관리'
-  },
-  {
-    id: 'parenting',
-    icon: Baby,
-    title: '육아',
-    description: '육아 정보 및 용품'
-  },
-  {
-    id: 'healthcare',
-    icon: Stethoscope,
-    title: '의료/건강',
-    description: '의료 정보 및 건강 관리'
-  },
-  // 새로운 취미/전문 분야들
-  {
-    id: 'fashion',
-    icon: Shirt,
-    title: '패션/뷰티',
-    description: '패션 트렌드 및 뷰티 정보'
-  },
-  {
-    id: 'drone',
-    icon: Zap,
-    title: '드론/항공',
-    description: '드론 및 항공 촬영'
-  },
-  {
-    id: 'sports',
-    icon: Trophy,
-    title: '스포츠',
-    description: '축구, 농구, 야구 등 스포츠'
-  },
-  {
-    id: 'auto',
-    icon: Car,
-    title: '자동차',
-    description: '자동차 정보 및 관리'
-  },
-  {
-    id: 'pets',
-    icon: Heart,
-    title: '펫/반려동물',
-    description: '반려동물 정보 및 관리'
-  },
-  {
-    id: 'hobby',
-    icon: Coffee,
-    title: '취미/여가',
-    description: '다양한 취미 활동'
   }
 ];
+
+interface LatestUpdate {
+  id: string;
+  title: string;
+  author: string;
+  category: string;
+  timeAgo: string;
+  thumbnail?: string;
+  views: number;
+  likes: number;
+}
+
+interface PopularPage {
+  id: string;
+  title: string;
+  description: string;
+  author: string;
+  category: string;
+  likes: number;
+  views: number;
+  thumbnail?: string;
+  tags: string[];
+}
 
 interface HomePageProps {
   onCategorySelect: (categoryId: string, subCategory?: string) => void;
 }
+
+const latestUpdates: LatestUpdate[] = [
+  {
+    id: '1',
+    title: '개발자를 위한 올인원 대시보드',
+    author: '김개발',
+    category: '개발/기획',
+    timeAgo: '2시간 전',
+    views: 1240,
+    likes: 89
+  },
+  {
+    id: '2',
+    title: '디자이너의 작업 공간',
+    author: '박디자인',
+    category: 'UI/UX 디자인',
+    timeAgo: '4시간 전',
+    views: 890,
+    likes: 67
+  },
+  {
+    id: '3',
+    title: '투자 포트폴리오 관리',
+    author: '이투자',
+    category: '금융/투자',
+    timeAgo: '6시간 전',
+    views: 2100,
+    likes: 156
+  },
+  {
+    id: '4',
+    title: '유튜버 스케줄 관리',
+    author: '최유튜버',
+    category: '콘텐츠 크리에이터',
+    timeAgo: '8시간 전',
+    views: 756,
+    likes: 45
+  },
+  {
+    id: '5',
+    title: '건축학생 과제 관리',
+    author: '정건축',
+    category: '건축/BIM/CAD/GIS',
+    timeAgo: '12시간 전',
+    views: 432,
+    likes: 28
+  }
+];
+
+const popularPages: PopularPage[] = [
+  {
+    id: '1',
+    title: '프리랜서 개발자 생산성 도구',
+    description: '프로젝트 관리부터 시간 추적까지 모든 것을 한 곳에서',
+    author: '김프리',
+    category: '개발/기획',
+    likes: 1250,
+    views: 8900,
+    tags: ['프로젝트관리', '시간추적', '프리랜서']
+  },
+  {
+    id: '2',
+    title: '주식 투자 정보 대시보드',
+    description: '실시간 주가, 뉴스, 분석 리포트를 한눈에',
+    author: '이투자왕',
+    category: '금융/투자',
+    likes: 2100,
+    views: 15600,
+    tags: ['주식', '투자', '분석']
+  },
+  {
+    id: '3',
+    title: '디자이너 영감 수집소',
+    description: '아이디어부터 완성까지 디자인 워크플로우',
+    author: '박크리에이터',
+    category: 'UI/UX 디자인',
+    likes: 980,
+    views: 7200,
+    tags: ['디자인', '영감', '워크플로우']
+  },
+  {
+    id: '4',
+    title: '콘텐츠 크리에이터 스튜디오',
+    description: '영상 제작부터 업로드까지 모든 과정 관리',
+    author: '최유튜브',
+    category: '콘텐츠 크리에이터',
+    likes: 1650,
+    views: 12300,
+    tags: ['유튜브', '콘텐츠', '편집']
+  },
+  {
+    id: '5',
+    title: '건축사 사무소 관리 시스템',
+    description: '프로젝트부터 고객 관리까지 건축사업 통합 솔루션',
+    author: '정건축사',
+    category: '건축/BIM/CAD/GIS',
+    likes: 720,
+    views: 5400,
+    tags: ['건축', '프로젝트관리', 'CAD']
+  }
+];
 
 export function HomePageNew({ onCategorySelect }: HomePageProps) {
   return (
@@ -252,11 +228,11 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            커뮤니티에서 만든{' '}
-            <span className="text-blue-600">라이브러리</span>,{' '}
-            <span className="text-purple-600">플러그인</span>,{' '}
+            나만의{' '}
+            <span className="text-blue-600">시작페이지</span>를{' '}
+            <span className="text-purple-600">만들어보세요</span>
             <br />
-            <span className="text-blue-600">아이콘 세트</span> 등을 살펴보세요.
+            <span className="text-green-600">창의적이고 개성있는</span> 디지털 공간을 시작하세요
           </h1>
           
           {/* 검색창 */}
@@ -277,8 +253,101 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
         </div>
       </div>
 
-      {/* 여백 추가 */}
-      <div className="h-5"></div>
+      {/* 최신 업데이트 & 인기 시작페이지 섹션 */}
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* 최신 업데이트 목록 */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                <Clock className="w-6 h-6 mr-2 text-blue-600" />
+                최신 업데이트
+              </h2>
+              <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
+                더보기 <ArrowRight className="w-4 h-4 ml-1" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {latestUpdates.map((update) => (
+                <div key={update.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 mb-1">{update.title}</h3>
+                      <div className="flex items-center text-sm text-gray-600 mb-2">
+                        <User className="w-4 h-4 mr-1" />
+                        {update.author} • 
+                        <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
+                          {update.category}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {update.timeAgo}
+                        <span className="mx-2">•</span>
+                        <Eye className="w-3 h-3 mr-1" />
+                        {update.views.toLocaleString()}회
+                        <span className="mx-2">•</span>
+                        <ThumbsUp className="w-3 h-3 mr-1" />
+                        {update.likes}개
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 인기 시작페이지 목록 */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                <Star className="w-6 h-6 mr-2 text-yellow-500" />
+                인기 시작페이지
+              </h2>
+              <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
+                더보기 <ArrowRight className="w-4 h-4 ml-1" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {popularPages.map((page) => (
+                <div key={page.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 mb-1">{page.title}</h3>
+                      <p className="text-sm text-gray-600 mb-2">{page.description}</p>
+                      <div className="flex items-center text-sm text-gray-600 mb-2">
+                        <User className="w-4 h-4 mr-1" />
+                        {page.author} • 
+                        <span className="ml-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
+                          {page.category}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center text-xs text-gray-500">
+                          <ThumbsUp className="w-3 h-3 mr-1" />
+                          {page.likes.toLocaleString()}개
+                          <span className="mx-2">•</span>
+                          <Eye className="w-3 h-3 mr-1" />
+                          {page.views.toLocaleString()}회
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {page.tags.slice(0, 2).map((tag) => (
+                            <span key={tag} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
       
       {/* 카테고리 섹션 */}
       <div className="max-w-7xl mx-auto px-4 py-12">

@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Header } from './components/Header';
 import { HomePageNew } from './components/HomePageNew';
 import { CategoryDetailPageColumns } from './components/CategoryDetailPageColumns';
 import { NoticePage } from './components/NoticePage';
 import { CommunityPage } from './components/CommunityPage';
 import { ContactPage } from './components/ContactPage';
+import { MyPage } from './components/MyPage';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'category' | 'notice' | 'community' | 'contact'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'category' | 'notice' | 'community' | 'contact' | 'mypage'>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
 
@@ -36,6 +39,10 @@ export default function App() {
     setCurrentPage('contact');
   };
 
+  const handleNavigateMyPage = () => {
+    setCurrentPage('mypage');
+  };
+
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -54,24 +61,36 @@ export default function App() {
         return <CommunityPage />;
       case 'contact':
         return <ContactPage />;
+      case 'mypage':
+        return <MyPage />;
       default:
         return <HomePageNew onCategorySelect={handleCategorySelect} />;
     }
   };
 
+  // Google OAuth 클라이언트 ID 설정
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'demo-client-id';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100">
-      <Header 
-        currentPage={currentPage} 
-        onNavigateHome={handleNavigateHome}
-        onNavigateNotice={handleNavigateNotice}
-        onNavigateCommunity={handleNavigateCommunity}
-        onNavigateContact={handleNavigateContact}
-      />
-      
-      <main>
-        {renderCurrentPage()}
-      </main>
-    </div>
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <ThemeProvider>
+        <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+          {currentPage !== 'mypage' && (
+            <Header 
+              currentPage={currentPage} 
+              onNavigateHome={handleNavigateHome}
+              onNavigateNotice={handleNavigateNotice}
+              onNavigateCommunity={handleNavigateCommunity}
+              onNavigateContact={handleNavigateContact}
+              onNavigateMyPage={handleNavigateMyPage}
+            />
+          )}
+          
+          <main>
+            {renderCurrentPage()}
+          </main>
+        </div>
+      </ThemeProvider>
+    </GoogleOAuthProvider>
   );
 }

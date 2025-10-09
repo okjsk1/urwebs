@@ -1,5 +1,7 @@
-import { Settings, Bell, MessageSquare, HelpCircle } from 'lucide-react';
+import { Settings, Bell, MessageSquare, HelpCircle, Home, Sun, Moon } from 'lucide-react';
 import { Button } from './ui/button';
+import { GoogleAuth } from './auth/GoogleAuth';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface HeaderProps {
   currentPage: string;
@@ -7,6 +9,7 @@ interface HeaderProps {
   onNavigateNotice: () => void;
   onNavigateCommunity: () => void;
   onNavigateContact: () => void;
+  onNavigateMyPage: () => void;
 }
 
 export function Header({ 
@@ -14,10 +17,12 @@ export function Header({
   onNavigateHome, 
   onNavigateNotice,
   onNavigateCommunity,
-  onNavigateContact 
+  onNavigateContact,
+  onNavigateMyPage 
 }: HeaderProps) {
+  const { theme, toggleTheme } = useTheme();
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50 shadow-sm">
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div 
           className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
@@ -65,7 +70,23 @@ export function Header({
             <HelpCircle className="w-4 h-4 mr-1" />
             문의하기
           </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onNavigateMyPage}
+            className={`text-gray-700 hover:text-blue-600 transition-colors ${
+              currentPage === 'mypage' ? 'text-blue-600 bg-blue-50' : ''
+            }`}
+          >
+            <Home className="w-4 h-4 mr-1" />
+            나의 페이지
+          </Button>
         </nav>
+        
+        {/* 구글 로그인 */}
+        <div className="flex items-center gap-4">
+          <GoogleAuth />
+        </div>
       </div>
     </header>
   );
