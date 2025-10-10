@@ -56,44 +56,40 @@ export function Header({
             variant="ghost" 
             size="sm" 
             onClick={onNavigateNotice}
-            className={`text-gray-700 hover:text-blue-600 transition-colors ${
+            className={`text-gray-700 hover:text-blue-600 transition-colors font-semibold ${
               currentPage === 'notice' ? 'text-blue-600 bg-blue-50' : ''
             }`}
           >
-            <Bell className="w-4 h-4 mr-1" />
             공지사항
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={onNavigateCommunity}
-            className={`text-gray-700 hover:text-blue-600 transition-colors ${
+            className={`text-gray-700 hover:text-blue-600 transition-colors font-semibold ${
               currentPage === 'community' ? 'text-blue-600 bg-blue-50' : ''
             }`}
           >
-            <MessageSquare className="w-4 h-4 mr-1" />
             자유게시판
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={onNavigateContact}
-            className={`text-gray-700 hover:text-blue-600 transition-colors ${
+            className={`text-gray-700 hover:text-blue-600 transition-colors font-semibold ${
               currentPage === 'contact' ? 'text-blue-600 bg-blue-50' : ''
             }`}
           >
-            <HelpCircle className="w-4 h-4 mr-1" />
             문의하기
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={onNavigateMyPage}
-            className={`text-gray-700 hover:text-blue-600 transition-colors ${
+            className={`text-gray-700 hover:text-blue-600 transition-colors font-semibold ${
               currentPage === 'mypage' ? 'text-blue-600 bg-blue-50' : ''
             }`}
           >
-            <Home className="w-4 h-4 mr-1" />
             나의 페이지
           </Button>
           
@@ -103,12 +99,11 @@ export function Header({
               variant="ghost" 
               size="sm" 
               onClick={onNavigateAdminInquiries}
-              className={`text-gray-700 hover:text-purple-600 transition-colors ${
+              className={`text-gray-700 hover:text-purple-600 transition-colors font-semibold ${
                 currentPage === 'admin-inquiries' ? 'text-purple-600 bg-purple-50' : ''
               }`}
             >
-              <Shield className="w-4 h-4 mr-1" />
-              문의 관리
+              관리페이지
             </Button>
           )}
         </nav>

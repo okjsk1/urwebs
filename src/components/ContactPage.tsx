@@ -24,9 +24,7 @@ interface ContactForm {
   name: string;
   email: string;
   subject: string;
-  category: 'general' | 'bug' | 'feature' | 'account' | 'business';
   message: string;
-  priority: 'low' | 'medium' | 'high';
 }
 
 interface FAQ {
@@ -68,26 +66,10 @@ export function ContactPage() {
     name: '',
     email: '',
     subject: '',
-    category: 'general',
-    message: '',
-    priority: 'medium'
+    message: ''
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
-
-  const categories = [
-    { value: 'general', label: '일반 문의' },
-    { value: 'bug', label: '버그 신고' },
-    { value: 'feature', label: '기능 제안' },
-    { value: 'account', label: '계정 관련' },
-    { value: 'business', label: '비즈니스 문의' }
-  ];
-
-  const priorities = [
-    { value: 'low', label: '낮음', color: 'bg-green-100 text-green-800' },
-    { value: 'medium', label: '보통', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'high', label: '높음', color: 'bg-red-100 text-red-800' }
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,9 +94,7 @@ export function ContactPage() {
           name: '',
           email: '',
           subject: '',
-          category: 'general',
-          message: '',
-          priority: 'medium'
+          message: ''
         });
       }, 3000);
       
@@ -190,43 +170,6 @@ export function ContactPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    문의 유형 *
-                  </label>
-                  <select
-                    required
-                    value={form.category}
-                    onChange={(e) => handleInputChange('category', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {categories.map(category => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    우선순위
-                  </label>
-                  <select
-                    value={form.priority}
-                    onChange={(e) => handleInputChange('priority', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {priorities.map(priority => (
-                      <option key={priority.value} value={priority.value}>
-                        {priority.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   제목 *
@@ -271,7 +214,7 @@ export function ContactPage() {
                 <Mail className="w-5 h-5 text-blue-500 mt-0.5" />
                 <div>
                   <div className="font-medium text-gray-900">이메일</div>
-                  <div className="text-sm text-gray-600">support@urwebs.com</div>
+                  <div className="text-sm text-gray-600">okjsk1@gmail.com</div>
                 </div>
               </div>
               
@@ -279,45 +222,9 @@ export function ContactPage() {
                 <Phone className="w-5 h-5 text-blue-500 mt-0.5" />
                 <div>
                   <div className="font-medium text-gray-900">전화번호</div>
-                  <div className="text-sm text-gray-600">1588-1234</div>
+                  <div className="text-sm text-gray-600">010-6569-5315</div>
                 </div>
               </div>
-              
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-blue-500 mt-0.5" />
-                <div>
-                  <div className="font-medium text-gray-900">운영시간</div>
-                  <div className="text-sm text-gray-600">
-                    평일 09:00 - 18:00<br />
-                    (주말 및 공휴일 휴무)
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-blue-500 mt-0.5" />
-                <div>
-                  <div className="font-medium text-gray-900">주소</div>
-                  <div className="text-sm text-gray-600">
-                    서울특별시 강남구<br />
-                    테헤란로 123길 45
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* 응답 시간 안내 */}
-          <Card className="p-6 bg-blue-50 border-blue-200">
-            <div className="flex items-center gap-2 mb-3">
-              <AlertCircle className="w-5 h-5 text-blue-600" />
-              <h3 className="font-bold text-blue-900">응답 시간 안내</h3>
-            </div>
-            <div className="text-sm text-blue-800">
-              <div className="mb-2">• 일반 문의: 1-2 영업일</div>
-              <div className="mb-2">• 버그 신고: 당일 내</div>
-              <div className="mb-2">• 기능 제안: 3-5 영업일</div>
-              <div>• 비즈니스 문의: 1 영업일</div>
             </div>
           </Card>
         </div>

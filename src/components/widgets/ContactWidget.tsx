@@ -70,7 +70,11 @@ export const ContactWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
       sortOrder: 'asc' as const,
       editingContact: null
     });
-    return saved;
+    // contacts가 배열인지 확인하고 아니면 기본값 사용
+    return {
+      ...saved,
+      contacts: Array.isArray(saved.contacts) ? saved.contacts : DEFAULT_CONTACTS
+    };
   });
 
   // 상태 저장
@@ -174,7 +178,8 @@ export const ContactWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
 
   // 필터링 및 정렬된 연락처
   const filteredContacts = useMemo(() => {
-    let filtered = state.contacts;
+    // state.contacts가 undefined이거나 배열이 아닌 경우 빈 배열 사용
+    let filtered = Array.isArray(state.contacts) ? state.contacts : [];
     
     if (state.searchQuery) {
       const query = state.searchQuery.toLowerCase();

@@ -70,6 +70,10 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
       sortBy: 'created' as const,
       showCompleted: true
     });
+    // items가 undefined인 경우 기본값 사용
+    if (!saved.items || !Array.isArray(saved.items)) {
+      saved.items = DEFAULT_TODOS;
+    }
     return saved;
   });
 
@@ -186,7 +190,7 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
 
   // 필터링 및 정렬된 할일 목록
   const filteredAndSortedItems = useMemo(() => {
-    let filtered = state.items;
+    let filtered = state.items || [];
 
     // 필터 적용
     switch (state.filter) {

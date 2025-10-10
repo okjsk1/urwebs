@@ -7,11 +7,14 @@ import { NoticePage } from './components/NoticePage';
 import { CommunityPage } from './components/CommunityPage';
 import { ContactPage } from './components/ContactPage';
 import { MyPage } from './components/MyPage';
-import { AdminInquiriesPage } from './components/AdminInquiriesPage';
+import { AdminPage } from './components/AdminPage';
+import { TemplateEditPage } from './components/TemplateEditPage';
+// import { PageWithTabs } from './pages/PageWithTabs';
+// import { ColumnsBoard } from './components/ColumnsBoard/ColumnsBoard';
 // Firebase는 config.ts에서 초기화됩니다
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'category' | 'notice' | 'community' | 'contact' | 'mypage' | 'admin-inquiries'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'category' | 'notice' | 'community' | 'contact' | 'mypage' | 'admin-inquiries' | 'template-edit'>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
 
@@ -48,6 +51,16 @@ export default function App() {
     setCurrentPage('admin-inquiries');
   };
 
+  const handleNavigateTemplateEdit = (initialData?: any) => {
+    setCurrentPage('template-edit');
+    // initialData를 저장해서 TemplateEditPage에서 사용할 수 있도록 함
+    if (initialData) {
+      // 여기서는 간단하게 sessionStorage 사용
+      sessionStorage.setItem('templateEditData', JSON.stringify(initialData));
+    }
+  };
+
+
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'home':
@@ -68,7 +81,19 @@ export default function App() {
       case 'mypage':
         return <MyPage />;
       case 'admin-inquiries':
-        return <AdminInquiriesPage />;
+        return <AdminPage onNavigateTemplateEdit={handleNavigateTemplateEdit} />;
+      case 'template-edit':
+        return <TemplateEditPage 
+          onBack={handleNavigateHome} 
+          initialData={(() => {
+            const data = sessionStorage.getItem('templateEditData');
+            if (data) {
+              sessionStorage.removeItem('templateEditData');
+              return JSON.parse(data);
+            }
+            return undefined;
+          })()}
+        />;
       default:
         return <HomePageNew onCategorySelect={handleCategorySelect} />;
     }
@@ -77,7 +102,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
-        {currentPage !== 'mypage' && (
+        {currentPage !== 'mypage' && currentPage !== 'template-edit' && (
           <Header 
             currentPage={currentPage} 
             onNavigateHome={handleNavigateHome}

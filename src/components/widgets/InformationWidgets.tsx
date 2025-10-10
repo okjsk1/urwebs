@@ -448,41 +448,70 @@ export const GoogleSearchWidget = ({ widget, isEditMode, updateWidget }: any) =>
     }
   };
 
+  const handleVoiceSearch = () => {
+    // 음성 검색 기능 (실제로는 Web Speech API 사용)
+    alert('음성 검색 기능은 준비 중입니다.');
+  };
+
+  const handleImageSearch = () => {
+    // 이미지 검색 기능
+    window.open('https://images.google.com', '_blank');
+  };
+
   return (
-    <div className="p-3">
-      <div className="text-center mb-3">
-        <div className="text-2xl mb-1">🔍</div>
-        <h4 className="font-semibold text-sm text-gray-800">구글 검색</h4>
+    <div className="px-2 py-3 flex flex-col justify-center h-full bg-white">
+      {/* 구글 로고 */}
+      <div className="text-center mb-4">
+        <div className="text-2xl font-normal">
+          <span className="text-blue-500">G</span>
+          <span className="text-red-500">o</span>
+          <span className="text-yellow-500">o</span>
+          <span className="text-blue-500">g</span>
+          <span className="text-green-500">l</span>
+          <span className="text-red-500">e</span>
+        </div>
       </div>
-      
-      <div className="space-y-2">
-        <div className="flex gap-1">
+
+      {/* 검색창 */}
+      <div className="relative max-w-md mx-auto w-full">
+        <div className="relative">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="구글에서 검색"
-            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+            placeholder="Google 검색 또는 URL 입력"
+            className="w-full px-12 py-3 pr-24 text-sm border border-gray-300 rounded-full focus:outline-none focus:shadow-lg hover:shadow-md transition-shadow"
           />
+          
+          {/* 돋보기 아이콘 */}
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+            <Search className="w-4 h-4 text-gray-400" />
+          </div>
+
+          {/* 음성 검색 아이콘 */}
+          <button
+            onClick={handleVoiceSearch}
+            className="absolute right-12 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+            title="음성 검색"
+          >
+            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </button>
+
+          {/* 이미지 검색 아이콘 */}
+          <button
+            onClick={handleImageSearch}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+            title="이미지 검색"
+          >
+            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+            </svg>
+          </button>
         </div>
-        
-        <Button 
-          size="sm" 
-          className="w-full h-8 text-xs bg-blue-500 hover:bg-blue-600"
-          onClick={handleSearch}
-        >
-          검색하기
-        </Button>
-        
-        <Button 
-          size="sm" 
-          variant="outline"
-          className="w-full h-8 text-xs"
-          onClick={() => window.open('https://www.google.com', '_blank')}
-        >
-          Google 바로가기
-        </Button>
       </div>
     </div>
   );
@@ -498,41 +527,74 @@ export const NaverSearchWidget = ({ widget, isEditMode, updateWidget }: any) => 
     }
   };
 
+  const handleVoiceSearch = () => {
+    // 음성 검색 기능
+    alert('음성 검색 기능은 준비 중입니다.');
+  };
+
+  const handleImageSearch = () => {
+    // 이미지 검색 기능
+    window.open('https://search.naver.com/search.naver?where=image', '_blank');
+  };
+
   return (
-    <div className="p-3">
-      <div className="text-center mb-3">
-        <div className="text-2xl mb-1">🔍</div>
-        <h4 className="font-semibold text-sm text-gray-800">네이버 검색</h4>
+    <div className="px-2 py-3 flex flex-col justify-center h-full bg-white">
+      {/* 네이버 로고 */}
+      <div className="text-center mb-4">
+        <div className="text-2xl font-bold text-green-600">
+          <span className="bg-green-600 text-white px-2 py-1 rounded">N</span>
+          <span className="ml-1">NAVER</span>
+        </div>
       </div>
-      
-      <div className="space-y-2">
-        <div className="flex gap-1">
+
+      {/* 검색창 */}
+      <div className="relative max-w-md mx-auto w-full">
+        <div className="relative">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="네이버에서 검색"
-            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+            placeholder="검색어를 입력하세요"
+            className="w-full px-12 py-3 pr-24 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 hover:border-green-400 transition-colors"
           />
+          
+          {/* 돋보기 아이콘 */}
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+            <Search className="w-4 h-4 text-green-600" />
+          </div>
+
+          {/* 음성 검색 아이콘 */}
+          <button
+            onClick={handleVoiceSearch}
+            className="absolute right-12 top-1/2 transform -translate-y-1/2 p-1 hover:bg-green-50 rounded transition-colors"
+            title="음성 검색"
+          >
+            <svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </button>
+
+          {/* 이미지 검색 아이콘 */}
+          <button
+            onClick={handleImageSearch}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-green-50 rounded transition-colors"
+            title="이미지 검색"
+          >
+            <svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+            </svg>
+          </button>
         </div>
         
-        <Button 
-          size="sm" 
-          className="w-full h-8 text-xs bg-green-500 hover:bg-green-600"
+        {/* 네이버 검색 버튼 */}
+        <button
           onClick={handleSearch}
+          className="w-full mt-3 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
-          검색하기
-        </Button>
-        
-        <Button 
-          size="sm" 
-          variant="outline"
-          className="w-full h-8 text-xs"
-          onClick={() => window.open('https://www.naver.com', '_blank')}
-        >
-          Naver 바로가기
-        </Button>
+          네이버 검색
+        </button>
       </div>
     </div>
   );
@@ -549,40 +611,54 @@ export const LawSearchWidget = ({ widget, isEditMode, updateWidget }: any) => {
   };
 
   return (
-    <div className="p-3">
-      <div className="text-center mb-3">
+    <div className="px-2 py-3 flex flex-col justify-center h-full bg-white">
+      {/* 법제처 로고 */}
+      <div className="text-center mb-4">
         <div className="text-2xl mb-1">⚖️</div>
-        <h4 className="font-semibold text-sm text-gray-800">법제처 검색</h4>
+        <div className="text-lg font-bold text-purple-700">
+          법제처
+        </div>
+        <div className="text-xs text-gray-600">국가법령정보센터</div>
       </div>
-      
-      <div className="space-y-2">
-        <div className="flex gap-1">
+
+      {/* 검색창 */}
+      <div className="relative max-w-md mx-auto w-full">
+        <div className="relative">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="법령명 검색"
-            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+            placeholder="법령명을 입력하세요"
+            className="w-full px-12 py-3 pr-24 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:border-purple-400 transition-colors"
           />
+          
+          {/* 돋보기 아이콘 */}
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+            <Search className="w-4 h-4 text-purple-600" />
+          </div>
+
+          {/* 법령 검색 아이콘 */}
+          <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+            <span className="text-2xl">⚖️</span>
+          </div>
         </div>
         
-        <Button 
-          size="sm" 
-          className="w-full h-8 text-xs bg-purple-500 hover:bg-purple-600"
-          onClick={handleSearch}
-        >
-          검색하기
-        </Button>
-        
-        <Button 
-          size="sm" 
-          variant="outline"
-          className="w-full h-8 text-xs"
-          onClick={() => window.open('https://www.law.go.kr', '_blank')}
-        >
-          법제처 바로가기
-        </Button>
+        {/* 검색 버튼들 */}
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={handleSearch}
+            className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            법령 검색
+          </button>
+          <button
+            onClick={() => window.open('https://www.law.go.kr', '_blank')}
+            className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+          >
+            바로가기
+          </button>
+        </div>
       </div>
     </div>
   );

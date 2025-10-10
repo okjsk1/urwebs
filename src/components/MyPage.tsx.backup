@@ -2,18 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, Music, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
-import { auth, googleProvider, db } from '../firebase/config';
+import { auth, googleProvider } from '../firebase/config';
 import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
-import { collection, addDoc, updateDoc, doc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
-
-// 타입 및 상수 import
-import { Widget, WidgetSize, BackgroundSettings, ShareSettings, Page, Bookmark, FontSettings, LayoutSettings } from '../types/mypage.types';
-import { widgetCategories, getCategoryIcon, fontOptions, allWidgets } from '../constants/widgetCategories';
-import { getWidgetDimensions, isWidgetOverlapping, getNextAvailablePosition, getColumnLastWidget as getColumnLastWidgetUtil, getColumnBottomY as getColumnBottomYUtil } from '../utils/widgetHelpers';
-import { templates, getDefaultWidgets } from '../constants/pageTemplates';
-import { templateService } from '../services/templateService';
-import { WidgetPanel } from './MyPage/WidgetPanel';
-import { SaveAsTemplateModal } from './MyPage/SaveAsTemplateModal';
 
 // 위젯 컴포넌트들 import
 import {
@@ -54,13 +44,195 @@ import {
   SocialWidget
 } from './widgets';
 
-// 인터페이스들은 이제 types에서 import
+// 위젯 사이즈 타입 정의
+type WidgetSize = '1x1' | '1x2' | '2x1' | '3x1' | '4x1' | '4x2';
+
+// 위젯 사이즈별 크기 계산 함수
+const getWidgetDimensions = (size: WidgetSize, cellWidth: number, cellHeight: number, spacing: number) => {
+  const sizeMap = {
+    '1x1': { cols: 1, rows: 1 },
+    '1x2': { cols: 1, rows: 2 },
+    '2x1': { cols: 2, rows: 1 },
+    '3x1': { cols: 3, rows: 1 },
+    '4x1': { cols: 4, rows: 1 },
+    '4x2': { cols: 4, rows: 2 }
+  };
+  
+  const { cols, rows } = sizeMap[size];
+  return {
+    width: cols * cellWidth + (cols - 1) * spacing,
+    height: rows * cellHeight + (rows - 1) * spacing
+  };
+};
+
+interface Widget {
+  id: string;
+  type: 'bookmark' | 'clock' | 'weather' | 'weather_small' | 'weather_medium' | 'todo' | 'note' | 'calendar' | 'stats' | 'news' | 'music' | 'social' | 'stock' | 'crypto' | 'goal' | 'habit' | 'expense' | 'quote' | 'reminder' | 'timer' | 'calculator' | 'converter' | 'google_search' | 'naver_search' | 'law_search' | 'rss' | 'github' | 'email' | 'mail_services' | 'system' | 'media' | 'favorite' | 'recent' | 'quicknote' | 'password' | 'qr' | 'barcode' | 'colorpicker' | 'gradient' | 'icon' | 'emoji' | 'gif' | 'meme' | 'contact' | 'search' | 'meeting' | 'shopping' | 'travel' | 'sports' | 'profile_card' | 'qr_code' | 'portfolio_header' | 'project_gallery' | 'contact_buttons' | 'download_section' | 'business_header' | 'menu_section' | 'business_info' | 'map_section' | 'event_header' | 'countdown' | 'rsvp_form' | 'event_gallery' | 'blog_header' | 'post_list' | 'blog_sidebar' | 'shop_header' | 'product_grid' | 'contact_order' | 'reviews' | 'team_header' | 'member_grid' | 'activity_calendar' | 'join_form' | 'exchange' | 'github_repo' | 'stock_alert' | 'economic_calendar' | 'english_words';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  title: string;
+  content?: any;
+  zIndex?: number;
+  size?: WidgetSize; // 위젯 사이즈 추가
+}
+
+interface Bookmark {
+  id: string;
+  name: string;
+  url: string;
+  icon?: string;
+  color?: string;
+}
+
+interface BackgroundSettings {
+  type: 'solid' | 'gradient' | 'image';
+  color: string;
+  gradient: {
+    from: string;
+    to: string;
+    direction: string;
+  };
+  image?: string;
+  opacity: number;
+}
+
+interface FontSettings {
+  family: string;
+  size: number;
+  weight: 'normal' | 'bold';
+  style: 'normal' | 'italic';
+  color: string;
+}
+
+interface LayoutSettings {
+  gridSize: number;
+  snapToGrid: boolean;
+  showGrid: boolean;
+  spacing: number;
+}
+
+interface ShareSettings {
+  isPublic: boolean;
+  customDomain: string;
+  allowComments: boolean;
+  showStats: boolean;
+  password?: string;
+}
+
+// 기본 위젯 설정 - 4컬럼 16칸 그리드용
+const getDefaultWidgets = (): Widget[] => {
+  const subCellWidth = 18;
+  const cellHeight = 60;
+  const spacing = 5;
+  const mainColumnWidth = subCellWidth * 4 + spacing * 3; // 4칸 + 3개 간격
+  
+  return [
+    // 컬럼 1 (왼쪽부터)
+    {
+      id: '1',
+      type: 'weather_small',
+      x: 0,
+      y: 0,
+      width: mainColumnWidth,
+      height: cellHeight,
+      title: '날씨 (소형)',
+      zIndex: 1,
+      size: '4x1'
+    },
+    {
+      id: '2',
+      type: 'news',
+      x: 0,
+      y: cellHeight + spacing,
+      width: mainColumnWidth,
+      height: cellHeight,
+      title: '뉴스',
+      zIndex: 1,
+      size: '4x1'
+    },
+    
+    // 컬럼 2
+    {
+      id: '3',
+      type: 'todo',
+      x: mainColumnWidth + spacing,
+      y: 0,
+      width: subCellWidth * 2 + spacing, // 2x1
+      height: cellHeight,
+      title: '할 일',
+      content: {
+        todos: [
+          { id: '1', text: '새로운 시작페이지 만들기', completed: true },
+          { id: '2', text: '위젯 추가하기', completed: false }
+        ]
+      },
+      zIndex: 1,
+      size: '2x1'
+    },
+    {
+      id: '4',
+      type: 'timer',
+      x: mainColumnWidth + spacing + (subCellWidth * 2 + spacing),
+      y: 0,
+      width: subCellWidth * 2 + spacing, // 2x1
+      height: cellHeight,
+      title: '타이머',
+      zIndex: 1,
+      size: '2x1'
+    },
+    
+    // 컬럼 3
+    {
+      id: '5',
+      type: 'bookmark',
+      x: (mainColumnWidth + spacing) * 2,
+      y: 0,
+      width: mainColumnWidth,
+      height: cellHeight,
+      title: '즐겨찾기',
+      content: {
+        bookmarks: [
+          { id: '1', name: '네이버', url: 'https://naver.com', icon: '🔍', color: 'bg-green-100' },
+          { id: '2', name: '구글', url: 'https://google.com', icon: '🔍', color: 'bg-blue-100' }
+        ]
+      },
+      zIndex: 1,
+      size: '4x1'
+    },
+    
+    // 컬럼 4
+    {
+      id: '6',
+      type: 'calendar',
+      x: (mainColumnWidth + spacing) * 3,
+      y: 0,
+      width: mainColumnWidth,
+      height: cellHeight,
+      title: '캘린더',
+      zIndex: 1,
+      size: '4x1'
+    },
+    {
+      id: '7',
+      type: 'calculator',
+      x: (mainColumnWidth + spacing) * 3,
+      y: cellHeight + spacing,
+      width: subCellWidth + spacing, // 1x1
+      height: cellHeight,
+      title: '계산기',
+      zIndex: 1,
+      size: '1x1'
+    }
+  ];
+};
 
 export function MyPage() {
   const { theme, toggleTheme } = useTheme();
   
   
-  const [isEditMode, setIsEditMode] = useState(true); // 항상 편집 가능
+  const [isEditMode, setIsEditMode] = useState(false);
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null);
   const [draggedWidget, setDraggedWidget] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -69,15 +241,15 @@ export function MyPage() {
   
   // 그리드 설정 상수
   const spacing = 5;
-  const MAIN_COLUMNS = 8; // 메인 컬럼 개수
-  const SUB_COLUMNS = 1; // 각 메인 컬럼 내부 서브 그리드 개수
+  const MAIN_COLUMNS = 4; // 메인 컬럼 개수
+  const SUB_COLUMNS = 4; // 각 메인 컬럼 내부 서브 그리드 개수
   
   // 동적 셀 크기 계산 (서브셀 크기)
   const [subCellWidth, setSubCellWidth] = useState(18); // 서브셀 너비
   const [cellHeight, setCellHeight] = useState(60);
   
   // 메인 컬럼 너비 계산
-  const mainColumnWidth = subCellWidth * SUB_COLUMNS + spacing * (SUB_COLUMNS - 1); // 1칸 (서브분할 없음)
+  const mainColumnWidth = subCellWidth * SUB_COLUMNS + spacing * (SUB_COLUMNS - 1); // 4칸 + 3개 간격
   const cellWidth = subCellWidth; // 하위 호환성 유지
   
   // 위젯 상태 관리
@@ -224,9 +396,6 @@ export function MyPage() {
   const [showPageManager, setShowPageManager] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showIntroModal, setShowIntroModal] = useState(false);
-  const [showSaveAsTemplateModal, setShowSaveAsTemplateModal] = useState(false);
-  const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [editingWidget, setEditingWidget] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -321,22 +490,7 @@ export function MyPage() {
           if (activePage) {
             setCurrentPageId(activePage.id);
             setPageTitle(activePage.title);
-            
-            // 위젯 불러오기 - 검색 위젯 크기 자동 업데이트
-            const updatedWidgets = (activePage.widgets || []).map((widget: Widget) => {
-              if (widget.type === 'google_search' || widget.type === 'naver_search' || 
-                  widget.type === 'law_search') {
-                // 검색 위젯은 4칸 너비, 225px 높이로 업데이트
-                return {
-                  ...widget,
-                  width: (18 + 5) * 4 - 5, // 87px (4칸)
-                  height: 225
-                };
-              }
-              return widget;
-            });
-            
-            setWidgets(updatedWidgets);
+            setWidgets(activePage.widgets || []);
           }
         } catch (error) {
           console.error('페이지 로드 실패:', error);
@@ -344,31 +498,6 @@ export function MyPage() {
       }
     }
   }, [currentUser]);
-
-  // 검색 위젯 크기 자동 업데이트
-  useEffect(() => {
-    const hasSearchWidgets = widgets.some(w => 
-      (w.type === 'google_search' || w.type === 'naver_search' || 
-       w.type === 'law_search') && 
-      (w.width !== 87 || w.height !== 225)
-    );
-    
-    if (hasSearchWidgets) {
-      setWidgets(prevWidgets => 
-        prevWidgets.map(widget => {
-          if (widget.type === 'google_search' || widget.type === 'naver_search' ||
-              widget.type === 'law_search') {
-            return {
-              ...widget,
-              width: 87, // (18 + 5) * 4 - 5 (4칸)
-              height: 225
-            };
-          }
-          return widget;
-        })
-      );
-    }
-  }, []);
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -421,237 +550,120 @@ export function MyPage() {
       const col = index % 4;
       const row = Math.floor(index / 4);
       
-      // 검색 위젯은 자동으로 크기 조정
-      if (widget.type === 'google_search' || widget.type === 'naver_search' ||
-          widget.type === 'law_search') {
-        return {
-          ...widget,
-          width: 87, // (18 + 5) * 4 - 5 (4칸)
-          height: 225,
-          x: widget.x || 0,
-          y: widget.y || 0 // 검색 위젯은 항상 맨 위에
-        };
-      }
-      
-      // 다른 위젯들의 위치 조정 (검색 위젯 아래에 배치)
-      let adjustedY = widget.y || row * (300 + 5);
-      
-      // 검색 위젯이 있는 경우 그 아래에 배치
-      const hasSearchWidget = pageWidgets.some(w => 
-        (w.type === 'google_search' || w.type === 'naver_search' ||
-         w.type === 'law_search') && 
-        (w.y === 0 || w.y === undefined)
-      );
-      
-      if (hasSearchWidget && row === 0) {
-        // 검색 위젯이 있는 경우 첫 번째 행 위젯들을 검색 위젯 아래로 이동
-        adjustedY = 230; // 검색 위젯 바로 아래 (225 + 5)
-      } else if (hasSearchWidget && row === 1) {
-        // 두 번째 행 위젯들도 적절한 간격으로 배치
-        adjustedY = 310; // 첫 번째 행 아래 (230 + 75 + 5)
-      } else if (hasSearchWidget && row >= 2) {
-        // 세 번째 행 이상의 위젯들도 검색 위젯을 고려하여 배치
-        adjustedY = widget.y || (row * (300 + 5)) + 230; // 검색 위젯 높이만큼 추가 오프셋
-      }
-      
       return {
         ...widget,
         width: widget.width || 300, // 기존 크기 유지하거나 기본값 사용
         height: widget.height || 300,
         x: widget.x || col * (300 + 5),
-        y: adjustedY
+        y: widget.y || row * (300 + 5)
       };
     });
   });
 
 
 
-  // 템플릿은 이제 import한 templates 사용
+  // 템플릿 정의
+  const templates = {
+    profile: {
+      name: '프로필',
+      description: '개인 소개와 정보를 공유하세요',
+      icon: '👤',
+      color: '#3B82F6',
+      widgets: [
+        { id: '1', type: 'contact', x: 0, y: 0, width: 75, height: 75, title: '연락처', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'social', x: 80, y: 0, width: 75, height: 75, title: '소셜 링크', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'qr_code', x: 160, y: 0, width: 75, height: 75, title: 'QR 코드', content: {}, zIndex: 1, size: '1x1' }
+      ]
+    },
+    links: {
+      name: '링크 모음',
+      description: '자주 사용하는 링크를 한곳에',
+      icon: '🔗',
+      color: '#10B981',
+      widgets: [
+        { id: '1', type: 'bookmark', x: 0, y: 0, width: 75, height: 75, title: '북마크', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'social', x: 80, y: 0, width: 75, height: 75, title: '소셜 링크', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'qr_code', x: 160, y: 0, width: 75, height: 75, title: 'QR 코드', content: {}, zIndex: 1, size: '1x1' }
+      ]
+    },
+    portfolio: {
+      name: '포트폴리오',
+      description: '작업과 프로젝트를 멋지게 소개하세요',
+      icon: '💼',
+      color: '#8B5CF6',
+      widgets: [
+        { id: '1', type: 'github_repo', x: 0, y: 0, width: 75, height: 75, title: 'GitHub', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'contact', x: 80, y: 0, width: 75, height: 75, title: '연락처', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'stats', x: 160, y: 0, width: 75, height: 75, title: '통계', content: {}, zIndex: 1, size: '1x1' }
+      ]
+    },
+    productivity: {
+      name: '생산성 대시보드',
+      description: '할일, 목표, 습관을 관리하세요',
+      icon: '📊',
+      color: '#F59E0B',
+      widgets: [
+        { id: '1', type: 'todo', x: 0, y: 0, width: 75, height: 75, title: '할 일', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'goal', x: 80, y: 0, width: 75, height: 75, title: '목표', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'habit', x: 160, y: 0, width: 75, height: 75, title: '습관', content: {}, zIndex: 1, size: '1x1' }
+      ]
+    },
+    finance: {
+      name: '금융 대시보드',
+      description: '주식, 암호화폐, 환율을 확인하세요',
+      icon: '💰',
+      color: '#EF4444',
+      widgets: [
+        { id: '1', type: 'stock', x: 0, y: 0, width: 75, height: 75, title: '주식', content: {}, zIndex: 1, size: '1x1' },
+        { id: '2', type: 'crypto', x: 80, y: 0, width: 75, height: 75, title: '암호화폐', content: {}, zIndex: 1, size: '1x1' },
+        { id: '3', type: 'exchange', x: 160, y: 0, width: 75, height: 75, title: '환율', content: {}, zIndex: 1, size: '1x1' }
+      ]
+    },
+    social: {
+      name: '소셜 미디어',
+      description: '소셜 링크, 음악, 명언 공유',
+      icon: '🌟',
+      color: '#EC4899',
+      widgets: (() => {
+        const cellWidth = 90;
+        const cellHeight = 90;
+        const spacing = 5;
+        
+        return [
+          // 1행 - 4개
+          { id: '1', type: 'social', x: 0, y: 0, width: cellWidth, height: cellHeight, title: '소셜 링크', content: {}, zIndex: 1, size: '1x1' },
+          { id: '2', type: 'music', x: cellWidth + spacing, y: 0, width: cellWidth, height: cellHeight, title: '음악', content: {}, zIndex: 1, size: '1x1' },
+          { id: '3', type: 'quote', x: (cellWidth + spacing) * 2, y: 0, width: cellWidth, height: cellHeight, title: '명언', content: {}, zIndex: 1, size: '1x1' },
+          { id: '4', type: 'news', x: (cellWidth + spacing) * 3, y: 0, width: cellWidth, height: cellHeight, title: '뉴스', content: {}, zIndex: 1, size: '1x1' },
+          
+          // 2행 - 4개
+          { id: '5', type: 'weather_small', x: 0, y: cellHeight + spacing, width: cellWidth, height: cellHeight, title: '날씨', content: {}, zIndex: 1, size: '1x1' },
+          { id: '6', type: 'bookmark', x: cellWidth + spacing, y: cellHeight + spacing, width: cellWidth, height: cellHeight, title: '즐겨찾기', content: {}, zIndex: 1, size: '1x1' },
+          { id: '7', type: 'todo', x: (cellWidth + spacing) * 2, y: cellHeight + spacing, width: cellWidth, height: cellHeight, title: '할 일', content: {}, zIndex: 1, size: '1x1' },
+          { id: '8', type: 'calendar', x: (cellWidth + spacing) * 3, y: cellHeight + spacing, width: cellWidth, height: cellHeight, title: '캘린더', content: {}, zIndex: 1, size: '1x1' }
+        ];
+      })()
+    },
+    custom: {
+      name: '빈 캔버스',
+      description: '빈 페이지에서 자유롭게 시작',
+      icon: '🎨',
+      color: '#64748B',
+      widgets: []
+    }
+  };
 
   // 페이지 관리 함수들
-  const loadTemplates = async () => {
-    try {
-      setLoadingTemplates(true);
-      await templateService.initializeDefaultTemplates();
-      const templatesData = await templateService.getAllTemplates();
-      // 활성화된 템플릿만 필터링
-      const activeTemplates = templatesData.filter(template => template.isActive);
-      setAvailableTemplates(activeTemplates);
-    } catch (error) {
-      console.error('템플릿 로드 실패:', error);
-      // 오류 시 로컬 템플릿 사용
-      setAvailableTemplates(Object.entries(templates).map(([key, template]) => ({ id: key, ...template })));
-    } finally {
-      setLoadingTemplates(false);
-    }
-  };
-
   const createNewPage = () => {
     setShowTemplateModal(true);
-    loadTemplates(); // 템플릿 모달이 열릴 때 최신 템플릿 로드
   };
 
-  const saveCurrentLayoutAsTemplate = async (templateData: {
-    name: string;
-    description: string;
-    category: string;
-    isPublic: boolean;
-  }) => {
-    try {
-      // 현재 위젯 배치를 템플릿으로 저장
-      const templateToSave = {
-        name: templateData.name,
-        description: templateData.description,
-        category: templateData.category,
-        icon: '🎨',
-        color: '#6366F1',
-        isActive: true,
-        isDefault: false,
-        author: currentUser?.email || 'anonymous',
-        widgetCount: widgets.length,
-        preview: widgets.map(w => w.type),
-        widgets: widgets.map((widget, index) => ({
-          id: `${templateData.name.toLowerCase().replace(/\s+/g, '_')}_${index}`,
-          type: widget.type,
-          x: widget.x,
-          y: widget.y,
-          width: widget.width,
-          height: widget.height,
-          title: widget.title,
-          content: widget.content,
-          zIndex: widget.zIndex,
-          size: widget.size || '2x1'
-        }))
-      };
-
-      await templateService.createTemplate(templateToSave);
-      alert('템플릿이 성공적으로 저장되었습니다!');
-      
-      // 공용 템플릿으로 저장된 경우 다른 사용자들에게 알림
-      if (templateData.isPublic) {
-        console.log('공용 템플릿으로 저장됨 - 다른 사용자들이 사용할 수 있습니다.');
-      }
-    } catch (error) {
-      console.error('템플릿 저장 실패:', error);
-      alert('템플릿 저장에 실패했습니다.');
-    }
-  };
-
-  const createPageWithTemplate = async (templateKey: string) => {
-    try {
-      // Firestore에서 최신 템플릿 가져오기
-      const templateData = await templateService.getTemplate(templateKey);
-      
-      if (!templateData) {
-        console.error('템플릿을 찾을 수 없습니다:', templateKey);
-        // 폴백: 로컬 템플릿 사용
-        const localTemplate = templates[templateKey as keyof typeof templates];
-        if (localTemplate) {
-          createPageWithLocalTemplate(localTemplate);
-        }
-        return;
-      }
-
-      // 사용자가 이 템플릿을 사용했다고 기록 (Firebase 사용자만)
-      if (currentUser) {
-        await templateService.markTemplateAsUsed(currentUser.uid, templateKey);
-      }
-
-      const newPageId = `page${Date.now()}`;
-      
-      // 위젯 위치 설정 (동적 크기 사용)
-      const positionedWidgets = templateData.widgets.map((widget, index) => {
-        const col = index % 4;
-        const row = Math.floor(index / 4);
-        
-        // 검색 위젯은 자동으로 크기 조정
-        if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'law_search') {
-          return {
-            ...widget,
-            id: `${widget.type}_${Date.now()}_${index}`,
-            width: (18 + 5) * 4 - 5, // 4칸 너비
-            height: 225,
-            x: widget.x || 0,
-            y: widget.y || 0 // 검색 위젯은 항상 맨 위에
-          };
-        }
-
-        // 다른 위젯들의 위치 조정 (검색 위젯 아래에 배치)
-        let adjustedY = widget.y || row * (cellHeight + spacing);
-
-        // 검색 위젯이 있는 경우 그 아래에 배치
-        const hasSearchWidget = templateData.widgets.some(w =>
-          (w.type === 'google_search' || w.type === 'naver_search' || w.type === 'law_search') &&
-          (w.y === 0 || w.y === undefined)
-        );
-
-        if (hasSearchWidget && row === 0) {
-          // 검색 위젯이 있는 경우 첫 번째 행 위젯들을 검색 위젯 아래로 이동
-          adjustedY = 230; // 검색 위젯 바로 아래 (225 + 5)
-        } else if (hasSearchWidget && row === 1) {
-          // 두 번째 행 위젯들도 적절한 간격으로 배치
-          adjustedY = 310; // 첫 번째 행 아래 (230 + 75 + 5)
-        } else if (hasSearchWidget && row >= 2) {
-          // 세 번째 행 이상의 위젯들도 검색 위젯을 고려하여 배치
-          adjustedY = widget.y || (row * (cellHeight + spacing)) + 230; // 검색 위젯 높이만큼 추가 오프셋
-        }
-
-        return {
-          ...widget,
-          id: `${widget.type}_${Date.now()}_${index}`,
-          width: widget.width || cellWidth,
-          height: widget.height || cellHeight,
-          x: widget.x || col * (cellWidth + spacing),
-          y: adjustedY
-        };
-      });
-
-      // 페이지 제목 생성 (사용자ID님의 페이지)
-      const userId = currentUser?.email?.split('@')[0] || 'User';
-      const pageCount = pages.length + 1; // 새로 만드는 페이지 번호
-      const pageTitle = pageCount === 1 
-        ? `${userId}님의 페이지`
-        : `${userId}님의 페이지 (${pageCount})`;
-      
-      const newPage = {
-        id: newPageId,
-        title: pageTitle,
-        widgets: positionedWidgets,
-        createdAt: new Date().toISOString(),
-        isActive: true
-      };
-      
-      // 페이지 목록 업데이트
-      const updatedPages = pages.map(page => ({ ...page, isActive: false })).concat(newPage);
-      setPages(updatedPages);
-      setCurrentPageId(newPageId);
-      setPageTitle(newPage.title);
-      setWidgets(positionedWidgets);
-      
-      // localStorage에 즉시 저장
-      if (currentUser) {
-        localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
-        console.log('최신 템플릿으로 페이지 생성 및 저장 완료:', newPage);
-      }
-      
-      setShowTemplateModal(false);
-      setShowPageManager(false);
-    } catch (error) {
-      console.error('템플릿 페이지 생성 실패:', error);
-      // 오류 시 로컬 템플릿으로 폴백
-      const localTemplate = templates[templateKey as keyof typeof templates];
-      if (localTemplate) {
-        createPageWithLocalTemplate(localTemplate);
-      }
-    }
-  };
-
-  // 로컬 템플릿으로 페이지 생성 (폴백용)
-  const createPageWithLocalTemplate = (template: any) => {
+  const createPageWithTemplate = (templateKey: string) => {
+    const template = templates[templateKey as keyof typeof templates];
     const newPageId = `page${Date.now()}`;
     
     // 위젯 위치 설정 (동적 크기 사용)
-    const positionedWidgets = template.widgets.map((widget: any, index: number) => {
+    const positionedWidgets = template.widgets.map((widget, index) => {
       const col = index % 4;
       const row = Math.floor(index / 4);
       
@@ -690,7 +702,7 @@ export function MyPage() {
     // localStorage에 즉시 저장
     if (currentUser) {
       localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
-      console.log('로컬 템플릿으로 페이지 생성 및 저장 완료:', newPage);
+      console.log('템플릿으로 페이지 생성 및 저장 완료:', newPage);
     }
     
     setShowTemplateModal(false);
@@ -854,7 +866,20 @@ export function MyPage() {
   };
 
   // 카테고리 아이콘 함수
-  // getCategoryIcon은 import로 사용
+  const getCategoryIcon = (categoryKey: string) => {
+    const icons: { [key: string]: string } = {
+      productivity: '📊',
+      finance: '💰',
+      development: '🔧',
+      information: '📰',
+      media: '🎵',
+      design: '🎨',
+      education: '📚',
+      social: '👥',
+      system: '⚙️'
+    };
+    return icons[categoryKey] || '📦';
+  };
 
   // 위젯 미리보기 렌더링 함수
   const renderWidgetPreview = (widgetType: string) => {
@@ -1130,7 +1155,114 @@ export function MyPage() {
   };
 
   // 사용 가능한 위젯들 (카테고리별로 분류)
-  // widgetCategories, allWidgets, fontOptions는 이제 import로 사용
+  const widgetCategories = {
+    // 📊 생산성 및 업무 관리
+    productivity: {
+      name: '생산성 & 업무',
+      widgets: [
+        { type: 'todo', name: '할 일 관리', icon: CheckSquare, description: '할 일 목록 관리 및 체크' },
+        { type: 'goal', name: '목표 추적', icon: Target, description: '목표 설정 및 진행률 추적' },
+        { type: 'habit', name: '습관 트래킹', icon: Repeat, description: '일상 습관 관리' },
+        { type: 'timer', name: '포모도로 타이머', icon: Clock, description: '집중 시간 관리' },
+        { type: 'reminder', name: '알림 관리', icon: Bell, description: '중요한 일정 알림' },
+        { type: 'quicknote', name: '빠른 메모', icon: FileText, description: '즉석 메모 작성' },
+        { type: 'calendar', name: '캘린더', icon: Calendar, description: '일정 관리 및 계획' },
+        { type: 'email', name: '이메일 관리', icon: Mail, description: '메일 확인 및 관리' },
+        { type: 'mail_services', name: '메일 서비스', icon: Mail, description: '다양한 메일 서비스 바로가기' },
+      ]
+    },
+
+    // 💰 금융 및 투자
+    finance: {
+      name: '금융 & 투자',
+      widgets: [
+        { type: 'stock', name: '주식 시세', icon: TrendingUp, description: '실시간 주식 가격 확인' },
+        { type: 'crypto', name: '암호화폐', icon: DollarSign, description: '코인 가격 정보' },
+        { type: 'exchange', name: '환율 정보', icon: DollarSign, description: '실시간 환율 정보' },
+        { type: 'stock_alert', name: '주식 알림', icon: Bell, description: '주식 시세 알림 설정' },
+        { type: 'economic_calendar', name: '경제 캘린더', icon: Calendar, description: 'FOMC, CPI 발표 일정' },
+        { type: 'expense', name: '가계부', icon: BarChart3, description: '지출 관리 및 분석' },
+      ]
+    },
+
+    // 🔧 개발 및 기술
+    development: {
+      name: '개발 & 기술',
+      widgets: [
+        { type: 'github', name: 'GitHub', icon: Github, description: '코드 저장소 관리' },
+        { type: 'github_repo', name: 'GitHub Repo', icon: Github, description: '저장소 상태 모니터링' },
+        { type: 'calculator', name: '계산기', icon: Calculator, description: '간편 계산기' },
+        { type: 'converter', name: '단위 변환', icon: Calculator, description: '단위 변환기' },
+        { type: 'password', name: '비밀번호 생성', icon: Lock, description: '안전한 비밀번호 생성' },
+        { type: 'qr', name: 'QR 코드', icon: QrCode, description: 'QR 코드 생성' },
+      ]
+    },
+
+    // 📰 정보 및 뉴스
+    information: {
+      name: '정보 & 뉴스',
+      widgets: [
+        { type: 'news', name: '뉴스 피드', icon: Globe, description: '최신 뉴스 및 관심사' },
+        { type: 'weather', name: '날씨 정보', icon: Cloud, description: '실시간 날씨 정보' },
+        { type: 'weather_small', name: '날씨 (소형)', icon: Cloud, description: '간단한 날씨 정보' },
+        { type: 'weather_medium', name: '날씨 (중형)', icon: Cloud, description: '중간 크기 날씨 정보' },
+        { type: 'rss', name: 'RSS 피드', icon: Rss, description: 'RSS 뉴스 피드' },
+        { type: 'google_search', name: '구글 검색', icon: Search, description: '구글 검색 바로가기' },
+        { type: 'naver_search', name: '네이버 검색', icon: Search, description: '네이버 검색 바로가기' },
+        { type: 'law_search', name: '법제처 검색', icon: Search, description: '법령 검색 바로가기' },
+      ]
+    },
+
+    // 🎵 미디어 및 엔터테인먼트
+    media: {
+      name: '미디어 & 엔터테인먼트',
+      widgets: [
+        { type: 'music', name: '음악 플레이어', icon: Music, description: '음악 재생 및 관리' },
+        { type: 'quote', name: '영감 명언', icon: Quote, description: '영감을 주는 명언' },
+      ]
+    },
+
+    // 🎨 디자인 및 도구
+    design: {
+      name: '디자인 & 도구',
+      widgets: [
+        { type: 'colorpicker', name: '컬러 팔레트', icon: Palette, description: '색상 생성 및 선택' },
+        { type: 'bookmark', name: '즐겨찾기', icon: Link, description: '자주 사용하는 링크' },
+        { type: 'stats', name: '통계 차트', icon: BarChart3, description: '데이터 시각화' },
+      ]
+    },
+
+    // 📚 교육 및 학습
+    education: {
+      name: '교육 & 학습',
+      widgets: [
+        { type: 'english_words', name: '영어 단어 학습', icon: BookOpen, description: '영어 단어 학습 도구' },
+      ]
+    },
+
+    // 👥 소셜 및 커뮤니케이션
+    social: {
+      name: '소셜 & 커뮤니케이션',
+      widgets: [
+        { type: 'social', name: '소셜미디어', icon: Users, description: 'SNS 관리' },
+      ]
+    }
+  };
+
+  // 모든 위젯을 평면 배열로 변환
+  const allWidgets = Object.values(widgetCategories).flatMap(category => category.widgets);
+
+  // 폰트 옵션들
+  const fontOptions = [
+    { family: 'Inter', name: 'Inter' },
+    { family: 'Roboto', name: 'Roboto' },
+    { family: 'Open Sans', name: 'Open Sans' },
+    { family: 'Lato', name: 'Lato' },
+    { family: 'Montserrat', name: 'Montserrat' },
+    { family: 'Poppins', name: 'Poppins' },
+    { family: 'Source Sans Pro', name: 'Source Sans Pro' },
+    { family: 'Nunito', name: 'Nunito' },
+  ];
 
   // 위젯 겹침 감지 함수
   const isWidgetOverlapping = (widget1: Widget, widget2: Widget) => {
@@ -1202,29 +1334,16 @@ export function MyPage() {
     
     // 특정 위젯 타입에 따라 자동 크기 설정
     let widgetSize = size;
-    let width, height;
-    
-    if (type === 'google_search' || type === 'naver_search' ||
-        type === 'law_search') {
-      // 검색 위젯은 4칸 너비, 225px 높이
-      width = (subCellWidth + spacing) * 4 - spacing; // 4칸
-      height = 225; // 높이
-    } else if (type === 'weather_small') {
+    if (type === 'weather_small') {
       widgetSize = '4x1'; // 메인 컬럼 전체 너비
-      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
-      width = dimensions.width;
-      height = dimensions.height;
     } else if (type === 'weather_medium') {
       widgetSize = '4x2'; // 메인 컬럼 전체 너비 + 2칸 높이
-      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
-      width = dimensions.width;
-      height = dimensions.height;
-    } else {
-      // 기본 크기
-      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
-      width = dimensions.width;
-      height = dimensions.height;
     }
+    
+    // 위젯 크기 결정 (사이즈 기반)
+    const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+    const width = dimensions.width;
+    const height = dimensions.height;
     
     setWidgets(prevWidgets => {
     let position;
@@ -1282,7 +1401,7 @@ export function MyPage() {
   };
 
   // 페이지 저장
-  const savePage = useCallback(async () => {
+  const savePage = useCallback(() => {
     const updatedPages = pages.map(page => {
       if (page.id === currentPageId) {
         return {
@@ -1296,7 +1415,7 @@ export function MyPage() {
     
     setPages(updatedPages);
     
-    // localStorage에 저장 (로컬 백업)
+    // 사용자별로 저장
     if (currentUser) {
       localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
       console.log('페이지 저장됨 (사용자:', currentUser.id, '):', updatedPages);
@@ -1305,70 +1424,15 @@ export function MyPage() {
       console.log('페이지 저장됨 (게스트):', updatedPages);
     }
     
-    // Firebase에 저장 (로그인한 사용자만)
-    if (currentUser && shareSettings.isPublic) {
-      try {
-        const currentPage = updatedPages.find(p => p.id === currentPageId);
-        if (!currentPage) return;
-
-        const pageData = {
-          title: pageTitle || '제목 없음',
-          description: `${widgets.length}개의 위젯으로 구성된 페이지`,
-          authorId: currentUser.id,
-          authorName: currentUser.name || '익명',
-          authorEmail: currentUser.email,
-          category: '일반',
-          isPublic: shareSettings.isPublic,
-          widgets: widgets.map(w => ({
-            id: w.id,
-            type: w.type,
-            title: w.title,
-            x: w.x,
-            y: w.y,
-            width: w.width,
-            height: w.height,
-            size: w.size
-          })),
-          tags: [],
-          views: 0,
-          likes: 0,
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp()
-        };
-
-        // 기존 페이지가 있는지 확인
-        const pagesRef = collection(db, 'userPages');
-        const q = query(pagesRef, where('authorId', '==', currentUser.id), where('title', '==', pageTitle));
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-          // 기존 페이지 업데이트
-          const docRef = doc(db, 'userPages', snapshot.docs[0].id);
-          await updateDoc(docRef, {
-            ...pageData,
-            updatedAt: serverTimestamp()
-          });
-          console.log('Firebase 페이지 업데이트 완료');
-        } else {
-          // 새 페이지 생성
-          await addDoc(pagesRef, pageData);
-          console.log('Firebase 새 페이지 생성 완료');
-        }
-      } catch (error) {
-        console.error('Firebase 저장 실패:', error);
-        // Firebase 저장 실패해도 로컬에는 저장되었으므로 계속 진행
-      }
-    }
-    
     // 성공 메시지
     const message = document.createElement('div');
     message.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000]';
-    message.textContent = shareSettings.isPublic && currentUser ? '✓ 저장 및 공개되었습니다' : '✓ 저장되었습니다';
+    message.textContent = '✓ 저장되었습니다';
     document.body.appendChild(message);
     setTimeout(() => {
       message.remove();
     }, 2000);
-  }, [pages, currentPageId, pageTitle, widgets, currentUser, shareSettings.isPublic]);
+  }, [pages, currentPageId, pageTitle, widgets, currentUser]);
 
   // 위젯 업데이트
   const updateWidget = useCallback((id: string, updates: Partial<Widget>) => {
@@ -1429,13 +1493,13 @@ export function MyPage() {
     const rawX = e.clientX - canvasRect.left - dragOffset.x;
     const rawY = e.clientY - canvasRect.top - dragOffset.y;
 
-    // 그리드 스냅핑 (8개의 메인 컬럼 그리드)
-    const targetCol = Math.max(0, Math.min(7, Math.floor(rawX / (mainColumnWidth + spacing))));
+    // 그리드 스냅핑 (4개의 메인 컬럼 그리드)
+    const targetCol = Math.max(0, Math.min(3, Math.floor(rawX / (mainColumnWidth + spacing))));
     let newX = targetCol * (mainColumnWidth + spacing);
     let newY = Math.round(rawY / cellHeight) * cellHeight;
 
     // 경계 체크
-    newX = Math.max(0, Math.min(newX, 7 * (mainColumnWidth + spacing)));
+    newX = Math.max(0, Math.min(newX, 3 * (mainColumnWidth + spacing)));
     newY = Math.max(0, newY);
 
     // 드래그 중인 위젯 위치 업데이트
@@ -1631,19 +1695,25 @@ export function MyPage() {
 
   // 각 컬럼의 마지막 위젯과 컬럼 하단 여백에 마우스 오버 시 위젯 추가 기능
   const getColumnLastWidget = (columnIndex: number) => {
-    return getColumnLastWidgetUtil(widgets, columnIndex, mainColumnWidth, spacing);
+    const columnWidgets = widgets.filter(widget => {
+      const col = Math.floor(widget.x / (mainColumnWidth + spacing));
+      return col === columnIndex;
+    });
+    
+    if (columnWidgets.length === 0) return null;
+    
+    return columnWidgets.reduce((last, current) => 
+      current.y > last.y ? current : last
+    );
   };
 
   const getColumnBottomY = (columnIndex: number) => {
-    return getColumnBottomYUtil(widgets, columnIndex, mainColumnWidth, spacing);
+    const lastWidget = getColumnLastWidget(columnIndex);
+    if (!lastWidget) return 0;
+    return lastWidget.y + lastWidget.height + spacing;
   };
 
   const openWidgetShop = () => {
-    setShowWidgetModal(true);
-  };
-  
-  // 기존 새 창 코드 제거됨
-  const openWidgetShopOLD = () => {
     const widgetShopWindow = window.open(
       '',
       'widgetShop',
@@ -2039,13 +2109,13 @@ export function MyPage() {
         let newX = e.clientX - canvasRect.left - dragOffset.x;
         let newY = e.clientY - canvasRect.top - dragOffset.y;
 
-        // 그리드 스냅핑 (8컬럼 그리드)
+        // 그리드 스냅핑 (4컬럼 그리드)
         const targetCol = Math.floor(newX / (cellWidth + spacing));
         newX = targetCol * (cellWidth + spacing);
         newY = Math.round(newY / cellHeight) * cellHeight;
 
         // 경계 체크
-        newX = Math.max(0, Math.min(newX, 7 * (cellWidth + spacing))); // 8컬럼이므로 0~7
+        newX = Math.max(0, Math.min(newX, 3 * (cellWidth + spacing))); // 4컬럼이므로 0~3
         newY = Math.max(0, newY);
 
         // 드래그 중인 위젯 위치 업데이트
@@ -2107,39 +2177,45 @@ export function MyPage() {
       >
         {/* 위젯 헤더 */}
         <div 
-          className="p-2 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-move group"
+          className="p-2 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-move"
           onMouseDown={(e) => handleMouseDown(e, widget.id)}
         >
           <div className="flex items-center gap-2 flex-1">
+            {isEditMode && (
+              <div className="text-gray-400 hover:text-gray-600">
+                <Move className="w-3 h-3" />
+              </div>
+            )}
+            <WidgetIcon className="w-3 h-3 text-gray-600" />
             <span className="text-xs font-medium text-gray-800">{widget.title}</span>
           </div>
           
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-6 w-6 p-0 hover:bg-blue-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                editWidget(widget.id);
-              }}
-              title="위젯 편집"
-            >
-              <Edit className="w-3 h-3 text-blue-600" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-6 w-6 p-0 hover:bg-red-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeWidget(widget.id);
-              }}
-              title="위젯 삭제"
-            >
-              <X className="w-3 h-3 text-red-600" />
-            </Button>
-          </div>
+          {isEditMode && (
+            <div className="flex gap-1">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-5 w-5 p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  editWidget(widget.id);
+                }}
+              >
+                <Settings className="w-3 h-3" />
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-5 w-5 p-0 text-red-500 hover:text-red-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeWidget(widget.id);
+                }}
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* 위젯 콘텐츠 */}
@@ -2999,10 +3075,72 @@ export function MyPage() {
         );
 
       case 'google_search':
-        return <GoogleSearchWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+        return (
+          <div className="space-y-3">
+            <div className="text-center">
+              <div className="text-2xl mb-2">🔍</div>
+              <h4 className="font-semibold text-sm text-gray-800">구글 검색</h4>
+            </div>
+            <div className="space-y-2">
+              <div className="flex gap-1">
+                <input 
+                  type="text" 
+                  placeholder="구글에서 검색" 
+                  className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      const query = e.currentTarget.value;
+                      if (query) {
+                        window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+                      }
+                    }
+                  }}
+                />
+              </div>
+              <Button 
+                size="sm" 
+                className="w-full h-8 text-xs bg-blue-500 hover:bg-blue-600"
+                onClick={() => window.open('https://www.google.com', '_blank')}
+              >
+                Google 바로가기
+              </Button>
+            </div>
+          </div>
+        );
 
       case 'naver_search':
-        return <NaverSearchWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+        return (
+          <div className="space-y-3">
+            <div className="text-center">
+              <div className="text-2xl mb-2">🔍</div>
+              <h4 className="font-semibold text-sm text-gray-800">네이버 검색</h4>
+            </div>
+            <div className="space-y-2">
+              <div className="flex gap-1">
+                <input 
+                  type="text" 
+                  placeholder="네이버에서 검색" 
+                  className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      const query = e.currentTarget.value;
+                      if (query) {
+                        window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`, '_blank');
+                      }
+                    }
+                  }}
+                />
+              </div>
+              <Button 
+                size="sm" 
+                className="w-full h-8 text-xs bg-green-500 hover:bg-green-600"
+                onClick={() => window.open('https://www.naver.com', '_blank')}
+              >
+                Naver 바로가기
+              </Button>
+            </div>
+          </div>
+        );
 
       case 'law_search':
         return (
@@ -3347,48 +3485,51 @@ export function MyPage() {
                 ) : (
                   <div className="flex items-center gap-2">
                     <h1 
-                      className="text-xl font-bold text-gray-800 cursor-pointer hover:text-blue-600 transition-colors"
+                      className={`text-xl font-bold text-gray-800 ${isEditMode ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
                       onClick={() => {
+                        if (isEditMode) {
                         setIsEditingTitle(true);
                         setTempTitle(pageTitle);
+                        }
                       }}
-                      title="클릭하여 제목 변경"
+                      title={isEditMode ? "클릭하여 제목 변경" : pageTitle}
                     >
                       {pageTitle}
                     </h1>
+                    {isEditMode && (
                     <Edit className="w-4 h-4 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors" 
                           onClick={() => {
                             setIsEditingTitle(true);
                             setTempTitle(pageTitle);
                           }}
                           title="제목 변경" />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowSaveAsTemplateModal(true)}
-                      className="ml-2"
-                      title="현재 배치를 템플릿으로 저장"
-                    >
-                      <Save className="w-4 h-4 mr-1" />
-                      템플릿 저장
-                    </Button>
+                    )}
                   </div>
                 )}
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {/* 위젯 추가 버튼 */}
+              {/* 편집 모드 토글 버튼 */}
               <Button
-                variant="default"
+                variant={isEditMode ? "default" : "ghost"}
                 size="sm"
-                onClick={openWidgetShop}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-                title="위젯 추가"
+                onClick={() => {
+                  if (isEditMode) {
+                    // 편집 완료 시 자동 저장
+                    savePage();
+                  }
+                  setIsEditMode(!isEditMode);
+                }}
+                className={isEditMode 
+                  ? "bg-orange-400 hover:bg-orange-500 text-black font-semibold" 
+                  : "text-gray-600 hover:text-orange-600 hover:bg-orange-50"
+                }
+                title={isEditMode ? "저장하고 보기 모드로 전환" : "편집 모드로 전환"}
               >
-                <Plus className="w-4 h-4 mr-1" />
-                위젯 추가
-              </Button>
+                {isEditMode ? <Save className="w-4 h-4 mr-1" /> : <Edit className="w-4 h-4 mr-1" />}
+                {isEditMode ? "편집 완료" : "편집"}
+            </Button>
 
               {/* 페이지 관리 버튼 */}
             <Button
@@ -3694,23 +3835,11 @@ export function MyPage() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {loadingTemplates ? (
-                <div className="col-span-full flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                    <p className="text-gray-500">최신 템플릿을 불러오는 중...</p>
-                  </div>
-                </div>
-              ) : availableTemplates.length === 0 ? (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-gray-500">사용 가능한 템플릿이 없습니다.</p>
-                </div>
-              ) : (
-                availableTemplates.map((template) => (
+              {Object.entries(templates).map(([key, template]) => (
                 <div
-                  key={template.id}
+                  key={key}
                   className="border-2 border-gray-200 rounded-xl overflow-hidden hover:border-blue-500 hover:shadow-xl transition-all cursor-pointer group"
-                  onClick={() => createPageWithTemplate(template.id)}
+                  onClick={() => createPageWithTemplate(key)}
                 >
                   {/* 레이아웃 미리보기 */}
                   <div 
@@ -3903,8 +4032,7 @@ export function MyPage() {
                     </div>
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </div>
             
             <div className="flex justify-center mt-8">
@@ -3949,121 +4077,117 @@ export function MyPage() {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center text-gray-500 max-w-md">
                 <div className="text-2xl mb-4">🎨</div>
-                <>
-                  <div className="text-xl font-semibold mb-3">페이지가 비어있습니다</div>
-                  <div className="text-sm mb-4">위 툴바의 "+ 위젯 추가" 버튼을 눌러 위젯을 추가해보세요</div>
-                  <div className="text-xs text-gray-400 mt-2">위젯을 드래그하여 이동하고, 마우스를 올려 편집/삭제할 수 있습니다</div>
-                </>
+                {isEditMode ? (
+                  <>
+                <div className="text-xl font-semibold mb-3">시작페이지가 비어있습니다</div>
+                    <div className="text-sm mb-4">위 툴바의 "편집 완료" 버튼을 누르면 편집 모드를 종료할 수 있습니다</div>
+                <div className="text-sm mb-4">각 컬럼의 마지막 위젯이나 컬럼 하단에 마우스를 올려 위젯을 추가해보세요</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-xl font-semibold mb-3">페이지가 비어있습니다</div>
+                    <div className="text-sm mb-4">위 툴바의 "편집" 버튼을 눌러 위젯을 추가해보세요</div>
+                  </>
+                )}
               </div>
             </div>
           )}
 
-          {widgets.map((widget) => {
-            // 현재 위젯이 속한 컬럼 찾기
-            const col = Math.floor(widget.x / (mainColumnWidth + spacing));
-            const lastWidgetInColumn = getColumnLastWidget(col);
-            const isLastInColumn = lastWidgetInColumn?.id === widget.id;
-
-            return (
-              <div key={widget.id}>
-                <div
-                  className={`absolute bg-white rounded-lg shadow-md transition-all duration-200 ${
-                    isEditMode ? 'cursor-move' : ''
-                  }`}
-                  style={{
-                    left: widget.x,
-                    top: widget.y,
-                    width: widget.width,
-                    height: widget.height,
-                    zIndex: widget.zIndex || 1,
-                    transform: draggedWidget === widget.id ? 'rotate(2deg)' : 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (isLastInColumn) {
-                      // 이미 버튼이 있으면 생성하지 않음
-                      if (document.getElementById(`add-widget-btn-${widget.id}`)) return;
-                      
-                      // 마지막 위젯에 마우스 오버 시 아래에 위젯 추가 버튼 표시
-                      const addButton = document.createElement('div');
-                      addButton.id = `add-widget-btn-${widget.id}`;
-                      addButton.className = 'absolute bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2 shadow-lg cursor-pointer transition-all z-50 flex items-center justify-center gap-2';
-                      addButton.style.left = `${widget.x}px`;
-                      addButton.style.top = `${widget.y + widget.height + 2}px`; // spacing 줄임
-                      addButton.style.width = `${widget.width}px`;
-                      addButton.style.height = '40px'; // 명시적 높이
-                      addButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg><span class="text-sm font-medium">위젯 추가</span>';
-                      addButton.onclick = openWidgetShop;
-                      
-                      // 버튼과 위젯 사이 연결 영역 생성 (보이지 않는 영역)
-                      const connector = document.createElement('div');
-                      connector.id = `connector-${widget.id}`;
-                      connector.className = 'absolute z-40';
-                      connector.style.left = `${widget.x}px`;
-                      connector.style.top = `${widget.y + widget.height}px`;
-                      connector.style.width = `${widget.width}px`;
-                      connector.style.height = '10px'; // 위젯과 버튼 사이 공간
-                      
-                      // 연결 영역에도 이벤트 추가
-                      connector.onmouseenter = () => {
-                        // 연결 영역 위에서도 버튼 유지
-                      };
-                      
-                      connector.onmouseleave = () => {
-                        setTimeout(() => {
-                          const btn = document.getElementById(`add-widget-btn-${widget.id}`);
-                          const conn = document.getElementById(`connector-${widget.id}`);
-                          if (btn && !btn.matches(':hover')) {
-                            btn.remove();
-                          }
-                          if (conn) {
-                            conn.remove();
-                          }
-                        }, 300);
-                      };
-                      
-                      // 버튼에 마우스가 올라가 있을 때도 유지
-                      addButton.onmouseenter = () => {
-                        // 버튼 위에 있을 때는 계속 표시
-                      };
-                      
-                      addButton.onmouseleave = () => {
-                        setTimeout(() => {
-                          const btn = document.getElementById(`add-widget-btn-${widget.id}`);
-                          const conn = document.getElementById(`connector-${widget.id}`);
-                          if (btn) btn.remove();
-                          if (conn) conn.remove();
-                        }, 300);
-                      };
-                      
-                      const canvas = canvasRef.current;
-                      if (canvas) {
-                        canvas.appendChild(connector);
-                        canvas.appendChild(addButton);
+          {widgets.map((widget) => (
+            <div
+              key={widget.id}
+              className={`absolute bg-white rounded-lg shadow-md transition-all duration-200 ${
+                isEditMode ? 'cursor-move' : ''
+              }`}
+              style={{
+                left: widget.x,
+                top: widget.y,
+                width: widget.width,
+                height: widget.height,
+                zIndex: widget.zIndex || 1,
+                transform: draggedWidget === widget.id ? 'rotate(2deg)' : 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (isEditMode) {
+                  const col = Math.floor(widget.x / (mainColumnWidth + spacing));
+                  const lastWidget = getColumnLastWidget(col);
+                  if (lastWidget && lastWidget.id === widget.id) {
+                    // 마지막 위젯에 마우스 오버 시 위젯 추가 영역 표시
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const addArea = document.createElement('div');
+                    addArea.className = 'absolute bg-blue-500/10 border-2 border-blue-500 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200';
+                    addArea.style.left = `${rect.left}px`;
+                    addArea.style.top = `${rect.bottom + 5}px`;
+                    addArea.style.width = `${widget.width}px`;
+                    addArea.style.height = '60px';
+                    addArea.style.zIndex = '5';
+                    addArea.innerHTML = '<div class="text-blue-600 font-medium text-sm">+ 위젯 추가</div>';
+                    addArea.onclick = openWidgetShop;
+                    document.body.appendChild(addArea);
+                    
+                    // 마우스가 벗어나면 제거
+                    const removeAddArea = () => {
+                      if (addArea.parentNode) {
+                        addArea.parentNode.removeChild(addArea);
                       }
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (isLastInColumn) {
-                      // 마우스가 버튼으로 가는지 확인하기 위해 지연
-                      setTimeout(() => {
-                        const addButton = document.getElementById(`add-widget-btn-${widget.id}`);
-                        const connector = document.getElementById(`connector-${widget.id}`);
-                        if (addButton && connector) {
-                          // 버튼이나 연결 영역에 마우스가 없으면 제거
-                          const isHoveringButton = addButton.matches(':hover');
-                          const isHoveringConnector = connector.matches(':hover');
-                          if (!isHoveringButton && !isHoveringConnector) {
-                            addButton.remove();
-                            connector.remove();
-                          }
-                        }
-                      }, 300);
-                    }
-                  }}
-                >
-                  {renderWidget(widget)}
-                </div>
-              </div>
+                    };
+                    addArea.addEventListener('mouseleave', removeAddArea);
+                    e.currentTarget.addEventListener('mouseleave', removeAddArea);
+                  }
+                }
+              }}
+            >
+              {renderWidget(widget)}
+            </div>
+          ))}
+
+          {/* 컬럼 하단 여백에 마우스 오버 시 위젯 추가 영역 */}
+          {isEditMode && Array.from({ length: MAIN_COLUMNS }).map((_, colIndex) => {
+            const bottomY = getColumnBottomY(colIndex);
+            if (bottomY === 0) return null; // 컬럼에 위젯이 없으면 표시하지 않음
+            
+            return (
+              <div
+                key={`column-${colIndex}`}
+                className="absolute bg-transparent hover:bg-blue-500/10 border-2 border-transparent hover:border-blue-500 hover:border-dashed rounded-lg transition-all duration-200 cursor-pointer"
+                style={{
+                  left: colIndex * (mainColumnWidth + spacing),
+                  top: bottomY,
+                  width: mainColumnWidth,
+                  height: '60px',
+                  zIndex: 2
+                }}
+                onMouseEnter={(e) => {
+                  const target = e.currentTarget;
+                  target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                  target.style.borderColor = '#3b82f6';
+                  target.style.borderStyle = 'dashed';
+                  target.style.transition = 'all 0.2s ease';
+                  
+                  // 텍스트 추가
+                  const text = document.createElement('div');
+                  text.className = 'absolute inset-0 flex items-center justify-center text-blue-600 font-medium text-sm pointer-events-none transition-all duration-200';
+                  text.textContent = '+ 위젯 추가';
+                  target.appendChild(text);
+                }}
+                onMouseLeave={(e) => {
+                  const target = e.currentTarget;
+                  target.style.backgroundColor = 'transparent';
+                  target.style.borderColor = 'transparent';
+                  target.style.borderStyle = 'solid';
+                  
+                  // 텍스트 제거
+                  const text = target.querySelector('div');
+                  if (text) {
+                    target.removeChild(text);
+                  }
+                }}
+                onClick={() => {
+                  // 컬럼 인덱스를 전역 변수로 저장
+                  (window as any).targetColumn = colIndex;
+                  openWidgetShop();
+                }}
+              />
             );
           })}
 
@@ -4071,15 +4195,8 @@ export function MyPage() {
 
 
 
-        {/* 위젯 선택 패널 */}
-        <WidgetPanel 
-          isOpen={showWidgetModal}
-          onClose={() => setShowWidgetModal(false)}
-          onAddWidget={(type) => addWidget(type)}
-        />
-
-        {/* 기존 새 창 코드 제거 */}
-        {false && showWidgetModal && (
+        {/* 위젯 상점 - 새 창으로 열기 */}
+        {showWidgetModal && (
           <script>
             {(() => {
               const widgetShopWindow = window.open('', 'widgetShop', 'width=1200,height=800,scrollbars=yes,resizable=yes');
@@ -5006,14 +5123,6 @@ export function MyPage() {
 
         </div>
       )}
-
-      {/* 템플릿 저장 모달 */}
-      <SaveAsTemplateModal
-        isOpen={showSaveAsTemplateModal}
-        onClose={() => setShowSaveAsTemplateModal(false)}
-        widgets={widgets}
-        onSave={saveCurrentLayoutAsTemplate}
-      />
 
     </div>
   );

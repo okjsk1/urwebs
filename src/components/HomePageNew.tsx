@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { CategoryHoverCard } from './CategoryHoverCard';
+import { db } from '../firebase/config';
+import { collection, getDocs, query, orderBy, where, limit } from 'firebase/firestore';
 import { 
   Clipboard, 
   Database, 
@@ -149,6 +151,51 @@ const latestUpdates: LatestUpdate[] = [
     timeAgo: '12시간 전',
     views: 432,
     likes: 28
+  },
+  {
+    id: '6',
+    title: '마케터 데이터 분석 도구',
+    author: '이마케팅',
+    category: '마케팅',
+    timeAgo: '14시간 전',
+    views: 620,
+    likes: 42
+  },
+  {
+    id: '7',
+    title: '학생 일정 관리',
+    author: '김학생',
+    category: '교육',
+    timeAgo: '16시간 전',
+    views: 380,
+    likes: 25
+  },
+  {
+    id: '8',
+    title: '쇼핑몰 운영자 통합 대시보드',
+    author: '박커머스',
+    category: '커머스',
+    timeAgo: '18시간 전',
+    views: 950,
+    likes: 71
+  },
+  {
+    id: '9',
+    title: '헬스 트레이너 회원 관리',
+    author: '최트레이너',
+    category: '헬스/피트니스',
+    timeAgo: '20시간 전',
+    views: 540,
+    likes: 38
+  },
+  {
+    id: '10',
+    title: '블로거 콘텐츠 플래너',
+    author: '정블로거',
+    category: '콘텐츠 크리에이터',
+    timeAgo: '22시간 전',
+    views: 720,
+    likes: 55
   }
 ];
 
@@ -202,93 +249,200 @@ const popularPages: PopularPage[] = [
     likes: 720,
     views: 5400,
     tags: ['건축', '프로젝트관리', 'CAD']
+  },
+  {
+    id: '6',
+    title: 'SNS 마케팅 자동화 도구',
+    description: '여러 채널을 한 곳에서 관리하고 예약 발행',
+    author: '김소셜',
+    category: '마케팅',
+    likes: 890,
+    views: 6700,
+    tags: ['SNS', '마케팅', '자동화']
+  },
+  {
+    id: '7',
+    title: '온라인 강의 제작 워크스페이스',
+    description: '강의 기획부터 촬영, 편집까지 모든 과정',
+    author: '이강사',
+    category: '교육',
+    likes: 650,
+    views: 4800,
+    tags: ['강의', '교육', '온라인']
+  },
+  {
+    id: '8',
+    title: '스타트업 재무 관리 시스템',
+    description: '매출, 비용, 투자 관리를 한눈에',
+    author: '박스타트업',
+    category: '재무/회계',
+    likes: 1100,
+    views: 8200,
+    tags: ['재무', '회계', '스타트업']
+  },
+  {
+    id: '9',
+    title: '부동산 매물 관리 대시보드',
+    description: '매물 정보부터 고객 관리까지 통합 솔루션',
+    author: '최부동산',
+    category: '부동산',
+    likes: 780,
+    views: 5900,
+    tags: ['부동산', '매물', '관리']
+  },
+  {
+    id: '10',
+    title: '작가 집필 관리 스튜디오',
+    description: '아이디어 정리부터 원고 관리까지',
+    author: '정작가',
+    category: '글쓰기',
+    likes: 520,
+    views: 3600,
+    tags: ['집필', '작가', '글쓰기']
   }
 ];
 
 export function HomePageNew({ onCategorySelect }: HomePageProps) {
+  const [latestPages, setLatestPages] = useState<LatestUpdate[]>(latestUpdates);
+  const [popularPagesList, setPopularPagesList] = useState<PopularPage[]>(popularPages);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUserPages();
+  }, []);
+
+  const fetchUserPages = async () => {
+    try {
+      // 사용자 페이지 컬렉션에서 공개된 페이지들 가져오기
+      const pagesRef = collection(db, 'userPages');
+      
+      // 최신 업데이트 가져오기 (공개된 페이지, 최신순으로 10개)
+      const latestQuery = query(
+        pagesRef,
+        where('isPublic', '==', true),
+        orderBy('updatedAt', 'desc'),
+        limit(10)
+      );
+      
+      // 인기 페이지 가져오기 (공개된 페이지, 조회수 순으로 10개)
+      const popularQuery = query(
+        pagesRef,
+        where('isPublic', '==', true),
+        orderBy('views', 'desc'),
+        limit(10)
+      );
+
+      const [latestSnapshot, popularSnapshot] = await Promise.all([
+        getDocs(latestQuery),
+        getDocs(popularQuery)
+      ]);
+
+      // 최신 업데이트 데이터 변환
+      if (!latestSnapshot.empty) {
+        const latest = latestSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            title: data.title || '제목 없음',
+            author: data.authorName || '익명',
+            category: data.category || '일반',
+            timeAgo: getTimeAgo(data.updatedAt?.toDate()),
+            views: data.views || 0,
+            likes: data.likes || 0
+          };
+        });
+        setLatestPages(latest);
+      }
+
+      // 인기 페이지 데이터 변환
+      if (!popularSnapshot.empty) {
+        const popular = popularSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            title: data.title || '제목 없음',
+            description: data.description || '설명 없음',
+            author: data.authorName || '익명',
+            category: data.category || '일반',
+            likes: data.likes || 0,
+            views: data.views || 0,
+            tags: data.tags || []
+          };
+        });
+        setPopularPagesList(popular);
+      }
+    } catch (error) {
+      console.error('페이지 데이터 가져오기 실패:', error);
+      // 에러 발생 시 기본 데이터 사용
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 시간 경과 계산
+  const getTimeAgo = (date: Date | undefined): string => {
+    if (!date) return '알 수 없음';
+    
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}일 전`;
+    if (hours > 0) return `${hours}시간 전`;
+    return '방금 전';
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* 상단 히어로 섹션 */}
       <div className="relative bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          {/* 작은 장식용 아이콘들 */}
-          <div className="flex justify-center mb-8 space-x-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <span className="text-2xl">🏢</span>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <span className="text-2xl">💰</span>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-              <span className="text-2xl">💻</span>
-            </div>
-            <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center">
-              <span className="text-2xl">🎨</span>
-            </div>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 py-32">
             나만의{' '}
             <span className="text-blue-600">시작페이지</span>를{' '}
             <span className="text-purple-600">만들어보세요</span>
-            <br />
-            <span className="text-green-600">창의적이고 개성있는</span> 디지털 공간을 시작하세요
           </h1>
-          
-          {/* 검색창 */}
-          <div className="flex justify-center mt-8 mb-32">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center justify-center pointer-events-none">
-                <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                className="block w-60 pl-10 pr-3 py-3 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="건축, 웹개발, 디자이너와 같은 리소스 검색"
-              />
-            </div>
-          </div>
         </div>
       </div>
 
       {/* 최신 업데이트 & 인기 시작페이지 섹션 */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="max-w-5xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-2 gap-6">
           {/* 최신 업데이트 목록 */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                <Clock className="w-6 h-6 mr-2 text-blue-600" />
+          <div className="bg-white rounded-2xl shadow-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                <Clock className="w-5 h-5 mr-2 text-blue-600" />
                 최신 업데이트
               </h2>
-              <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
-                더보기 <ArrowRight className="w-4 h-4 ml-1" />
+              <button className="text-blue-600 hover:text-blue-700 text-xs font-medium flex items-center">
+                더보기 <ArrowRight className="w-3 h-3 ml-1" />
               </button>
             </div>
             
-            <div className="space-y-4">
-              {latestUpdates.map((update) => (
-                <div key={update.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
+            <div className="space-y-1.5">
+              {latestPages.map((update) => (
+                <div key={update.id} className="border border-gray-100 rounded-lg p-2 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">{update.title}</h3>
-                      <div className="flex items-center text-sm text-gray-600 mb-2">
-                        <User className="w-4 h-4 mr-1" />
-                        {update.author} • 
-                        <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
+                      <h3 className="font-semibold text-xs text-gray-900 mb-0.5">{update.title}</h3>
+                      <div className="flex items-center text-xs text-gray-600 mb-0.5">
+                        <User className="w-2.5 h-2.5 mr-0.5" />
+                        <span className="text-xs">{update.author}</span>
+                        <span className="mx-1">•</span>
+                        <span className="px-1 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
                           {update.category}
                         </span>
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
-                        <Clock className="w-3 h-3 mr-1" />
+                        <Clock className="w-2.5 h-2.5 mr-0.5" />
                         {update.timeAgo}
-                        <span className="mx-2">•</span>
-                        <Eye className="w-3 h-3 mr-1" />
+                        <span className="mx-1">•</span>
+                        <Eye className="w-2.5 h-2.5 mr-0.5" />
                         {update.views.toLocaleString()}회
-                        <span className="mx-2">•</span>
-                        <ThumbsUp className="w-3 h-3 mr-1" />
+                        <span className="mx-1">•</span>
+                        <ThumbsUp className="w-2.5 h-2.5 mr-0.5" />
                         {update.likes}개
                       </div>
                     </div>
@@ -299,42 +453,43 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
           </div>
 
           {/* 인기 시작페이지 목록 */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                <Star className="w-6 h-6 mr-2 text-yellow-500" />
+          <div className="bg-white rounded-2xl shadow-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                <Star className="w-5 h-5 mr-2 text-yellow-500" />
                 인기 시작페이지
               </h2>
-              <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
-                더보기 <ArrowRight className="w-4 h-4 ml-1" />
+              <button className="text-blue-600 hover:text-blue-700 text-xs font-medium flex items-center">
+                더보기 <ArrowRight className="w-3 h-3 ml-1" />
               </button>
             </div>
             
-            <div className="space-y-4">
-              {popularPages.map((page) => (
-                <div key={page.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
+            <div className="space-y-1.5">
+              {popularPagesList.map((page) => (
+                <div key={page.id} className="border border-gray-100 rounded-lg p-2 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">{page.title}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{page.description}</p>
-                      <div className="flex items-center text-sm text-gray-600 mb-2">
-                        <User className="w-4 h-4 mr-1" />
-                        {page.author} • 
-                        <span className="ml-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
+                      <h3 className="font-semibold text-xs text-gray-900 mb-0.5">{page.title}</h3>
+                      <p className="text-xs text-gray-600 mb-0.5 line-clamp-1">{page.description}</p>
+                      <div className="flex items-center text-xs text-gray-600 mb-0.5">
+                        <User className="w-2.5 h-2.5 mr-0.5" />
+                        <span className="text-xs">{page.author}</span>
+                        <span className="mx-1">•</span>
+                        <span className="px-1 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
                           {page.category}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center text-xs text-gray-500">
-                          <ThumbsUp className="w-3 h-3 mr-1" />
+                          <ThumbsUp className="w-2.5 h-2.5 mr-0.5" />
                           {page.likes.toLocaleString()}개
-                          <span className="mx-2">•</span>
-                          <Eye className="w-3 h-3 mr-1" />
+                          <span className="mx-1">•</span>
+                          <Eye className="w-2.5 h-2.5 mr-0.5" />
                           {page.views.toLocaleString()}회
                         </div>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-0.5">
                           {page.tags.slice(0, 2).map((tag) => (
-                            <span key={tag} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                            <span key={tag} className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
                               #{tag}
                             </span>
                           ))}
@@ -346,22 +501,6 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
               ))}
             </div>
           </div>
-        </div>
-      </div>
-      
-      {/* 카테고리 섹션 */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-6">
-          {categories.map((category) => (
-            <CategoryHoverCard
-              key={category.id}
-              icon={category.icon}
-              title={category.title}
-              description={category.description}
-              subCategories={category.subCategories}
-              onClick={(subCategoryId) => onCategorySelect(category.id, subCategoryId)}
-            />
-          ))}
         </div>
       </div>
     </div>

@@ -27,8 +27,6 @@ interface BookmarkState {
     name: string;
     url: string;
   };
-  groupByDomain: boolean;
-  searchQuery: string;
 }
 
 const DEFAULT_BOOKMARKS: Bookmark[] = [
@@ -43,9 +41,7 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     const saved = readLocal(widget.id, {
       bookmarks: DEFAULT_BOOKMARKS,
       showAddForm: false,
-      newBookmark: { name: '', url: '' },
-      groupByDomain: false,
-      searchQuery: ''
+      newBookmark: { name: '', url: '' }
     });
     return saved;
   });
@@ -172,64 +168,13 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     window.open(url, '_blank', 'noopener,noreferrer');
   }, []);
 
-  // 필터링된 북마크
+  // 북마크 목록 (검색/필터링 없이 그대로 사용)
   const filteredBookmarks = useMemo(() => {
-    let filtered = state.bookmarks;
-    
-    if (state.searchQuery) {
-      filtered = filtered.filter(bm => 
-        bm.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-        bm.url.toLowerCase().includes(state.searchQuery.toLowerCase())
-      );
-    }
-    
-    if (state.groupByDomain) {
-      filtered = filtered.sort((a, b) => {
-        try {
-          const domainA = new URL(normalizeUrl(a.url)).hostname;
-          const domainB = new URL(normalizeUrl(b.url)).hostname;
-          return domainA.localeCompare(domainB);
-        } catch {
-          return 0;
-        }
-      });
-    }
-    
-    return filtered;
-  }, [state.bookmarks, state.searchQuery, state.groupByDomain]);
+    return state.bookmarks;
+  }, [state.bookmarks]);
 
   return (
     <div className="p-3">
-      <div className="text-center mb-3">
-        <div className="text-2xl mb-1">🔖</div>
-        <h4 className="font-semibold text-sm text-gray-800">즐겨찾기</h4>
-      </div>
-
-      {/* 검색 및 그룹핑 */}
-      {state.bookmarks.length > 0 && (
-        <div className="space-y-2 mb-3">
-          <input
-            type="text"
-            value={state.searchQuery}
-            onChange={(e) => setState(prev => ({ ...prev, searchQuery: e.target.value }))}
-            placeholder="북마크 검색..."
-            className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-            aria-label="북마크 검색"
-          />
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1 text-xs">
-              <input
-                type="checkbox"
-                checked={state.groupByDomain}
-                onChange={(e) => setState(prev => ({ ...prev, groupByDomain: e.target.checked }))}
-                className="w-3 h-3"
-              />
-              도메인별 정렬
-            </label>
-          </div>
-        </div>
-      )}
-
       {/* 북마크 그리드 */}
       <div className="grid grid-cols-2 gap-2 mb-3">
         {filteredBookmarks.map((bookmark, index) => (

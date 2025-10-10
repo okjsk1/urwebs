@@ -153,7 +153,12 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
       autoPlay: false,
       autoPlayInterval: 3 // 기본 3초
     });
-    return saved;
+    // words와 studyQueue가 배열인지 확인하고 아니면 기본값 사용
+    return {
+      ...saved,
+      words: Array.isArray(saved.words) ? saved.words : DEFAULT_WORDS,
+      studyQueue: Array.isArray(saved.studyQueue) ? saved.studyQueue : []
+    };
   });
 
   const quizInputRef = useRef<HTMLInputElement>(null);

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // Firebase 설정
@@ -17,6 +17,11 @@ const app = initializeApp(firebaseConfig);
 
 // Authentication 인스턴스
 export const auth = getAuth(app);
+
+// 브라우저 세션이 끝나면 로그아웃되도록 설정 (새로고침은 유지, 브라우저 닫으면 로그아웃)
+setPersistence(auth, browserSessionPersistence).catch((error) => {
+  console.error('Firebase persistence 설정 실패:', error);
+});
 
 // Firestore 인스턴스
 export const db = getFirestore(app);

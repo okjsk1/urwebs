@@ -112,7 +112,11 @@ export const SocialWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
         theme: 'default'
       }
     });
-    return saved;
+    // accounts가 배열인지 확인하고 아니면 기본값 사용
+    return {
+      ...saved,
+      accounts: Array.isArray(saved.accounts) ? saved.accounts : DEFAULT_ACCOUNTS
+    };
   });
 
   // 상태 저장
