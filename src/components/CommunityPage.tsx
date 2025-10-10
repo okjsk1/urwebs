@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Textarea } from './ui/textarea';
+import { auth } from '../firebase/config';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { 
   Search, 
   Plus, 
@@ -16,7 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  Send
+  Send,
+  Lock
 } from 'lucide-react';
 
 interface Post {
@@ -124,6 +127,15 @@ export function CommunityPage() {
     category: '자유' as Post['category']
   });
   const [newComment, setNewComment] = useState('');
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+
+  // Firebase 인증 상태 감지
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const categories = ['전체', '자유', '질문', '정보', '후기', '건의'];
   const itemsPerPage = 10;
@@ -156,6 +168,14 @@ export function CommunityPage() {
     }
   };
 
+  const handleWriteClick = () => {
+    if (!currentUser) {
+      alert('로그인이 필요한 서비스입니다. 먼저 로그인해주세요.');
+      return;
+    }
+    setShowWriteForm(true);
+  };
+
   const handleSubmitPost = () => {
     console.log('새 게시글:', newPost);
     setShowWriteForm(false);
@@ -163,6 +183,10 @@ export function CommunityPage() {
   };
 
   const handleSubmitComment = () => {
+    if (!currentUser) {
+      alert('로그인이 필요한 서비스입니다. 먼저 로그인해주세요.');
+      return;
+    }
     if (!newComment.trim()) return;
     console.log('새 댓글:', newComment);
     setNewComment('');
@@ -232,14 +256,25 @@ export function CommunityPage() {
               <Textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="댓글을 작성하세요..."
+                placeholder={currentUser ? "댓글을 작성하세요..." : "로그인이 필요한 서비스입니다."}
                 className="flex-1 resize-none"
                 rows={3}
+                disabled={!currentUser}
               />
-              <Button onClick={handleSubmitComment} className="self-end">
+              <Button 
+                onClick={handleSubmitComment} 
+                className="self-end"
+                disabled={!currentUser || !newComment.trim()}
+              >
                 <Send className="w-4 h-4" />
               </Button>
             </div>
+            {!currentUser && (
+              <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">
+                <Lock className="w-3 h-3" />
+                댓글을 작성하려면 로그인이 필요합니다.
+              </p>
+            )}
           </div>
 
           {/* 댓글 목록 */}
@@ -372,9 +407,21 @@ export function CommunityPage() {
             </select>
           </div>
           
-          <Button onClick={() => setShowWriteForm(true)} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            글쓰기
+          <Button 
+            onClick={handleWriteClick} 
+            className={`${currentUser ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 hover:bg-gray-500'} flex items-center gap-2`}
+          >
+            {currentUser ? (
+              <>
+                <Plus className="w-4 h-4" />
+                글쓰기
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4" />
+                로그인 후 글쓰기
+              </>
+            )}
           </Button>
         </div>
       </div>

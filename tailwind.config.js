@@ -1,0 +1,19 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  darkMode: 'class',
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        gray: {
+          750: '#374151', // 다크모드용 중간 회색
+        }
+      }
+    },
+  },
+  plugins: [],
+}
+

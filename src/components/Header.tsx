@@ -37,17 +37,17 @@ export function Header({
 
   const isAdmin = currentUser?.email === 'okjsk1@gmail.com';
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-50 shadow-sm">
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div 
           className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={onNavigateHome}
         >
           <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               URWEBS
             </h1>
-            <p className="text-xs text-gray-600">편하고로 빠르게 시작하세요</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">편하고로 빠르게 시작하세요</p>
           </div>
         </div>
         
@@ -56,8 +56,8 @@ export function Header({
             variant="ghost" 
             size="sm" 
             onClick={onNavigateNotice}
-            className={`text-gray-700 hover:text-blue-600 transition-colors font-semibold ${
-              currentPage === 'notice' ? 'text-blue-600 bg-blue-50' : ''
+            className={`text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-semibold ${
+              currentPage === 'notice' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900' : ''
             }`}
           >
             공지사항
@@ -66,8 +66,8 @@ export function Header({
             variant="ghost" 
             size="sm" 
             onClick={onNavigateCommunity}
-            className={`text-gray-700 hover:text-blue-600 transition-colors font-semibold ${
-              currentPage === 'community' ? 'text-blue-600 bg-blue-50' : ''
+            className={`text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-semibold ${
+              currentPage === 'community' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900' : ''
             }`}
           >
             자유게시판
@@ -76,8 +76,8 @@ export function Header({
             variant="ghost" 
             size="sm" 
             onClick={onNavigateContact}
-            className={`text-gray-700 hover:text-blue-600 transition-colors font-semibold ${
-              currentPage === 'contact' ? 'text-blue-600 bg-blue-50' : ''
+            className={`text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-semibold ${
+              currentPage === 'contact' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900' : ''
             }`}
           >
             문의하기
@@ -86,8 +86,8 @@ export function Header({
             variant="ghost" 
             size="sm" 
             onClick={onNavigateMyPage}
-            className={`text-gray-700 hover:text-blue-600 transition-colors font-semibold ${
-              currentPage === 'mypage' ? 'text-blue-600 bg-blue-50' : ''
+            className={`text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-semibold ${
+              currentPage === 'mypage' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900' : ''
             }`}
           >
             나의 페이지
@@ -99,8 +99,8 @@ export function Header({
               variant="ghost" 
               size="sm" 
               onClick={onNavigateAdminInquiries}
-              className={`text-gray-700 hover:text-purple-600 transition-colors font-semibold ${
-                currentPage === 'admin-inquiries' ? 'text-purple-600 bg-purple-50' : ''
+              className={`text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-semibold ${
+                currentPage === 'admin-inquiries' ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900' : ''
               }`}
             >
               관리페이지

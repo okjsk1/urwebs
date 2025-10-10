@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CategoryHoverCard } from './CategoryHoverCard';
 import { db } from '../firebase/config';
 import { collection, getDocs, query, orderBy, where, limit } from 'firebase/firestore';
@@ -81,6 +82,7 @@ const categories: Category[] = [
 
 interface LatestUpdate {
   id: string;
+  urlId?: string;
   title: string;
   author: string;
   category: string;
@@ -92,6 +94,7 @@ interface LatestUpdate {
 
 interface PopularPage {
   id: string;
+  urlId?: string;
   title: string;
   description: string;
   author: string;
@@ -111,8 +114,10 @@ const latestUpdates: LatestUpdate[] = [];
 const popularPages: PopularPage[] = [];
 
 export function HomePageNew({ onCategorySelect }: HomePageProps) {
+  const navigate = useNavigate();
   const [latestPages, setLatestPages] = useState<LatestUpdate[]>(latestUpdates);
   const [popularPagesList, setPopularPagesList] = useState<PopularPage[]>(popularPages);
+  const [allPagesList, setAllPagesList] = useState<PopularPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -155,14 +160,24 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
         orderBy('views', 'desc'),
         limit(10)
       );
+      
+      // 전체 페이지 가져오기 (공개된 페이지, 생성일 기준 10개)
+      const allPagesQuery = query(
+        pagesRef,
+        where('isPublic', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(10)
+      );
 
-      const [latestSnapshot, popularSnapshot] = await Promise.all([
+      const [latestSnapshot, popularSnapshot, allPagesSnapshot] = await Promise.all([
         getDocs(latestQuery),
-        getDocs(popularQuery)
+        getDocs(popularQuery),
+        getDocs(allPagesQuery)
       ]);
 
       console.log('최신 업데이트 개수:', latestSnapshot.docs.length);
       console.log('인기 페이지 개수:', popularSnapshot.docs.length);
+      console.log('전체 페이지 개수:', allPagesSnapshot.docs.length);
 
       // 최신 업데이트 데이터 변환
       if (!latestSnapshot.empty) {
@@ -171,6 +186,7 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
           console.log('최신 업데이트 문서:', doc.id, data);
           return {
             id: doc.id,
+            urlId: data.urlId || doc.id, // URL ID 추가
             title: data.title || '제목 없음',
             author: data.authorName || '익명',
             category: data.category || '일반',
@@ -190,6 +206,7 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
           console.log('인기 페이지 문서:', doc.id, data);
           return {
             id: doc.id,
+            urlId: data.urlId || doc.id,
             title: data.title || '제목 없음',
             description: data.description || '설명 없음',
             author: data.authorName || '익명',
@@ -201,6 +218,27 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
         });
         setPopularPagesList(popular);
         console.log('인기 페이지 설정 완료:', popular);
+      }
+      
+      // 전체 페이지 데이터 변환
+      if (!allPagesSnapshot.empty) {
+        const allPages = allPagesSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          console.log('전체 페이지 문서:', doc.id, data);
+          return {
+            id: doc.id,
+            urlId: data.urlId || doc.id,
+            title: data.title || '제목 없음',
+            description: data.description || '설명 없음',
+            author: data.authorName || '익명',
+            category: data.category || '일반',
+            likes: data.likes || 0,
+            views: data.views || 0,
+            tags: data.tags || []
+          };
+        });
+        setAllPagesList(allPages);
+        console.log('전체 페이지 설정 완료:', allPages);
       }
     } catch (error) {
       console.error('페이지 데이터 가져오기 실패:', error);
@@ -215,48 +253,54 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* 상단 히어로 섹션 */}
-      <div className="relative bg-gray-50">
+      <div className="relative bg-gray-50 dark:bg-gray-800">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 py-32">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white py-32">
             나만의{' '}
-            <span className="text-blue-600">시작페이지</span>를{' '}
-            <span className="text-purple-600">만들어보세요</span>
+            <span className="text-blue-600 dark:text-blue-400">시작페이지</span>를{' '}
+            <span className="text-purple-600 dark:text-purple-400">만들어보세요</span>
           </h1>
         </div>
       </div>
 
-      {/* 최신 업데이트 & 인기 시작페이지 섹션 */}
-      <div className="max-w-5xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-2 gap-6">
+      {/* 최신 업데이트 & 전체 페이지 & 인기 시작페이지 섹션 */}
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 최신 업데이트 목록 */}
-          <div className="bg-white rounded-2xl shadow-lg p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center">
-                <Clock className="w-5 h-5 mr-2 text-blue-600" />
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                 최신 업데이트
               </h2>
-              <button className="text-blue-600 hover:text-blue-700 text-xs font-medium flex items-center">
+              <button 
+                onClick={() => navigate('/pages?type=latest')}
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-xs font-medium flex items-center"
+              >
                 더보기 <ArrowRight className="w-3 h-3 ml-1" />
               </button>
             </div>
             
             <div className="space-y-1.5">
               {latestPages.map((update) => (
-                <div key={update.id} className="border border-gray-100 rounded-lg p-2 hover:shadow-md transition-shadow cursor-pointer">
+                <div 
+                  key={update.id} 
+                  className="border border-gray-100 dark:border-gray-600 rounded-lg p-2 hover:shadow-md transition-shadow cursor-pointer bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  onClick={() => update.urlId && navigate(`/${update.urlId}`)}
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-xs text-gray-900 mb-0.5">{update.title}</h3>
-                      <div className="flex items-center text-xs text-gray-600 mb-0.5">
+                      <h3 className="font-semibold text-xs text-gray-900 dark:text-white mb-0.5">{update.title}</h3>
+                      <div className="flex items-center text-xs text-gray-600 dark:text-gray-300 mb-0.5">
                         <User className="w-2.5 h-2.5 mr-0.5" />
                         <span className="text-xs">{update.author}</span>
                         <span className="mx-1">•</span>
-                        <span className="px-1 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
+                        <span className="px-1 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded-full text-xs">
                           {update.category}
                         </span>
                       </div>
-                      <div className="flex items-center text-xs text-gray-500">
+                      <div className="flex items-center text-xs text-gray-500 dark:text-gray-300">
                         <Clock className="w-2.5 h-2.5 mr-0.5" />
                         {update.timeAgo}
                         <span className="mx-1">•</span>
@@ -273,35 +317,41 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
             </div>
           </div>
 
-          {/* 인기 시작페이지 목록 */}
-          <div className="bg-white rounded-2xl shadow-lg p-4">
+          {/* 전체 페이지 목록 */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center">
-                <Star className="w-5 h-5 mr-2 text-yellow-500" />
-                인기 시작페이지
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                전체 페이지
               </h2>
-              <button className="text-blue-600 hover:text-blue-700 text-xs font-medium flex items-center">
+              <button 
+                onClick={() => navigate('/pages?type=all')}
+                className="text-blue-600 hover:text-blue-700 text-xs font-medium flex items-center"
+              >
                 더보기 <ArrowRight className="w-3 h-3 ml-1" />
               </button>
             </div>
             
             <div className="space-y-1.5">
-              {popularPagesList.map((page) => (
-                <div key={page.id} className="border border-gray-100 rounded-lg p-2 hover:shadow-md transition-shadow cursor-pointer">
+              {allPagesList.map((page) => (
+                <div 
+                  key={page.id} 
+                  className="border border-gray-100 dark:border-gray-600 rounded-lg p-2 hover:shadow-md transition-shadow cursor-pointer bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  onClick={() => page.urlId && navigate(`/${page.urlId}`)}
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-xs text-gray-900 mb-0.5">{page.title}</h3>
-                      <p className="text-xs text-gray-600 mb-0.5 line-clamp-1">{page.description}</p>
-                      <div className="flex items-center text-xs text-gray-600 mb-0.5">
+                      <h3 className="font-semibold text-xs text-gray-900 dark:text-white mb-0.5">{page.title}</h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mb-0.5 line-clamp-1">{page.description}</p>
+                      <div className="flex items-center text-xs text-gray-600 dark:text-gray-300 mb-0.5">
                         <User className="w-2.5 h-2.5 mr-0.5" />
                         <span className="text-xs">{page.author}</span>
                         <span className="mx-1">•</span>
-                        <span className="px-1 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
+                        <span className="px-1 py-0.5 bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 rounded-full text-xs">
                           {page.category}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center text-xs text-gray-500">
+                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                           <ThumbsUp className="w-2.5 h-2.5 mr-0.5" />
                           {page.likes.toLocaleString()}개
                           <span className="mx-1">•</span>
@@ -310,7 +360,63 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
                         </div>
                         <div className="flex flex-wrap gap-0.5">
                           {page.tags.slice(0, 2).map((tag) => (
-                            <span key={tag} className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                            <span key={tag} className="px-1 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-200 rounded text-xs">
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 인기 시작페이지 목록 */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                인기 시작페이지
+              </h2>
+              <button 
+                onClick={() => navigate('/pages?type=popular')}
+                className="text-blue-600 hover:text-blue-700 text-xs font-medium flex items-center"
+              >
+                더보기 <ArrowRight className="w-3 h-3 ml-1" />
+              </button>
+            </div>
+            
+            <div className="space-y-1.5">
+              {popularPagesList.map((page) => (
+                <div 
+                  key={page.id} 
+                  className="border border-gray-100 dark:border-gray-600 rounded-lg p-2 hover:shadow-md transition-shadow cursor-pointer bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  onClick={() => page.urlId && navigate(`/${page.urlId}`)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-xs text-gray-900 dark:text-white mb-0.5">{page.title}</h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mb-0.5 line-clamp-1">{page.description}</p>
+                      <div className="flex items-center text-xs text-gray-600 dark:text-gray-300 mb-0.5">
+                        <User className="w-2.5 h-2.5 mr-0.5" />
+                        <span className="text-xs">{page.author}</span>
+                        <span className="mx-1">•</span>
+                        <span className="px-1 py-0.5 bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 rounded-full text-xs">
+                          {page.category}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                          <ThumbsUp className="w-2.5 h-2.5 mr-0.5" />
+                          {page.likes.toLocaleString()}개
+                          <span className="mx-1">•</span>
+                          <Eye className="w-2.5 h-2.5 mr-0.5" />
+                          {page.views.toLocaleString()}회
+                        </div>
+                        <div className="flex flex-wrap gap-0.5">
+                          {page.tags.slice(0, 2).map((tag) => (
+                            <span key={tag} className="px-1 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-200 rounded text-xs">
                               #{tag}
                             </span>
                           ))}

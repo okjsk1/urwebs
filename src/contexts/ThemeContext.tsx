@@ -155,6 +155,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
+    console.log('테마 전환:', theme, '→', newTheme);
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
   };
@@ -183,8 +184,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // 다크모드 클래스 추가/제거
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+      console.log('🌙 다크모드 활성화:', document.documentElement.classList.contains('dark'));
     } else {
       document.documentElement.classList.remove('dark');
+      console.log('☀️ 라이트모드 활성화:', !document.documentElement.classList.contains('dark'));
     }
   }, [theme, colorPalette]);
 

@@ -141,7 +141,7 @@ export function MyPage() {
   });
 
   const [shareSettings, setShareSettings] = useState<ShareSettings>({
-    isPublic: false,
+    isPublic: true,
     customDomain: 'user123', // 실제로는 사용자 ID나 사용자명을 가져와야 함
     allowComments: true,
     showStats: true
@@ -163,6 +163,11 @@ export function MyPage() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(pageTitle);
   const [isTitleManuallyEdited, setIsTitleManuallyEdited] = useState(false);
+  
+  // URL 관리
+  const [customUrl, setCustomUrl] = useState<string>('');
+  const [isEditingUrl, setIsEditingUrl] = useState(false);
+  const [tempUrl, setTempUrl] = useState('');
   
   // 페이지 관리 상태
   const [pages, setPages] = useState<Page[]>([]);
@@ -267,17 +272,15 @@ export function MyPage() {
     console.log('hasVisitedMyPage:', hasVisitedMyPage);
     console.log('savedPages:', savedPages);
     
-    // 비로그인 상태
+    // 비로그인 상태 - 항상 템플릿 선택창 표시
     if (!currentUser) {
       const guestPages = localStorage.getItem('myPages');
-      // 저장된 페이지가 없으면 템플릿 모달 표시
-      if (!hasVisitedMyPage || !guestPages) {
-        console.log('→ 비로그인 사용자 첫 방문 또는 페이지 없음: 템플릿 모달 표시');
-        setShowTemplateModal(true);
-        localStorage.setItem(userVisitKey, 'true');
-      } else {
-        console.log('→ 비로그인 사용자 재방문 (저장된 페이지 있음): 모달 표시 안함');
-      }
+      console.log('게스트 페이지 데이터:', guestPages);
+      
+      // 비로그인 상태는 항상 템플릿 모달 표시
+      console.log('→ 비로그인 사용자: 템플릿 모달 표시');
+      setShowTemplateModal(true);
+      localStorage.setItem(userVisitKey, 'true');
       return;
     }
     
@@ -498,7 +501,28 @@ export function MyPage() {
       setWidgets([]);
       setPageTitle("'김사용자'님의 페이지");
     }
-  }, [currentPageId, pages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPageId]); // pages는 의존성에서 제외 (무한 루프 방지)
+  
+  // 커스텀 URL 복원 (currentPageId 변경 시)
+  useEffect(() => {
+    if (currentUser && currentPageId && pages.length > 0) {
+      const savedUrl = localStorage.getItem(`customUrl_${currentUser.id}_${currentPageId}`);
+      if (savedUrl) {
+        setCustomUrl(savedUrl);
+      } else {
+        const userPageIndex = pages.findIndex(p => p.id === currentPageId) + 1;
+        if (userPageIndex > 0) {
+          // 이메일에서 @ 앞부분 추출
+          const userId = currentUser.email?.split('@')[0] || 'user';
+          const defaultUrl = `${userId}_${userPageIndex}`;
+          setCustomUrl(defaultUrl);
+        }
+      }
+    } else if (!currentUser || !currentPageId) {
+      setCustomUrl('');
+    }
+  }, [currentPageId, currentUser, pages.length]);
 
   // 템플릿은 이제 import한 templates 사용
 
@@ -1343,8 +1367,13 @@ export function MyPage() {
       localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
       // 공개 설정도 함께 저장
       localStorage.setItem(`shareSettings_${currentUser.id}`, JSON.stringify(shareSettings));
+      // 커스텀 URL도 저장
+      if (customUrl) {
+        localStorage.setItem(`customUrl_${currentUser.id}_${currentPageId}`, customUrl);
+      }
       console.log('페이지 저장됨 (사용자:', currentUser.id, '):', updatedPages);
       console.log('공개 설정 저장됨:', shareSettings);
+      console.log('커스텀 URL:', customUrl);
     } else {
       localStorage.setItem('myPages', JSON.stringify(updatedPages));
       // 게스트도 공개 설정 저장
@@ -1361,6 +1390,12 @@ export function MyPage() {
         const currentPage = updatedPages.find(p => p.id === targetPageId);
         if (!currentPage) return;
 
+        // 페이지 번호 계산 (사용자의 몇 번째 페이지인지)
+        const userPageIndex = updatedPages.findIndex(p => p.id === targetPageId) + 1;
+        // URL에 사용할 고유 ID: 사용자 정의 URL 또는 기본 형식 (이메일 아이디 사용)
+        const userId = currentUser.email?.split('@')[0] || 'user';
+        const urlId = customUrl || `${userId}_${userPageIndex}`;
+
         const pageData = {
           title: pageTitle || '제목 없음',
           description: `${widgets.length}개의 위젯으로 구성된 페이지`,
@@ -1369,6 +1404,8 @@ export function MyPage() {
           authorEmail: currentUser.email,
           category: '일반',
           isPublic: shareSettings.isPublic,
+          urlId: urlId, // 공유 URL용 고유 ID
+          pageNumber: userPageIndex, // 페이지 번호
           widgets: widgets.map(w => ({
             id: w.id,
             type: w.type,
@@ -1377,13 +1414,16 @@ export function MyPage() {
             y: w.y,
             width: w.width,
             height: w.height,
-            size: w.size
+            size: w.size,
+            content: w.content // 위젯 내용도 저장
           })),
           tags: [],
           views: 0,
           likes: 0,
           updatedAt: serverTimestamp()
         };
+
+        console.log('생성된 공유 URL ID:', urlId);
 
         // 기존 페이지가 있는지 확인
         const pagesRef = collection(db, 'userPages');
@@ -1407,6 +1447,27 @@ export function MyPage() {
           console.log('Firebase 새 페이지 생성 완료');
         }
         console.log('→ Firebase 저장 완료!');
+        
+        // 공유 URL 생성 (위에서 이미 생성된 urlId 사용)
+        const shareUrl = `${window.location.origin}/${urlId}`;
+        
+        // 성공 메시지 with 공유 URL
+        const message = document.createElement('div');
+        message.className = 'fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[10000] max-w-md';
+        message.innerHTML = `
+          <div class="flex flex-col gap-2">
+            <div class="font-semibold">✓ 저장 및 공개되었습니다!</div>
+            <div class="text-xs opacity-90">공유 URL: <span class="font-mono bg-green-600 px-2 py-1 rounded">${shareUrl}</span></div>
+            <button onclick="navigator.clipboard.writeText('${shareUrl}'); this.textContent='복사됨!'" class="text-xs bg-green-600 hover:bg-green-700 px-2 py-1 rounded mt-1">URL 복사</button>
+          </div>
+        `;
+        document.body.appendChild(message);
+        setTimeout(() => {
+          message.remove();
+        }, 5000); // 5초로 연장
+        
+        console.log('공유 URL:', shareUrl);
+        return;
       } catch (error) {
         console.error('Firebase 저장 실패:', error);
         // Firebase 저장 실패해도 로컬에는 저장되었으므로 계속 진행
@@ -1415,12 +1476,10 @@ export function MyPage() {
       console.log('→ Firebase 저장 조건 미충족 (로그인 안됨 또는 비공개 설정)');
     }
     
-    // 성공 메시지
+    // 성공 메시지 (비공개 또는 게스트)
     const message = document.createElement('div');
     message.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000]';
-    if (currentUser && shareSettings.isPublic) {
-      message.textContent = '✓ 저장 및 공개되었습니다 (메인페이지에 표시됨)';
-    } else if (currentUser) {
+    if (currentUser) {
       message.textContent = '✓ 저장되었습니다 (비공개)';
     } else {
       message.textContent = '✓ 저장되었습니다 (게스트)';
@@ -1706,7 +1765,6 @@ export function MyPage() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'ADD_WIDGET') {
-        console.log('메시지 수신:', event.data.widgetType, 'size:', event.data.size);
         const targetCol = (window as any).targetColumn;
         addWidget(event.data.widgetType, event.data.size || '1x1', targetCol);
         // 사용 후 초기화
@@ -1716,10 +1774,9 @@ export function MyPage() {
 
     window.addEventListener('message', handleMessage);
     return () => {
-      console.log('이벤트 리스너 제거');
       window.removeEventListener('message', handleMessage);
     };
-  }, [addWidget]);
+  }, []); // addWidget을 의존성에서 제거 (한 번만 등록)
 
   // 각 컬럼의 마지막 위젯과 컬럼 하단 여백에 마우스 오버 시 위젯 추가 기능
   const getColumnLastWidget = (columnIndex: number) => {
@@ -3437,23 +3494,68 @@ export function MyPage() {
                     />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <h1 
-                      className="text-xl font-bold text-gray-800 cursor-pointer hover:text-blue-600 transition-colors"
-                      onClick={() => {
-                        setIsEditingTitle(true);
-                        setTempTitle(pageTitle);
-                      }}
-                      title="클릭하여 제목 변경"
-                    >
-                      {pageTitle}
-                    </h1>
-                    <Edit className="w-4 h-4 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors" 
-                          onClick={() => {
-                            setIsEditingTitle(true);
-                            setTempTitle(pageTitle);
-                          }}
-                          title="제목 변경" />
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <h1 
+                        className="text-xl font-bold text-gray-800 cursor-pointer hover:text-blue-600 transition-colors"
+                        onClick={() => {
+                          setIsEditingTitle(true);
+                          setTempTitle(pageTitle);
+                        }}
+                        title="클릭하여 제목 변경"
+                      >
+                        {pageTitle}
+                      </h1>
+                      <Edit className="w-4 h-4 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors" 
+                            onClick={() => {
+                              setIsEditingTitle(true);
+                              setTempTitle(pageTitle);
+                            }}
+                            title="제목 변경" />
+                    </div>
+                    
+                    {/* URL 표시 및 편집 */}
+                    {currentUser && (
+                      isEditingUrl ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">urwebs.com/</span>
+                          <input
+                            type="text"
+                            value={tempUrl}
+                            onChange={(e) => setTempUrl(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                setCustomUrl(tempUrl);
+                                setIsEditingUrl(false);
+                              } else if (e.key === 'Escape') {
+                                setIsEditingUrl(false);
+                              }
+                            }}
+                            onBlur={() => {
+                              setCustomUrl(tempUrl);
+                              setIsEditingUrl(false);
+                            }}
+                            className="text-xs px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+                            placeholder="사용자정의_1"
+                            autoFocus
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded">
+                            urwebs.com/{customUrl || `${currentUser.email?.split('@')[0] || 'user'}_${pages.findIndex(p => p.id === currentPageId) + 1}`}
+                          </span>
+                          <Edit 
+                            className="w-3 h-3 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors" 
+                            onClick={() => {
+                              setIsEditingUrl(true);
+                              setTempUrl(customUrl || `${currentUser.email?.split('@')[0] || 'user'}_${pages.findIndex(p => p.id === currentPageId) + 1}`);
+                            }}
+                            title="URL 변경" 
+                          />
+                        </div>
+                      )
+                    )}
                   </div>
                 )}
               </div>
@@ -3473,7 +3575,7 @@ export function MyPage() {
               </Button>
 
               {/* 페이지 관리 버튼 */}
-            <Button
+              <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
@@ -3486,134 +3588,123 @@ export function MyPage() {
               >
                 <FileText className="w-4 h-4 mr-1" />
                 페이지 ({pages.length})
-            </Button>
+              </Button>
             
-              {/* 비로그인 사용자를 위한 로그인 버튼 */}
-              {!currentUser && (
-                <Button 
-                  variant="default"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      // 로그인 전에 현재 작업 내용을 게스트로 저장
-                      const updatedPages = pages.map(page => {
-                        if (page.id === currentPageId) {
-                          return {
-                            ...page,
-                            title: pageTitle,
-                            widgets: widgets
-                          };
-                        }
-                        return page;
-                      });
-                      localStorage.setItem('myPages', JSON.stringify(updatedPages));
-                      
-                      // 게스트 데이터를 임시 백업
-                      const guestData = localStorage.getItem('myPages');
-                      
-                      // Google 로그인
-                      const result = await signInWithPopup(auth, googleProvider);
-                      const user = result.user;
-                      
-                      // 로그인 성공 시 게스트 데이터를 로그인 사용자 데이터로 이전
-                      if (guestData && user) {
-                        const userKey = `myPages_${user.uid}`;
-                        const existingUserData = localStorage.getItem(userKey);
-                        
-                        // 기존 사용자 데이터가 없으면 게스트 데이터를 이전
-                        if (!existingUserData) {
-                          localStorage.setItem(userKey, guestData);
-                          console.log('게스트 데이터를 로그인 사용자 데이터로 이전 완료');
-                        }
-                      }
-                      
-                      alert('로그인되었습니다! 작업하던 내용이 그대로 유지됩니다.');
-                    } catch (error: any) {
-                      console.error('로그인 오류:', error);
-                      // 팝업 차단이나 사용자가 취소한 경우
-                      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-                        console.log('로그인 팝업이 닫혔습니다.');
-                      } else {
-                        alert('로그인에 실패했습니다. 다시 시도해주세요.');
-                      }
-                    }
-                  }}
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-semibold"
-                  title="로그인하여 페이지를 저장하고 공유하세요"
-                >
-                  <User className="w-4 h-4 mr-1" />
-                  로그인하여 저장하기
-                </Button>
-              )}
-
-              {/* 공개/비공개 토글 버튼 */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 font-medium">공개 설정:</span>
-                <Button 
-                  variant={shareSettings.isPublic ? "default" : "outline"}
-                  size="sm"
-                  onClick={toggleShare}
-                  className={`font-semibold transition-all ${
-                    shareSettings.isPublic 
-                      ? "bg-green-500 hover:bg-green-600 text-black border-green-500 shadow-md" 
-                      : "text-gray-700 hover:text-gray-900 border-gray-500 hover:border-gray-600 bg-gray-100 hover:bg-gray-200"
-                  }`}
-                >
-                  {shareSettings.isPublic ? (
-                    <>
-                      <Unlock className="w-4 h-4 mr-1" />
-                      공개
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4 mr-1" />
-                      비공개
-                    </>
-                  )}
-                </Button>
-                {shareSettings.isPublic && (
-                  <span className="text-xs text-green-600 font-medium">
-                    (저장 시 메인페이지에 표시됨)
-                  </span>
-                )}
-              </div>
-
-              {/* 저장하기 버튼 */}
+              {/* 저장하기 버튼 (로그인 상태에 따라 다르게 표시) */}
               <Button 
                 variant="default"
                 size="sm"
-                onClick={savePage}
+                onClick={currentUser ? savePage : async () => {
+                  try {
+                    // 로그인 전에 현재 작업 내용을 게스트로 저장
+                    const updatedPages = pages.map(page => {
+                      if (page.id === currentPageId) {
+                        return {
+                          ...page,
+                          title: pageTitle,
+                          widgets: widgets
+                        };
+                      }
+                      return page;
+                    });
+                    localStorage.setItem('myPages', JSON.stringify(updatedPages));
+                    
+                    // 게스트 데이터를 임시 백업
+                    const guestData = localStorage.getItem('myPages');
+                    
+                    // Google 로그인
+                    const result = await signInWithPopup(auth, googleProvider);
+                    const user = result.user;
+                    
+                    // 로그인 성공 시 게스트 데이터를 로그인 사용자 데이터로 이전
+                    if (guestData && user) {
+                      const userKey = `myPages_${user.uid}`;
+                      const existingUserData = localStorage.getItem(userKey);
+                      
+                      // 기존 사용자 데이터가 없으면 게스트 데이터를 이전
+                      if (!existingUserData) {
+                        localStorage.setItem(userKey, guestData);
+                        console.log('게스트 데이터를 로그인 사용자 데이터로 이전 완료');
+                      }
+                    }
+                    
+                    alert('로그인되었습니다! 작업하던 내용이 그대로 유지됩니다.');
+                  } catch (error: any) {
+                    console.error('로그인 오류:', error);
+                    // 팝업 차단이나 사용자가 취소한 경우
+                    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+                      console.log('로그인 팝업이 닫혔습니다.');
+                    } else {
+                      alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                    }
+                  }
+                }}
                 className="bg-blue-500 hover:bg-blue-600 text-white font-semibold"
-                title="페이지 저장하기"
+                title={currentUser ? "페이지 저장하기" : "로그인하여 페이지를 저장하고 공유하세요"}
               >
-                <Save className="w-4 h-4 mr-1" />
-                저장하기
+                {currentUser ? (
+                  <>
+                    <Save className="w-4 h-4 mr-1" />
+                    저장하기
+                  </>
+                ) : (
+                  <>
+                    <User className="w-4 h-4 mr-1" />
+                    로그인하여 저장하기
+                  </>
+                )}
               </Button>
-            
+
+              {/* 공개/비공개 토글 버튼 */}
+              <span className="text-sm text-gray-600 font-medium">공개 설정:</span>
+              <Button 
+                variant={shareSettings.isPublic ? "default" : "outline"}
+                size="sm"
+                onClick={toggleShare}
+                className={`font-semibold transition-all ${
+                  shareSettings.isPublic 
+                    ? "bg-green-500 hover:bg-green-600 text-black border-green-500 shadow-md" 
+                    : "text-gray-700 hover:text-gray-900 border-gray-500 hover:border-gray-600 bg-gray-100 hover:bg-gray-200"
+                }`}
+              >
+                {shareSettings.isPublic ? (
+                  <>
+                    <Unlock className="w-4 h-4 mr-1" />
+                    공개
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 mr-1" />
+                    비공개
+                  </>
+                )}
+              </Button>
+              {shareSettings.isPublic && (
+                <span className="text-xs text-green-600 font-medium">
+                  (저장 시 메인페이지에 표시됨)
+                </span>
+              )}
+
               {/* 빠른 액션 버튼들 */}
-              <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+                title={theme === 'light' ? '다크모드' : '라이트모드'}
+              >
+                {theme === 'light' ? <Moon className="w-4 h-4" /> : <SunIcon className="w-4 h-4" />}
+              </Button>
 
-                <Button 
-                  variant="ghost"
-                  size="sm"
-              onClick={toggleTheme}
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                  title={theme === 'light' ? '다크모드' : '라이트모드'}
-            >
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <SunIcon className="w-4 h-4" />}
-            </Button>
-
-            <Button
-                  variant="ghost"
-                  size="sm"
-              onClick={resetToDefault}
-                  className="h-8 w-8 p-0 hover:bg-gray-100 text-red-500 hover:text-red-700"
-                  title="초기화"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetToDefault}
+                className="h-8 w-8 p-0 hover:bg-gray-100 text-red-500 hover:text-red-700"
+                title="초기화"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
