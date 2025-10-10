@@ -106,213 +106,37 @@ interface HomePageProps {
   onCategorySelect: (categoryId: string, subCategory?: string) => void;
 }
 
-const latestUpdates: LatestUpdate[] = [
-  {
-    id: '1',
-    title: '개발자를 위한 올인원 대시보드',
-    author: '김개발',
-    category: '개발/기획',
-    timeAgo: '2시간 전',
-    views: 1240,
-    likes: 89
-  },
-  {
-    id: '2',
-    title: '디자이너의 작업 공간',
-    author: '박디자인',
-    category: 'UI/UX 디자인',
-    timeAgo: '4시간 전',
-    views: 890,
-    likes: 67
-  },
-  {
-    id: '3',
-    title: '투자 포트폴리오 관리',
-    author: '이투자',
-    category: '금융/투자',
-    timeAgo: '6시간 전',
-    views: 2100,
-    likes: 156
-  },
-  {
-    id: '4',
-    title: '유튜버 스케줄 관리',
-    author: '최유튜버',
-    category: '콘텐츠 크리에이터',
-    timeAgo: '8시간 전',
-    views: 756,
-    likes: 45
-  },
-  {
-    id: '5',
-    title: '건축학생 과제 관리',
-    author: '정건축',
-    category: '건축/BIM/CAD/GIS',
-    timeAgo: '12시간 전',
-    views: 432,
-    likes: 28
-  },
-  {
-    id: '6',
-    title: '마케터 데이터 분석 도구',
-    author: '이마케팅',
-    category: '마케팅',
-    timeAgo: '14시간 전',
-    views: 620,
-    likes: 42
-  },
-  {
-    id: '7',
-    title: '학생 일정 관리',
-    author: '김학생',
-    category: '교육',
-    timeAgo: '16시간 전',
-    views: 380,
-    likes: 25
-  },
-  {
-    id: '8',
-    title: '쇼핑몰 운영자 통합 대시보드',
-    author: '박커머스',
-    category: '커머스',
-    timeAgo: '18시간 전',
-    views: 950,
-    likes: 71
-  },
-  {
-    id: '9',
-    title: '헬스 트레이너 회원 관리',
-    author: '최트레이너',
-    category: '헬스/피트니스',
-    timeAgo: '20시간 전',
-    views: 540,
-    likes: 38
-  },
-  {
-    id: '10',
-    title: '블로거 콘텐츠 플래너',
-    author: '정블로거',
-    category: '콘텐츠 크리에이터',
-    timeAgo: '22시간 전',
-    views: 720,
-    likes: 55
-  }
-];
+const latestUpdates: LatestUpdate[] = [];
 
-const popularPages: PopularPage[] = [
-  {
-    id: '1',
-    title: '프리랜서 개발자 생산성 도구',
-    description: '프로젝트 관리부터 시간 추적까지 모든 것을 한 곳에서',
-    author: '김프리',
-    category: '개발/기획',
-    likes: 1250,
-    views: 8900,
-    tags: ['프로젝트관리', '시간추적', '프리랜서']
-  },
-  {
-    id: '2',
-    title: '주식 투자 정보 대시보드',
-    description: '실시간 주가, 뉴스, 분석 리포트를 한눈에',
-    author: '이투자왕',
-    category: '금융/투자',
-    likes: 2100,
-    views: 15600,
-    tags: ['주식', '투자', '분석']
-  },
-  {
-    id: '3',
-    title: '디자이너 영감 수집소',
-    description: '아이디어부터 완성까지 디자인 워크플로우',
-    author: '박크리에이터',
-    category: 'UI/UX 디자인',
-    likes: 980,
-    views: 7200,
-    tags: ['디자인', '영감', '워크플로우']
-  },
-  {
-    id: '4',
-    title: '콘텐츠 크리에이터 스튜디오',
-    description: '영상 제작부터 업로드까지 모든 과정 관리',
-    author: '최유튜브',
-    category: '콘텐츠 크리에이터',
-    likes: 1650,
-    views: 12300,
-    tags: ['유튜브', '콘텐츠', '편집']
-  },
-  {
-    id: '5',
-    title: '건축사 사무소 관리 시스템',
-    description: '프로젝트부터 고객 관리까지 건축사업 통합 솔루션',
-    author: '정건축사',
-    category: '건축/BIM/CAD/GIS',
-    likes: 720,
-    views: 5400,
-    tags: ['건축', '프로젝트관리', 'CAD']
-  },
-  {
-    id: '6',
-    title: 'SNS 마케팅 자동화 도구',
-    description: '여러 채널을 한 곳에서 관리하고 예약 발행',
-    author: '김소셜',
-    category: '마케팅',
-    likes: 890,
-    views: 6700,
-    tags: ['SNS', '마케팅', '자동화']
-  },
-  {
-    id: '7',
-    title: '온라인 강의 제작 워크스페이스',
-    description: '강의 기획부터 촬영, 편집까지 모든 과정',
-    author: '이강사',
-    category: '교육',
-    likes: 650,
-    views: 4800,
-    tags: ['강의', '교육', '온라인']
-  },
-  {
-    id: '8',
-    title: '스타트업 재무 관리 시스템',
-    description: '매출, 비용, 투자 관리를 한눈에',
-    author: '박스타트업',
-    category: '재무/회계',
-    likes: 1100,
-    views: 8200,
-    tags: ['재무', '회계', '스타트업']
-  },
-  {
-    id: '9',
-    title: '부동산 매물 관리 대시보드',
-    description: '매물 정보부터 고객 관리까지 통합 솔루션',
-    author: '최부동산',
-    category: '부동산',
-    likes: 780,
-    views: 5900,
-    tags: ['부동산', '매물', '관리']
-  },
-  {
-    id: '10',
-    title: '작가 집필 관리 스튜디오',
-    description: '아이디어 정리부터 원고 관리까지',
-    author: '정작가',
-    category: '글쓰기',
-    likes: 520,
-    views: 3600,
-    tags: ['집필', '작가', '글쓰기']
-  }
-];
+const popularPages: PopularPage[] = [];
 
 export function HomePageNew({ onCategorySelect }: HomePageProps) {
   const [latestPages, setLatestPages] = useState<LatestUpdate[]>(latestUpdates);
   const [popularPagesList, setPopularPagesList] = useState<PopularPage[]>(popularPages);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchUserPages();
-  }, []);
+  // 시간 경과 계산
+  const getTimeAgo = (date: Date | undefined): string => {
+    if (!date) return '알 수 없음';
+    
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}일 전`;
+    if (hours > 0) return `${hours}시간 전`;
+    return '방금 전';
+  };
 
   const fetchUserPages = async () => {
     try {
+      setError(null);
+      setLoading(true);
+      
+      console.log('Firebase에서 페이지 데이터 가져오기 시작...');
+      
       // 사용자 페이지 컬렉션에서 공개된 페이지들 가져오기
       const pagesRef = collection(db, 'userPages');
       
@@ -337,10 +161,14 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
         getDocs(popularQuery)
       ]);
 
+      console.log('최신 업데이트 개수:', latestSnapshot.docs.length);
+      console.log('인기 페이지 개수:', popularSnapshot.docs.length);
+
       // 최신 업데이트 데이터 변환
       if (!latestSnapshot.empty) {
         const latest = latestSnapshot.docs.map((doc) => {
           const data = doc.data();
+          console.log('최신 업데이트 문서:', doc.id, data);
           return {
             id: doc.id,
             title: data.title || '제목 없음',
@@ -352,12 +180,14 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
           };
         });
         setLatestPages(latest);
+        console.log('최신 업데이트 설정 완료:', latest);
       }
 
       // 인기 페이지 데이터 변환
       if (!popularSnapshot.empty) {
         const popular = popularSnapshot.docs.map((doc) => {
           const data = doc.data();
+          console.log('인기 페이지 문서:', doc.id, data);
           return {
             id: doc.id,
             title: data.title || '제목 없음',
@@ -370,28 +200,19 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
           };
         });
         setPopularPagesList(popular);
+        console.log('인기 페이지 설정 완료:', popular);
       }
     } catch (error) {
       console.error('페이지 데이터 가져오기 실패:', error);
-      // 에러 발생 시 기본 데이터 사용
+      setError('데이터를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
   };
 
-  // 시간 경과 계산
-  const getTimeAgo = (date: Date | undefined): string => {
-    if (!date) return '알 수 없음';
-    
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-    
-    if (days > 0) return `${days}일 전`;
-    if (hours > 0) return `${hours}시간 전`;
-    return '방금 전';
-  };
+  useEffect(() => {
+    fetchUserPages();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">

@@ -1,15 +1,46 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 문의 관리 - 모든 사용자가 읽기/쓰기 가능
+
+    // 각 사용자의 루트 문서
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // 하위 컬렉션들 (필요한 것만 남겨도 됨)
+      match /bookmarks/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /folders/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /widgets/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /settings/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // 공개 읽기만 필요한 문서가 있다면 이런 식으로 별도 컬렉션을 두세요
+    match /public/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 문의 게시판 컬렉션
     match /inquiries/{document} {
-      allow read, write: if request.auth != null;
+      // 모든 사용자가 문의 작성 가능
+      allow create: if true;
+      
+      // 관리자(okjsk1@gmail.com)만 읽기, 수정, 삭제 가능
+      allow read, update, delete: if request.auth != null && 
+        request.auth.token.email == 'okjsk1@gmail.com';
     }
     
     // 템플릿 관리 - 모든 사용자가 읽기 가능, 인증된 사용자가 쓰기 가능
     match /templates/{document} {
-      allow read: if true; // 모든 사용자가 템플릿 읽기 가능
-      allow write: if request.auth != null; // 인증된 사용자만 쓰기 가능
+      allow read: if true;
+      allow write: if request.auth != null;
     }
     
     // 사용자별 템플릿 사용 기록 - 본인 것만 접근 가능
@@ -17,10 +48,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
-    // 기타 문서들 - 기본적으로 인증된 사용자만 접근
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // 사용자 페이지 - 공개된 페이지는 누구나 읽기 가능, 본인 페이지만 쓰기 가능
+    match /userPages/{document} {
+      // 공개된 페이지는 누구나 읽기 가능
+      allow read: if resource.data.isPublic == true || (request.auth != null && request.auth.uid == resource.data.authorId);
+      // 생성은 로그인한 사용자만 가능
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId;
+      // 수정/삭제는 본인만 가능
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
     }
+    
   }
 }
-

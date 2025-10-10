@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, Music, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, Music, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
 import { auth, googleProvider, db } from '../firebase/config';
@@ -13,7 +13,6 @@ import { getWidgetDimensions, isWidgetOverlapping, getNextAvailablePosition, get
 import { templates, getDefaultWidgets } from '../constants/pageTemplates';
 import { templateService } from '../services/templateService';
 import { WidgetPanel } from './MyPage/WidgetPanel';
-import { SaveAsTemplateModal } from './MyPage/SaveAsTemplateModal';
 
 // 위젯 컴포넌트들 import
 import {
@@ -166,16 +165,8 @@ export function MyPage() {
   const [isTitleManuallyEdited, setIsTitleManuallyEdited] = useState(false);
   
   // 페이지 관리 상태
-  const [pages, setPages] = useState([
-    {
-      id: 'page1',
-      title: "'김사용자'님의 페이지",
-      widgets: getDefaultWidgets(),
-      createdAt: new Date().toISOString(),
-      isActive: true
-    }
-  ]);
-  const [currentPageId, setCurrentPageId] = useState('page1');
+  const [pages, setPages] = useState<Page[]>([]);
+  const [currentPageId, setCurrentPageId] = useState<string | null>(null);
 
   // Firebase 인증 상태 감지 및 사용자 정보 업데이트
   useEffect(() => {
@@ -224,7 +215,6 @@ export function MyPage() {
   const [showPageManager, setShowPageManager] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showIntroModal, setShowIntroModal] = useState(false);
-  const [showSaveAsTemplateModal, setShowSaveAsTemplateModal] = useState(false);
   const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [editingWidget, setEditingWidget] = useState<string | null>(null);
@@ -279,25 +269,45 @@ export function MyPage() {
     
     // 비로그인 상태
     if (!currentUser) {
-      // 처음 방문한 경우에만 소개 모달 표시
-      if (!hasVisitedMyPage) {
-        console.log('→ 비로그인 사용자 첫 방문: 소개 모달 표시');
-        setShowIntroModal(true);
+      const guestPages = localStorage.getItem('myPages');
+      // 저장된 페이지가 없으면 템플릿 모달 표시
+      if (!hasVisitedMyPage || !guestPages) {
+        console.log('→ 비로그인 사용자 첫 방문 또는 페이지 없음: 템플릿 모달 표시');
+        setShowTemplateModal(true);
         localStorage.setItem(userVisitKey, 'true');
       } else {
-        console.log('→ 비로그인 사용자 재방문: 모달 표시 안함');
+        console.log('→ 비로그인 사용자 재방문 (저장된 페이지 있음): 모달 표시 안함');
       }
       return;
     }
     
-    // 로그인 상태: 처음 방문하거나 저장된 페이지가 없는 경우
-    if (!hasVisitedMyPage || !savedPages) {
-      // 로그인한 사용자 - 템플릿 모달 표시
-      console.log('→ 로그인 사용자 첫 방문: 템플릿 모달 표시');
+    // 로그인 상태: 저장된 페이지가 있는지 확인
+    if (savedPages) {
+      try {
+        // 저장된 페이지가 있으면 모달 표시하지 않고 바로 해당 페이지 로드
+        const parsedPages = JSON.parse(savedPages);
+        console.log('→ 로그인 사용자 (저장된 페이지 있음): 페이지 바로 로드', parsedPages);
+        
+        if (parsedPages && parsedPages.length > 0) {
+          setPages(parsedPages);
+          setCurrentPageId(parsedPages[0].id);
+          setPageTitle(parsedPages[0].title);
+          setWidgets(parsedPages[0].widgets || []);
+          console.log('→ 첫 번째 페이지로 자동 이동:', parsedPages[0].title);
+        }
+        
+        localStorage.setItem(userVisitKey, 'true');
+      } catch (error) {
+        console.error('저장된 페이지 파싱 오류:', error);
+        // 파싱 오류 시 템플릿 모달 표시
+        setShowTemplateModal(true);
+        localStorage.setItem(userVisitKey, 'true');
+      }
+    } else {
+      // 저장된 페이지가 없으면 템플릿 모달 표시
+      console.log('→ 로그인 사용자 (저장된 페이지 없음): 템플릿 모달 표시');
       setShowTemplateModal(true);
       localStorage.setItem(userVisitKey, 'true');
-    } else {
-      console.log('→ 이미 방문한 로그인 사용자: 모달 표시 안함');
     }
   }, [currentUser]);
 
@@ -308,12 +318,74 @@ export function MyPage() {
 
   // 저장된 페이지 불러오기
   useEffect(() => {
+    // 로그인 사용자의 페이지 불러오기
     if (currentUser) {
       const savedPagesData = localStorage.getItem(`myPages_${currentUser.id}`);
+      const savedShareSettings = localStorage.getItem(`shareSettings_${currentUser.id}`);
+      
+      // 공개 설정 복원
+      if (savedShareSettings) {
+        try {
+          const settings = JSON.parse(savedShareSettings);
+          setShareSettings(settings);
+          console.log('공개 설정 복원됨:', settings);
+        } catch (e) {
+          console.error('공개 설정 복원 실패:', e);
+        }
+      }
+      
       if (savedPagesData) {
         try {
           const loadedPages = JSON.parse(savedPagesData);
-          console.log('저장된 페이지 불러오기:', loadedPages);
+          console.log('저장된 페이지 불러오기 (로그인 사용자):', loadedPages);
+          setPages(loadedPages);
+          
+          // 활성 페이지 찾기
+          const activePage = loadedPages.find((p: any) => p.isActive) || loadedPages[0];
+          if (activePage) {
+            setCurrentPageId(activePage.id);
+            setPageTitle(activePage.title);
+            
+            // 위젯 불러오기 - 검색 위젯 크기 자동 업데이트
+            const updatedWidgets = (activePage.widgets || []).map((widget: Widget) => {
+              if (widget.type === 'google_search' || widget.type === 'naver_search' || 
+                  widget.type === 'law_search') {
+                // 검색 위젯은 4칸 너비, 225px 높이로 업데이트
+                return {
+                  ...widget,
+                  width: (18 + 5) * 4 - 5, // 87px (4칸)
+                  height: 225
+                };
+              }
+              return widget;
+            });
+            
+            setWidgets(updatedWidgets);
+          }
+        } catch (error) {
+          console.error('페이지 로드 실패:', error);
+        }
+      }
+    } else {
+      // 비로그인 사용자의 페이지 불러오기
+      const guestPagesData = localStorage.getItem('myPages');
+      const savedShareSettings = localStorage.getItem('shareSettings_guest');
+      
+      // 공개 설정 복원 (게스트)
+      if (savedShareSettings) {
+        try {
+          const settings = JSON.parse(savedShareSettings);
+          setShareSettings(settings);
+          console.log('공개 설정 복원됨 (게스트):', settings);
+        } catch (e) {
+          console.error('공개 설정 복원 실패 (게스트):', e);
+        }
+      }
+      
+      if (guestPagesData) {
+        try {
+          const loadedPages = JSON.parse(guestPagesData);
+          console.log('저장된 페이지 불러오기 (게스트):', loadedPages);
           setPages(loadedPages);
           
           // 활성 페이지 찾기
@@ -414,57 +486,19 @@ export function MyPage() {
 
   // 현재 페이지의 위젯들 가져오기
   const currentPage = pages.find(page => page.id === currentPageId);
-  const [widgets, setWidgets] = useState(() => {
-    const pageWidgets = currentPage?.widgets || getDefaultWidgets();
-    // 기존 위젯들의 크기와 위치를 새로운 크기로 업데이트
-    return pageWidgets.map((widget, index) => {
-      const col = index % 4;
-      const row = Math.floor(index / 4);
-      
-      // 검색 위젯은 자동으로 크기 조정
-      if (widget.type === 'google_search' || widget.type === 'naver_search' ||
-          widget.type === 'law_search') {
-        return {
-          ...widget,
-          width: 87, // (18 + 5) * 4 - 5 (4칸)
-          height: 225,
-          x: widget.x || 0,
-          y: widget.y || 0 // 검색 위젯은 항상 맨 위에
-        };
-      }
-      
-      // 다른 위젯들의 위치 조정 (검색 위젯 아래에 배치)
-      let adjustedY = widget.y || row * (300 + 5);
-      
-      // 검색 위젯이 있는 경우 그 아래에 배치
-      const hasSearchWidget = pageWidgets.some(w => 
-        (w.type === 'google_search' || w.type === 'naver_search' ||
-         w.type === 'law_search') && 
-        (w.y === 0 || w.y === undefined)
-      );
-      
-      if (hasSearchWidget && row === 0) {
-        // 검색 위젯이 있는 경우 첫 번째 행 위젯들을 검색 위젯 아래로 이동
-        adjustedY = 230; // 검색 위젯 바로 아래 (225 + 5)
-      } else if (hasSearchWidget && row === 1) {
-        // 두 번째 행 위젯들도 적절한 간격으로 배치
-        adjustedY = 310; // 첫 번째 행 아래 (230 + 75 + 5)
-      } else if (hasSearchWidget && row >= 2) {
-        // 세 번째 행 이상의 위젯들도 검색 위젯을 고려하여 배치
-        adjustedY = widget.y || (row * (300 + 5)) + 230; // 검색 위젯 높이만큼 추가 오프셋
-      }
-      
-      return {
-        ...widget,
-        width: widget.width || 300, // 기존 크기 유지하거나 기본값 사용
-        height: widget.height || 300,
-        x: widget.x || col * (300 + 5),
-        y: adjustedY
-      };
-    });
-  });
+  const [widgets, setWidgets] = useState<Widget[]>([]);
 
-
+  // 현재 페이지가 변경될 때 위젯 업데이트
+  useEffect(() => {
+    const page = pages.find(p => p.id === currentPageId);
+    if (page) {
+      setWidgets(page.widgets || []);
+      setPageTitle(page.title);
+    } else {
+      setWidgets([]);
+      setPageTitle("'김사용자'님의 페이지");
+    }
+  }, [currentPageId, pages]);
 
   // 템플릿은 이제 import한 templates 사용
 
@@ -474,13 +508,33 @@ export function MyPage() {
       setLoadingTemplates(true);
       await templateService.initializeDefaultTemplates();
       const templatesData = await templateService.getAllTemplates();
+      
       // 활성화된 템플릿만 필터링
       const activeTemplates = templatesData.filter(template => template.isActive);
-      setAvailableTemplates(activeTemplates);
+      
+      // Firebase에서 가져온 템플릿이 없으면 로컬 템플릿 사용
+      if (activeTemplates.length === 0) {
+        console.log('Firebase에 템플릿이 없음 - 로컬 템플릿 사용');
+        const localTemplates = Object.entries(templates).map(([key, template]) => ({ 
+          id: key, 
+          ...template,
+          isActive: true,
+          isDefault: true
+        }));
+        setAvailableTemplates(localTemplates);
+      } else {
+        setAvailableTemplates(activeTemplates);
+      }
     } catch (error) {
       console.error('템플릿 로드 실패:', error);
       // 오류 시 로컬 템플릿 사용
-      setAvailableTemplates(Object.entries(templates).map(([key, template]) => ({ id: key, ...template })));
+      const localTemplates = Object.entries(templates).map(([key, template]) => ({ 
+        id: key, 
+        ...template,
+        isActive: true,
+        isDefault: true
+      }));
+      setAvailableTemplates(localTemplates);
     } finally {
       setLoadingTemplates(false);
     }
@@ -491,70 +545,40 @@ export function MyPage() {
     loadTemplates(); // 템플릿 모달이 열릴 때 최신 템플릿 로드
   };
 
-  const saveCurrentLayoutAsTemplate = async (templateData: {
-    name: string;
-    description: string;
-    category: string;
-    isPublic: boolean;
-  }) => {
-    try {
-      // 현재 위젯 배치를 템플릿으로 저장
-      const templateToSave = {
-        name: templateData.name,
-        description: templateData.description,
-        category: templateData.category,
-        icon: '🎨',
-        color: '#6366F1',
-        isActive: true,
-        isDefault: false,
-        author: currentUser?.email || 'anonymous',
-        widgetCount: widgets.length,
-        preview: widgets.map(w => w.type),
-        widgets: widgets.map((widget, index) => ({
-          id: `${templateData.name.toLowerCase().replace(/\s+/g, '_')}_${index}`,
-          type: widget.type,
-          x: widget.x,
-          y: widget.y,
-          width: widget.width,
-          height: widget.height,
-          title: widget.title,
-          content: widget.content,
-          zIndex: widget.zIndex,
-          size: widget.size || '2x1'
-        }))
-      };
+  // MyPage 첫 로드 시 템플릿 미리 불러오기
+  useEffect(() => {
+    loadTemplates();
+  }, []);
 
-      await templateService.createTemplate(templateToSave);
-      alert('템플릿이 성공적으로 저장되었습니다!');
-      
-      // 공용 템플릿으로 저장된 경우 다른 사용자들에게 알림
-      if (templateData.isPublic) {
-        console.log('공용 템플릿으로 저장됨 - 다른 사용자들이 사용할 수 있습니다.');
-      }
-    } catch (error) {
-      console.error('템플릿 저장 실패:', error);
-      alert('템플릿 저장에 실패했습니다.');
+  // 템플릿 모달이 열릴 때마다 템플릿 로드
+  useEffect(() => {
+    if (showTemplateModal) {
+      loadTemplates();
     }
-  };
+  }, [showTemplateModal]);
 
   const createPageWithTemplate = async (templateKey: string) => {
     try {
+      // 먼저 로컬 템플릿인지 확인
+      const localTemplate = templates[templateKey as keyof typeof templates];
+      if (localTemplate) {
+        console.log('로컬 템플릿 사용:', templateKey);
+        createPageWithLocalTemplate(localTemplate);
+        return;
+      }
+
       // Firestore에서 최신 템플릿 가져오기
       const templateData = await templateService.getTemplate(templateKey);
       
       if (!templateData) {
         console.error('템플릿을 찾을 수 없습니다:', templateKey);
-        // 폴백: 로컬 템플릿 사용
-        const localTemplate = templates[templateKey as keyof typeof templates];
-        if (localTemplate) {
-          createPageWithLocalTemplate(localTemplate);
-        }
+        alert('템플릿을 불러올 수 없습니다.');
         return;
       }
 
       // 사용자가 이 템플릿을 사용했다고 기록 (Firebase 사용자만)
       if (currentUser) {
-        await templateService.markTemplateAsUsed(currentUser.uid, templateKey);
+        await templateService.markTemplateAsUsed(currentUser.id, templateKey);
       }
 
       const newPageId = `page${Date.now()}`;
@@ -1091,19 +1115,8 @@ export function MyPage() {
 
   // 초기화 함수
   const resetToDefault = () => {
-    const defaultWidgets = getDefaultWidgets();
-    setWidgets(defaultWidgets.map((widget, index) => {
-      const col = index % 4;
-      const row = Math.floor(index / 4);
-      
-      return {
-        ...widget,
-        width: cellWidth,
-        height: cellHeight,
-        x: col * (cellWidth + spacing),
-        y: row * (cellHeight + spacing)
-      };
-    }));
+    setWidgets([]);
+    setPageTitle("'김사용자'님의 페이지");
     setBackgroundSettings({
       type: 'gradient',
       color: '#3B82F6',
@@ -1283,32 +1296,69 @@ export function MyPage() {
 
   // 페이지 저장
   const savePage = useCallback(async () => {
-    const updatedPages = pages.map(page => {
-      if (page.id === currentPageId) {
-        return {
-          ...page,
-          title: pageTitle,
-          widgets: widgets
-        };
-      }
-      return page;
-    });
+    console.log('=== 저장하기 버튼 클릭 ===');
+    console.log('currentUser:', currentUser);
+    console.log('pageTitle:', pageTitle);
+    console.log('widgets:', widgets);
+    console.log('shareSettings.isPublic:', shareSettings.isPublic);
+    
+    // 현재 페이지가 없으면 새 페이지 생성
+    let updatedPages = pages;
+    let targetPageId = currentPageId;
+    
+    if (!currentPageId || !pages.find(p => p.id === currentPageId)) {
+      // 새 페이지 생성
+      const newPageId = `page_${Date.now()}`;
+      const newPage: Page = {
+        id: newPageId,
+        title: pageTitle,
+        widgets: widgets,
+        createdAt: new Date().toISOString(),
+        isActive: true
+      };
+      updatedPages = [...pages, newPage];
+      targetPageId = newPageId;
+      setCurrentPageId(newPageId);
+      setPages(updatedPages);
+      console.log('새 페이지 생성:', newPageId);
+    } else {
+      // 기존 페이지 업데이트
+      updatedPages = pages.map(page => {
+        if (page.id === currentPageId) {
+          return {
+            ...page,
+            title: pageTitle,
+            widgets: widgets
+          };
+        }
+        return page;
+      });
+    }
     
     setPages(updatedPages);
+    console.log('updatedPages:', updatedPages);
     
     // localStorage에 저장 (로컬 백업)
     if (currentUser) {
       localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
+      // 공개 설정도 함께 저장
+      localStorage.setItem(`shareSettings_${currentUser.id}`, JSON.stringify(shareSettings));
       console.log('페이지 저장됨 (사용자:', currentUser.id, '):', updatedPages);
+      console.log('공개 설정 저장됨:', shareSettings);
     } else {
       localStorage.setItem('myPages', JSON.stringify(updatedPages));
+      // 게스트도 공개 설정 저장
+      localStorage.setItem('shareSettings_guest', JSON.stringify(shareSettings));
       console.log('페이지 저장됨 (게스트):', updatedPages);
+      console.log('공개 설정 저장됨 (게스트):', shareSettings);
     }
     
     // Firebase에 저장 (로그인한 사용자만)
+    console.log('Firebase 저장 조건 체크:', { currentUser: !!currentUser, isPublic: shareSettings.isPublic });
     if (currentUser && shareSettings.isPublic) {
+      console.log('→ Firebase 저장 시작');
       try {
-        const currentPage = updatedPages.find(p => p.id === currentPageId);
+        const currentPage = updatedPages.find(p => p.id === targetPageId);
         if (!currentPage) return;
 
         const pageData = {
@@ -1332,8 +1382,7 @@ export function MyPage() {
           tags: [],
           views: 0,
           likes: 0,
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp()
+          updatedAt: serverTimestamp()
         };
 
         // 기존 페이지가 있는지 확인
@@ -1350,25 +1399,68 @@ export function MyPage() {
           });
           console.log('Firebase 페이지 업데이트 완료');
         } else {
-          // 새 페이지 생성
-          await addDoc(pagesRef, pageData);
+          // 새 페이지 생성 (처음 저장할 때만)
+          await addDoc(pagesRef, {
+            ...pageData,
+            createdAt: serverTimestamp()
+          });
           console.log('Firebase 새 페이지 생성 완료');
         }
+        console.log('→ Firebase 저장 완료!');
       } catch (error) {
         console.error('Firebase 저장 실패:', error);
         // Firebase 저장 실패해도 로컬에는 저장되었으므로 계속 진행
       }
+    } else {
+      console.log('→ Firebase 저장 조건 미충족 (로그인 안됨 또는 비공개 설정)');
     }
     
     // 성공 메시지
     const message = document.createElement('div');
     message.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000]';
-    message.textContent = shareSettings.isPublic && currentUser ? '✓ 저장 및 공개되었습니다' : '✓ 저장되었습니다';
+    if (currentUser && shareSettings.isPublic) {
+      message.textContent = '✓ 저장 및 공개되었습니다 (메인페이지에 표시됨)';
+    } else if (currentUser) {
+      message.textContent = '✓ 저장되었습니다 (비공개)';
+    } else {
+      message.textContent = '✓ 저장되었습니다 (게스트)';
+    }
     document.body.appendChild(message);
     setTimeout(() => {
       message.remove();
-    }, 2000);
+    }, 3000);
   }, [pages, currentPageId, pageTitle, widgets, currentUser, shareSettings.isPublic]);
+
+  // 위젯 변경 시 자동 저장 (localStorage에만 저장, Firebase는 수동 저장 버튼으로만)
+  useEffect(() => {
+    // 초기 로드 시에는 저장하지 않음
+    if (widgets.length === 0) return;
+    
+    const autoSave = () => {
+      const updatedPages = pages.map(page => {
+        if (page.id === currentPageId) {
+          return {
+            ...page,
+            title: pageTitle,
+            widgets: widgets
+          };
+        }
+        return page;
+      });
+      
+      // localStorage에만 자동 저장 (조용히)
+      if (currentUser) {
+        localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
+      } else {
+        localStorage.setItem('myPages', JSON.stringify(updatedPages));
+      }
+    };
+    
+    // 디바운스를 위해 타이머 설정 (1초 후 저장)
+    const timer = setTimeout(autoSave, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [widgets, pages, currentPageId, pageTitle, currentUser]);
 
   // 위젯 업데이트
   const updateWidget = useCallback((id: string, updates: Partial<Widget>) => {
@@ -3362,16 +3454,6 @@ export function MyPage() {
                             setTempTitle(pageTitle);
                           }}
                           title="제목 변경" />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowSaveAsTemplateModal(true)}
-                      className="ml-2"
-                      title="현재 배치를 템플릿으로 저장"
-                    >
-                      <Save className="w-4 h-4 mr-1" />
-                      템플릿 저장
-                    </Button>
                   </div>
                 )}
               </div>
@@ -3406,20 +3488,107 @@ export function MyPage() {
                 페이지 ({pages.length})
             </Button>
             
-              {/* 공개/비공개 토글 버튼 */}
-            <Button 
-                variant={shareSettings.isPublic ? "default" : "ghost"}
+              {/* 비로그인 사용자를 위한 로그인 버튼 */}
+              {!currentUser && (
+                <Button 
+                  variant="default"
                   size="sm"
-              onClick={toggleShare}
-                className={shareSettings.isPublic 
-                  ? "bg-green-500 hover:bg-green-600 text-white font-semibold" 
-                  : "text-gray-600 hover:text-green-600 hover:bg-green-50"
-                }
-                  title={shareSettings.isPublic ? '비공개로 변경' : '공개로 변경'}
-            >
-              {shareSettings.isPublic ? <Unlock className="w-4 h-4 mr-1" /> : <Lock className="w-4 h-4 mr-1" />}
-              {shareSettings.isPublic ? "공개하기" : "비공개하기"}
-            </Button>
+                  onClick={async () => {
+                    try {
+                      // 로그인 전에 현재 작업 내용을 게스트로 저장
+                      const updatedPages = pages.map(page => {
+                        if (page.id === currentPageId) {
+                          return {
+                            ...page,
+                            title: pageTitle,
+                            widgets: widgets
+                          };
+                        }
+                        return page;
+                      });
+                      localStorage.setItem('myPages', JSON.stringify(updatedPages));
+                      
+                      // 게스트 데이터를 임시 백업
+                      const guestData = localStorage.getItem('myPages');
+                      
+                      // Google 로그인
+                      const result = await signInWithPopup(auth, googleProvider);
+                      const user = result.user;
+                      
+                      // 로그인 성공 시 게스트 데이터를 로그인 사용자 데이터로 이전
+                      if (guestData && user) {
+                        const userKey = `myPages_${user.uid}`;
+                        const existingUserData = localStorage.getItem(userKey);
+                        
+                        // 기존 사용자 데이터가 없으면 게스트 데이터를 이전
+                        if (!existingUserData) {
+                          localStorage.setItem(userKey, guestData);
+                          console.log('게스트 데이터를 로그인 사용자 데이터로 이전 완료');
+                        }
+                      }
+                      
+                      alert('로그인되었습니다! 작업하던 내용이 그대로 유지됩니다.');
+                    } catch (error: any) {
+                      console.error('로그인 오류:', error);
+                      // 팝업 차단이나 사용자가 취소한 경우
+                      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+                        console.log('로그인 팝업이 닫혔습니다.');
+                      } else {
+                        alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                      }
+                    }
+                  }}
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-semibold"
+                  title="로그인하여 페이지를 저장하고 공유하세요"
+                >
+                  <User className="w-4 h-4 mr-1" />
+                  로그인하여 저장하기
+                </Button>
+              )}
+
+              {/* 공개/비공개 토글 버튼 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 font-medium">공개 설정:</span>
+                <Button 
+                  variant={shareSettings.isPublic ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleShare}
+                  className={`font-semibold transition-all ${
+                    shareSettings.isPublic 
+                      ? "bg-green-500 hover:bg-green-600 text-black border-green-500 shadow-md" 
+                      : "text-gray-700 hover:text-gray-900 border-gray-500 hover:border-gray-600 bg-gray-100 hover:bg-gray-200"
+                  }`}
+                >
+                  {shareSettings.isPublic ? (
+                    <>
+                      <Unlock className="w-4 h-4 mr-1" />
+                      공개
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4 mr-1" />
+                      비공개
+                    </>
+                  )}
+                </Button>
+                {shareSettings.isPublic && (
+                  <span className="text-xs text-green-600 font-medium">
+                    (저장 시 메인페이지에 표시됨)
+                  </span>
+                )}
+              </div>
+
+              {/* 저장하기 버튼 */}
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={savePage}
+                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold"
+                title="페이지 저장하기"
+              >
+                <Save className="w-4 h-4 mr-1" />
+                저장하기
+              </Button>
             
               {/* 빠른 액션 버튼들 */}
               <div className="flex items-center gap-1">
@@ -5006,14 +5175,6 @@ export function MyPage() {
 
         </div>
       )}
-
-      {/* 템플릿 저장 모달 */}
-      <SaveAsTemplateModal
-        isOpen={showSaveAsTemplateModal}
-        onClose={() => setShowSaveAsTemplateModal(false)}
-        widgets={widgets}
-        onSave={saveCurrentLayoutAsTemplate}
-      />
 
     </div>
   );

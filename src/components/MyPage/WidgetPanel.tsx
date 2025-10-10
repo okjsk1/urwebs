@@ -62,3 +62,5 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
 }
 
 
+
+
