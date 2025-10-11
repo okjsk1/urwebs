@@ -1,7 +1,5 @@
 // 리팩터링된 DevelopmentWidgets - 고급 기능과 접근성 강화
 export { GitHubWidget } from './GitHubWidget';
-export { CalculatorWidget } from './CalculatorWidget';
-export { PasswordWidget } from './PasswordWidget';
 
 // 기존 단위 변환 위젯 (간단한 버전 유지)
 import React, { useState } from 'react';

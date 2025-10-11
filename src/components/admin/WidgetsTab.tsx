@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { db } from '../../firebase/config';
+import { collection, getDocs } from 'firebase/firestore';
+import { allWidgets } from '../../constants/widgetCategories';
 import { 
   Puzzle, 
   Eye, 
@@ -42,128 +45,100 @@ export function WidgetsTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 실제 구현에서는 Firestore에서 데이터를 가져와야 함
-    const mockWidgets: Widget[] = [
-      {
-        id: '1',
-        name: '날씨 위젯',
-        category: '정보',
-        description: '현재 날씨 정보를 표시합니다',
-        usageCount: 1247,
-        popularity: 95,
-        isActive: true,
-        createdAt: new Date('2024-01-01'),
-        lastUsed: new Date(),
-        icon: '🌤️'
-      },
-      {
-        id: '2',
-        name: '할일 관리',
-        category: '생산성',
-        description: '할 일 목록을 관리할 수 있습니다',
-        usageCount: 892,
-        popularity: 88,
-        isActive: true,
-        createdAt: new Date('2024-01-02'),
-        lastUsed: new Date(Date.now() - 86400000),
-        icon: '✅'
-      },
-      {
-        id: '3',
-        name: '구글 검색',
-        category: '검색',
-        description: '구글 검색을 바로 할 수 있습니다',
-        usageCount: 2341,
-        popularity: 92,
-        isActive: true,
-        createdAt: new Date('2024-01-03'),
-        lastUsed: new Date(),
-        icon: '🔍'
-      },
-      {
-        id: '4',
-        name: '네이버 검색',
-        category: '검색',
-        description: '네이버 검색을 바로 할 수 있습니다',
-        usageCount: 1567,
-        popularity: 85,
-        isActive: true,
-        createdAt: new Date('2024-01-04'),
-        lastUsed: new Date(Date.now() - 172800000),
-        icon: '🔍'
-      },
-      {
-        id: '5',
-        name: '캘린더',
-        category: '생산성',
-        description: '일정을 확인하고 관리할 수 있습니다',
-        usageCount: 743,
-        popularity: 78,
-        isActive: true,
-        createdAt: new Date('2024-01-05'),
-        lastUsed: new Date(Date.now() - 259200000),
-        icon: '📅'
-      },
-      {
-        id: '6',
-        name: '뉴스',
-        category: '정보',
-        description: '최신 뉴스를 확인할 수 있습니다',
-        usageCount: 634,
-        popularity: 72,
-        isActive: true,
-        createdAt: new Date('2024-01-06'),
-        lastUsed: new Date(Date.now() - 345600000),
-        icon: '📰'
-      },
-      {
-        id: '7',
-        name: '즐겨찾기',
-        category: '도구',
-        description: '자주 사용하는 사이트를 저장할 수 있습니다',
-        usageCount: 1456,
-        popularity: 89,
-        isActive: true,
-        createdAt: new Date('2024-01-07'),
-        lastUsed: new Date(),
-        icon: '🔖'
-      },
-      {
-        id: '8',
-        name: '계산기',
-        category: '도구',
-        description: '간단한 계산을 할 수 있습니다',
-        usageCount: 567,
-        popularity: 65,
-        isActive: true,
-        createdAt: new Date('2024-01-08'),
-        lastUsed: new Date(Date.now() - 432000000),
-        icon: '🧮'
+    const loadWidgetStats = async () => {
+      try {
+        // userPages에서 위젯 사용 통계 수집
+        const pagesRef = collection(db, 'userPages');
+        const pagesSnapshot = await getDocs(pagesRef);
+        
+        const widgetUsageMap = new Map<string, number>();
+        
+        pagesSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          const widgets = data.widgets || [];
+          widgets.forEach((widget: any) => {
+            const count = widgetUsageMap.get(widget.type) || 0;
+            widgetUsageMap.set(widget.type, count + 1);
+          });
+        });
+        
+        // widgetCategories에서 정의된 위젯 정보와 실제 사용 통계를 결합
+        const widgetsData: Widget[] = allWidgets.map((widget, index) => {
+          const usageCount = widgetUsageMap.get(widget.type) || 0;
+          const totalWidgets = Array.from(widgetUsageMap.values()).reduce((a, b) => a + b, 0);
+          const popularity = totalWidgets > 0 ? Math.round((usageCount / totalWidgets) * 100) : 0;
+          
+          return {
+            id: widget.type,
+            name: widget.name,
+            category: widget.description.includes('검색') ? '검색' : 
+                     widget.description.includes('날씨') || widget.description.includes('뉴스') ? '정보' :
+                     widget.description.includes('할 일') || widget.description.includes('메모') ? '생산성' :
+                     widget.description.includes('환율') || widget.description.includes('주식') ? '금융' : '기타',
+            description: widget.description,
+            usageCount,
+            popularity,
+            isActive: true,
+            createdAt: new Date(),
+            lastUsed: new Date(),
+            icon: getWidgetIcon(widget.type)
+          };
+        }).sort((a, b) => b.usageCount - a.usageCount);
+        
+        setWidgets(widgetsData);
+        
+        // 카테고리별로 그룹화
+        const categoryMap = new Map<string, Widget[]>();
+        widgetsData.forEach(widget => {
+          if (!categoryMap.has(widget.category)) {
+            categoryMap.set(widget.category, []);
+          }
+          categoryMap.get(widget.category)!.push(widget);
+        });
+
+        const categoriesData: WidgetCategory[] = Array.from(categoryMap.entries()).map(([name, widgets]) => ({
+          name,
+          count: widgets.length,
+          widgets
+        }));
+
+        setCategories(categoriesData);
+        setLoading(false);
+      } catch (error) {
+        console.error('위젯 통계 로드 실패:', error);
+        setLoading(false);
       }
-    ];
-
-    setTimeout(() => {
-      setWidgets(mockWidgets);
-      
-      // 카테고리별로 그룹화
-      const categoryMap = new Map<string, Widget[]>();
-      mockWidgets.forEach(widget => {
-        if (!categoryMap.has(widget.category)) {
-          categoryMap.set(widget.category, []);
-        }
-        categoryMap.get(widget.category)!.push(widget);
-      });
-
-      const categoriesData: WidgetCategory[] = Array.from(categoryMap.entries()).map(([name, widgets]) => ({
-        name,
-        count: widgets.length,
-        widgets
-      }));
-
-      setCategories(categoriesData);
-      setLoading(false);
-    }, 1000);
+    };
+    
+    loadWidgetStats();
   }, []);
+  
+  const getWidgetIcon = (type: string): string => {
+    const iconMap: { [key: string]: string } = {
+      'weather': '🌤️',
+      'todo': '✅',
+      'google_search': '🔍',
+      'naver_search': '🔍',
+      'law_search': '📜',
+      'calendar': '📅',
+      'news': '📰',
+      'bookmark': '🔖',
+      'calculator': '🧮',
+      'exchange': '💱',
+      'stock': '📈',
+      'crypto': '₿',
+      'mail_services': '📧',
+      'goal': '🎯',
+      'reminder': '⏰',
+      'quicknote': '📝',
+      'quote': '💬',
+      'english_words': '📚',
+      'converter': '🔄',
+      'qr': '📱',
+      'rss': '📡'
+    };
+    return iconMap[type] || '📦';
+  };
 
   const filteredWidgets = widgets.filter(widget => {
     const matchesCategory = selectedCategory === 'all' || widget.category === selectedCategory;

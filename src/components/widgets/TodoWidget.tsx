@@ -245,10 +245,10 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
   }, [state.items]);
 
   return (
-    <div className="p-3 h-full">
-      <div className="text-center mb-3">
+    <div className="p-3 h-full flex flex-col">
+      <div className="text-center mb-3 shrink-0">
         <div className="text-2xl mb-1">✅</div>
-        <h4 className="font-semibold text-sm text-gray-800">할일 관리</h4>
+        <h4 className="font-semibold text-sm text-gray-800">To Do List</h4>
         <div className="text-xs text-gray-500">
           {completionStats.completed}/{completionStats.total} 완료 ({completionStats.percentage}%)
         </div>

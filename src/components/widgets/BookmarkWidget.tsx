@@ -72,6 +72,26 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     persistOrLocal(widget.id, state, updateWidget);
   }, [widget.id, updateWidget]);
 
+  // 북마크 개수에 따라 위젯 크기 자동 조절
+  useEffect(() => {
+    const bookmarkCount = state.bookmarks.length;
+    let newHeight = 2; // 기본 1x2
+
+    if (bookmarkCount > 5) {
+      newHeight = 4; // 1x4 (6-8개)
+    } else if (bookmarkCount > 3) {
+      newHeight = 3; // 1x3 (4-5개)
+    } else {
+      newHeight = 2; // 1x2 (1-3개)
+    }
+
+    // 현재 gridSize와 다르면 업데이트
+    const currentGridSize = widget.gridSize || { w: 1, h: 2 };
+    if (currentGridSize.h !== newHeight) {
+      updateWidget(widget.id, { ...widget, gridSize: { w: 1, h: newHeight } });
+    }
+  }, [state.bookmarks.length, widget, updateWidget]);
+
   const getDomainIcon = useCallback((url: string): string => {
     try {
       const domain = new URL(normalizeUrl(url)).hostname.toLowerCase();
@@ -175,47 +195,61 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
 
   return (
     <div className="p-3">
-      {/* 북마크 그리드 */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
+      {/* 북마크 리스트 (세로 배치) */}
+      <div className="space-y-2 mb-3">
         {filteredBookmarks.map((bookmark, index) => (
           <div key={bookmark.id} className="relative group">
             <button
               onClick={() => openBookmark(bookmark.url)}
-              className="w-full p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
+              className="w-full p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2"
               aria-label={`${bookmark.name} 열기`}
             >
-              <div className="flex items-center gap-2 mb-1">
+              {/* 로고 */}
+              <div className="flex-shrink-0">
                 {bookmark.favicon ? (
                   <img 
                     src={bookmark.favicon} 
                     alt="" 
-                    className="w-4 h-4 flex-shrink-0"
+                    className="w-5 h-5"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
                 ) : (
-                  <span className="text-sm">{bookmark.icon}</span>
+                  <span className="text-base">{bookmark.icon}</span>
                 )}
-                <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-              <div className="text-xs font-medium text-gray-800 truncate text-left">
+              
+              {/* 사이트 이름 (오른쪽) */}
+              <div className="flex-1 text-left text-xs font-medium text-gray-800 truncate">
                 {bookmark.name}
               </div>
-              <div className="text-xs text-gray-500 truncate text-left">
-                {new URL(normalizeUrl(bookmark.url)).hostname}
-              </div>
+              
+              {/* 외부 링크 아이콘 */}
+              <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+            </button>
+            
+            {/* 삭제 버튼 (호버 시 X 버튼) */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteBookmark(bookmark.id);
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="북마크 삭제"
+            >
+              ×
             </button>
             
             {isEditMode && (
-              <div className="absolute -top-1 -right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute -left-8 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     moveBookmark(bookmark.id, 'up');
                   }}
                   disabled={index === 0}
-                  className="w-4 h-4 bg-blue-500 text-white rounded-full text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-5 h-5 bg-blue-500 text-white rounded-full text-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                   aria-label="위로 이동"
                 >
                   <ArrowUp className="w-3 h-3" />
@@ -226,32 +260,26 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
                     moveBookmark(bookmark.id, 'down');
                   }}
                   disabled={index === filteredBookmarks.length - 1}
-                  className="w-4 h-4 bg-blue-500 text-white rounded-full text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-5 h-5 bg-blue-500 text-white rounded-full text-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                   aria-label="아래로 이동"
                 >
                   <ArrowDown className="w-3 h-3" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteBookmark(bookmark.id);
-                  }}
-                  className="w-4 h-4 bg-red-500 text-white rounded-full text-xs"
-                  aria-label="북마크 삭제"
-                >
-                  <Trash2 className="w-3 h-3" />
                 </button>
               </div>
             )}
           </div>
         ))}
         
-        {/* 빈 슬롯 표시 */}
-        {Array.from({ length: Math.max(0, 8 - state.bookmarks.length) }).map((_, index) => (
-          <div key={`empty-${index}`} className="p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-            <div className="text-gray-400 text-xs">빈 슬롯</div>
-          </div>
-        ))}
+        {/* 페이지 추가 버튼 (하나만 표시) */}
+        {isEditMode && state.bookmarks.length < 8 && (
+          <button 
+            className="w-full p-2 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 flex items-center justify-center transition-colors cursor-pointer"
+            onClick={() => setState(prev => ({ ...prev, showAddForm: true }))}
+          >
+            <Plus className="w-4 h-4 mr-1 text-gray-400" />
+            <div className="text-gray-400 text-xs">페이지 추가</div>
+          </button>
+        )}
       </div>
 
       {/* 북마크 추가 폼 */}

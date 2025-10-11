@@ -4,8 +4,9 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Textarea } from './ui/textarea';
-import { auth } from '../firebase/config';
+import { auth, db } from '../firebase/config';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { 
   Search, 
   Plus, 
@@ -43,79 +44,8 @@ interface Comment {
   likes: number;
 }
 
-const mockPosts: Post[] = [
-  {
-    id: 1,
-    title: '나만의 시작페이지 꾸미기 팁 공유',
-    content: '여러분들은 시작페이지를 어떻게 꾸미시나요? 저는 색상 조합을 맞춰서 통일감 있게 만드는 걸 좋아해요. 위젯 배치도 자주 사용하는 순서대로 배치했습니다.',
-    author: '디자인러버',
-    date: '2024-12-20',
-    views: 234,
-    likes: 15,
-    dislikes: 1,
-    category: '정보',
-    comments: [
-      { id: 1, author: '코딩초보', content: '정말 유용한 정보네요! 저도 따라해봐야겠어요', date: '2024-12-20', likes: 3 },
-      { id: 2, author: '웹디자이너', content: '색상 조합 부분이 특히 도움됐습니다', date: '2024-12-20', likes: 5 }
-    ]
-  },
-  {
-    id: 2,
-    title: '새로운 카테고리 추가 요청 - 운동/헬스',
-    content: '운동 관련 사이트들을 모아놓은 카테고리가 있으면 좋겠어요. 헬스장 정보, 운동 영상, 영양 정보 등을 한번에 볼 수 있으면 편할 것 같습니다.',
-    author: '헬스매니아',
-    date: '2024-12-19',
-    views: 156,
-    likes: 8,
-    dislikes: 0,
-    category: '건의',
-    comments: [
-      { id: 3, author: '운동좋아', content: '저도 이런 카테고리 필요하다고 생각했어요!', date: '2024-12-19', likes: 4 }
-    ]
-  },
-  {
-    id: 3,
-    title: '위젯이 계속 사라져요 ㅠㅠ',
-    content: '편집 모드에서 위젯을 배치하고 저장해도 새로고침하면 가끔 사라집니다. 혹시 같은 현상 겪으신 분 있나요?',
-    author: '컴맹유저',
-    date: '2024-12-19',
-    views: 89,
-    likes: 3,
-    dislikes: 0,
-    category: '질문',
-    comments: [
-      { id: 4, author: '테크전문가', content: '브라우저 캐시를 지워보세요', date: '2024-12-19', likes: 2 },
-      { id: 5, author: '개발자', content: 'localStorage 문제일 수 있어요. 다른 브라우저에서도 확인해보세요', date: '2024-12-19', likes: 6 }
-    ]
-  },
-  {
-    id: 4,
-    title: '이 서비스 정말 유용해요!',
-    content: '평소에 자주 가는 사이트들이 다 정리되어 있어서 북마크바가 깔끔해졌어요. 특히 카테고리별로 나눠져 있는게 너무 좋습니다.',
-    author: '만족한사용자',
-    date: '2024-12-18',
-    views: 312,
-    likes: 22,
-    dislikes: 0,
-    category: '후기',
-    comments: []
-  },
-  {
-    id: 5,
-    title: '모바일 버전은 언제 나오나요?',
-    content: '모바일에서도 편하게 사용할 수 있는 앱이나 모바일 최적화 버전이 있으면 좋겠어요.',
-    author: '모바일유저',
-    date: '2024-12-17',
-    views: 198,
-    likes: 12,
-    dislikes: 2,
-    category: '질문',
-    comments: []
-  }
-];
-
 export function CommunityPage() {
-  const [posts] = useState<Post[]>(mockPosts);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
@@ -135,6 +65,40 @@ export function CommunityPage() {
       setCurrentUser(user);
     });
     return () => unsubscribe();
+  }, []);
+
+  // Firebase에서 게시글 로드
+  useEffect(() => {
+    const loadPosts = async () => {
+      try {
+        const postsRef = collection(db, 'communityPosts');
+        const q = query(postsRef, orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        
+        const loadedPosts: Post[] = snapshot.docs.map((doc, index) => {
+          const data = doc.data();
+          const createdAt = data.createdAt as Timestamp;
+          return {
+            id: Date.now() + index,
+            title: data.title || '',
+            content: data.content || '',
+            author: data.authorName || '익명',
+            date: createdAt ? new Date(createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            views: data.views || 0,
+            likes: data.likes || 0,
+            dislikes: data.dislikes || 0,
+            comments: data.comments || [],
+            category: (data.category || '자유') as Post['category']
+          };
+        });
+        
+        setPosts(loadedPosts);
+      } catch (error) {
+        console.error('게시글 로드 실패:', error);
+      }
+    };
+    
+    loadPosts();
   }, []);
 
   const categories = ['전체', '자유', '질문', '정보', '후기', '건의'];
@@ -170,16 +134,67 @@ export function CommunityPage() {
 
   const handleWriteClick = () => {
     if (!currentUser) {
-      alert('로그인이 필요한 서비스입니다. 먼저 로그인해주세요.');
+      alert('로그인이 필요한 서비스입니다.\n상단의 Google 로그인 버튼을 눌러 로그인해주세요.');
       return;
     }
     setShowWriteForm(true);
   };
 
-  const handleSubmitPost = () => {
-    console.log('새 게시글:', newPost);
-    setShowWriteForm(false);
-    setNewPost({ title: '', content: '', category: '자유' });
+  const handleSubmitPost = async () => {
+    if (!currentUser) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    
+    if (!newPost.title.trim() || !newPost.content.trim()) {
+      alert('제목과 내용을 입력해주세요.');
+      return;
+    }
+    
+    try {
+      const postsRef = collection(db, 'communityPosts');
+      await addDoc(postsRef, {
+        title: newPost.title,
+        content: newPost.content,
+        category: newPost.category,
+        authorName: currentUser.displayName || currentUser.email || '익명',
+        authorEmail: currentUser.email,
+        authorId: currentUser.uid,
+        views: 0,
+        likes: 0,
+        dislikes: 0,
+        comments: [],
+        createdAt: serverTimestamp()
+      });
+      
+      alert('게시글이 등록되었습니다.');
+      setShowWriteForm(false);
+      setNewPost({ title: '', content: '', category: '자유' });
+      
+      // 게시글 목록 새로고침
+      const q = query(postsRef, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const loadedPosts: Post[] = snapshot.docs.map((doc, index) => {
+        const data = doc.data();
+        const createdAt = data.createdAt as Timestamp;
+        return {
+          id: Date.now() + index,
+          title: data.title || '',
+          content: data.content || '',
+          author: data.authorName || '익명',
+          date: createdAt ? new Date(createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          views: data.views || 0,
+          likes: data.likes || 0,
+          dislikes: data.dislikes || 0,
+          comments: data.comments || [],
+          category: (data.category || '자유') as Post['category']
+        };
+      });
+      setPosts(loadedPosts);
+    } catch (error) {
+      console.error('게시글 등록 실패:', error);
+      alert('게시글 등록에 실패했습니다.');
+    }
   };
 
   const handleSubmitComment = () => {
@@ -409,19 +424,10 @@ export function CommunityPage() {
           
           <Button 
             onClick={handleWriteClick} 
-            className={`${currentUser ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 hover:bg-gray-500'} flex items-center gap-2`}
+            className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
           >
-            {currentUser ? (
-              <>
-                <Plus className="w-4 h-4" />
-                글쓰기
-              </>
-            ) : (
-              <>
-                <Lock className="w-4 h-4" />
-                로그인 후 글쓰기
-              </>
-            )}
+            <Plus className="w-4 h-4" />
+            글쓰기
           </Button>
         </div>
       </div>

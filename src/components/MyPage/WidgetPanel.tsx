@@ -30,8 +30,7 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
         <div className="space-y-4">
           {Object.entries(widgetCategories).map(([categoryKey, category]) => (
             <div key={categoryKey}>
-              <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                <span className="text-lg">{getCategoryIcon(categoryKey)}</span>
+              <h4 className="font-semibold text-gray-800 mb-2">
                 {category.name}
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
@@ -46,8 +45,7 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                       }}
                       className="p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-all text-left group"
                     >
-                      <Icon className="w-5 h-5 text-gray-600 group-hover:text-blue-600 mb-1" />
-                      <div className="text-xs font-medium text-gray-800 truncate">{widget.name}</div>
+                      <div className="text-sm font-medium text-gray-800 truncate mb-1">{widget.name}</div>
                       <div className="text-xs text-gray-500 truncate">{widget.description}</div>
                     </button>
                   );

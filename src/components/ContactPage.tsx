@@ -6,16 +6,10 @@ import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { 
   Send, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Clock, 
   MessageCircle,
   User,
-  Calendar,
   CheckCircle,
-  AlertCircle,
-  HelpCircle
+  AlertCircle
 } from 'lucide-react';
 import { db } from '../firebase/config';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -27,39 +21,6 @@ interface ContactForm {
   message: string;
 }
 
-interface FAQ {
-  id: number;
-  question: string;
-  answer: string;
-  category: string;
-}
-
-const mockFAQs: FAQ[] = [
-  {
-    id: 1,
-    question: '위젯이 저장되지 않아요',
-    answer: '편집 모드에서 위젯 배치 후 반드시 "편집 완료" 버튼을 눌러주세요. 브라우저의 쿠키 설정도 확인해보시기 바랍니다.',
-    category: '사용법'
-  },
-  {
-    id: 2,
-    question: '새로운 카테고리 추가는 언제 되나요?',
-    answer: '사용자 요청이 많은 카테고리부터 순차적으로 추가하고 있습니다. 평균 2-3주 소요됩니다.',
-    category: '기능'
-  },
-  {
-    id: 3,
-    question: '모바일에서 사용할 수 있나요?',
-    answer: '현재는 데스크톱 최적화되어 있지만, 모바일 버전도 개발 중입니다.',
-    category: '호환성'
-  },
-  {
-    id: 4,
-    question: '데이터는 어떻게 저장되나요?',
-    answer: '모든 설정은 브라우저의 로컬 스토리지에 저장되며, 서버에는 저장되지 않습니다.',
-    category: '개인정보'
-  }
-];
 
 export function ContactPage() {
   const [form, setForm] = useState<ContactForm>({
@@ -69,7 +30,6 @@ export function ContactPage() {
     message: ''
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,8 +91,8 @@ export function ContactPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-3">문의하기</h1>
-        <p className="text-gray-600">궁금한 점이나 건의사항을 알려주세요</p>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">문의하기</h1>
+        <p className="text-gray-600 dark:text-gray-300">궁금한 점이나 건의사항을 알려주세요</p>
         <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto rounded mt-4"></div>
       </div>
 
@@ -140,12 +100,12 @@ export function ContactPage() {
         {/* 문의 폼 */}
         <div className="lg:col-span-2">
           <Card className="p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">문의 작성</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">문의 작성</h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     이름 *
                   </label>
                   <Input
@@ -157,7 +117,7 @@ export function ContactPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     이메일 *
                   </label>
                   <Input
@@ -171,7 +131,7 @@ export function ContactPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   제목 *
                 </label>
                 <Input
@@ -183,7 +143,7 @@ export function ContactPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   문의 내용 *
                 </label>
                 <Textarea
@@ -203,66 +163,8 @@ export function ContactPage() {
           </Card>
         </div>
 
-        {/* 사이드바 */}
-        <div className="space-y-6">
-          {/* 연락처 정보 */}
-          <Card className="p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">연락처 정보</h3>
-            
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-blue-500 mt-0.5" />
-                <div>
-                  <div className="font-medium text-gray-900">이메일</div>
-                  <div className="text-sm text-gray-600">okjsk1@gmail.com</div>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-blue-500 mt-0.5" />
-                <div>
-                  <div className="font-medium text-gray-900">전화번호</div>
-                  <div className="text-sm text-gray-600">010-6569-5315</div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
       </div>
 
-      {/* FAQ 섹션 */}
-      <div className="mt-12">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">자주 묻는 질문</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {mockFAQs.map((faq) => (
-            <Card key={faq.id} className="overflow-hidden">
-              <button
-                className="w-full p-6 text-left hover:bg-gray-50 transition-colors"
-                onClick={() => setExpandedFAQ(expandedFAQ === faq.id ? null : faq.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <HelpCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                    <span className="font-medium text-gray-900">{faq.question}</span>
-                  </div>
-                  <Badge variant="secondary" className="ml-2">
-                    {faq.category}
-                  </Badge>
-                </div>
-              </button>
-              
-              {expandedFAQ === faq.id && (
-                <div className="px-6 pb-6 border-t bg-gray-50">
-                  <div className="pt-4">
-                    <p className="text-gray-700 leading-relaxed">{faq.answer}</p>
-                  </div>
-                </div>
-              )}
-            </Card>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

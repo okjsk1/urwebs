@@ -114,7 +114,7 @@ export function Header({
             variant="ghost"
             size="sm"
             onClick={toggleTheme}
-            className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+            className="text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 bg-gray-100 dark:bg-gray-800 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 border border-gray-200 dark:border-gray-700"
           >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </Button>

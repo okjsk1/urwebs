@@ -67,7 +67,19 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
       setUser(userInfo);
       setIsLoggedIn(true);
       onLogin?.(userInfo);
-    } catch (error) {
+    } catch (error: any) {
+      // 사용자가 팝업을 닫은 경우는 오류로 표시하지 않음
+      if (error?.code === 'auth/popup-closed-by-user') {
+        console.log('로그인 팝업이 사용자에 의해 닫혔습니다.');
+        return;
+      }
+      
+      // 취소된 경우도 오류로 표시하지 않음
+      if (error?.code === 'auth/cancelled-popup-request') {
+        console.log('로그인 요청이 취소되었습니다.');
+        return;
+      }
+      
       console.error('Google 로그인 실패:', error);
       alert('로그인에 실패했습니다. 다시 시도해주세요.');
     }
@@ -122,7 +134,7 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
         </span>
         <button
           onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 text-black px-2 py-1 rounded text-xs font-medium transition-colors"
+          className="border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 px-2 py-1 rounded text-xs font-medium transition-colors"
         >
           로그아웃
         </button>

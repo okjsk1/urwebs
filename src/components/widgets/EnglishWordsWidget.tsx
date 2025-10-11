@@ -1,6 +1,7 @@
 // 영어 단어 학습 위젯 - SRS, 플래시카드/퀴즈, 임포트/익스포트, 반응형
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '../ui/button';
+import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -164,10 +165,10 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
   const quizInputRef = useRef<HTMLInputElement>(null);
   const autoPlayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 상태 저장
-  useEffect(() => {
+  // 상태 저장 (디바운스 적용)
+  useDebouncedEffect(() => {
     persistOrLocal(widget.id, state, updateWidget);
-  }, [widget.id, updateWidget]);
+  }, [widget.id, state], 300);
 
   // 학습 큐 업데이트
   useEffect(() => {
@@ -181,21 +182,27 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
 
   // 자동 재생 기능
   useEffect(() => {
+    // 기존 타이머 정리
+    if (autoPlayTimerRef.current) {
+      clearInterval(autoPlayTimerRef.current);
+      autoPlayTimerRef.current = null;
+    }
+    
+    // 자동재생 조건 확인
     if (state.autoPlay && state.studyMode === 'flashcard' && state.studyQueue.length > 0) {
       autoPlayTimerRef.current = setInterval(() => {
-        setState(prev => ({
-          ...prev,
-          currentIndex: (prev.currentIndex + 1) % prev.studyQueue.length,
-          showAnswer: false
-        }));
+        setState(prev => {
+          if (prev.studyQueue.length === 0) return prev; // 안전 체크
+          return {
+            ...prev,
+            currentIndex: safeNext(prev.studyQueue.length, prev.currentIndex),
+            showAnswer: false
+          };
+        });
       }, state.autoPlayInterval * 1000);
-    } else {
-      if (autoPlayTimerRef.current) {
-        clearInterval(autoPlayTimerRef.current);
-        autoPlayTimerRef.current = null;
-      }
     }
 
+    // 클린업
     return () => {
       if (autoPlayTimerRef.current) {
         clearInterval(autoPlayTimerRef.current);
@@ -207,8 +214,11 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
   // 키보드 단축키
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
+      const target = e.target as HTMLElement;
+      if (target instanceof HTMLInputElement || 
+          target instanceof HTMLTextAreaElement ||
+          target.contentEditable === 'true') {
+        return; // contentEditable도 예외 처리
       }
       
       switch (e.key) {
@@ -309,26 +319,36 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
     showToast('단어가 삭제되었습니다', 'success');
   }, []);
 
+  // 안전한 인덱스 이동 함수
+  const safeNext = (len: number, i: number) => (len > 0 ? (i + 1) % len : 0);
+  const safePrev = (len: number, i: number) => (len > 0 ? (i - 1 + len) % len : 0);
+
   const nextWord = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      currentIndex: (prev.currentIndex + 1) % prev.studyQueue.length,
-      showAnswer: false,
-      quizAnswer: '',
-      quizResult: null,
-      hintLevel: 2
-    }));
+    setState(prev => {
+      if (prev.studyQueue.length === 0) return prev; // 방어 로직
+      return {
+        ...prev,
+        currentIndex: safeNext(prev.studyQueue.length, prev.currentIndex),
+        showAnswer: false,
+        quizAnswer: '',
+        quizResult: null,
+        hintLevel: 2
+      };
+    });
   }, []);
 
   const prevWord = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      currentIndex: (prev.currentIndex - 1 + prev.studyQueue.length) % prev.studyQueue.length,
-      showAnswer: false,
-      quizAnswer: '',
-      quizResult: null,
-      hintLevel: 2
-    }));
+    setState(prev => {
+      if (prev.studyQueue.length === 0) return prev; // 방어 로직
+      return {
+        ...prev,
+        currentIndex: safePrev(prev.studyQueue.length, prev.currentIndex),
+        showAnswer: false,
+        quizAnswer: '',
+        quizResult: null,
+        hintLevel: 2
+      };
+    });
   }, []);
 
   const toggleAnswer = useCallback(() => {
@@ -400,7 +420,8 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
       URL.revokeObjectURL(url);
       showToast('단어가 내보내기되었습니다', 'success');
     } catch (error) {
-      showToast('내보내기 실패', 'error');
+      const message = error instanceof Error ? error.message : '내보내기 실패';
+      showToast(message, 'error');
     }
   }, [state.words]);
 
@@ -421,7 +442,8 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
         }));
         showToast(`${importedWords.length}개 단어가 가져와졌습니다`, 'success');
       } catch (error) {
-        showToast(`가져오기 실패: ${error.message}`, 'error');
+        const message = error instanceof Error ? error.message : '알 수 없는 오류';
+        showToast(`가져오기 실패: ${message}`, 'error');
       }
     };
     reader.readAsText(file);
@@ -436,11 +458,7 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
 
   return (
     <div className="p-3">
-      <div className="text-center mb-3">
-        <div className="text-2xl mb-1">📚</div>
-        <h4 className="font-semibold text-sm text-gray-800">영어 단어 학습</h4>
-        <p className="text-xs text-gray-500">SRS 기반 스마트 학습</p>
-      </div>
+      {/* 헤더 제거 - 단어와 발음기호만 표시 */}
 
       {/* 상단 컨트롤 */}
       <div className="flex flex-wrap gap-1 mb-3">

@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, Music, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
@@ -13,51 +14,43 @@ import { getWidgetDimensions, isWidgetOverlapping, getNextAvailablePosition, get
 import { templates, getDefaultWidgets } from '../constants/pageTemplates';
 import { templateService } from '../services/templateService';
 import { WidgetPanel } from './MyPage/WidgetPanel';
+import DashboardGrid, { SizePicker } from './DashboardGrid';
+import DraggableDashboardGrid from './DraggableDashboardGrid';
 
 // 위젯 컴포넌트들 import
 import {
   TodoWidget,
   GoalWidget,
-  HabitWidget,
-  TimerWidget,
   ReminderWidget,
   QuickNoteWidget,
   CalendarWidget,
-  EmailWidget,
   MailServicesWidget,
   StockWidget,
-  CryptoWidget,
   ExchangeWidget,
-  StockAlertWidget,
-  EconomicCalendarWidget,
-  ExpenseWidget,
-  GitHubWidget,
-  CalculatorWidget,
   ConverterWidget,
-  PasswordWidget,
   QRCodeWidget,
   NewsWidget,
   WeatherWidget,
-  WeatherSmallWidget,
-  WeatherMediumWidget,
   RSSWidget,
   GoogleSearchWidget,
   NaverSearchWidget,
   LawSearchWidget,
-  MusicWidget,
-  QuoteWidget,
-  ColorPickerWidget,
   BookmarkWidget,
-  StatsWidget,
   EnglishWordsWidget,
-  SocialWidget
+  GoogleAdWidget,
+  FrequentSitesWidget,
+  CryptoWidget,
+  StockAlertWidget,
+  EconomicCalendarWidget,
+  ExpenseWidget
 } from './widgets';
 
 // 인터페이스들은 이제 types에서 import
 
 export function MyPage() {
   const { theme, toggleTheme } = useTheme();
-  
+  const { pageId } = useParams<{ pageId?: string }>();
+  const navigate = useNavigate();
   
   const [isEditMode, setIsEditMode] = useState(true); // 항상 편집 가능
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null);
@@ -72,8 +65,8 @@ export function MyPage() {
   const SUB_COLUMNS = 1; // 각 메인 컬럼 내부 서브 그리드 개수
   
   // 동적 셀 크기 계산 (서브셀 크기)
-  const [subCellWidth, setSubCellWidth] = useState(18); // 서브셀 너비
-  const [cellHeight, setCellHeight] = useState(60);
+  const [subCellWidth, setSubCellWidth] = useState(150); // 서브셀 너비 (초기값을 합리적으로 설정)
+  const [cellHeight] = useState(160); // 기본 셀 높이 (그리드용) - 고정값
   
   // 메인 컬럼 너비 계산
   const mainColumnWidth = subCellWidth * SUB_COLUMNS + spacing * (SUB_COLUMNS - 1); // 1칸 (서브분할 없음)
@@ -101,16 +94,45 @@ export function MyPage() {
     ]
   });
   const [cryptoPrices, setCryptoPrices] = useState({
-    bitcoin: { price: 45000000, change: 2.5 },
-    ethereum: { price: 3200000, change: -1.2 },
-    solana: { price: 180000, change: 5.8 }
+    bitcoin: { price: 0, change: 0 },
+    ethereum: { price: 0, change: 0 },
+    solana: { price: 0, change: 0 }
   });
+
+  // 비트코인 실시간 가격 가져오기
+  useEffect(() => {
+    const fetchCryptoPrice = async () => {
+      try {
+        const response = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC');
+        const data = await response.json();
+        if (data && data[0]) {
+          const price = Math.round(data[0].trade_price);
+          const change = data[0].signed_change_rate * 100;
+          setCryptoPrices(prev => ({
+            ...prev,
+            bitcoin: { price, change }
+          }));
+        }
+      } catch (error) {
+        console.error('비트코인 가격 조회 실패:', error);
+      }
+    };
+
+    fetchCryptoPrice();
+    const interval = setInterval(fetchCryptoPrice, 10000); // 10초마다 업데이트
+
+    return () => clearInterval(interval);
+  }, []);
   const [musicState, setMusicState] = useState({
     isPlaying: false,
     currentSong: '샘플 음악',
     artist: '샘플 아티스트',
     duration: 180,
     currentTime: 0
+  });
+  const [englishWordsSettings, setEnglishWordsSettings] = useState({
+    interval: 5000, // 5초 기본값
+    isAutoPlay: false
   });
 
   // 설정들
@@ -139,6 +161,15 @@ export function MyPage() {
     showGrid: true,
     spacing: 10
   });
+
+  // 그리드 셀 높이 설정 상태 (160px 고정)
+  const responsiveCellHeights = {
+    default: 160, // 모바일
+    sm: 160,     // 작은 화면
+    md: 160,     // 중간 화면
+    lg: 160,     // 큰 화면
+    xl: 160      // 매우 큰 화면
+  };
 
   const [shareSettings, setShareSettings] = useState<ShareSettings>({
     isPublic: true,
@@ -272,15 +303,32 @@ export function MyPage() {
     console.log('hasVisitedMyPage:', hasVisitedMyPage);
     console.log('savedPages:', savedPages);
     
-    // 비로그인 상태 - 항상 템플릿 선택창 표시
+    // 비로그인 상태 - 기본 페이지 생성
     if (!currentUser) {
       const guestPages = localStorage.getItem('myPages');
       console.log('게스트 페이지 데이터:', guestPages);
       
-      // 비로그인 상태는 항상 템플릿 모달 표시
-      console.log('→ 비로그인 사용자: 템플릿 모달 표시');
+      // 저장된 게스트 페이지가 있으면 로드, 없으면 기본 페이지 생성
+      if (guestPages) {
+        try {
+          const parsedPages = JSON.parse(guestPages);
+          if (parsedPages && parsedPages.length > 0) {
+            console.log('→ 비로그인 사용자: 저장된 페이지 로드');
+            setPages(parsedPages);
+            setCurrentPageId(parsedPages[0].id);
+            setPageTitle(parsedPages[0].title);
+            setWidgets(parsedPages[0].widgets || []);
+            localStorage.setItem(userVisitKey, 'true');
+            return;
+          }
+        } catch (error) {
+          console.error('게스트 페이지 파싱 오류:', error);
+        }
+      }
+      
+      // 저장된 페이지가 없으면 템플릿 선택창 표시
+      console.log('→ 비로그인 사용자: 템플릿 선택창 표시');
       setShowTemplateModal(true);
-      localStorage.setItem(userVisitKey, 'true');
       return;
     }
     
@@ -307,9 +355,17 @@ export function MyPage() {
         localStorage.setItem(userVisitKey, 'true');
       }
     } else {
-      // 저장된 페이지가 없으면 템플릿 모달 표시
-      console.log('→ 로그인 사용자 (저장된 페이지 없음): 템플릿 모달 표시');
-      setShowTemplateModal(true);
+      // 저장된 페이지가 없으면 기본 페이지 생성
+      console.log('→ 로그인 사용자 (저장된 페이지 없음): 기본 페이지 생성');
+      const defaultPage = {
+        id: Date.now().toString(),
+        title: '나만의 페이지',
+        widgets: []
+      };
+      setPages([defaultPage]);
+      setCurrentPageId(defaultPage.id);
+      setPageTitle(defaultPage.title);
+      setWidgets([]);
       localStorage.setItem(userVisitKey, 'true');
     }
   }, [currentUser]);
@@ -343,27 +399,45 @@ export function MyPage() {
           console.log('저장된 페이지 불러오기 (로그인 사용자):', loadedPages);
           setPages(loadedPages);
           
-          // 활성 페이지 찾기
-          const activePage = loadedPages.find((p: any) => p.isActive) || loadedPages[0];
-          if (activePage) {
-            setCurrentPageId(activePage.id);
-            setPageTitle(activePage.title);
+          // URL에서 페이지 찾기 (okjsk1_2 형식)
+          let targetPage = loadedPages[0];
+          if (pageId) {
+            const pageIndex = parseInt(pageId.split('_')[1]) - 1;
+            if (pageIndex >= 0 && pageIndex < loadedPages.length) {
+              targetPage = loadedPages[pageIndex];
+            }
+          } else {
+            // URL 파라미터가 없으면 활성 페이지 찾기
+            targetPage = loadedPages.find((p: any) => p.isActive) || loadedPages[0];
+          }
+          
+          if (targetPage) {
+            setCurrentPageId(targetPage.id);
+            setPageTitle(targetPage.title);
             
             // 위젯 불러오기 - 검색 위젯 크기 자동 업데이트
-            const updatedWidgets = (activePage.widgets || []).map((widget: Widget) => {
+            const updatedWidgets = (targetPage.widgets || []).map((widget: Widget) => {
               if (widget.type === 'google_search' || widget.type === 'naver_search' || 
                   widget.type === 'law_search') {
-                // 검색 위젯은 4칸 너비, 225px 높이로 업데이트
+                // 검색 위젯은 2칸 너비, 150px 높이로 업데이트
                 return {
                   ...widget,
-                  width: (18 + 5) * 4 - 5, // 87px (4칸)
-                  height: 225
+                  width: (subCellWidth + spacing) * 2 - spacing, // 2칸 (다른 위젯 1개 크기)
+                  height: 150
                 };
               }
               return widget;
             });
             
             setWidgets(updatedWidgets);
+            
+            // URL 업데이트 (URL이 없거나 다른 경우)
+            const pageIndex = loadedPages.findIndex((p: any) => p.id === targetPage.id);
+            const userPrefix = currentUser.email?.split('@')[0] || 'user';
+            const expectedUrl = `${userPrefix}_${pageIndex + 1}`;
+            if (!pageId || pageId !== expectedUrl) {
+              navigate(`/mypage/${expectedUrl}`, { replace: true });
+            }
           }
         } catch (error) {
           console.error('페이지 로드 실패:', error);
@@ -401,11 +475,11 @@ export function MyPage() {
             const updatedWidgets = (activePage.widgets || []).map((widget: Widget) => {
               if (widget.type === 'google_search' || widget.type === 'naver_search' || 
                   widget.type === 'law_search') {
-                // 검색 위젯은 4칸 너비, 225px 높이로 업데이트
+                // 검색 위젯은 2칸 너비, 150px 높이로 업데이트
                 return {
                   ...widget,
-                  width: (18 + 5) * 4 - 5, // 87px (4칸)
-                  height: 225
+                  width: (subCellWidth + spacing) * 2 - spacing, // 2칸 (다른 위젯 1개 크기)
+                  height: 150
                 };
               }
               return widget;
@@ -418,14 +492,15 @@ export function MyPage() {
         }
       }
     }
-  }, [currentUser]);
+  }, [currentUser, pageId, navigate]);
 
-  // 검색 위젯 크기 자동 업데이트
+  // 검색 위젯 크기 자동 업데이트 (2칸 너비)
   useEffect(() => {
+    const searchWidgetWidth = (subCellWidth + spacing) * 2 - spacing; // 2칸 (다른 위젯 1개 크기)
     const hasSearchWidgets = widgets.some(w => 
       (w.type === 'google_search' || w.type === 'naver_search' || 
        w.type === 'law_search') && 
-      (w.width !== 87 || w.height !== 225)
+      (w.width !== searchWidgetWidth || w.height !== 150)
     );
     
     if (hasSearchWidgets) {
@@ -435,15 +510,15 @@ export function MyPage() {
               widget.type === 'law_search') {
             return {
               ...widget,
-              width: 87, // (18 + 5) * 4 - 5 (4칸)
-              height: 225
+              width: searchWidgetWidth, // 2칸 (다른 위젯 1개 크기)
+              height: 150
             };
           }
           return widget;
         })
       );
     }
-  }, []);
+  }, [subCellWidth, spacing]);
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -452,23 +527,33 @@ export function MyPage() {
     const updateCellSize = () => {
       if (canvasRef.current) {
         const containerWidth = canvasRef.current.offsetWidth;
-        // 1. 전체를 4개 메인 컬럼으로 분할
+        // 컨테이너 크기가 0이면 아직 렌더링되지 않은 것이므로 재시도
+        if (containerWidth === 0) {
+          setTimeout(updateCellSize, 50);
+          return;
+        }
+        
+        // 1. 전체를 8개 메인 컬럼으로 분할
         const mainColSpacing = (MAIN_COLUMNS - 1) * spacing;
         const calculatedMainColumnWidth = Math.floor((containerWidth - mainColSpacing) / MAIN_COLUMNS);
         
-        // 2. 각 메인 컬럼을 4개 서브셀로 분할
+        // 2. 각 메인 컬럼을 서브셀로 분할
         const subColSpacing = (SUB_COLUMNS - 1) * spacing;
         const calculatedSubCellWidth = Math.floor((calculatedMainColumnWidth - subColSpacing) / SUB_COLUMNS);
         
         setSubCellWidth(calculatedSubCellWidth);
-        setCellHeight(calculatedSubCellWidth); // 정사각형으로 설정
+        // cellHeight는 160px로 고정되어 있으므로 setCellHeight 제거
         console.log('서브셀 크기:', calculatedSubCellWidth, '메인 컬럼 너비:', calculatedMainColumnWidth, '컨테이너:', containerWidth);
       }
     };
 
-    updateCellSize();
+    // 초기 렌더링 직후 크기 계산
+    const timeoutId = setTimeout(updateCellSize, 0);
     window.addEventListener('resize', updateCellSize);
-    return () => window.removeEventListener('resize', updateCellSize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', updateCellSize);
+    };
   }, [spacing]);
 
   // 셀 크기 변경 시 기존 위젯들 크기 업데이트
@@ -490,6 +575,70 @@ export function MyPage() {
   // 현재 페이지의 위젯들 가져오기
   const currentPage = pages.find(page => page.id === currentPageId);
   const [widgets, setWidgets] = useState<Widget[]>([]);
+  
+  // 실행취소/재실행 히스토리 (최대 20회)
+  const [widgetHistory, setWidgetHistory] = useState<Widget[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const MAX_HISTORY = 20;
+
+  // 위젯 상태 변경 시 히스토리에 저장하는 래퍼 함수
+  const setWidgetsWithHistory = useCallback((newWidgets: Widget[] | ((prev: Widget[]) => Widget[])) => {
+    setWidgets(prevWidgets => {
+      const updatedWidgets = typeof newWidgets === 'function' ? newWidgets(prevWidgets) : newWidgets;
+      
+      // 히스토리에 추가 (현재 인덱스 이후 제거하고 새로 추가)
+      setWidgetHistory(prevHistory => {
+        const newHistory = prevHistory.slice(0, historyIndex + 1);
+        newHistory.push(JSON.parse(JSON.stringify(updatedWidgets))); // 깊은 복사
+        
+        // 최대 개수 제한
+        if (newHistory.length > MAX_HISTORY) {
+          newHistory.shift();
+          setHistoryIndex(MAX_HISTORY - 1);
+        } else {
+          setHistoryIndex(newHistory.length - 1);
+        }
+        
+        return newHistory;
+      });
+      
+      return updatedWidgets;
+    });
+  }, [historyIndex, MAX_HISTORY]);
+
+  // 실행취소
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setWidgets(JSON.parse(JSON.stringify(widgetHistory[newIndex])));
+    }
+  }, [historyIndex, widgetHistory]);
+
+  // 재실행
+  const redo = useCallback(() => {
+    if (historyIndex < widgetHistory.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setWidgets(JSON.parse(JSON.stringify(widgetHistory[newIndex])));
+    }
+  }, [historyIndex, widgetHistory]);
+
+  // Ctrl+Z, Ctrl+Y 키보드 단축키
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
 
   // 현재 페이지가 변경될 때 위젯 업데이트
   useEffect(() => {
@@ -612,45 +761,26 @@ export function MyPage() {
         const col = index % 4;
         const row = Math.floor(index / 4);
         
-        // 검색 위젯은 자동으로 크기 조정
+        // 검색 위젯은 자동으로 크기 조정 (2칸 너비)
         if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'law_search') {
           return {
             ...widget,
             id: `${widget.type}_${Date.now()}_${index}`,
-            width: (18 + 5) * 4 - 5, // 4칸 너비
-            height: 225,
-            x: widget.x || 0,
-            y: widget.y || 0 // 검색 위젯은 항상 맨 위에
+            width: (subCellWidth + spacing) * 2 - spacing, // 2칸 (다른 위젯 1개 크기)
+            height: 150,
+            x: widget.x || col * (subCellWidth + spacing),
+            y: widget.y || row * (cellHeight + spacing)
           };
         }
 
-        // 다른 위젯들의 위치 조정 (검색 위젯 아래에 배치)
-        let adjustedY = widget.y || row * (cellHeight + spacing);
-
-        // 검색 위젯이 있는 경우 그 아래에 배치
-        const hasSearchWidget = templateData.widgets.some(w =>
-          (w.type === 'google_search' || w.type === 'naver_search' || w.type === 'law_search') &&
-          (w.y === 0 || w.y === undefined)
-        );
-
-        if (hasSearchWidget && row === 0) {
-          // 검색 위젯이 있는 경우 첫 번째 행 위젯들을 검색 위젯 아래로 이동
-          adjustedY = 230; // 검색 위젯 바로 아래 (225 + 5)
-        } else if (hasSearchWidget && row === 1) {
-          // 두 번째 행 위젯들도 적절한 간격으로 배치
-          adjustedY = 310; // 첫 번째 행 아래 (230 + 75 + 5)
-        } else if (hasSearchWidget && row >= 2) {
-          // 세 번째 행 이상의 위젯들도 검색 위젯을 고려하여 배치
-          adjustedY = widget.y || (row * (cellHeight + spacing)) + 230; // 검색 위젯 높이만큼 추가 오프셋
-        }
-
+        // 다른 위젯들의 위치 조정 (그리드 기반 배치)
         return {
           ...widget,
           id: `${widget.type}_${Date.now()}_${index}`,
           width: widget.width || cellWidth,
           height: widget.height || cellHeight,
           x: widget.x || col * (cellWidth + spacing),
-          y: adjustedY
+          y: widget.y || row * (cellHeight + spacing)
         };
       });
 
@@ -764,6 +894,14 @@ export function MyPage() {
         };
       }));
       setPages(prev => prev.map(page => ({ ...page, isActive: page.id === pageId })));
+      
+      // URL 업데이트
+      if (currentUser) {
+        const pageIndex = pages.findIndex(p => p.id === pageId);
+        const userPrefix = currentUser.email?.split('@')[0] || 'user';
+        const pageUrl = `${userPrefix}_${pageIndex + 1}`;
+        navigate(`/mypage/${pageUrl}`, { replace: true });
+      }
     }
   };
 
@@ -1243,9 +1381,9 @@ export function MyPage() {
     
     if (type === 'google_search' || type === 'naver_search' ||
         type === 'law_search') {
-      // 검색 위젯은 4칸 너비, 225px 높이
-      width = (subCellWidth + spacing) * 4 - spacing; // 4칸
-      height = 225; // 높이
+      // 검색 위젯은 2칸 너비, 150px 높이
+      width = (subCellWidth + spacing) * 2 - spacing; // 2칸 (다른 위젯 1개 크기)
+      height = 150; // 높이
     } else if (type === 'weather_small') {
       widgetSize = '4x1'; // 메인 컬럼 전체 너비
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
@@ -1295,9 +1433,16 @@ export function MyPage() {
       width,
       height,
       title: allWidgets.find(w => w.type === type)?.name || '새 위젯',
-      content: type === 'bookmark' ? { bookmarks: [] } : undefined,
+      content: type === 'bookmark' 
+        ? { bookmarks: [] } 
+        : type === 'quicknote' 
+        ? { text: '', lastSaved: null }
+        : type === 'english_words'
+        ? { currentWord: { word: 'Serendipity', pronunciation: '[serənˈdipəti]', meaning: '우연히 좋은 일을 발견하는 것' } }
+        : undefined,
       zIndex: 1, // 모든 새 위젯은 기본 Z-index로 설정
-      size: widgetSize // 위젯 사이즈 추가
+      size: widgetSize, // 위젯 사이즈 추가
+      variant: (type === 'google_search' || type === 'naver_search' || type === 'law_search') ? 'compact' : undefined // 검색 위젯은 컴팩트 모드
   };
       
       console.log('🎨 새 위젯 추가:', {
@@ -1337,7 +1482,7 @@ export function MyPage() {
         id: newPageId,
         title: pageTitle,
         widgets: widgets,
-        createdAt: new Date().toISOString(),
+        createdAt: Date.now(),
         isActive: true
       };
       updatedPages = [...pages, newPage];
@@ -1480,7 +1625,7 @@ export function MyPage() {
     const message = document.createElement('div');
     message.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000]';
     if (currentUser) {
-      message.textContent = '✓ 저장되었습니다 (비공개)';
+      message.textContent = shareSettings.isPublic ? '✓ 저장되었습니다 (공개)' : '✓ 저장되었습니다 (비공개)';
     } else {
       message.textContent = '✓ 저장되었습니다 (게스트)';
     }
@@ -1488,7 +1633,7 @@ export function MyPage() {
     setTimeout(() => {
       message.remove();
     }, 3000);
-  }, [pages, currentPageId, pageTitle, widgets, currentUser, shareSettings.isPublic]);
+  }, [pages, currentPageId, pageTitle, widgets, currentUser, shareSettings, customUrl]);
 
   // 위젯 변경 시 자동 저장 (localStorage에만 저장, Firebase는 수동 저장 버튼으로만)
   useEffect(() => {
@@ -1760,6 +1905,32 @@ export function MyPage() {
 
     return () => clearInterval(cryptoTimer);
   }, []);
+
+  // 영어 단어 자동 재생
+  useEffect(() => {
+    if (englishWordsSettings.isAutoPlay) {
+      const words = [
+        { word: 'Serendipity', pronunciation: '[serənˈdipəti]', meaning: '우연히 좋은 일을 발견하는 것' },
+        { word: 'Ephemeral', pronunciation: '[ɪˈfemərəl]', meaning: '순간적인, 덧없는' },
+        { word: 'Resilience', pronunciation: '[rɪˈzɪljəns]', meaning: '회복력, 탄력성' },
+        { word: 'Ubiquitous', pronunciation: '[juˈbɪkwɪtəs]', meaning: '어디에나 있는, 만연한' },
+        { word: 'Magnificent', pronunciation: '[mæɡˈnɪfəsənt]', meaning: '웅장한, 훌륭한' },
+        { word: 'Melancholy', pronunciation: '[ˈmelənkɑːli]', meaning: '우울함, 서정적 슬픔' }
+      ];
+      
+      const englishWordsTimer = setInterval(() => {
+        const englishWordsWidget = widgets.find(w => w.type === 'english_words');
+        if (englishWordsWidget) {
+          const randomWord = words[Math.floor(Math.random() * words.length)];
+          updateWidget(englishWordsWidget.id, { 
+            content: { ...englishWordsWidget.content, currentWord: randomWord }
+          });
+        }
+      }, englishWordsSettings.interval);
+
+      return () => clearInterval(englishWordsTimer);
+    }
+  }, [englishWordsSettings.isAutoPlay, englishWordsSettings.interval, widgets]);
 
   // 새 창에서 위젯 추가 메시지 수신
   useEffect(() => {
@@ -2221,26 +2392,60 @@ export function MyPage() {
     };
   }, [draggedWidget, dragOffset, cellWidth, cellHeight, spacing]);
 
+  // 위젯을 그리드 형식으로 변환
+  const convertToGridWidget = (widget: Widget) => {
+    // 기존 gridSize가 있으면 우선 사용
+    let gridSize = widget.gridSize || { w: 1, h: 1 };
+    
+    // gridSize가 없는 경우에만 타입에 따라 자동 설정
+    if (!widget.gridSize) {
+      if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'law_search') {
+        gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 (컴팩트 모드)
+      } else if (widget.type === 'bookmark') {
+        gridSize = { w: 1, h: 2 }; // 북마크는 1x2
+      } else if (widget.type === 'calendar') {
+        gridSize = { w: 2, h: 2 }; // 캘린더는 2x2
+      } else {
+        gridSize = { w: 1, h: 1 }; // 기본적으로 1x1
+      }
+    }
+    
+    // 픽셀 좌표를 그리드 좌표로 변환
+    const gridX = Math.round(widget.x / (subCellWidth + spacing));
+    const gridY = Math.round(widget.y / (cellHeight + spacing));
+    
+    return {
+      ...widget,
+      size: gridSize,
+      x: gridX,
+      y: gridY
+    };
+  };
+
   // 위젯 렌더링
-  const renderWidget = (widget: Widget) => {
-    const WidgetIcon = allWidgets.find(w => w.type === widget.type)?.icon || Grid;
-    const isSelected = selectedWidget === widget.id;
-    const isDragging = draggedWidget === widget.id;
+  const renderWidget = (widget: any) => {
+    // GridWidget에서 원본 Widget 찾기
+    const originalWidget = widgets.find(w => w.id === widget.id);
+    if (!originalWidget) return null;
+    
+    const WidgetIcon = allWidgets.find(w => w.type === originalWidget.type)?.icon || Grid;
+    const isSelected = selectedWidget === originalWidget.id;
+    const isDragging = draggedWidget === originalWidget.id;
 
     return (
       <div
         className={`relative h-full overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200 ${
           isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
         } ${isDragging ? 'opacity-75' : ''} ${
-          dragOverWidget === widget.id && draggedWidget !== widget.id ? 'ring-2 ring-green-500 bg-green-50' : ''
+          dragOverWidget === originalWidget.id && draggedWidget !== originalWidget.id ? 'ring-2 ring-green-500 bg-green-50' : ''
         }`}
         style={{
           zIndex: isDragging ? 10 : isSelected ? 5 : 1
         }}
-        onClick={() => selectWidget(widget.id)}
+        onClick={() => selectWidget(originalWidget.id)}
         onMouseEnter={() => {
-          if (isReordering && draggedWidget && draggedWidget !== widget.id) {
-            setDragOverWidget(widget.id);
+          if (isReordering && draggedWidget && draggedWidget !== originalWidget.id) {
+            setDragOverWidget(originalWidget.id);
           }
         }}
         onMouseLeave={() => {
@@ -2249,28 +2454,55 @@ export function MyPage() {
           }
         }}
         onMouseUp={() => {
-          if (isReordering && draggedWidget && dragOverWidget === widget.id) {
-            reorderWidgets(draggedWidget, widget.id);
+          if (isReordering && draggedWidget && dragOverWidget === originalWidget.id) {
+            reorderWidgets(draggedWidget, originalWidget.id);
           }
         }}
       >
         {/* 위젯 헤더 */}
         <div 
-          className="p-2 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-move group"
-          onMouseDown={(e) => handleMouseDown(e, widget.id)}
+          data-drag-handle="true"
+          data-widget-id={originalWidget.id}
+          className="px-2 py-0.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-move group"
+          onMouseDown={(e) => {
+            // 버튼이나 입력창을 클릭한 경우 드래그 방지
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'BUTTON' || 
+                target.tagName === 'INPUT' || 
+                target.tagName === 'TEXTAREA' ||
+                target.tagName === 'SELECT' ||
+                target.closest('button') ||
+                target.closest('input') ||
+                target.closest('textarea') ||
+                target.closest('select')) {
+              return;
+            }
+            
+            // 드래그 핸들에서만 드래그 시작
+            e.preventDefault();
+            e.stopPropagation();
+            handleMouseDown(e, originalWidget.id);
+          }}
         >
           <div className="flex items-center gap-2 flex-1">
-            <span className="text-xs font-medium text-gray-800">{widget.title}</span>
+            <span className="text-xs font-medium text-gray-800">{originalWidget.title}</span>
           </div>
           
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* 사이즈 선택기 */}
+            <SizePicker
+              value={originalWidget.gridSize || { w: 1, h: 1 }}
+              onChange={(newSize) => {
+                updateWidget(originalWidget.id, { ...originalWidget, gridSize: newSize });
+              }}
+            />
             <Button 
               size="sm" 
               variant="ghost" 
               className="h-6 w-6 p-0 hover:bg-blue-100"
               onClick={(e) => {
                 e.stopPropagation();
-                editWidget(widget.id);
+                editWidget(originalWidget.id);
               }}
               title="위젯 편집"
             >
@@ -2282,7 +2514,7 @@ export function MyPage() {
               className="h-6 w-6 p-0 hover:bg-red-100"
               onClick={(e) => {
                 e.stopPropagation();
-                removeWidget(widget.id);
+                removeWidget(originalWidget.id);
               }}
               title="위젯 삭제"
             >
@@ -2292,8 +2524,14 @@ export function MyPage() {
         </div>
 
         {/* 위젯 콘텐츠 */}
-        <div className="p-3 h-full bg-transparent">
-          {renderWidgetContent(widget)}
+        <div 
+          className="p-3 h-full bg-transparent overflow-hidden"
+          onMouseDown={(e) => {
+            // 위젯 본문에서는 드래그 완전 방지
+            e.stopPropagation();
+          }}
+        >
+          {renderWidgetContent(originalWidget)}
         </div>
 
       </div>
@@ -2309,37 +2547,20 @@ export function MyPage() {
       case 'weather':
         return <WeatherWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
-      case 'weather_small':
-        return <WeatherSmallWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
-
-      case 'weather_medium':
-        return <WeatherMediumWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
-
       case 'todo':
         return <TodoWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
-      case 'stats':
-        return (
-          <div className="space-y-3">
-            {(widget.content?.stats || []).map((stat: any, index: number) => (
-              <div key={index} className="text-center">
-                <div className="text-lg font-bold text-gray-800">{stat.value}</div>
-                <div className="text-xs text-gray-600">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        );
-
       case 'crypto':
-        return (
-          <div className="space-y-2">
-            <div className="text-center">
-              <div className="text-lg font-bold text-gray-800">₿ 0.001234</div>
-              <div className="text-xs text-green-600">+2.34%</div>
-            </div>
-            <div className="text-xs text-gray-600 text-center">비트코인</div>
-          </div>
-        );
+        return <CryptoWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+      
+      case 'stock_alert':
+        return <StockAlertWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+      
+      case 'economic_calendar':
+        return <EconomicCalendarWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+      
+      case 'expense':
+        return <ExpenseWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
       case 'contact':
         return (
@@ -2439,9 +2660,6 @@ export function MyPage() {
           </div>
         );
 
-      case 'calculator':
-        return <CalculatorWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
-
       case 'news':
         return (
           <div className="space-y-2">
@@ -2457,9 +2675,6 @@ export function MyPage() {
             ))}
           </div>
         );
-
-      case 'music':
-        return <MusicWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
       case 'calendar':
         return (
@@ -2481,27 +2696,6 @@ export function MyPage() {
                 <div key={event.id} className={`p-1 rounded text-xs ${event.color || 'bg-gray-100'}`}>
                   <div className="font-medium text-gray-800 truncate">{event.title}</div>
                   <div className="text-gray-600">{event.time}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'timer':
-        return <TimerWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
-
-      case 'email':
-        return (
-          <div className="p-4">
-            <div className="space-y-3">
-              {widget.content.emails?.map((email: any) => (
-                <div key={email.id} className={`p-2 rounded-lg ${email.unread ? 'bg-blue-50 border-l-4 border-blue-400' : 'bg-gray-50'}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-gray-800">{email.from}</span>
-                    <span className="text-xs text-gray-500">{email.time}</span>
-                  </div>
-                  <div className="text-xs text-gray-700 truncate">{email.subject}</div>
-                  {email.unread && <div className="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>}
                 </div>
               ))}
             </div>
@@ -2566,28 +2760,6 @@ export function MyPage() {
           </div>
         );
 
-      case 'expense':
-        return (
-          <div className="p-4">
-            <div className="mb-3">
-              <div className="text-sm font-medium text-gray-800">오늘 지출</div>
-              <div className="text-lg font-bold text-red-600">₩{widget.content.total?.toLocaleString()}</div>
-            </div>
-            <div className="space-y-2">
-              {widget.content.expenses?.map((expense: any) => (
-                <div key={expense.id} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-600">{expense.category}</span>
-                    <span className="text-gray-500">-</span>
-                    <span className="text-gray-700">{expense.memo}</span>
-                  </div>
-                  <span className="text-red-600 font-medium">₩{expense.amount.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
       case 'converter':
         return (
           <div className="p-4">
@@ -2620,6 +2792,40 @@ export function MyPage() {
                 </div>
               ))}
             </div>
+          </div>
+        );
+
+      case 'quicknote':
+        return (
+          <div className="h-full flex flex-col p-1">
+            <textarea
+              value={widget.content?.text || ''}
+              onChange={(e) => {
+                const updatedWidgets = widgets.map(w => 
+                  w.id === widget.id 
+                    ? { ...w, content: { ...(w.content || {}), text: e.target.value } }
+                    : w
+                );
+                setWidgets(updatedWidgets);
+                
+                // 텍스트 길이에 따라 자동으로 크기 조정
+                const textLength = e.target.value.length;
+                const lineCount = e.target.value.split('\n').length;
+                const currentGridSize = widget.gridSize || { w: 1, h: 1 };
+                
+                // 텍스트가 100자 이상이거나 5줄 이상이면 1x2로 확장
+                if ((textLength > 100 || lineCount > 5) && currentGridSize.h < 2) {
+                  updateWidget(widget.id, { ...widget, gridSize: { w: 1, h: 2 } });
+                }
+                // 텍스트가 짧으면 1x1로 축소
+                else if (textLength < 50 && lineCount <= 3 && currentGridSize.h > 1) {
+                  updateWidget(widget.id, { ...widget, gridSize: { w: 1, h: 1 } });
+                }
+              }}
+              placeholder="메모를 작성하세요..."
+              className="flex-1 w-full p-1 text-sm border-0 resize-none focus:outline-none bg-transparent"
+              style={{ textAlign: 'left', verticalAlign: 'top' }}
+            />
           </div>
         );
 
@@ -3226,141 +3432,87 @@ export function MyPage() {
           </div>
         );
 
-      case 'colorpicker':
-        return (
-          <div className="space-y-3">
-            <div className="text-center">
-              <div className="text-2xl mb-2">🎨</div>
-              <h4 className="font-semibold text-sm text-gray-800">컬러 팔레트</h4>
-            </div>
-            <div className="grid grid-cols-4 gap-1">
-              {['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'].map((color, index) => (
-                <div 
-                  key={index}
-                  className="w-8 h-8 rounded cursor-pointer hover:scale-110 transition-transform"
-                  style={{ backgroundColor: color }}
-                  onClick={() => {
-                    navigator.clipboard.writeText(color);
-                    alert(`색상 ${color}이 클립보드에 복사되었습니다!`);
-                  }}
-                />
-              ))}
-            </div>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="w-full h-8 text-xs"
-              onClick={() => {
-                const colors = Array.from({ length: 8 }, () => '#' + Math.floor(Math.random()*16777215).toString(16));
-                updateWidget(widget.id, { 
-                  content: { ...widget.content, colors }
-                });
-              }}
-            >
-              <RefreshCw className="w-3 h-3 mr-1" />
-              새 팔레트 생성
-            </Button>
-          </div>
-        );
+      case 'google_ad':
+        return <GoogleAdWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
-      case 'stock_alert':
-        return (
-          <div className="space-y-3">
-            <div className="text-center">
-              <div className="text-2xl mb-2">📢</div>
-              <h4 className="font-semibold text-sm text-gray-800">주식 알림</h4>
-            </div>
-            <div className="space-y-2">
-              <div className="bg-gray-50 p-2 rounded text-xs">
-                <div className="font-medium">삼성전자</div>
-                <div className="text-gray-600">70,000원 도달</div>
-              </div>
-              <div className="bg-gray-50 p-2 rounded text-xs">
-                <div className="font-medium">SK하이닉스</div>
-                <div className="text-gray-600">120,000원 도달</div>
-              </div>
-            </div>
-            {isEditMode && (
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="w-full h-8 text-xs"
-                onClick={() => {
-                  const stock = prompt('주식 종목을 입력하세요 (예: 삼성전자, SK하이닉스):');
-                  const price = prompt('목표 가격을 입력하세요:');
-                  if (stock && price) {
-                    updateWidget(widget.id, { 
-                      content: { 
-                        ...widget.content, 
-                        alerts: [...(widget.content?.alerts || []), { stock, price, reached: false }]
-                      }
-                    });
-                  }
-                }}
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                알림 추가
-              </Button>
-            )}
-          </div>
-        );
-
-      case 'economic_calendar':
-        return (
-          <div className="space-y-3">
-            <div className="text-center">
-              <div className="text-2xl mb-2">📅</div>
-              <h4 className="font-semibold text-sm text-gray-800">경제 캘린더</h4>
-            </div>
-            <div className="space-y-2">
-              <div className="bg-gray-50 p-2 rounded text-xs">
-                <div className="font-medium">FOMC 회의</div>
-                <div className="text-gray-600">12월 15일</div>
-              </div>
-              <div className="bg-gray-50 p-2 rounded text-xs">
-                <div className="font-medium">CPI 발표</div>
-                <div className="text-gray-600">12월 10일</div>
-              </div>
-              <div className="bg-gray-50 p-2 rounded text-xs">
-                <div className="font-medium">고용 지표</div>
-                <div className="text-gray-600">12월 8일</div>
-              </div>
-            </div>
-          </div>
-        );
+      case 'frequent_sites':
+        return <FrequentSitesWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
       case 'english_words':
         return (
-          <div className="space-y-3">
-            <div className="text-center">
-              <div className="text-2xl mb-2">📚</div>
-              <h4 className="font-semibold text-sm text-gray-800">영어 단어</h4>
+          <div className="h-full flex flex-col justify-center space-y-3">
+            {/* 픽토그램과 제목 제거 */}
+            <div className="bg-gray-50 p-4 rounded text-center">
+              <div className="font-bold text-xl mb-2">{widget.content?.currentWord?.word || 'Serendipity'}</div>
+              <div className="text-base text-gray-600 mb-2">{widget.content?.currentWord?.pronunciation || '[serənˈdipəti]'}</div>
+              <div className="text-sm text-gray-700">{widget.content?.currentWord?.meaning || '우연히 좋은 일을 발견하는 것'}</div>
             </div>
-            <div className="bg-gray-50 p-3 rounded text-center">
-              <div className="font-bold text-lg mb-1">Serendipity</div>
-              <div className="text-sm text-gray-600 mb-2">[serənˈdipəti]</div>
-              <div className="text-xs text-gray-700">우연히 좋은 일을 발견하는 것</div>
+            
+            {/* 시간 조절 버튼들 */}
+            <div className="flex gap-1">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="flex-1 h-7 text-xs"
+                onClick={() => setEnglishWordsSettings(prev => ({ ...prev, interval: 3000 }))}
+              >
+                3초
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="flex-1 h-7 text-xs"
+                onClick={() => setEnglishWordsSettings(prev => ({ ...prev, interval: 5000 }))}
+              >
+                5초
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="flex-1 h-7 text-xs"
+                onClick={() => setEnglishWordsSettings(prev => ({ ...prev, interval: 10000 }))}
+              >
+                10초
+              </Button>
             </div>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="w-full h-8 text-xs"
-              onClick={() => {
-                const words = [
-                  { word: 'Serendipity', pronunciation: '[serənˈdipəti]', meaning: '우연히 좋은 일을 발견하는 것' },
-                  { word: 'Ephemeral', pronunciation: '[ɪˈfemərəl]', meaning: '순간적인, 덧없는' },
-                  { word: 'Resilience', pronunciation: '[rɪˈzɪljəns]', meaning: '회복력, 탄력성' },
-                  { word: 'Ubiquitous', pronunciation: '[juˈbɪkwɪtəs]', meaning: '어디에나 있는, 만연한' }
-                ];
-                const randomWord = words[Math.floor(Math.random() * words.length)];
-                updateWidget(widget.id, { 
-                  content: { ...widget.content, currentWord: randomWord }
-                });
-              }}
-            >
-              <RefreshCw className="w-3 h-3 mr-1" />
-              새 단어
-            </Button>
+            
+            <div className="flex gap-1">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="flex-1 h-8 text-xs"
+                onClick={() => {
+                  const words = [
+                    { word: 'Serendipity', pronunciation: '[serənˈdipəti]', meaning: '우연히 좋은 일을 발견하는 것' },
+                    { word: 'Ephemeral', pronunciation: '[ɪˈfemərəl]', meaning: '순간적인, 덧없는' },
+                    { word: 'Resilience', pronunciation: '[rɪˈzɪljəns]', meaning: '회복력, 탄력성' },
+                    { word: 'Ubiquitous', pronunciation: '[juˈbɪkwɪtəs]', meaning: '어디에나 있는, 만연한' },
+                    { word: 'Magnificent', pronunciation: '[mæɡˈnɪfəsənt]', meaning: '웅장한, 훌륭한' },
+                    { word: 'Melancholy', pronunciation: '[ˈmelənkɑːli]', meaning: '우울함, 서정적 슬픔' }
+                  ];
+                  const randomWord = words[Math.floor(Math.random() * words.length)];
+                  updateWidget(widget.id, { 
+                    content: { ...(widget.content || {}), currentWord: randomWord }
+                  });
+                }}
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                새 단어
+              </Button>
+              <Button 
+                size="sm" 
+                variant={englishWordsSettings.isAutoPlay ? "default" : "outline"}
+                className="flex-1 h-8 text-xs"
+                onClick={() => {
+                  setEnglishWordsSettings(prev => ({ 
+                    ...prev, 
+                    isAutoPlay: !prev.isAutoPlay 
+                  }));
+                }}
+              >
+                {englishWordsSettings.isAutoPlay ? '정지' : '자동'}
+              </Button>
+            </div>
           </div>
         );
 
@@ -3431,7 +3583,7 @@ export function MyPage() {
 
   // 기존 그리드 뷰만 사용
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
       {/* 상단 툴바 */}
       <div className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
         <div className="w-full px-2 py-3">
@@ -3494,7 +3646,8 @@ export function MyPage() {
                     />
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-4">
+                    {/* 페이지 타이틀 */}
                     <div className="flex items-center gap-2">
                       <h1 
                         className="text-xl font-bold text-gray-800 cursor-pointer hover:text-blue-600 transition-colors"
@@ -3514,10 +3667,10 @@ export function MyPage() {
                             title="제목 변경" />
                     </div>
                     
-                    {/* URL 표시 및 편집 */}
+                    {/* URL 표시 및 편집 (오른쪽) */}
                     {currentUser && (
                       isEditingUrl ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <span className="text-xs text-gray-500">urwebs.com/</span>
                           <input
                             type="text"
@@ -3535,15 +3688,16 @@ export function MyPage() {
                               setCustomUrl(tempUrl);
                               setIsEditingUrl(false);
                             }}
-                            className="text-xs px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+                            className="text-xs px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
                             placeholder="사용자정의_1"
                             autoFocus
                           />
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded">
-                            urwebs.com/{customUrl || `${currentUser.email?.split('@')[0] || 'user'}_${pages.findIndex(p => p.id === currentPageId) + 1}`}
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-gray-500">urwebs.com/</span>
+                          <span className="text-xs text-gray-700 font-mono bg-gray-100 px-2 py-1 rounded">
+                            {customUrl || `${currentUser.email?.split('@')[0] || 'user'}_${pages.findIndex(p => p.id === currentPageId) + 1}`}
                           </span>
                           <Edit 
                             className="w-3 h-3 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors" 
@@ -3551,7 +3705,7 @@ export function MyPage() {
                               setIsEditingUrl(true);
                               setTempUrl(customUrl || `${currentUser.email?.split('@')[0] || 'user'}_${pages.findIndex(p => p.id === currentPageId) + 1}`);
                             }}
-                            title="URL 변경" 
+                            title="URL 뒷부분 변경" 
                           />
                         </div>
                       )
@@ -3562,17 +3716,6 @@ export function MyPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* 위젯 추가 버튼 */}
-              <Button
-                variant="default"
-                size="sm"
-                onClick={openWidgetShop}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-                title="위젯 추가"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                위젯 추가
-              </Button>
 
               {/* 페이지 관리 버튼 */}
               <Button
@@ -3658,14 +3801,10 @@ export function MyPage() {
               {/* 공개/비공개 토글 버튼 */}
               <span className="text-sm text-gray-600 font-medium">공개 설정:</span>
               <Button 
-                variant={shareSettings.isPublic ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={toggleShare}
-                className={`font-semibold transition-all ${
-                  shareSettings.isPublic 
-                    ? "bg-green-500 hover:bg-green-600 text-black border-green-500 shadow-md" 
-                    : "text-gray-700 hover:text-gray-900 border-gray-500 hover:border-gray-600 bg-gray-100 hover:bg-gray-200"
-                }`}
+                className="font-semibold transition-all text-gray-700 hover:text-gray-900 border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50"
               >
                 {shareSettings.isPublic ? (
                   <>
@@ -3705,6 +3844,7 @@ export function MyPage() {
               >
                 <RotateCcw className="w-4 h-4" />
               </Button>
+
             </div>
           </div>
         </div>
@@ -3946,11 +4086,31 @@ export function MyPage() {
 
       {/* 템플릿 선택 모달 */}
       {showTemplateModal && (
-        <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowTemplateModal(false);
+              // 빈 캔버스로 시작
+              setWidgets([]);
+              setPageTitle('새 페이지');
+            }
+          }}
+        >
           <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200/50 p-8 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">템플릿 선택</h2>
               <p className="text-gray-600">새 페이지에 사용할 템플릿을 선택하세요</p>
+              <button
+                onClick={() => {
+                  setShowTemplateModal(false);
+                  setWidgets([]);
+                  setPageTitle('새 페이지');
+                }}
+                className="mt-4 px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                빈 캔버스로 시작하기
+              </button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -4185,25 +4345,21 @@ export function MyPage() {
 
 
 
-        {/* 위젯 캔버스 */}
-        <div 
-          ref={canvasRef}
-          className={`relative min-h-[600px] rounded-xl shadow-lg border-2 transition-all duration-200 ${
-            isEditMode 
-              ? 'bg-blue-50/30 backdrop-blur-sm border-dashed border-blue-300' 
-              : 'bg-white/30 backdrop-blur-sm border-dashed border-gray-200'
-          }`}
-          style={{ 
-            position: 'relative',
-            backgroundImage: layoutSettings.showGrid && isEditMode ? `
-              linear-gradient(rgba(59, 130, 246, 0.15) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(59, 130, 246, 0.15) 1px, transparent 1px)
-            ` : 'none',
-            backgroundSize: `${layoutSettings.gridSize}px ${layoutSettings.gridSize}px`
-          }}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-        >
+        {/* 위젯 캔버스 - 전체 너비 사용 */}
+        <div className="w-full py-6">
+          <div 
+            ref={canvasRef}
+            className={`relative w-full min-h-[calc(100vh-200px)] transition-all duration-200 ${
+              isEditMode 
+                ? '' 
+                : ''
+            } p-4 sm:p-6 lg:p-8`}
+            style={{ 
+              position: 'relative'
+            }}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+          >
           {/* 빈 상태 안내 */}
           {widgets.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -4218,115 +4374,38 @@ export function MyPage() {
             </div>
           )}
 
-          {widgets.map((widget) => {
-            // 현재 위젯이 속한 컬럼 찾기
-            const col = Math.floor(widget.x / (mainColumnWidth + spacing));
-            const lastWidgetInColumn = getColumnLastWidget(col);
-            const isLastInColumn = lastWidgetInColumn?.id === widget.id;
-
-            return (
-              <div key={widget.id}>
-                <div
-                  className={`absolute bg-white rounded-lg shadow-md transition-all duration-200 ${
-                    isEditMode ? 'cursor-move' : ''
-                  }`}
-                  style={{
-                    left: widget.x,
-                    top: widget.y,
-                    width: widget.width,
-                    height: widget.height,
-                    zIndex: widget.zIndex || 1,
-                    transform: draggedWidget === widget.id ? 'rotate(2deg)' : 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (isLastInColumn) {
-                      // 이미 버튼이 있으면 생성하지 않음
-                      if (document.getElementById(`add-widget-btn-${widget.id}`)) return;
-                      
-                      // 마지막 위젯에 마우스 오버 시 아래에 위젯 추가 버튼 표시
-                      const addButton = document.createElement('div');
-                      addButton.id = `add-widget-btn-${widget.id}`;
-                      addButton.className = 'absolute bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2 shadow-lg cursor-pointer transition-all z-50 flex items-center justify-center gap-2';
-                      addButton.style.left = `${widget.x}px`;
-                      addButton.style.top = `${widget.y + widget.height + 2}px`; // spacing 줄임
-                      addButton.style.width = `${widget.width}px`;
-                      addButton.style.height = '40px'; // 명시적 높이
-                      addButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg><span class="text-sm font-medium">위젯 추가</span>';
-                      addButton.onclick = openWidgetShop;
-                      
-                      // 버튼과 위젯 사이 연결 영역 생성 (보이지 않는 영역)
-                      const connector = document.createElement('div');
-                      connector.id = `connector-${widget.id}`;
-                      connector.className = 'absolute z-40';
-                      connector.style.left = `${widget.x}px`;
-                      connector.style.top = `${widget.y + widget.height}px`;
-                      connector.style.width = `${widget.width}px`;
-                      connector.style.height = '10px'; // 위젯과 버튼 사이 공간
-                      
-                      // 연결 영역에도 이벤트 추가
-                      connector.onmouseenter = () => {
-                        // 연결 영역 위에서도 버튼 유지
-                      };
-                      
-                      connector.onmouseleave = () => {
-                        setTimeout(() => {
-                          const btn = document.getElementById(`add-widget-btn-${widget.id}`);
-                          const conn = document.getElementById(`connector-${widget.id}`);
-                          if (btn && !btn.matches(':hover')) {
-                            btn.remove();
-                          }
-                          if (conn) {
-                            conn.remove();
-                          }
-                        }, 300);
-                      };
-                      
-                      // 버튼에 마우스가 올라가 있을 때도 유지
-                      addButton.onmouseenter = () => {
-                        // 버튼 위에 있을 때는 계속 표시
-                      };
-                      
-                      addButton.onmouseleave = () => {
-                        setTimeout(() => {
-                          const btn = document.getElementById(`add-widget-btn-${widget.id}`);
-                          const conn = document.getElementById(`connector-${widget.id}`);
-                          if (btn) btn.remove();
-                          if (conn) conn.remove();
-                        }, 300);
-                      };
-                      
-                      const canvas = canvasRef.current;
-                      if (canvas) {
-                        canvas.appendChild(connector);
-                        canvas.appendChild(addButton);
-                      }
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (isLastInColumn) {
-                      // 마우스가 버튼으로 가는지 확인하기 위해 지연
-                      setTimeout(() => {
-                        const addButton = document.getElementById(`add-widget-btn-${widget.id}`);
-                        const connector = document.getElementById(`connector-${widget.id}`);
-                        if (addButton && connector) {
-                          // 버튼이나 연결 영역에 마우스가 없으면 제거
-                          const isHoveringButton = addButton.matches(':hover');
-                          const isHoveringConnector = connector.matches(':hover');
-                          if (!isHoveringButton && !isHoveringConnector) {
-                            addButton.remove();
-                            connector.remove();
-                          }
-                        }
-                      }, 300);
-                    }
-                  }}
-                >
-                  {renderWidget(widget)}
-                </div>
-              </div>
-            );
-          })}
-
+          {/* DraggableDashboardGrid 사용 */}
+          <DraggableDashboardGrid
+            widgets={widgets.map(convertToGridWidget)}
+            renderWidget={(w) => renderWidget(w)}
+            onLayoutChange={(updatedWidgets) => {
+              // 위젯 위치 업데이트 (그리드 좌표를 픽셀 좌표로 변환)
+              setWidgets(prevWidgets => 
+                prevWidgets.map(widget => {
+                  const updated = updatedWidgets.find(w => w.id === widget.id);
+                  if (updated && updated.x !== undefined && updated.y !== undefined) {
+                    // 그리드 좌표를 픽셀 좌표로 변환
+                    const pixelX = updated.x * (subCellWidth + spacing);
+                    const pixelY = updated.y * (cellHeight + spacing);
+                    return { ...widget, x: pixelX, y: pixelY };
+                  }
+                  return widget;
+                })
+              );
+            }}
+            isEditMode={isEditMode}
+            cellHeight={cellHeight}
+            cellWidth={subCellWidth}
+            gap={12}
+            cols={8}
+            className=""
+            onAddWidget={openWidgetShop}
+            showAddButton={isEditMode}
+            userId={currentUser?.uid || 'guest'}
+            collisionStrategy="push"
+            responsiveCells={responsiveCellHeights}
+          />
+          </div>
         </div>
 
 
@@ -4417,7 +4496,6 @@ export function MyPage() {
                             { type: 'stock', name: '주식', icon: '📈', description: '주식 시세 확인' },
                             { type: 'crypto', name: '암호화폐', icon: '💰', description: '코인 가격 정보' },
                             { type: 'expense', name: '가계부', icon: '📊', description: '지출 관리' },
-                            { type: 'calculator', name: '계산기', icon: '🧮', description: '간편 계산기' },
                             { type: 'exchange', name: '환율', icon: '💱', description: '실시간 환율 정보' },
                             { type: 'stock_alert', name: '주식 알림', icon: '📢', description: '주식 시세 알림' },
                             { type: 'economic_calendar', name: '경제 캘린더', icon: '📅', description: 'FOMC, CPI 발표 일정' }
@@ -4428,7 +4506,6 @@ export function MyPage() {
                           widgets: [
                             { type: 'email', name: '이메일', icon: '📧', description: '메일 확인' },
                             { type: 'mail_services', name: '메일 서비스', icon: '📮', description: '메일 서비스 바로가기' },
-                            { type: 'social', name: '소셜미디어', icon: '👥', description: 'SNS 관리' },
                             { type: 'github', name: 'GitHub', icon: '🐙', description: '코드 저장소' },
                             { type: 'phone', name: '연락처', icon: '📞', description: '빠른 연락처' },
                             { type: 'github_repo', name: 'GitHub Repo', icon: '📂', description: 'GitHub 저장소 상태' }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { db } from '../../firebase/config';
+import { collection, getDocs } from 'firebase/firestore';
 import { 
   Users, 
   Mail, 
@@ -53,61 +55,74 @@ export function DashboardTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 실제 구현에서는 API 호출로 데이터를 가져와야 함
-    setTimeout(() => {
-      setStats({
-        totalUsers: 1247,
-        activeUsers: 892,
-        totalInquiries: 156,
-        pendingInquiries: 23,
-        totalPages: 3421,
-        totalWidgets: 12847,
-        totalTemplates: 6,
-        todayVisitors: 234,
-        weeklyGrowth: 12.5,
-        monthlyGrowth: 28.3
-      });
-
-      setRecentActivities([
-        {
-          id: '1',
-          type: 'user',
-          description: '새로운 사용자가 가입했습니다',
-          timestamp: new Date(Date.now() - 300000), // 5분 전
-          user: 'user@example.com'
-        },
-        {
-          id: '2',
-          type: 'inquiry',
-          description: '새로운 문의가 접수되었습니다',
-          timestamp: new Date(Date.now() - 600000), // 10분 전
-          user: 'customer@example.com'
-        },
-        {
-          id: '3',
+    const loadDashboardData = async () => {
+      try {
+        // userPages 컬렉션에서 통계 수집
+        const pagesRef = collection(db, 'userPages');
+        const pagesSnapshot = await getDocs(pagesRef);
+        
+        let totalPages = 0;
+        let totalWidgets = 0;
+        const uniqueUsers = new Set<string>();
+        
+        pagesSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          totalPages++;
+          totalWidgets += data.widgets?.length || 0;
+          if (data.authorId || data.authorEmail) {
+            uniqueUsers.add(data.authorId || data.authorEmail);
+          }
+        });
+        
+        // 문의 데이터
+        const inquiriesRef = collection(db, 'inquiries');
+        const inquiriesSnapshot = await getDocs(inquiriesRef);
+        const totalInquiries = inquiriesSnapshot.size;
+        const pendingInquiries = inquiriesSnapshot.docs.filter(doc => doc.data().status === 'pending').length;
+        
+        setStats({
+          totalUsers: uniqueUsers.size,
+          activeUsers: uniqueUsers.size,
+          totalInquiries,
+          pendingInquiries,
+          totalPages,
+          totalWidgets,
+          totalTemplates: 6,
+          todayVisitors: totalPages,
+          weeklyGrowth: 0,
+          monthlyGrowth: 0
+        });
+        
+        // 최근 활동 (최근 페이지 생성)
+        const recentPages = pagesSnapshot.docs
+          .map(doc => ({
+            data: doc.data(),
+            id: doc.id
+          }))
+          .sort((a, b) => {
+            const aTime = a.data.createdAt?.seconds || 0;
+            const bTime = b.data.createdAt?.seconds || 0;
+            return bTime - aTime;
+          })
+          .slice(0, 5);
+        
+        const activities: RecentActivity[] = recentPages.map((item, index) => ({
+          id: item.id,
           type: 'page',
-          description: '새로운 페이지가 생성되었습니다',
-          timestamp: new Date(Date.now() - 900000), // 15분 전
-          user: 'user2@example.com'
-        },
-        {
-          id: '4',
-          type: 'widget',
-          description: '위젯이 추가되었습니다',
-          timestamp: new Date(Date.now() - 1200000), // 20분 전
-          user: 'user3@example.com'
-        },
-        {
-          id: '5',
-          type: 'user',
-          description: '사용자가 로그인했습니다',
-          timestamp: new Date(Date.now() - 1500000), // 25분 전
-          user: 'user4@example.com'
-        }
-      ]);
-
-      setLoading(false);
-    }, 1000);
+          description: `${item.data.title || '제목 없음'} 페이지가 생성되었습니다`,
+          timestamp: item.data.createdAt?.seconds ? new Date(item.data.createdAt.seconds * 1000) : new Date(),
+          user: item.data.authorEmail || '익명'
+        }));
+        
+        setRecentActivities(activities);
+        setLoading(false);
+      } catch (error) {
+        console.error('대시보드 데이터 로드 실패:', error);
+        setLoading(false);
+      }
+    };
+    
+    loadDashboardData();
   }, []);
 
   const formatTimeAgo = (date: Date) => {

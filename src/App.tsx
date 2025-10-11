@@ -230,6 +230,15 @@ function AppContent() {
             </main>
           </div>
         } />
+        
+        {/* 나의 페이지 - 특정 페이지 (편집 모드) */}
+        <Route path="/mypage/:pageId" element={
+          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+            <main>
+              <MyPage />
+            </main>
+          </div>
+        } />
 
         {/* 관리자 페이지 */}
         <Route path="/admin" element={

@@ -11,7 +11,8 @@ import {
   Filter,
   Mail,
   Shield,
-  Activity
+  Activity,
+  ExternalLink
 } from 'lucide-react';
 import { db } from '../../firebase/config';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
@@ -34,47 +35,72 @@ export function UsersTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  // Firestore에서 사용자 데이터 조회 (실제로는 Authentication과 연동 필요)
+  // Firestore에서 사용자 데이터 조회
   useEffect(() => {
-    // 실제 구현에서는 Authentication API를 통해 사용자 목록을 가져와야 함
-    // 현재는 목업 데이터 사용
-    const mockUsers: User[] = [
-      {
-        id: '1',
-        email: 'okjsk1@gmail.com',
-        displayName: '관리자',
-        createdAt: new Date('2024-01-01'),
-        lastLoginAt: new Date(),
-        isActive: true,
-        pageCount: 5,
-        widgetCount: 25
-      },
-      {
-        id: '2',
-        email: 'user1@example.com',
-        displayName: '사용자1',
-        createdAt: new Date('2024-01-15'),
-        lastLoginAt: new Date(Date.now() - 86400000), // 1일 전
-        isActive: true,
-        pageCount: 2,
-        widgetCount: 8
-      },
-      {
-        id: '3',
-        email: 'user2@example.com',
-        displayName: '사용자2',
-        createdAt: new Date('2024-02-01'),
-        lastLoginAt: new Date(Date.now() - 604800000), // 7일 전
-        isActive: false,
-        pageCount: 1,
-        widgetCount: 3
+    const loadUsers = async () => {
+      try {
+        // userPages 컬렉션에서 사용자별 페이지 정보 수집
+        const pagesRef = collection(db, 'userPages');
+        const pagesSnapshot = await getDocs(pagesRef);
+        
+        // 사용자별로 그룹화
+        const userDataMap = new Map<string, {
+          email: string;
+          name: string;
+          pageCount: number;
+          widgetCount: number;
+          lastUpdated: Date;
+        }>();
+        
+        pagesSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          const userId = data.authorId || data.authorEmail;
+          
+          if (!userId) return;
+          
+          const existing = userDataMap.get(userId);
+          const widgetCount = data.widgets?.length || 0;
+          const updatedAt = data.updatedAt?.seconds ? new Date(data.updatedAt.seconds * 1000) : new Date();
+          
+          if (existing) {
+            userDataMap.set(userId, {
+              ...existing,
+              pageCount: existing.pageCount + 1,
+              widgetCount: existing.widgetCount + widgetCount,
+              lastUpdated: updatedAt > existing.lastUpdated ? updatedAt : existing.lastUpdated
+            });
+          } else {
+            userDataMap.set(userId, {
+              email: data.authorEmail || userId,
+              name: data.authorName || '익명',
+              pageCount: 1,
+              widgetCount,
+              lastUpdated: updatedAt
+            });
+          }
+        });
+        
+        // Map을 배열로 변환
+        const usersArray: User[] = Array.from(userDataMap.entries()).map(([id, data]) => ({
+          id,
+          email: data.email,
+          displayName: data.name,
+          createdAt: data.lastUpdated, // 실제로는 가입일이지만 현재는 마지막 업데이트 사용
+          lastLoginAt: data.lastUpdated,
+          isActive: true,
+          pageCount: data.pageCount,
+          widgetCount: data.widgetCount
+        }));
+        
+        setUsers(usersArray);
+        setLoading(false);
+      } catch (error) {
+        console.error('사용자 데이터 로드 실패:', error);
+        setLoading(false);
       }
-    ];
-
-    setTimeout(() => {
-      setUsers(mockUsers);
-      setLoading(false);
-    }, 1000);
+    };
+    
+    loadUsers();
   }, []);
 
   // 필터링된 사용자 목록
@@ -285,16 +311,21 @@ export function UsersTab() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(`mailto:${user.email}`)}
+                          onClick={() => {
+                            const userPrefix = user.email?.split('@')[0] || 'user';
+                            window.open(`/mypage/${userPrefix}_1`, '_blank');
+                          }}
+                          title="사용자 페이지 보기"
                         >
-                          <Mail className="w-3 h-3" />
+                          <ExternalLink className="w-3 h-3" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className={user.isActive ? 'text-red-600' : 'text-green-600'}
+                          onClick={() => window.open(`mailto:${user.email}`)}
+                          title="이메일 보내기"
                         >
-                          {user.isActive ? <UserX className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
+                          <Mail className="w-3 h-3" />
                         </Button>
                       </div>
                     </td>

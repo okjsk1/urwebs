@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Textarea } from './ui/textarea';
+import { db } from '../firebase/config';
+import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 import { 
   Search, 
   Plus, 
@@ -28,61 +30,8 @@ interface Notice {
   category: '공지' | '업데이트' | '이벤트' | '안내';
 }
 
-const mockNotices: Notice[] = [
-  {
-    id: 1,
-    title: '서비스 이용약관 개정 안내',
-    content: '개인정보보호법 강화에 따른 서비스 이용약관이 개정되었습니다. 주요 변경사항을 확인해주세요.',
-    author: '관리자',
-    date: '2024-12-20',
-    views: 1245,
-    isPinned: true,
-    category: '공지'
-  },
-  {
-    id: 2,
-    title: '새로운 카테고리 추가 - 요리/레시피',
-    content: '사용자 요청에 따라 요리/레시피 카테고리가 새롭게 추가되었습니다. 48개의 유용한 요리 관련 사이트를 만나보세요.',
-    author: '개발팀',
-    date: '2024-12-19',
-    views: 892,
-    isPinned: true,
-    category: '업데이트'
-  },
-  {
-    id: 3,
-    title: '연말 이벤트 - 나만의 시작페이지 컨테스트',
-    content: '가장 창의적인 시작페이지를 만든 사용자에게 상품을 드립니다. 참여 방법을 확인해주세요.',
-    author: '이벤트팀',
-    date: '2024-12-18',
-    views: 634,
-    isPinned: false,
-    category: '이벤트'
-  },
-  {
-    id: 4,
-    title: '시스템 점검 안내 (12/25 02:00~04:00)',
-    content: '안정적인 서비스 제공을 위한 정기 시스템 점검을 실시합니다. 서비스 이용에 참고해주세요.',
-    author: '운영팀',
-    date: '2024-12-17',
-    views: 456,
-    isPinned: false,
-    category: '안내'
-  },
-  {
-    id: 5,
-    title: '부동산 카테고리 세분화 완료',
-    content: '부동산 카테고리가 임대인/임차인/공인중개사별로 세분화되어 더욱 전문적인 정보를 제공합니다.',
-    author: '개발팀',
-    date: '2024-12-16',
-    views: 723,
-    isPinned: false,
-    category: '업데이트'
-  }
-];
-
 export function NoticePage() {
-  const [notices] = useState<Notice[]>(mockNotices);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
@@ -93,6 +42,38 @@ export function NoticePage() {
     content: '',
     category: '공지' as Notice['category']
   });
+
+  // Firebase에서 공지사항 로드
+  useEffect(() => {
+    const loadNotices = async () => {
+      try {
+        const noticesRef = collection(db, 'notices');
+        const q = query(noticesRef, orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        
+        const loadedNotices: Notice[] = snapshot.docs.map((doc, index) => {
+          const data = doc.data();
+          const createdAt = data.createdAt as Timestamp;
+          return {
+            id: Date.now() + index,
+            title: data.title || '',
+            content: data.content || '',
+            author: data.author || '관리자',
+            date: createdAt ? new Date(createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            views: data.views || 0,
+            isPinned: data.isPinned || false,
+            category: (data.category || '공지') as Notice['category']
+          };
+        });
+        
+        setNotices(loadedNotices);
+      } catch (error) {
+        console.error('공지사항 로드 실패:', error);
+      }
+    };
+    
+    loadNotices();
+  }, []);
 
   const categories = ['전체', '공지', '업데이트', '이벤트', '안내'];
   const itemsPerPage = 10;
@@ -293,11 +274,6 @@ export function NoticePage() {
               ))}
             </select>
           </div>
-          
-          <Button onClick={() => setShowWriteForm(true)} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            글쓰기
-          </Button>
         </div>
       </div>
 

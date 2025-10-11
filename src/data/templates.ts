@@ -69,12 +69,12 @@ export const templates: PageTemplate[] = [
       },
       {
         id: '3',
-        type: 'clock',
+        type: 'weather',
         x: 700,
         y: 50,
         width: 200,
         height: 150,
-        title: '현재 시간'
+        title: '날씨'
       },
       {
         id: '4',
@@ -158,12 +158,12 @@ export const templates: PageTemplate[] = [
       },
       {
         id: '3',
-        type: 'clock',
+        type: 'weather',
         x: 750,
         y: 50,
         width: 200,
         height: 150,
-        title: '작업 시간'
+        title: '날씨'
       },
       {
         id: '4',
@@ -183,17 +183,17 @@ export const templates: PageTemplate[] = [
       },
       {
         id: '5',
-        type: 'social',
+        type: 'calendar',
         x: 500,
         y: 320,
         width: 450,
         height: 180,
-        title: '디자인 커뮤니티',
+        title: '디자인 일정',
         content: {
-          platforms: [
-            { name: 'Dribbble', followers: '2.3K', posts: '45' },
-            { name: 'Behance', followers: '1.8K', posts: '32' },
-            { name: 'Instagram', followers: '5.2K', posts: '128' }
+          events: [
+            { title: '클라이언트 미팅', date: '내일 2PM' },
+            { title: '디자인 리뷰', date: '수요일 10AM' },
+            { title: '프로젝트 마감', date: '금요일 6PM' }
           ]
         }
       }
@@ -246,12 +246,12 @@ export const templates: PageTemplate[] = [
       },
       {
         id: '3',
-        type: 'clock',
+        type: 'weather',
         x: 800,
         y: 50,
         width: 200,
         height: 150,
-        title: '시장 시간'
+        title: '날씨'
       },
       {
         id: '4',
@@ -283,95 +283,6 @@ export const templates: PageTemplate[] = [
             { title: '삼성전자 실적 발표', date: '내일 2PM' },
             { title: '연준 회의록 발표', date: '수요일 9PM' },
             { title: '월요일 시장 개장', date: '월요일 9AM' }
-          ]
-        }
-      }
-    ]
-  },
-  {
-    id: 'creator',
-    name: '크리에이터 스튜디오',
-    description: '콘텐츠 제작과 소셜미디어 관리',
-    category: '콘텐츠 크리에이터',
-    icon: Video,
-    color: 'bg-red-500',
-    background: 'bg-gradient-to-br from-red-50 to-pink-100',
-    preview: '🎬',
-    widgets: [
-      {
-        id: '1',
-        type: 'bookmark',
-        x: 50,
-        y: 50,
-        width: 350,
-        height: 220,
-        title: '콘텐츠 플랫폼',
-        content: {
-          bookmarks: [
-            { id: '1', name: 'YouTube', url: 'https://youtube.com', icon: '📺', color: 'bg-red-100' },
-            { id: '2', name: 'Instagram', url: 'https://instagram.com', icon: '📷', color: 'bg-pink-100' },
-            { id: '3', name: 'TikTok', url: 'https://tiktok.com', icon: '🎵', color: 'bg-black text-white' },
-            { id: '4', name: 'Twitch', url: 'https://twitch.tv', icon: '🎮', color: 'bg-purple-100' },
-            { id: '5', name: 'Canva', url: 'https://canva.com', icon: '🎨', color: 'bg-blue-100' },
-            { id: '6', name: 'OBS', url: 'https://obsproject.com', icon: '📹', color: 'bg-gray-100' }
-          ]
-        }
-      },
-      {
-        id: '2',
-        type: 'stats',
-        x: 450,
-        y: 50,
-        width: 300,
-        height: 220,
-        title: '채널 통계',
-        content: {
-          stats: [
-            { label: '구독자', value: '125K' },
-            { label: '이번 주 조회수', value: '2.3M' },
-            { label: '수익', value: '₩850,000' }
-          ]
-        }
-      },
-      {
-        id: '3',
-        type: 'clock',
-        x: 800,
-        y: 50,
-        width: 200,
-        height: 150,
-        title: '업로드 시간'
-      },
-      {
-        id: '4',
-        type: 'todo',
-        x: 50,
-        y: 320,
-        width: 400,
-        height: 180,
-        title: '콘텐츠 일정',
-        content: {
-          todos: [
-            { id: '1', text: '영상 편집 완료', completed: false },
-            { id: '2', text: '썸네일 제작', completed: false },
-            { id: '3', text: 'SNS 홍보 포스팅', completed: false },
-            { id: '4', text: '댓글 답변', completed: true }
-          ]
-        }
-      },
-      {
-        id: '5',
-        type: 'social',
-        x: 500,
-        y: 320,
-        width: 500,
-        height: 180,
-        title: '소셜미디어 관리',
-        content: {
-          platforms: [
-            { name: 'YouTube', followers: '125K', engagement: '4.2%' },
-            { name: 'Instagram', followers: '89K', engagement: '6.8%' },
-            { name: 'TikTok', followers: '45K', engagement: '12.3%' }
           ]
         }
       }
@@ -425,12 +336,12 @@ export const templates: PageTemplate[] = [
       },
       {
         id: '3',
-        type: 'clock',
+        type: 'weather',
         x: 800,
         y: 50,
         width: 200,
         height: 150,
-        title: '공부 시간'
+        title: '날씨'
       },
       {
         id: '4',

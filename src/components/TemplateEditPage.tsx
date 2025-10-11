@@ -6,13 +6,9 @@ import { Widget, WidgetType } from '../types/mypage.types';
 import { widgetCategories } from '../constants/widgetCategories';
 import {
   CalendarWidget,
-  WeatherSmallWidget,
   TodoWidget,
   NewsWidget,
   BookmarkWidget,
-  SocialWidget,
-  MusicWidget,
-  CalculatorWidget,
   ContactWidget,
   QRCodeWidget,
   GitHubWidget,

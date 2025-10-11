@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CategoryHoverCard } from './CategoryHoverCard';
+import { Footer } from './Footer';
 import { db } from '../firebase/config';
 import { collection, getDocs, query, orderBy, where, limit } from 'firebase/firestore';
 import { 
@@ -255,13 +256,39 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* 상단 히어로 섹션 */}
-      <div className="relative bg-gray-50 dark:bg-gray-800">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white py-32">
+      <div className="relative bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800">
+        <div className="max-w-4xl mx-auto px-4 text-center py-20">
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-6">
             나만의{' '}
             <span className="text-blue-600 dark:text-blue-400">시작페이지</span>를{' '}
             <span className="text-purple-600 dark:text-purple-400">만들어보세요</span>
           </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+            원하는 위젯으로 나만의 맞춤형 시작페이지를 만들어보세요. 
+            간단하고 직관적인 인터페이스로 누구나 쉽게 만들 수 있습니다.
+          </p>
+          <button
+            onClick={() => navigate('/mypage')}
+            className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-lg rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+          >
+            <Sparkles className="w-6 h-6 mr-3" />
+            페이지 만들기
+            <ArrowRight className="w-5 h-5 ml-3" />
+          </button>
+          <div className="mt-6 flex justify-center space-x-8 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center">
+              <Zap className="w-4 h-4 mr-2 text-yellow-500" />
+              간편한 드래그앤드롭
+            </div>
+            <div className="flex items-center">
+              <Puzzle className="w-4 h-4 mr-2 text-blue-500" />
+              다양한 위젯
+            </div>
+            <div className="flex items-center">
+              <Star className="w-4 h-4 mr-2 text-purple-500" />
+              무료 사용
+            </div>
+          </div>
         </div>
       </div>
 
@@ -430,6 +457,9 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
           </div>
         </div>
       </div>
+      
+      {/* 푸터 */}
+      <Footer />
     </div>
   );
 }

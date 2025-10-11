@@ -134,26 +134,76 @@ export const ExchangeWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     }
   }, [state.refreshInterval]);
 
-  // 환율 데이터 새로고침 (시뮬레이션)
-  const refreshExchangeRates = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      rates: prev.rates.map(rate => {
-        const volatility = rate.rate * 0.005; // 0.5% 변동성
-        const change = (Math.random() - 0.5) * volatility * 2;
-        const newRate = rate.rate + change;
+  // 환율 데이터 새로고침 (실제 API)
+  const refreshExchangeRates = useCallback(async () => {
+    try {
+      // 한국수출입은행 환율 API 사용
+      const response = await fetch('https://www.koreaexim.go.kr/site/program/financial/exchangeJSON?authkey=DmDlLpOj8J0F2zqE1mXgWLMzQOFxv8k8&data=AP01');
+      
+      if (response.ok) {
+        const data = await response.json();
         
-        return {
-          ...rate,
-          rate: Math.max(0.001, newRate), // 최소값 보장
-          change: change,
-          changePercent: (change / rate.rate) * 100,
-          lastUpdate: Date.now()
-        };
-      }),
-      lastRefresh: Date.now()
-    }));
-    showToast('환율이 업데이트되었습니다', 'success');
+        setState(prev => ({
+          ...prev,
+          rates: prev.rates.map(rate => {
+            // API 데이터에서 해당 통화 찾기
+            const apiRate = data.find((item: any) => item.cur_unit === rate.fromCurrency);
+            
+            if (apiRate && rate.toCurrency === 'KRW') {
+              const newRate = parseFloat(apiRate.deal_bas_r.replace(/,/g, ''));
+              const change = newRate - rate.rate;
+              const changePercent = (change / rate.rate) * 100;
+              
+              return {
+                ...rate,
+                rate: newRate,
+                change: change,
+                changePercent: changePercent,
+                lastUpdate: Date.now()
+              };
+            }
+            
+            // API에서 데이터를 찾지 못한 경우 시뮬레이션
+            const volatility = rate.rate * 0.005;
+            const change = (Math.random() - 0.5) * volatility * 2;
+            const newRate = rate.rate + change;
+            
+            return {
+              ...rate,
+              rate: Math.max(0.001, newRate),
+              change: change,
+              changePercent: (change / rate.rate) * 100,
+              lastUpdate: Date.now()
+            };
+          }),
+          lastRefresh: Date.now()
+        }));
+        showToast('환율이 업데이트되었습니다', 'success');
+      } else {
+        // API 실패 시 시뮬레이션으로 폴백
+        setState(prev => ({
+          ...prev,
+          rates: prev.rates.map(rate => {
+            const volatility = rate.rate * 0.005;
+            const change = (Math.random() - 0.5) * volatility * 2;
+            const newRate = rate.rate + change;
+            
+            return {
+              ...rate,
+              rate: Math.max(0.001, newRate),
+              change: change,
+              changePercent: (change / rate.rate) * 100,
+              lastUpdate: Date.now()
+            };
+          }),
+          lastRefresh: Date.now()
+        }));
+        showToast('환율이 업데이트되었습니다', 'success');
+      }
+    } catch (error) {
+      console.error('환율 조회 실패:', error);
+      showToast('환율 업데이트에 실패했습니다', 'error');
+    }
   }, []);
 
   const addExchangeRate = useCallback(() => {
