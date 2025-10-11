@@ -1568,30 +1568,42 @@ export function MyPage() {
           updatedAt: serverTimestamp()
         };
 
-        console.log('생성된 공유 URL ID:', urlId);
+        console.log('📦 저장할 페이지 데이터:', {
+          title: pageData.title,
+          authorId: pageData.authorId,
+          authorEmail: pageData.authorEmail,
+          isPublic: pageData.isPublic,
+          urlId: pageData.urlId,
+          widgetCount: pageData.widgets.length
+        });
 
         // 기존 페이지가 있는지 확인
+        console.log('🔍 기존 페이지 확인 중... (authorId:', currentUser.id, ', title:', pageTitle, ')');
         const pagesRef = collection(db, 'userPages');
         const q = query(pagesRef, where('authorId', '==', currentUser.id), where('title', '==', pageTitle));
         const snapshot = await getDocs(q);
+        console.log('기존 페이지 검색 결과:', snapshot.docs.length, '개');
 
         if (!snapshot.empty) {
           // 기존 페이지 업데이트
-          const docRef = doc(db, 'userPages', snapshot.docs[0].id);
+          const docId = snapshot.docs[0].id;
+          console.log('📝 기존 페이지 업데이트 중... (docId:', docId, ')');
+          const docRef = doc(db, 'userPages', docId);
           await updateDoc(docRef, {
             ...pageData,
             updatedAt: serverTimestamp()
           });
-          console.log('Firebase 페이지 업데이트 완료');
+          console.log('✅ Firebase 페이지 업데이트 완료! (docId:', docId, ')');
         } else {
           // 새 페이지 생성 (처음 저장할 때만)
-          await addDoc(pagesRef, {
+          console.log('🆕 새 페이지 생성 중...');
+          const docRef = await addDoc(pagesRef, {
             ...pageData,
             createdAt: serverTimestamp()
           });
-          console.log('Firebase 새 페이지 생성 완료');
+          console.log('✅ Firebase 새 페이지 생성 완료! (docId:', docRef.id, ')');
         }
-        console.log('→ Firebase 저장 완료!');
+        console.log('→ 🎉 Firebase 저장 완료! 메인페이지에서 확인하세요!');
         
         // 공유 URL 생성 (위에서 이미 생성된 urlId 사용)
         const shareUrl = `${window.location.origin}/${urlId}`;
@@ -1613,12 +1625,32 @@ export function MyPage() {
         
         console.log('공유 URL:', shareUrl);
         return;
-      } catch (error) {
-        console.error('Firebase 저장 실패:', error);
+      } catch (error: any) {
+        console.error('❌ Firebase 저장 실패:', error);
+        console.error('에러 메시지:', error?.message);
+        console.error('에러 코드:', error?.code);
+        
+        // 사용자에게 에러 알림
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'fixed top-20 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-[10000] max-w-md';
+        errorMessage.innerHTML = `
+          <div class="flex flex-col gap-2">
+            <div class="font-semibold">❌ Firebase 저장 실패</div>
+            <div class="text-xs opacity-90">${error?.message || '알 수 없는 오류'}</div>
+            <div class="text-xs opacity-75">로컬에는 저장되었습니다.</div>
+          </div>
+        `;
+        document.body.appendChild(errorMessage);
+        setTimeout(() => {
+          errorMessage.remove();
+        }, 5000);
+        
         // Firebase 저장 실패해도 로컬에는 저장되었으므로 계속 진행
       }
     } else {
-      console.log('→ Firebase 저장 조건 미충족 (로그인 안됨 또는 비공개 설정)');
+      console.log('→ Firebase 저장 조건 미충족');
+      console.log('  - currentUser:', currentUser ? '로그인됨' : '로그인 안됨');
+      console.log('  - shareSettings.isPublic:', shareSettings.isPublic ? '공개' : '비공개');
     }
     
     // 성공 메시지 (비공개 또는 게스트)

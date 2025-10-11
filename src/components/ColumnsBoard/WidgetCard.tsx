@@ -91,3 +91,8 @@ export function WidgetCard({ widget, isEditMode, onDelete, children }: WidgetCar
 
 
 
+
+
+
+
+
