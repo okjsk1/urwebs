@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, Music, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
@@ -1541,32 +1541,48 @@ export function MyPage() {
         const userId = currentUser.email?.split('@')[0] || 'user';
         const urlId = customUrl || `${userId}_${userPageIndex}`;
 
-        const pageData = {
+        // undefined 값을 제거하는 헬퍼 함수
+        const removeUndefined = (obj: any): any => {
+          if (Array.isArray(obj)) {
+            return obj.map(item => removeUndefined(item));
+          }
+          if (obj !== null && typeof obj === 'object') {
+            return Object.entries(obj).reduce((acc, [key, value]) => {
+              if (value !== undefined) {
+                acc[key] = removeUndefined(value);
+              }
+              return acc;
+            }, {} as any);
+          }
+          return obj;
+        };
+
+        const pageData = removeUndefined({
           title: pageTitle || '제목 없음',
           description: `${widgets.length}개의 위젯으로 구성된 페이지`,
-          authorId: currentUser.id,
+          authorId: currentUser.id || '',
           authorName: currentUser.name || '익명',
-          authorEmail: currentUser.email,
+          authorEmail: currentUser.email || '',
           category: '일반',
-          isPublic: shareSettings.isPublic,
+          isPublic: shareSettings.isPublic || false,
           urlId: urlId, // 공유 URL용 고유 ID
           pageNumber: userPageIndex, // 페이지 번호
           widgets: widgets.map(w => ({
             id: w.id,
             type: w.type,
-            title: w.title,
-            x: w.x,
-            y: w.y,
-            width: w.width,
-            height: w.height,
-            size: w.size,
-            content: w.content // 위젯 내용도 저장
+            title: w.title || '',
+            x: w.x || 0,
+            y: w.y || 0,
+            width: w.width || 1,
+            height: w.height || 1,
+            size: w.size || 'medium',
+            content: w.content || {}
           })),
           tags: [],
           views: 0,
           likes: 0,
           updatedAt: serverTimestamp()
-        };
+        });
 
         console.log('📦 저장할 페이지 데이터:', {
           title: pageData.title,
