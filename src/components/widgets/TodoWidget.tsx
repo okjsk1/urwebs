@@ -139,6 +139,20 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
     showToast('할일이 삭제되었습니다', 'success');
   }, []);
 
+  const moveTodo = useCallback((id: string, direction: 'up' | 'down') => {
+    setState(prev => {
+      const index = prev.items.findIndex(i => i.id === id);
+      if (index === -1) return prev;
+      const newItems = [...prev.items];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= newItems.length) return prev;
+      const [moved] = newItems.splice(index, 1);
+      newItems.splice(targetIndex, 0, moved);
+      return { ...prev, items: newItems };
+    });
+    saveState();
+  }, []);
+
   const updateTodo = useCallback((id: string, updates: Partial<TodoItem>) => {
     setState(prev => ({
       ...prev,
@@ -364,6 +378,20 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
                 
                 {isEditMode && (
                   <div className="flex gap-1">
+                    <button
+                      onClick={() => moveTodo(item.id, 'up')}
+                      className="w-5 h-5 text-gray-400 hover:text-gray-700"
+                      aria-label="위로 이동"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={() => moveTodo(item.id, 'down')}
+                      className="w-5 h-5 text-gray-400 hover:text-gray-700"
+                      aria-label="아래로 이동"
+                    >
+                      ▼
+                    </button>
                     <button
                       onClick={() => setState(prev => ({ 
                         ...prev, 

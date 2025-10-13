@@ -17,6 +17,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { templateService, TemplateData } from '../../services/templateService';
+import { auth } from '../../firebase/config';
 import { TemplateEditorPage } from './TemplateEditorPage';
 
 interface TemplatesTabProps {
@@ -29,6 +30,7 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateData | null>(null);
   const [showEditorPage, setShowEditorPage] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TemplateData | null>(null);
+  const isAdmin = auth.currentUser?.email === 'okjsk1@gmail.com';
 
   useEffect(() => {
     loadTemplates();
@@ -51,6 +53,7 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
     if (onNavigateTemplateEdit) {
       // 템플릿 편집 페이지로 이동
       onNavigateTemplateEdit({
+        id: template.id,
         name: template.name,
         description: template.description,
         category: template.category,
@@ -85,6 +88,10 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
     widgets: any[];
   }) => {
     try {
+      if (!isAdmin) {
+        alert('관리자만 템플릿을 수정/생성할 수 있습니다.');
+        return;
+      }
       if (editingTemplate) {
         // 기존 템플릿 수정
         await templateService.updateTemplate(editingTemplate.id, {
@@ -119,17 +126,19 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
   };
 
   const handleDelete = async (templateId: string) => {
-    if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
-
     try {
+      if (!isAdmin) {
+        alert('관리자만 템플릿을 삭제할 수 있습니다.');
+        return;
+      }
       await templateService.deleteTemplate(templateId);
       await loadTemplates();
       if (selectedTemplate?.id === templateId) {
         setSelectedTemplate(null);
-        setIsEditing(false);
       }
     } catch (error) {
       console.error('템플릿 삭제 실패:', error);
+      alert('템플릿 삭제에 실패했습니다.');
     }
   };
 
@@ -141,6 +150,18 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
       await loadTemplates();
     } catch (error) {
       console.error('템플릿 상태 변경 실패:', error);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!confirm('정말 모든 템플릿을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+    try {
+      await templateService.deleteAllTemplates();
+      await loadTemplates();
+      setSelectedTemplate(null);
+    } catch (error) {
+      console.error('모든 템플릿 삭제 실패:', error);
+      alert('모든 템플릿 삭제에 실패했습니다.');
     }
   };
 
@@ -181,6 +202,18 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             새로고침
           </Button>
+          {isAdmin && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDeleteAll}
+            className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            모든 템플릿 삭제
+          </Button>
+          )}
+          {isAdmin && (
           <Button
             size="sm"
             onClick={handleCreateNew}
@@ -188,6 +221,7 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
             <Plus className="w-4 h-4 mr-2" />
             새 템플릿 만들기
           </Button>
+          )}
         </div>
       </div>
 
@@ -238,6 +272,7 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
                       </div>
                     </div>
                     <div className="flex gap-1">
+                      {isAdmin && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -246,6 +281,7 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
                           handleToggleActive(template);
                         }}
                         className="p-1"
+                        title={template.isActive ? "비활성화" : "활성화"}
                       >
                         {template.isActive ? (
                           <Eye className="w-4 h-4" />
@@ -253,6 +289,8 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
                           <EyeOff className="w-4 h-4" />
                         )}
                       </Button>
+                      )}
+                      {isAdmin && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -261,29 +299,39 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
                           duplicateTemplate(template);
                         }}
                         className="p-1"
+                        title="템플릿 복사"
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
+                      )}
+                      {isAdmin && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEdit(template);
+                          // 모달 방식으로 편집 (새 페이지 이동 방지)
+                          setEditingTemplate(template);
+                          setShowEditorPage(true);
                         }}
                         className="p-1"
+                        title="템플릿 편집"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      {!template.isDefault && (
+                      )}
+                      {isAdmin && !template.isDefault && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(template.id);
+                            if (confirm(`"${template.name}" 템플릿을 정말 삭제하시겠습니까?`)) {
+                              handleDelete(template.id);
+                            }
                           }}
-                          className="p-1 text-red-600 hover:text-red-700"
+                          className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          title="템플릿 삭제"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -345,11 +393,15 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
 
               <div className="pt-4 border-t mt-4">
                 <Button
-                  onClick={() => handleEdit(selectedTemplate)}
+                  onClick={() => {
+                    // 모달 방식으로 편집 (새 페이지 이동 방지)
+                    setEditingTemplate(selectedTemplate);
+                    setShowEditorPage(true);
+                  }}
                   className="w-full bg-blue-600 hover:bg-blue-700"
                 >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  전체 화면으로 템플릿 편집
+                  <Edit className="w-4 h-4 mr-2" />
+                  템플릿 편집
                 </Button>
               </div>
             </Card>
@@ -368,6 +420,8 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
           <TemplateEditorPage
             onBack={handleBackFromEditor}
             onSave={handleSaveTemplate}
+            onDelete={handleDelete}
+            templateId={editingTemplate?.id}
             initialData={editingTemplate ? {
               name: editingTemplate.name,
               description: editingTemplate.description,

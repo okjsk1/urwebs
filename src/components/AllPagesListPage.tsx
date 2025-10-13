@@ -54,6 +54,7 @@ export function AllPagesListPage() {
             q = query(
               pagesRef,
               where('isPublic', '==', true),
+              where('isDeleted', '==', false),
               orderBy('updatedAt', 'desc'),
               limit(50)
             );
@@ -62,6 +63,7 @@ export function AllPagesListPage() {
             q = query(
               pagesRef,
               where('isPublic', '==', true),
+              where('isDeleted', '==', false),
               orderBy('views', 'desc'),
               limit(50)
             );
@@ -70,6 +72,7 @@ export function AllPagesListPage() {
             q = query(
               pagesRef,
               where('isPublic', '==', true),
+              where('isDeleted', '==', false),
               orderBy('createdAt', 'desc'),
               limit(50)
             );
@@ -78,6 +81,7 @@ export function AllPagesListPage() {
             q = query(
               pagesRef,
               where('isPublic', '==', true),
+              where('isDeleted', '==', false),
               orderBy('updatedAt', 'desc'),
               limit(50)
             );

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, Music, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
@@ -42,7 +42,8 @@ import {
   CryptoWidget,
   StockAlertWidget,
   EconomicCalendarWidget,
-  ExpenseWidget
+  ExpenseWidget,
+  QuoteWidget
 } from './widgets';
 
 // 인터페이스들은 이제 types에서 import
@@ -522,55 +523,11 @@ export function MyPage() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // 페이지 크기에 따른 동적 셀 크기 계산
-  useEffect(() => {
-    const updateCellSize = () => {
-      if (canvasRef.current) {
-        const containerWidth = canvasRef.current.offsetWidth;
-        // 컨테이너 크기가 0이면 아직 렌더링되지 않은 것이므로 재시도
-        if (containerWidth === 0) {
-          setTimeout(updateCellSize, 50);
-          return;
-        }
-        
-        // 1. 전체를 8개 메인 컬럼으로 분할
-        const mainColSpacing = (MAIN_COLUMNS - 1) * spacing;
-        const calculatedMainColumnWidth = Math.floor((containerWidth - mainColSpacing) / MAIN_COLUMNS);
-        
-        // 2. 각 메인 컬럼을 서브셀로 분할
-        const subColSpacing = (SUB_COLUMNS - 1) * spacing;
-        const calculatedSubCellWidth = Math.floor((calculatedMainColumnWidth - subColSpacing) / SUB_COLUMNS);
-        
-        setSubCellWidth(calculatedSubCellWidth);
-        // cellHeight는 160px로 고정되어 있으므로 setCellHeight 제거
-        console.log('서브셀 크기:', calculatedSubCellWidth, '메인 컬럼 너비:', calculatedMainColumnWidth, '컨테이너:', containerWidth);
-      }
-    };
-
-    // 초기 렌더링 직후 크기 계산
-    const timeoutId = setTimeout(updateCellSize, 0);
-    window.addEventListener('resize', updateCellSize);
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('resize', updateCellSize);
-    };
-  }, [spacing]);
+  // 고정 8칸 레이아웃: 셀 크기 재계산 비활성화 (subCellWidth 고정)
+  // 필요 시 브라우저 확대/축소와 무관하게 레이아웃 유지
 
   // 셀 크기 변경 시 기존 위젯들 크기 업데이트
-  useEffect(() => {
-    setWidgets(prevWidgets => prevWidgets.map((widget, index) => {
-      const col = index % 4;
-      const row = Math.floor(index / 4);
-      
-      return {
-        ...widget,
-        width: cellWidth,
-        height: cellHeight,
-        x: col * (cellWidth + spacing),
-        y: row * (cellHeight + spacing)
-      };
-    }));
-  }, [cellWidth, cellHeight, spacing]);
+  // 셀 크기 고정: 창 크기와 무관하게 위젯 위치/크기 유지
 
   // 현재 페이지의 위젯들 가져오기
   const currentPage = pages.find(page => page.id === currentPageId);
@@ -905,7 +862,7 @@ export function MyPage() {
     }
   };
 
-  const deletePage = (pageId: string) => {
+  const deletePage = async (pageId: string) => {
     if (pages.length <= 1) {
       alert('최소 하나의 페이지는 유지해야 합니다.');
       return;
@@ -920,6 +877,22 @@ export function MyPage() {
       setCurrentPageId(firstPage.id);
       setPageTitle(firstPage.title);
       setWidgets(firstPage.widgets);
+    }
+
+    // Firestore에 soft delete 표시 (공개 목록에서 숨김)
+    try {
+      if (currentUser) {
+        const pagesRef = collection(db, 'userPages');
+        const q = query(pagesRef, where('authorId', '==', currentUser.id), where('title', '==', pageTitle));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const docId = snapshot.docs[0].id;
+          const docRef = doc(db, 'userPages', docId);
+          await updateDoc(docRef, { isDeleted: true, updatedAt: serverTimestamp() });
+        }
+      }
+    } catch (e) {
+      console.error('페이지 삭제 플래그 저장 실패:', e);
     }
   };
 
@@ -1607,6 +1580,7 @@ export function MyPage() {
           const docRef = doc(db, 'userPages', docId);
           await updateDoc(docRef, {
             ...pageData,
+            isDeleted: false,
             updatedAt: serverTimestamp()
           });
           console.log('✅ Firebase 페이지 업데이트 완료! (docId:', docId, ')');
@@ -1615,7 +1589,14 @@ export function MyPage() {
           console.log('🆕 새 페이지 생성 중...');
           const docRef = await addDoc(pagesRef, {
             ...pageData,
-            createdAt: serverTimestamp()
+            isDeleted: false,
+            // 공개 목록 노출을 위해 생성 시점에도 updatedAt 채움
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            // 메인 추천/통계를 위한 기본값 초기화
+            views: 0,
+            likes: 0,
+            copies: 0
           });
           console.log('✅ Firebase 새 페이지 생성 완료! (docId:', docRef.id, ')');
         }
@@ -3566,7 +3547,7 @@ export function MyPage() {
 
       case 'quote':
         return <QuoteWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
-        return (
+        /*
           <div className="space-y-3">
             <div className="text-center">
               <div className="text-2xl mb-2">💭</div>
@@ -3600,6 +3581,7 @@ export function MyPage() {
             </Button>
           </div>
         );
+        */
 
 
       default:

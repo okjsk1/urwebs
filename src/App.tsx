@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Header } from './components/Header';
@@ -9,8 +9,9 @@ import { CommunityPage } from './components/CommunityPage';
 import { ContactPage } from './components/ContactPage';
 import { MyPage } from './components/MyPage';
 import { AdminPage } from './components/AdminPage';
-import { TemplateEditPage } from './components/TemplateEditPage';
+import { TemplateEditorPage } from './components/admin/TemplateEditorPage';
 import { AllPagesListPage } from './components/AllPagesListPage';
+import { templateService } from './services/templateService';
 // import { PageWithTabs } from './pages/PageWithTabs';
 // import { ColumnsBoard } from './components/ColumnsBoard/ColumnsBoard';
 // Firebase는 config.ts에서 초기화됩니다
@@ -253,7 +254,14 @@ function AppContent() {
               onNavigateAdminInquiries={() => navigate('/admin')}
             />
             <main>
-              <AdminPage onNavigateTemplateEdit={() => navigate('/template-edit')} />
+              <AdminPage onNavigateTemplateEdit={(templateData) => {
+                console.log('템플릿 편집 페이지로 이동:', templateData);
+                if (templateData) {
+                  sessionStorage.setItem('templateEditData', JSON.stringify(templateData));
+                  console.log('sessionStorage에 저장됨:', templateData);
+                }
+                navigate('/template-edit');
+              }} />
             </main>
           </div>
         } />
@@ -262,16 +270,98 @@ function AppContent() {
         <Route path="/template-edit" element={
           <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
             <main>
-              <TemplateEditPage 
+              <TemplateEditorPage 
                 onBack={() => navigate('/')}
-          initialData={(() => {
-            const data = sessionStorage.getItem('templateEditData');
-            if (data) {
-              sessionStorage.removeItem('templateEditData');
-              return JSON.parse(data);
-            }
-            return undefined;
-          })()}
+                onSave={async (templateData) => {
+                  try {
+                    const templateId = (() => {
+                      const data = sessionStorage.getItem('templateEditData');
+                      if (data) {
+                        const parsed = JSON.parse(data);
+                        return parsed.id;
+                      }
+                      return undefined;
+                    })();
+
+                    if (templateId) {
+                      // 기존 템플릿 수정
+                      await templateService.updateTemplate(templateId, {
+                        ...templateData,
+                        widgets: templateData.widgets.map(w => ({
+                          id: w.id,
+                          type: w.type,
+                          x: w.x,
+                          y: w.y,
+                          width: w.width,
+                          height: w.height,
+                          title: w.title,
+                          content: w.content,
+                          zIndex: w.zIndex || 1,
+                          size: w.size || '1x1'
+                        })),
+                        widgetCount: templateData.widgets.length,
+                        preview: templateData.widgets.map(w => w.type)
+                      });
+                      alert('템플릿이 수정되었습니다!');
+                    } else {
+                      // 새 템플릿 생성
+                      await templateService.createTemplate({
+                        ...templateData,
+                        widgets: templateData.widgets.map(w => ({
+                          id: w.id,
+                          type: w.type,
+                          x: w.x,
+                          y: w.y,
+                          width: w.width,
+                          height: w.height,
+                          title: w.title,
+                          content: w.content,
+                          zIndex: w.zIndex || 1,
+                          size: w.size || '1x1'
+                        })),
+                        isActive: true,
+                        isDefault: false,
+                        author: 'admin',
+                        widgetCount: templateData.widgets.length,
+                        preview: templateData.widgets.map(w => w.type)
+                      });
+                      alert('템플릿이 저장되었습니다!');
+                    }
+                    navigate('/');
+                  } catch (error) {
+                    console.error('템플릿 저장 실패:', error);
+                    alert('템플릿 저장에 실패했습니다.');
+                  }
+                }}
+                onDelete={async (templateId) => {
+                  try {
+                    await templateService.deleteTemplate(templateId);
+                    alert('템플릿이 삭제되었습니다!');
+                    navigate('/');
+                  } catch (error) {
+                    console.error('템플릿 삭제 실패:', error);
+                    alert('템플릿 삭제에 실패했습니다.');
+                  }
+                }}
+                templateId={(() => {
+                  const data = sessionStorage.getItem('templateEditData');
+                  console.log('sessionStorage에서 templateId 읽기:', data);
+                  if (data) {
+                    const parsed = JSON.parse(data);
+                    console.log('파싱된 데이터:', parsed);
+                    return parsed.id;
+                  }
+                  return undefined;
+                })()}
+                initialData={(() => {
+                  const data = sessionStorage.getItem('templateEditData');
+                  if (data) {
+                    const parsed = JSON.parse(data);
+                    sessionStorage.removeItem('templateEditData');
+                    return parsed;
+                  }
+                  return undefined;
+                })()}
               />
         </main>
       </div>

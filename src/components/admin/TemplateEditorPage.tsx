@@ -27,6 +27,8 @@ interface TemplateEditorPageProps {
     color: string;
     widgets: Widget[];
   }) => void;
+  onDelete?: (templateId: string) => void;
+  templateId?: string;
   initialData?: {
     name?: string;
     description?: string;
@@ -37,7 +39,7 @@ interface TemplateEditorPageProps {
   };
 }
 
-export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEditorPageProps) {
+export function TemplateEditorPage({ onBack, onSave, onDelete, templateId, initialData }: TemplateEditorPageProps) {
   const [name, setName] = useState(initialData?.name || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [category, setCategory] = useState(initialData?.category || '일반');
@@ -47,16 +49,24 @@ export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEdit
   const [showWidgetPanel, setShowWidgetPanel] = useState(false);
   const [draggedWidget, setDraggedWidget] = useState<Widget | null>(null);
   const [hoveredWidget, setHoveredWidget] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(!initialData);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const COLUMNS = 8;
-  const CELL_WIDTH = 18;
-  const CELL_HEIGHT = 60;
-  const SPACING = 5;
+  // MyPage와 동일한 레이아웃 상수
+  const COLUMNS = 8; // 메인 컬럼 개수
+  const SPACING = 5; // 그리드 간격
+  const [CELL_WIDTH, setCellWidth] = useState(150); // 서브셀(=메인컬럼) 너비
+  const CELL_HEIGHT = 160; // 위젯 기본 높이 (MyPage 고정값)
 
   useEffect(() => {
+    console.log('TemplateEditorPage 로드됨:', {
+      templateId,
+      onDelete: !!onDelete,
+      initialData: !!initialData
+    });
+    
     if (initialData) {
       setName(initialData.name || '');
       setDescription(initialData.description || '');
@@ -65,7 +75,7 @@ export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEdit
       setColor(initialData.color || '#3B82F6');
       setWidgets(initialData.widgets || []);
     }
-  }, [initialData]);
+  }, [initialData, templateId, onDelete]);
 
   const renderWidget = (widget: Widget): React.ReactNode => {
     const commonProps = {
@@ -78,7 +88,7 @@ export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEdit
       case 'calendar':
         return <CalendarWidget {...commonProps} />;
       case 'weather_small':
-        return <WeatherSmallWidget {...commonProps} />;
+        return <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">날씨 위젯</div>;
       case 'todo':
         return <TodoWidget {...commonProps} />;
       case 'news':
@@ -86,11 +96,11 @@ export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEdit
       case 'bookmark':
         return <BookmarkWidget {...commonProps} />;
       case 'social':
-        return <SocialWidget {...commonProps} />;
+        return <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">소셜 위젯</div>;
       case 'music':
-        return <MusicWidget {...commonProps} />;
+        return <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">음악 위젯</div>;
       case 'calculator':
-        return <CalculatorWidget {...commonProps} />;
+        return <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">계산기 위젯</div>;
       case 'contact':
         return <ContactWidget {...commonProps} />;
       case 'qr_code':
@@ -128,14 +138,14 @@ export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEdit
     let found = false;
 
     for (let row = 0; row < 20; row++) {
-      for (let col = 0; col < COLUMNS; col += 2) {
+      for (let col = 0; col < COLUMNS; col++) {
         const testX = col * (CELL_WIDTH + SPACING);
         const testY = row * (CELL_HEIGHT + SPACING);
         
         const isOverlapping = widgets.some(w => {
           return (
             testX < w.x + w.width &&
-            testX + (CELL_WIDTH * 2) > w.x &&
+            testX + CELL_WIDTH > w.x &&
             testY < w.y + w.height &&
             testY + CELL_HEIGHT > w.y
           );
@@ -152,7 +162,7 @@ export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEdit
     }
 
     const isSearchWidget = type === 'google_search' || type === 'naver_search' || type === 'law_search';
-    const width = isSearchWidget ? (CELL_WIDTH + SPACING) * 4 - SPACING : (CELL_WIDTH + SPACING) * 2 - SPACING;
+    const width = isSearchWidget ? CELL_WIDTH * 2 + SPACING : CELL_WIDTH; // MyPage의 서브셀/메인컬럼 폭 기준
     const height = isSearchWidget ? 225 : CELL_HEIGHT;
 
     const newWidget: Widget = {
@@ -217,6 +227,14 @@ export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEdit
     onSave({ name, description, category, icon, color, widgets });
   };
 
+  const handleDelete = () => {
+    if (onDelete && templateId) {
+      onDelete(templateId);
+      setShowDeleteModal(false);
+      onBack(); // 삭제 후 목록으로 돌아가기
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       {/* Header */}
@@ -257,6 +275,24 @@ export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEdit
                 <Plus className="w-4 h-4 mr-2" />
                 위젯 추가
               </Button>
+              {templateId && onDelete ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    console.log('삭제 버튼 클릭됨, templateId:', templateId);
+                    setShowDeleteModal(true);
+                  }}
+                  className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  템플릿 삭제
+                </Button>
+              ) : (
+                <div className="text-xs text-gray-500">
+                  {!templateId && '새 템플릿'}
+                  {!onDelete && '삭제 불가'}
+                </div>
+              )}
               <Button
                 onClick={handleSubmit}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -362,14 +398,7 @@ export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEdit
 
               <div
                 ref={gridRef}
-                className="relative min-h-[1000px] bg-white rounded-lg border-2 border-dashed border-gray-300 p-4"
-                style={{
-                  backgroundImage: `
-                    linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-                    linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
-                  `,
-                  backgroundSize: `${CELL_WIDTH + SPACING}px ${CELL_HEIGHT + SPACING}px`
-                }}
+                className="relative min-h-[1000px] bg-white rounded-lg border border-gray-200 p-4"
                 onMouseMove={draggedWidget ? handleDragMove : undefined}
                 onMouseUp={handleDragEnd}
               >
@@ -482,6 +511,51 @@ export function TemplateEditorPage({ onBack, onSave, initialData }: TemplateEdit
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100000]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">템플릿 삭제</h3>
+                  <p className="text-sm text-gray-500">이 작업은 되돌릴 수 없습니다</p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-gray-700 mb-2">
+                  <strong>"{name}"</strong> 템플릿을 정말 삭제하시겠습니까?
+                </p>
+                <p className="text-sm text-gray-500">
+                  템플릿과 관련된 모든 데이터가 영구적으로 삭제됩니다.
+                </p>
+              </div>
+              
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-6"
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={handleDelete}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  삭제
+                </Button>
+              </div>
             </div>
           </div>
         </div>

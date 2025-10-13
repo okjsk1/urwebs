@@ -72,8 +72,17 @@ export function CommunityPage() {
     const loadPosts = async () => {
       try {
         const postsRef = collection(db, 'communityPosts');
-        const q = query(postsRef, orderBy('createdAt', 'desc'));
-        const snapshot = await getDocs(q);
+        
+        // orderBy 없이 먼저 시도
+        let snapshot;
+        try {
+          const q = query(postsRef, orderBy('createdAt', 'desc'));
+          snapshot = await getDocs(q);
+        } catch (orderByError) {
+          console.log('orderBy 실패, 기본 쿼리로 시도:', orderByError);
+          // orderBy가 실패하면 기본 쿼리 사용
+          snapshot = await getDocs(postsRef);
+        }
         
         const loadedPosts: Post[] = snapshot.docs.map((doc, index) => {
           const data = doc.data();
@@ -92,9 +101,14 @@ export function CommunityPage() {
           };
         });
         
+        // 날짜순으로 정렬 (orderBy 실패 시 클라이언트에서 정렬)
+        loadedPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
         setPosts(loadedPosts);
       } catch (error) {
         console.error('게시글 로드 실패:', error);
+        // 로드 실패 시 빈 배열로 설정
+        setPosts([]);
       }
     };
     
@@ -153,7 +167,7 @@ export function CommunityPage() {
     
     try {
       const postsRef = collection(db, 'communityPosts');
-      await addDoc(postsRef, {
+      const docRef = await addDoc(postsRef, {
         title: newPost.title,
         content: newPost.content,
         category: newPost.category,
@@ -167,33 +181,42 @@ export function CommunityPage() {
         createdAt: serverTimestamp()
       });
       
+      console.log('게시글 등록 성공:', docRef.id);
       alert('게시글이 등록되었습니다.');
       setShowWriteForm(false);
       setNewPost({ title: '', content: '', category: '자유' });
       
-      // 게시글 목록 새로고침
-      const q = query(postsRef, orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const loadedPosts: Post[] = snapshot.docs.map((doc, index) => {
-        const data = doc.data();
-        const createdAt = data.createdAt as Timestamp;
-        return {
-          id: Date.now() + index,
-          title: data.title || '',
-          content: data.content || '',
-          author: data.authorName || '익명',
-          date: createdAt ? new Date(createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          views: data.views || 0,
-          likes: data.likes || 0,
-          dislikes: data.dislikes || 0,
-          comments: data.comments || [],
-          category: (data.category || '자유') as Post['category']
-        };
-      });
-      setPosts(loadedPosts);
+      // 게시글 목록 새로고침 (orderBy 없이)
+      try {
+        const snapshot = await getDocs(postsRef);
+        const loadedPosts: Post[] = snapshot.docs.map((doc, index) => {
+          const data = doc.data();
+          const createdAt = data.createdAt as Timestamp;
+          return {
+            id: Date.now() + index,
+            title: data.title || '',
+            content: data.content || '',
+            author: data.authorName || '익명',
+            date: createdAt ? new Date(createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            views: data.views || 0,
+            likes: data.likes || 0,
+            dislikes: data.dislikes || 0,
+            comments: data.comments || [],
+            category: (data.category || '자유') as Post['category']
+          };
+        });
+        
+        // 클라이언트에서 정렬
+        loadedPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setPosts(loadedPosts);
+      } catch (refreshError) {
+        console.error('게시글 목록 새로고침 실패:', refreshError);
+        // 새로고침 실패해도 등록은 성공했으므로 페이지 새로고침 안내
+        alert('게시글이 등록되었습니다. 목록을 보려면 페이지를 새로고침해주세요.');
+      }
     } catch (error) {
       console.error('게시글 등록 실패:', error);
-      alert('게시글 등록에 실패했습니다.');
+      alert('게시글 등록에 실패했습니다. 다시 시도해주세요.');
     }
   };
 

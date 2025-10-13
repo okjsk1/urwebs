@@ -69,13 +69,7 @@ const migrateSite = (site: Partial<SiteVisit>): SiteVisit => {
   };
 };
 
-const DEFAULT_SITES: SiteVisit[] = [
-  { id: '1', url: 'https://www.google.com', domain: 'google.com', title: 'Google', visitCount: 156, lastVisit: new Date().toISOString(), favicon: getFaviconUrl('https://www.google.com'), pinned: false, blocked: false, history: [] },
-  { id: '2', url: 'https://github.com', domain: 'github.com', title: 'GitHub', visitCount: 89, lastVisit: new Date(Date.now() - 3600000).toISOString(), favicon: getFaviconUrl('https://github.com'), pinned: false, blocked: false, history: [] },
-  { id: '3', url: 'https://www.naver.com', domain: 'naver.com', title: 'Naver', visitCount: 67, lastVisit: new Date(Date.now() - 7200000).toISOString(), favicon: getFaviconUrl('https://www.naver.com'), pinned: false, blocked: false, history: [] },
-  { id: '4', url: 'https://www.youtube.com', domain: 'youtube.com', title: 'YouTube', visitCount: 54, lastVisit: new Date(Date.now() - 10800000).toISOString(), favicon: getFaviconUrl('https://www.youtube.com'), pinned: false, blocked: false, history: [] },
-  { id: '5', url: 'https://stackoverflow.com', domain: 'stackoverflow.com', title: 'Stack Overflow', visitCount: 42, lastVisit: new Date(Date.now() - 14400000).toISOString(), favicon: getFaviconUrl('https://stackoverflow.com'), pinned: false, blocked: false, history: [] }
-].map(migrateSite);
+const DEFAULT_SITES: SiteVisit[] = [];
 
 // 스코어 계산 (최근성 가중치)
 const calculateScore = (site: SiteVisit, now: number = Date.now()): number => {

@@ -476,6 +476,72 @@ export const RSSWidget = ({ widget, isEditMode, updateWidget }: any) => {
   );
 };
 
+// 명언 위젯
+export const QuoteWidget = ({ widget, isEditMode, updateWidget }: any) => {
+  const defaultQuotes = [
+    '성공은 작은 노력이 반복된 결과다. — 로버트 콜리어',
+    '지금 하지 않으면, 1년 뒤에도 같은 곳에 있을 것이다. — 카렌 램',
+    '완벽보다 완료. — 셰릴 샌드버그',
+    '천 리 길도 한 걸음부터. — 노자',
+  ];
+  const [quotes, setQuotes] = useState<string[]>(widget?.content?.quotes || defaultQuotes);
+  const [index, setIndex] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [newQuote, setNewQuote] = useState('');
+
+  const next = () => setIndex((i) => (i + 1) % quotes.length);
+  const prev = () => setIndex((i) => (i - 1 + quotes.length) % quotes.length);
+
+  const addQuote = () => {
+    const q = newQuote.trim();
+    if (!q) return;
+    const updated = [q, ...quotes];
+    setQuotes(updated);
+    setNewQuote('');
+    updateWidget?.(widget.id, { ...widget, content: { ...widget.content, quotes: updated } });
+  };
+
+  const removeCurrent = () => {
+    if (quotes.length <= 1) return;
+    const updated = quotes.filter((_, i) => i !== index);
+    setQuotes(updated);
+    setIndex(0);
+    updateWidget?.(widget.id, { ...widget, content: { ...widget.content, quotes: updated } });
+  };
+
+  return (
+    <div className="h-full flex flex-col justify-between p-3">
+      <div className="text-center">
+        <div className="text-3xl mb-2">❝</div>
+        <div className="text-sm text-gray-800 dark:text-gray-100 leading-relaxed">
+          {quotes[index]}
+        </div>
+      </div>
+      <div className="flex items-center justify-between mt-3">
+        <button className="text-xs px-2 py-1 border rounded" onClick={prev}>이전</button>
+        <button className="text-xs px-2 py-1 border rounded" onClick={next}>다음</button>
+      </div>
+      {isEditMode && (
+        <div className="mt-2 space-y-2">
+          <div className="flex gap-1">
+            <input
+              value={newQuote}
+              onChange={(e) => setNewQuote(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addQuote()}
+              placeholder="명언 추가"
+              className="flex-1 text-xs px-2 py-1 border rounded"
+            />
+            <Button size="sm" className="h-7" onClick={addQuote}>추가</Button>
+          </div>
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" className="h-7 text-red-600" onClick={removeCurrent}>현재 문구 삭제</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // 구글 검색 위젯
 export const GoogleSearchWidget = ({ widget, isEditMode, updateWidget }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -517,7 +583,7 @@ export const GoogleSearchWidget = ({ widget, isEditMode, updateWidget }: any) =>
 
       {/* 본문 영역 (검색창) */}
       <div className="flex-1 overflow-y-auto px-2 pb-2 flex items-start">
-        <div className={`relative mx-auto w-full ${compact ? 'max-w-[180px]' : 'max-w-xs'}`}>
+        <div className={`relative mx-auto w-full ${compact ? 'max-w-[400px]' : 'max-w-2xl'}`}>
         <div className="relative">
           <input
             type="text"
@@ -562,6 +628,63 @@ export const GoogleSearchWidget = ({ widget, isEditMode, updateWidget }: any) =>
   );
 };
 
+// 유튜브 검색 위젯
+export const YoutubeSearchWidget = ({ widget, isEditMode, updateWidget }: any) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`, '_blank');
+    }
+  };
+
+  return (
+    <div className="h-full bg-white flex flex-col justify-center">
+      {/* 상단 고정 영역 (로고) */}
+      <div className="shrink-0 px-2 py-3">
+        <div className="text-center mb-4">
+          <div className="text-xl font-bold flex items-center justify-center gap-1">
+            <span className="text-red-600 bg-red-50 px-2 py-1 rounded">▶</span>
+            <span className="text-gray-800">YouTube</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 본문 영역 (검색창) */}
+      <div className="flex-1 overflow-y-auto px-2 pb-2 flex items-start">
+        <div className="relative mx-auto w-full max-w-2xl">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="YouTube 검색"
+              className="w-full px-10 py-2 text-xs border border-gray-300 rounded-full focus:outline-none focus:shadow-lg hover:shadow-md transition-shadow"
+            />
+            
+            {/* 돋보기 아이콘 */}
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+              <Search className="w-4 h-4 text-gray-400" />
+            </div>
+
+            {/* 검색 버튼 */}
+            <button
+              onClick={handleSearch}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+              title="검색"
+            >
+              <svg className="w-4 h-4 text-red-600" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // 네이버 검색 위젯
 export const NaverSearchWidget = ({ widget, isEditMode, updateWidget }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -599,7 +722,7 @@ export const NaverSearchWidget = ({ widget, isEditMode, updateWidget }: any) => 
 
       {/* 본문 영역 (검색창) */}
       <div className="flex-1 overflow-y-auto px-2 pb-2 flex items-start">
-        <div className={`relative mx-auto w-full ${compact ? 'max-w-[180px]' : 'max-w-xs'}`}>
+        <div className={`relative mx-auto w-full ${compact ? 'max-w-[400px]' : 'max-w-2xl'}`}>
         <div className="relative">
           <input
             type="text"

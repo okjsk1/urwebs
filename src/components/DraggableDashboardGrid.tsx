@@ -522,7 +522,7 @@ export default function DraggableDashboardGrid({
       </style>
       <div
         ref={gridRef}
-        className={`draggable-grid-container gap-3 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 ${className}`}
+        className={`draggable-grid-container gap-3 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 ${className}`}
         style={{
           ...generateResponsiveStyles(),
           userSelect: activeId ? 'none' : 'auto',
@@ -582,7 +582,7 @@ export default function DraggableDashboardGrid({
           showAddButtonState[columnIndex] && (
             <div
               key={`add-button-${columnIndex}`}
-              className="bg-white rounded-lg shadow-md border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 cursor-pointer flex items-center justify-center animate-fade-in"
+              className="bg-white dark:bg-white/70 rounded-lg shadow-md border-2 border-dashed border-gray-300 dark:border-gray-400/50 hover:border-blue-400 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-50/80 transition-all duration-200 cursor-pointer flex items-center justify-center animate-fade-in dark:backdrop-blur-sm"
               style={{
                 gridColumn: `${columnIndex + 1} / span 1`,
                 gridRow: `${getColumnBottomY(columnIndex) + 1} / span 1`,
@@ -602,8 +602,8 @@ export default function DraggableDashboardGrid({
               }}
             >
               <div className="text-center">
-                <div className="text-2xl mb-2">+</div>
-                <div className="text-sm text-gray-600">위젯 추가</div>
+                <div className="text-2xl mb-2 dark:text-gray-700">+</div>
+                <div className="text-sm text-gray-600 dark:text-gray-700">위젯 추가</div>
               </div>
             </div>
           )

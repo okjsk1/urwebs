@@ -63,14 +63,14 @@ export function SiteCard({ name, description, url, tags, category, isFavorite = 
   };
 
   return (
-    <Card className="p-4 bg-white border border-gray-200 hover:shadow-xl hover:border-blue-400 transition-all duration-300 h-40 cursor-pointer group flex flex-col hover:transform hover:scale-105" onClick={handleClick}>
+    <Card className="p-3 bg-white border border-gray-200 hover:shadow-xl hover:border-blue-400 transition-all duration-300 h-32 cursor-pointer group flex flex-col hover:transform hover:scale-105" onClick={handleClick}>
       {/* 사이트 이름과 즐겨찾기 */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <img 
             src={getFaviconUrl(url)} 
             alt="" 
-            className="w-5 h-5 flex-shrink-0"
+            className="w-4 h-4 flex-shrink-0"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}
@@ -95,12 +95,12 @@ export function SiteCard({ name, description, url, tags, category, isFavorite = 
       </div>
       
       {/* URL 표시 */}
-      <div className="text-xs text-blue-600 mb-2 truncate bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 font-mono">
+      <div className="text-xs text-blue-600 mb-1.5 truncate bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 font-mono">
         🔗 {getDisplayUrl(url)}
       </div>
       
       {/* 요약 설명 */}
-      <p className="text-xs text-gray-700 mb-3 line-clamp-2 leading-relaxed flex-1 bg-gray-50 p-2 rounded-md">
+      <p className="text-xs text-gray-700 mb-2 line-clamp-2 leading-relaxed flex-1 bg-gray-50 p-1.5 rounded-md">
         {description}
       </p>
       

@@ -11,11 +11,8 @@ export const widgetCategories: Record<string, WidgetCategory> = {
     name: '생산성 & 업무',
     widgets: [
       { type: 'todo', name: 'To Do List', icon: CheckSquare, description: '할 일 목록 관리 및 체크' },
-      { type: 'goal', name: '목표 추적', icon: Target, description: '목표 설정 및 진행률 추적' },
-      { type: 'reminder', name: '알림 관리', icon: Bell, description: '중요한 일정 알림' },
       { type: 'quicknote', name: '빠른 메모', icon: FileText, description: '즉석 메모 작성' },
       { type: 'calendar', name: '캘린더', icon: Calendar, description: '일정 관리 및 계획' },
-      { type: 'mail_services', name: '메일 서비스', icon: Mail, description: '다양한 메일 서비스 바로가기' },
     ]
   },
 
@@ -23,7 +20,6 @@ export const widgetCategories: Record<string, WidgetCategory> = {
   finance: {
     name: '금융 & 투자',
     widgets: [
-      { type: 'stock', name: '주식 시세', icon: TrendingUp, description: '실시간 주식 가격 확인' },
       { type: 'crypto', name: '암호화폐', icon: DollarSign, description: '실시간 코인 시세 및 스파크라인' },
       { type: 'stock_alert', name: '주식 알림', icon: Bell, description: '주식 가격 알림 설정' },
       { type: 'economic_calendar', name: '경제 캘린더', icon: Calendar, description: 'FOMC, CPI 등 경제 지표 일정' },
@@ -50,6 +46,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
       { type: 'rss', name: 'RSS 피드', icon: Rss, description: 'RSS 뉴스 피드' },
       { type: 'google_search', name: '구글 검색', icon: Search, description: '구글 검색 바로가기' },
       { type: 'naver_search', name: '네이버 검색', icon: Search, description: '네이버 검색 바로가기' },
+      // 유튜브 검색 타입은 현재 타입 정의에 없어 제외합니다
       { type: 'law_search', name: '법제처 검색', icon: Search, description: '법령 검색 바로가기' },
     ]
   },

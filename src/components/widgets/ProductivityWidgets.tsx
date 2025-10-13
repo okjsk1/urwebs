@@ -368,28 +368,47 @@ export const QuickNoteWidget = ({ widget, isEditMode, updateWidget }: any) => {
 
 // 캘린더 위젯
 export const CalendarWidget = ({ widget, isEditMode, updateWidget }: any) => {
-  const [events, setEvents] = useState([
-    { id: 1, title: '팀 미팅', date: '2024-01-15', time: '10:00' },
-    { id: 2, title: '프로젝트 데드라인', date: '2024-01-18', time: '17:00' },
-    { id: 3, title: '개인 상담', date: '2024-01-20', time: '14:00' }
-  ]);
+  const today = new Date();
+  const [current, setCurrent] = useState({ year: today.getFullYear(), month: today.getMonth() });
+
+  const firstDay = new Date(current.year, current.month, 1);
+  const lastDay = new Date(current.year, current.month + 1, 0);
+  const startWeekDay = firstDay.getDay();
+  const daysInMonth = lastDay.getDate();
+
+  const prevMonth = () => {
+    const d = new Date(current.year, current.month - 1, 1);
+    setCurrent({ year: d.getFullYear(), month: d.getMonth() });
+  };
+  const nextMonth = () => {
+    const d = new Date(current.year, current.month + 1, 1);
+    setCurrent({ year: d.getFullYear(), month: d.getMonth() });
+  };
+
+  const cells: Array<{ day: number | null; isToday: boolean }> = [];
+  for (let i = 0; i < startWeekDay; i++) cells.push({ day: null, isToday: false });
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = current.year === today.getFullYear() && current.month === today.getMonth() && d === today.getDate();
+    cells.push({ day: d, isToday });
+  }
+  while (cells.length % 7 !== 0) cells.push({ day: null, isToday: false });
 
   return (
-    <div className="p-3">
-      <div className="text-center mb-3">
-        <div className="text-lg font-bold text-gray-800">
-          {new Date().getDate()}
+    <div className="p-3 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-2">
+        <button onClick={prevMonth} className="text-xs px-2 py-1 border rounded">이전</button>
+        <div className="text-sm font-semibold">
+          {new Date(current.year, current.month).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
         </div>
-        <div className="text-xs text-gray-500">
-          {new Date().toLocaleDateString('ko-KR', { month: 'long', year: 'numeric' })}
-        </div>
+        <button onClick={nextMonth} className="text-xs px-2 py-1 border rounded">다음</button>
       </div>
-      
-      <div className="space-y-2">
-        {events.map(event => (
-          <div key={event.id} className="p-2 bg-blue-50 rounded border-l-4 border-blue-400">
-            <div className="text-sm font-medium text-gray-800">{event.title}</div>
-            <div className="text-xs text-gray-500">{event.date} {event.time}</div>
+      <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-1">
+        {['일','월','화','수','목','금','토'].map(d => (<div key={d} className="text-center">{d}</div>))}
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-xs flex-1">
+        {cells.map((c, i) => (
+          <div key={i} className={`h-8 border rounded flex items-center justify-center ${c.isToday ? 'bg-blue-50 border-blue-300 font-semibold' : 'bg-white'}`}>
+            {c.day ?? ''}
           </div>
         ))}
       </div>
@@ -426,6 +445,7 @@ export const EmailWidget = ({ widget, isEditMode, updateWidget }: any) => {
 };
 
 // 메일 서비스 위젯
+// 사용 중지된 위젯 (노출 제거)
 export const MailServicesWidget = ({ widget, isEditMode, updateWidget }: any) => {
   const mailServices = [
     { name: 'Gmail', url: 'https://mail.google.com', icon: '📧', color: 'bg-red-50 hover:bg-red-100 border-red-200 text-red-700' },

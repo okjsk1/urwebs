@@ -145,35 +145,50 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
       // 사용자 페이지 컬렉션에서 공개된 페이지들 가져오기
       const pagesRef = collection(db, 'userPages');
       
-      // 최신 업데이트 가져오기 (공개된 페이지, 최신순으로 10개)
+      // 최신 업데이트 가져오기 (공개 + 삭제되지 않은 페이지, 최신순 10개)
       const latestQuery = query(
         pagesRef,
         where('isPublic', '==', true),
+        where('isDeleted', '==', false),
         orderBy('updatedAt', 'desc'),
         limit(10)
       );
       
-      // 인기 페이지 가져오기 (공개된 페이지, 조회수 순으로 10개)
+      // 인기 페이지 가져오기 (공개 + 삭제되지 않은 페이지, 조회수 순 10개)
       const popularQuery = query(
         pagesRef,
         where('isPublic', '==', true),
+        where('isDeleted', '==', false),
         orderBy('views', 'desc'),
         limit(10)
       );
       
-      // 전체 페이지 가져오기 (공개된 페이지, 생성일 기준 10개)
+      // 전체 페이지 가져오기 (공개 + 삭제되지 않은 페이지, 생성일 기준 10개)
       const allPagesQuery = query(
         pagesRef,
         where('isPublic', '==', true),
+        where('isDeleted', '==', false),
         orderBy('createdAt', 'desc'),
         limit(10)
       );
 
-      const [latestSnapshot, popularSnapshot, allPagesSnapshot] = await Promise.all([
-        getDocs(latestQuery),
-        getDocs(popularQuery),
-        getDocs(allPagesQuery)
-      ]);
+      let latestSnapshot, popularSnapshot, allPagesSnapshot;
+      try {
+        [latestSnapshot, popularSnapshot, allPagesSnapshot] = await Promise.all([
+          getDocs(latestQuery),
+          getDocs(popularQuery),
+          getDocs(allPagesQuery)
+        ]);
+      } catch (e: any) {
+        // 색인 미구성/빌드 중(failed-precondition)일 때 임시 폴백: 서버에서 넓게 가져와 클라이언트 필터링
+        console.warn('색인 폴백 사용:', e?.message || e);
+        const latestFallback = await getDocs(query(pagesRef, orderBy('updatedAt', 'desc'), limit(50)));
+        const popularFallback = await getDocs(query(pagesRef, orderBy('views', 'desc'), limit(50)));
+        const allFallback = await getDocs(query(pagesRef, orderBy('createdAt', 'desc'), limit(50)));
+        latestSnapshot = latestFallback as any;
+        popularSnapshot = popularFallback as any;
+        allPagesSnapshot = allFallback as any;
+      }
 
       console.log('최신 업데이트 개수:', latestSnapshot.docs.length);
       console.log('인기 페이지 개수:', popularSnapshot.docs.length);
@@ -181,21 +196,33 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
 
       // 최신 업데이트 데이터 변환
       if (!latestSnapshot.empty) {
-        const latest = latestSnapshot.docs.map((doc) => {
+        const latest = latestSnapshot.docs
+          .map((doc) => {
           const data = doc.data();
           console.log('최신 업데이트 문서:', doc.id, data);
+          const updatedAt = (data.updatedAt && typeof (data.updatedAt as any).toDate === 'function')
+            ? (data.updatedAt as any).toDate()
+            : (typeof data.updatedAt === 'string' || typeof data.updatedAt === 'number')
+              ? new Date(data.updatedAt)
+              : undefined;
           return {
             id: doc.id,
             urlId: data.urlId || doc.id, // URL ID 추가
             title: data.title || '제목 없음',
             author: data.authorName || '익명',
             category: data.category || '일반',
-            timeAgo: getTimeAgo(data.updatedAt?.toDate()),
+            timeAgo: getTimeAgo(updatedAt),
             views: data.views || 0,
             likes: data.likes || 0
           };
+        })
+          .filter((p) => (p as any) && (latestSnapshot as any) ? true : true);
+        // 폴백일 경우 공개/삭제 필터 적용
+        const latestFiltered = latestSnapshot.query === latestQuery ? latest : latest.filter((_, idx) => {
+          const d = latestSnapshot.docs[idx].data();
+          return d.isPublic === true && d.isDeleted === false;
         });
-        setLatestPages(latest);
+        setLatestPages(latestFiltered as any);
         console.log('최신 업데이트 설정 완료:', latest);
       }
 
@@ -216,7 +243,11 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
             tags: data.tags || []
           };
         });
-        setPopularPagesList(popular);
+        const popularFiltered = popularSnapshot.query === popularQuery ? popular : popular.filter((_, idx) => {
+          const d = popularSnapshot.docs[idx].data();
+          return d.isPublic === true && d.isDeleted === false;
+        });
+        setPopularPagesList(popularFiltered as any);
         console.log('인기 페이지 설정 완료:', popular);
       }
       
@@ -237,7 +268,11 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
             tags: data.tags || []
           };
         });
-        setAllPagesList(allPages);
+        const allFiltered = allPagesSnapshot.query === allPagesQuery ? allPages : allPages.filter((_, idx) => {
+          const d = allPagesSnapshot.docs[idx].data();
+          return d.isPublic === true && d.isDeleted === false;
+        });
+        setAllPagesList(allFiltered as any);
         console.log('전체 페이지 설정 완료:', allPages);
       }
     } catch (error) {

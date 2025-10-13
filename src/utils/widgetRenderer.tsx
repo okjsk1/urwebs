@@ -14,6 +14,7 @@ import {
   GitHubWidget,
   GoogleSearchWidget,
   NaverSearchWidget,
+  YoutubeSearchWidget,
   LawSearchWidget,
   EnglishWordsWidget
 } from '../components/widgets';
@@ -52,6 +53,8 @@ export function renderWidget(widget: Widget): React.ReactNode {
       return <GoogleSearchWidget {...commonProps} />;
     case 'naver_search':
       return <NaverSearchWidget {...commonProps} />;
+    case 'youtube_search':
+      return <YoutubeSearchWidget {...commonProps} />;
     case 'law_search':
       return <LawSearchWidget {...commonProps} />;
     case 'english_words':
