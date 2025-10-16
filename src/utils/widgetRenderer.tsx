@@ -22,9 +22,9 @@ import {
 export function renderWidget(widget: Widget): React.ReactNode {
   const commonProps = {
     widget,
-    onUpdate: () => {},
-    onDelete: () => {}
-  };
+    isEditMode: false,
+    updateWidget: () => {}
+  } as any;
 
   switch (widget.type) {
     case 'calendar':

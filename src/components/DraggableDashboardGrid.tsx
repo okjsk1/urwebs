@@ -225,8 +225,9 @@ export default function DraggableDashboardGrid({
     const colWidth = (totalWidth - gap * (cols - 1)) / cols;
 
     // 그리드 좌표 계산
-    const x = Math.max(0, Math.min(cols - 1, Math.round(xPx / (colWidth + gap))));
-    const y = Math.max(0, Math.round(yPx / (cellHeight + gap)));
+    // 스냅 정확도 향상: 반올림 대신 바운딩 박스 기준 스냅
+    const x = Math.max(0, Math.min(cols - 1, Math.floor((xPx + (colWidth + gap) / 2) / (colWidth + gap))));
+    const y = Math.max(0, Math.floor((yPx + (cellHeight + gap) / 2) / (cellHeight + gap)));
 
     return { x, y };
   }, [cols, cellHeight, gap]);
@@ -361,6 +362,7 @@ export default function DraggableDashboardGrid({
           w.id === updatedWidget.id ? updatedWidget : w
         );
         // normalizeLayout으로 겹침 자동 해소
+        // 경계 밖으로 밀리는 현상 방지: 먼저 범위 보정 후 컴팩트
         newLayouts = normalizeLayout(newLayouts, cols);
       } else if (collisionStrategy === 'prevent') {
         // 충돌 시 이동 취소
@@ -522,7 +524,7 @@ export default function DraggableDashboardGrid({
       </style>
       <div
         ref={gridRef}
-        className={`draggable-grid-container gap-3 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 ${className}`}
+        className={`draggable-grid-container gap-3 grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-8 xl:grid-cols-8 2xl:grid-cols-8 ${className}`}
         style={{
           ...generateResponsiveStyles(),
           userSelect: activeId ? 'none' : 'auto',
@@ -587,7 +589,7 @@ export default function DraggableDashboardGrid({
                 gridColumn: `${columnIndex + 1} / span 1`,
                 gridRow: `${getColumnBottomY(columnIndex) + 1} / span 1`,
               }}
-              onClick={onAddWidget}
+              onClick={() => onAddWidget(columnIndex)}
               onMouseEnter={() => {
                 // 버튼에 마우스가 들어오면 타이머 취소
                 if (hideButtonTimerRef.current) {

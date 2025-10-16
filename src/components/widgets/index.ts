@@ -13,10 +13,13 @@ export { FrequentSitesWidget } from './FrequentSitesWidget';
 export { CryptoWidget } from './CryptoWidget';
 export { StockAlertWidget } from './StockAlertWidget';
 export { EconomicCalendarWidget } from './EconomicCalendarWidget';
-export { ExpenseWidget } from './ExpenseWidget';
+export { CalculatorWidget } from './CalculatorWidget';
+export { SocialWidget } from './SocialWidget';
+export { MusicWidget } from './MusicWidget';
 
 // 기존 위젯들도 export (다른 파일에서)
-export * from './ProductivityWidgets';
+// TodoWidget은 단일 파일 버전을 우선 사용하기 위해 제외
+export { GoalWidget, ReminderWidget, QuickNoteWidget, EmailWidget, HabitWidget, TimerWidget, CalendarWidget } from './ProductivityWidgets';
 export * from './FinanceWidgets';
 export * from './DevelopmentWidgets';
 export * from './InformationWidgets';

@@ -6,14 +6,17 @@ import { WidgetType } from '../../types/mypage.types';
 interface WidgetPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddWidget: (type: WidgetType) => void;
+  onAddWidget: (type: WidgetType, size?: any) => void;
 }
 
 export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-blue-500 shadow-2xl z-[99999] max-h-[60vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[99999]">
+      {/* 바깥 클릭 닫기 오버레이 */}
+      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+      <div className="absolute bottom-0 left-0 right-0 bg-white border-t-4 border-blue-500 shadow-2xl max-h-[60vh] overflow-y-auto">
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-gray-900">위젯 추가</h3>
@@ -40,7 +43,12 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                     <button
                       key={widget.type}
                       onClick={() => {
-                        onAddWidget(widget.type);
+                        const addWithColumn = (window as any).__addWidgetWithColumn;
+                        if (addWithColumn) {
+                          addWithColumn(widget.type, '1x1');
+                        } else {
+                          onAddWidget(widget.type);
+                        }
                         onClose();
                       }}
                       className="p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-all text-left group"
@@ -53,6 +61,7 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
               </div>
             </div>
           ))}
+        </div>
         </div>
       </div>
     </div>

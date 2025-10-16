@@ -24,14 +24,12 @@ import {
   ReminderWidget,
   QuickNoteWidget,
   CalendarWidget,
-  MailServicesWidget,
   StockWidget,
   ExchangeWidget,
   ConverterWidget,
   QRCodeWidget,
   NewsWidget,
   WeatherWidget,
-  RSSWidget,
   GoogleSearchWidget,
   NaverSearchWidget,
   LawSearchWidget,
@@ -40,9 +38,7 @@ import {
   GoogleAdWidget,
   FrequentSitesWidget,
   CryptoWidget,
-  StockAlertWidget,
   EconomicCalendarWidget,
-  ExpenseWidget,
   QuoteWidget
 } from './widgets';
 
@@ -62,7 +58,7 @@ export function MyPage() {
   
   // 그리드 설정 상수
   const spacing = 5;
-  const MAIN_COLUMNS = 8; // 메인 컬럼 개수
+  const MAIN_COLUMNS = 8; // 메인 컬럼 개수 (8칸 고정)
   const SUB_COLUMNS = 1; // 각 메인 컬럼 내부 서브 그리드 개수
   
   // 동적 셀 크기 계산 (서브셀 크기)
@@ -257,6 +253,37 @@ export function MyPage() {
   const [editingWidget, setEditingWidget] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  // 레이아웃 히스토리 (Ctrl+Z 되돌리기)
+  const [layoutHistory, setLayoutHistory] = useState<Widget[][]>([]);
+
+  const pushLayoutHistory = useCallback((current: Widget[]) => {
+    // 위치 정보만 복제하여 저장
+    const snapshot = current.map(w => ({ ...w }));
+    setLayoutHistory(prev => [...prev.slice(-19), snapshot]); // 최대 20단계 저장
+  }, []);
+
+  const undoLayout = useCallback(() => {
+    setLayoutHistory(prev => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setWidgets(last);
+      return prev.slice(0, -1);
+    });
+  }, []);
+
+  // Ctrl+Z 단축키로 되돌리기
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        undoLayout();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [undoLayout]);
+
+  // widgetsRef 동기화는 onLayoutChange 내부에서 prevWidgets로 처리
   
   // 페이지 관리 패널 외부 클릭 감지용 ref
   const pageManagerRef = useRef<HTMLDivElement>(null);
@@ -953,16 +980,24 @@ export function MyPage() {
     setEditingWidget(widgetId);
     const widget = widgets.find(w => w.id === widgetId);
     if (widget) {
-      setFormData(widget.content || {});
+      if (widget.type === 'bookmark') {
+        setFormData({ title: widget.title || '' });
+      } else {
+        setFormData(widget.content || {});
+      }
     }
   };
 
   const saveWidget = (widgetId: string) => {
-    setWidgets(prev => prev.map(w => 
-      w.id === widgetId 
-        ? { ...w, content: { ...w.content, ...formData } }
-        : w
-    ));
+    setWidgets(prev => prev.map(w => {
+      if (w.id !== widgetId) return w;
+      // 제목은 최상위, 그 외는 content에 저장
+      const { title: newTitle, ...rest } = (formData || {}) as any;
+      if (w.type === 'bookmark') {
+        return { ...w, title: typeof newTitle === 'string' ? newTitle : (w.title || ''), content: { ...w.content } };
+      }
+      return { ...w, content: { ...w.content, ...rest } };
+    }));
     setEditingWidget(null);
     setFormData({});
   };
@@ -1540,17 +1575,34 @@ export function MyPage() {
           isPublic: shareSettings.isPublic || false,
           urlId: urlId, // 공유 URL용 고유 ID
           pageNumber: userPageIndex, // 페이지 번호
-          widgets: widgets.map(w => ({
-            id: w.id,
-            type: w.type,
-            title: w.title || '',
-            x: w.x || 0,
-            y: w.y || 0,
-            width: w.width || 1,
-            height: w.height || 1,
-            size: w.size || 'medium',
-            content: w.content || {}
-          })),
+          widgets: widgets.map(w => {
+            const parseSize = (s: any) => {
+              if (typeof s === 'string' && /(\d+)x(\d+)/.test(s)) {
+                const [, sw, sh] = (s as string).match(/(\d+)x(\d+)/) as any;
+                return { w: Number(sw), h: Number(sh) };
+              }
+              return null;
+            };
+            const gridSize = w.gridSize || parseSize(w.size) || {
+              w: Math.max(1, Math.round((w.width || 150) / 150)),
+              h: Math.max(1, Math.round((w.height || 160) / 160)),
+            };
+            const toGrid = (val: any, step: number) => (typeof val === 'number' && val > 20 ? Math.max(0, Math.round(val / step)) : (val || 0));
+            const gx = toGrid(w.x, 216);
+            const gy = toGrid(w.y, 176);
+            return ({
+              id: w.id,
+              type: w.type,
+              title: w.title || '',
+              x: gx,
+              y: gy,
+              width: gridSize.w,
+              height: gridSize.h,
+              gridSize,
+              size: typeof w.size === 'string' ? w.size : `${gridSize.w}x${gridSize.h}`,
+              content: w.content || {}
+            });
+          }),
           tags: [],
           views: 0,
           likes: 0,
@@ -2583,13 +2635,18 @@ export function MyPage() {
         return <CryptoWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
       
       case 'stock_alert':
-        return <StockAlertWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+        return null; // 제거됨
       
       case 'economic_calendar':
         return <EconomicCalendarWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
       
       case 'expense':
-        return <ExpenseWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+        // 가계부 위젯은 더 이상 지원하지 않습니다. 안전하게 숨김 처리
+        return (
+          <div className="h-full flex items-center justify-center text-xs text-gray-500 bg-gray-50">
+            가계부 위젯은 지원 중단되었습니다
+          </div>
+        );
 
       case 'contact':
         return (
@@ -2707,27 +2764,47 @@ export function MyPage() {
 
       case 'calendar':
         return (
-          <div className="space-y-2">
-            <div className="text-center mb-3">
-              <div className="text-lg font-bold text-gray-800">
-                {new Date().getDate()}
-              </div>
-              <div className="text-xs text-gray-600">
-                {new Date().toLocaleDateString('ko-KR', { month: 'long', year: 'numeric' })}
-              </div>
-            </div>
-            <div className="space-y-1">
-              {(widget.content?.events || [
-                { id: '1', title: '팀 미팅', time: '10:00', color: 'bg-blue-100' },
-                { id: '2', title: '점심 약속', time: '12:30', color: 'bg-green-100' },
-                { id: '3', title: '프로젝트 마감', time: '18:00', color: 'bg-red-100' }
-              ]).map((event: any) => (
-                <div key={event.id} className={`p-1 rounded text-xs ${event.color || 'bg-gray-100'}`}>
-                  <div className="font-medium text-gray-800 truncate">{event.title}</div>
-                  <div className="text-gray-600">{event.time}</div>
-                </div>
-              ))}
-            </div>
+          <div className="p-2 h-full flex flex-col">
+            {(() => {
+              const today = new Date();
+              const year = today.getFullYear();
+              const month = today.getMonth();
+              const first = new Date(year, month, 1);
+              const last = new Date(year, month + 1, 0);
+              const start = first.getDay();
+              const days: (number|null)[] = [];
+              for (let i=0;i<start;i++) days.push(null);
+              for (let d=1; d<=last.getDate(); d++) days.push(d);
+              while (days.length % 7 !== 0) days.push(null);
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-2 pb-1 border-b border-gray-200">
+                    <div className="text-sm font-semibold">
+                      {year}년 {month + 1}월
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      오늘 {today.getDate()}일
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-1">
+                    {['일','월','화','수','목','금','토'].map((d,i) => (
+                      <div key={d} className={`text-center font-semibold ${i===0?'text-red-600':i===6?'text-blue-600':''}`}>{d}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 text-xs flex-1">
+                    {days.map((d, idx) => {
+                      const isToday = d===today.getDate();
+                      const col = idx % 7;
+                      return (
+                        <div key={idx} className={`h-8 border rounded flex items-center justify-center ${d? 'bg-white':'bg-gray-50'} ${isToday? 'bg-blue-50 border-blue-300 font-semibold':''} ${!isToday&&d&&col===0?'text-red-600':''} ${!isToday&&d&&col===6?'text-blue-600':''}`}>
+                          {d ?? ''}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         );
 
@@ -4371,19 +4448,19 @@ export function MyPage() {
         )}
 
       {!showTemplateModal && (
-      <div className="w-full px-2 py-4 pb-24">
+      <div className="w-full px-2 py-0 pb-16">
 
 
 
         {/* 위젯 캔버스 - 전체 너비 사용 */}
-        <div className="w-full py-6">
+        <div className="w-full pt-3 pb-0">
           <div 
             ref={canvasRef}
             className={`relative w-full min-h-[calc(100vh-200px)] transition-all duration-200 ${
               isEditMode 
                 ? '' 
                 : ''
-            } p-4 sm:p-6 lg:p-8`}
+            } p-0`}
             style={{ 
               position: 'relative'
             }}
@@ -4409,18 +4486,19 @@ export function MyPage() {
             widgets={widgets.map(convertToGridWidget)}
             renderWidget={(w) => renderWidget(w)}
             onLayoutChange={(updatedWidgets) => {
+              // 변경 전 스냅샷을 히스토리에 저장 (현재 prevWidgets를 이용)
               // 위젯 위치 업데이트 (그리드 좌표를 픽셀 좌표로 변환)
               setWidgets(prevWidgets => 
+                (pushLayoutHistory(prevWidgets),
                 prevWidgets.map(widget => {
                   const updated = updatedWidgets.find(w => w.id === widget.id);
                   if (updated && updated.x !== undefined && updated.y !== undefined) {
-                    // 그리드 좌표를 픽셀 좌표로 변환
                     const pixelX = updated.x * (subCellWidth + spacing);
                     const pixelY = updated.y * (cellHeight + spacing);
                     return { ...widget, x: pixelX, y: pixelY };
                   }
                   return widget;
-                })
+                }))
               );
             }}
             isEditMode={isEditMode}
@@ -4429,7 +4507,17 @@ export function MyPage() {
             gap={12}
             cols={8}
             className=""
-            onAddWidget={openWidgetShop}
+            onAddWidget={(columnIndex?: number) => {
+              // 위젯 패널을 열어서 선택하도록 하되, 선택 시 해당 컬럼 최하단에 추가되도록 targetColumn 전달
+              setShowWidgetModal(true);
+              // 선택 콜백을 덮어써서 columnIndex 전달
+              const originalAdd = addWidget;
+              (window as any).__addWidgetWithColumn = (type: string, size?: any) => {
+                originalAdd(type, size, columnIndex);
+                setShowWidgetModal(false);
+                delete (window as any).__addWidgetWithColumn;
+              };
+            }}
             showAddButton={isEditMode}
             userId={currentUser?.uid || 'guest'}
             collisionStrategy="push"
@@ -4447,294 +4535,15 @@ export function MyPage() {
           onAddWidget={(type) => addWidget(type)}
         />
 
-        {/* 기존 새 창 코드 제거 */}
-        {false && showWidgetModal && (
+        {/* (구) 새 창 코드 제거 - 완전 비활성화 */}
+        {false && (
           <script>
             {(() => {
-              const widgetShopWindow = window.open('', 'widgetShop', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-              if (widgetShopWindow) {
-                widgetShopWindow.document.write(`
-                  <!DOCTYPE html>
-                  <html lang="ko">
-                  <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>위젯 상점</title>
-                    <script src="https://cdn.tailwindcss.com"><\/script>
-                    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>
-                  </head>
-                  <body class="bg-gray-100">
-                    <div class="min-h-screen flex">
-                      <!-- 왼쪽 카테고리 사이드바 -->
-                      <div class="w-64 bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto">
-                        <div class="mb-6">
-                          <h3 class="text-xl font-bold text-gray-900 flex items-center">
-                            <span class="text-green-600 mr-2">+</span>
-                            위젯 추가
-                </h3>
-                          <p class="text-sm text-gray-600 mt-2">카테고리를 선택하세요</p>
-              </div>
-
-                        <div class="space-y-2" id="category-list">
-                          <!-- 카테고리 버튼들이 여기에 동적으로 생성됩니다 -->
-                      </div>
-              </div>
-
-                      <!-- 오른쪽 위젯 목록 -->
-                      <div class="flex-1 flex flex-col">
-                        <div class="bg-white shadow-sm border-b p-6">
-                          <div class="flex items-center justify-between">
-                            <div>
-                              <h1 class="text-2xl font-bold text-gray-900" id="category-title">카테고리를 선택하세요</h1>
-                              <p class="text-sm text-gray-600 mt-1">원하는 위젯을 미리보고 선택하여 추가하세요</p>
-            </div>
-                            <button onclick="window.close()" class="text-gray-500 hover:text-gray-700 text-xl">×</button>
-          </div>
-                        </div>
-                        
-                        <div class="flex-1 overflow-y-auto p-6">
-                          <div id="widget-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div class="col-span-full flex items-center justify-center h-64">
-                              <div class="text-center text-gray-500">
-                                <div class="text-4xl mb-4">📦</div>
-                                <p class="text-lg font-medium">카테고리를 선택해주세요</p>
-                                <p class="text-sm">왼쪽에서 원하는 카테고리를 클릭하세요</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-              </div>
-
-                    <script>
-                      // 위젯 카테고리 데이터
-                      const widgetCategories = {
-                        productivity: {
-                          name: '생산성',
-                          widgets: [
-                            { type: 'todo', name: '할 일', icon: '✓', description: '할 일 목록 관리' },
-                            { type: 'goal', name: '목표', icon: '🎯', description: '목표 설정 및 추적' },
-                            { type: 'habit', name: '습관', icon: '🔄', description: '습관 트래킹' },
-                            { type: 'timer', name: '타이머', icon: '⏰', description: '포모도로 타이머' },
-                            { type: 'reminder', name: '알림', icon: '🔔', description: '중요한 알림' },
-                            { type: 'quicknote', name: '빠른 메모', icon: '📝', description: '즉석 메모 작성' }
-                          ]
-                        },
-                        finance: {
-                          name: '금융',
-                          widgets: [
-                            { type: 'stock', name: '주식', icon: '📈', description: '주식 시세 확인' },
-                            { type: 'crypto', name: '암호화폐', icon: '💰', description: '코인 가격 정보' },
-                            { type: 'expense', name: '가계부', icon: '📊', description: '지출 관리' },
-                            { type: 'exchange', name: '환율', icon: '💱', description: '실시간 환율 정보' },
-                            { type: 'stock_alert', name: '주식 알림', icon: '📢', description: '주식 시세 알림' },
-                            { type: 'economic_calendar', name: '경제 캘린더', icon: '📅', description: 'FOMC, CPI 발표 일정' }
-                          ]
-                        },
-                        communication: {
-                          name: '소통',
-                          widgets: [
-                            { type: 'email', name: '이메일', icon: '📧', description: '메일 확인' },
-                            { type: 'mail_services', name: '메일 서비스', icon: '📮', description: '메일 서비스 바로가기' },
-                            { type: 'github', name: 'GitHub', icon: '🐙', description: '코드 저장소' },
-                            { type: 'phone', name: '연락처', icon: '📞', description: '빠른 연락처' },
-                            { type: 'github_repo', name: 'GitHub Repo', icon: '📂', description: 'GitHub 저장소 상태' }
-                          ]
-                        },
-                        media: {
-                          name: '미디어',
-                          widgets: [
-                            { type: 'music', name: '음악', icon: '🎵', description: '음악 플레이어' },
-                            { type: 'video', name: '동영상', icon: '🎬', description: '비디오 콘텐츠' },
-                            { type: 'photo', name: '사진', icon: '📸', description: '이미지 갤러리' },
-                            { type: 'quote', name: '명언', icon: '💭', description: '영감을 주는 명언' }
-                          ]
-                        },
-                        information: {
-                          name: '정보',
-                          widgets: [
-                            { type: 'weather', name: '날씨', icon: '☁️', description: '날씨 정보' },
-                            { type: 'weather_small', name: '날씨 (소형)', icon: '🌤️', description: '간단한 날씨 정보' },
-                            { type: 'weather_medium', name: '날씨 (중형)', icon: '⛅', description: '중간 크기 날씨 정보' },
-                            { type: 'news', name: '뉴스', icon: '🌐', description: '최신 뉴스' },
-                            { type: 'rss', name: 'RSS', icon: '📡', description: 'RSS 피드' },
-                            { type: 'google_search', name: '구글 검색', icon: '🔍', description: '구글 검색' },
-                            { type: 'naver_search', name: '네이버 검색', icon: '🔍', description: '네이버 검색' },
-                            { type: 'law_search', name: '법제처 검색', icon: '⚖️', description: '법령 검색' },
-                          ]
-                        },
-                        system: {
-                          name: '시스템',
-                          widgets: [
-                            { type: 'calendar', name: '캘린더', icon: '📅', description: '일정 관리' },
-                            { type: 'location', name: '위치', icon: '📍', description: '현재 위치' },
-                            { type: 'battery', name: '배터리', icon: '🔋', description: '배터리 상태' },
-                            { type: 'network', name: '네트워크', icon: '📶', description: '인터넷 상태' },
-                            { type: 'volume', name: '볼륨', icon: '🔊', description: '소리 조절' }
-                          ]
-                        },
-                        tools: {
-                          name: '도구',
-                          widgets: [
-                            { type: 'bookmark', name: '즐겨찾기', icon: '🔗', description: '자주 사용하는 링크' },
-                            { type: 'stats', name: '통계', icon: '📊', description: '데이터 시각화' },
-                            { type: 'converter', name: '단위 변환', icon: '🧮', description: '단위 변환기' },
-                            { type: 'colorpicker', name: '컬러 팔레트', icon: '🎨', description: '색상 생성기' },
-                            { type: 'qr', name: 'QR 코드', icon: '📱', description: 'QR 코드 생성' },
-                            { type: 'password', name: '비밀번호', icon: '🔒', description: '비밀번호 생성' }
-                          ]
-                        },
-                        education: {
-                          name: '교육',
-                          widgets: [
-                            { type: 'english_words', name: '영어 단어', icon: '📚', description: '영어 단어 학습' },
-                            { type: 'quote', name: '명언', icon: '💭', description: '영감을 주는 명언' }
-                          ]
-                        }
-                      };
-                      
-                      let selectedCategory = '';
-                      
-                      function getCategoryIcon(categoryKey) {
-                        const icons = {
-                          productivity: '📊',
-                          finance: '💰',
-                          development: '🔧',
-                          information: '📰',
-                          media: '🎵',
-                          design: '🎨',
-                          education: '📚',
-                          social: '👥',
-                          system: '⚙️'
-                        };
-                        return icons[categoryKey] || '📦';
-                      }
-                      
-                      function renderCategories() {
-                        const categoryList = document.getElementById('category-list');
-                        categoryList.innerHTML = Object.entries(widgetCategories).map(([categoryKey, category]) => \`
-                          <button
-                            class="w-full text-left p-3 rounded-lg transition-colors bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 category-btn"
-                            data-category="\${categoryKey}"
-                            onclick="selectCategory('\${categoryKey}')"
-                          >
-                            <div class="flex items-center gap-3">
-                              <div class="text-lg">\${getCategoryIcon(categoryKey)}</div>
-                              <div>
-                                <div class="font-medium text-sm">\${category.name}</div>
-                                <div class="text-xs text-gray-500">\${category.widgets.length}개 위젯</div>
-                            </div>
-                    </div>
-                          </button>
-                        \`).join('');
-                      }
-                      
-                      function selectCategory(categoryKey) {
-                        selectedCategory = categoryKey;
-                        const category = widgetCategories[categoryKey];
-                        
-                        // 카테고리 버튼 스타일 업데이트
-                        document.querySelectorAll('.category-btn').forEach(btn => {
-                          btn.classList.remove('bg-green-100', 'text-green-800', 'border-green-200');
-                          btn.classList.add('bg-white', 'text-gray-700', 'border-gray-200');
-                        });
-                        
-                        const selectedBtn = document.querySelector(\`[data-category="\${categoryKey}"]\`);
-                        selectedBtn.classList.remove('bg-white', 'text-gray-700', 'border-gray-200');
-                        selectedBtn.classList.add('bg-green-100', 'text-green-800', 'border-green-200');
-                        
-                        // 제목 업데이트
-                        document.getElementById('category-title').textContent = category.name;
-                        
-                        // 위젯 그리드 업데이트
-                        const grid = document.getElementById('widget-grid');
-                        grid.innerHTML = category.widgets.map(widget => \`
-                          <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer" onclick="showSizeOptions('\${widget.type}')">
-                            <div class="text-center">
-                              <div class="w-16 h-16 bg-gray-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                                <span class="text-2xl">\${widget.icon}</span>
-                  </div>
-                              <h3 class="font-semibold text-gray-800 mb-1">\${widget.name}</h3>
-                              <p class="text-sm text-gray-500 mb-3">\${widget.description}</p>
-                              <button class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">
-                                추가하기
-                              </button>
-              </div>
-            </div>
-                        \`).join('');
-                      }
-                      
-                      function addWidget(widgetType, size = '1x1') {
-                        window.opener.postMessage({
-                          type: 'ADD_WIDGET',
-                          widgetType: widgetType,
-                          size: size
-                        }, '*');
-                        window.close();
-                      }
-                      
-                      function showSizeOptions(widgetType) {
-                        // weather_small과 weather_medium은 고정 크기로 바로 추가
-                        if (widgetType === 'weather_small') {
-                          addWidget(widgetType, '4x1');
-                          return;
-                        }
-                        if (widgetType === 'weather_medium') {
-                          addWidget(widgetType, '4x2');
-                          return;
-                        }
-                        
-                        const sizeOptions = document.createElement('div');
-                        sizeOptions.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
-                        sizeOptions.innerHTML = \`
-                          <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-                            <h3 class="text-lg font-bold text-gray-900 mb-4">위젯 크기 선택</h3>
-                            <div class="grid grid-cols-3 gap-3 mb-6">
-                              <button onclick="addWidget('\${widgetType}', '1x1')" class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                                <div class="w-full h-8 bg-blue-100 rounded mb-2"></div>
-                                <span class="text-sm font-medium">1x1</span>
-                              </button>
-                              <button onclick="addWidget('\${widgetType}', '1x2')" class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                                <div class="w-full h-16 bg-blue-100 rounded mb-2"></div>
-                                <span class="text-sm font-medium">1x2</span>
-                              </button>
-                              <button onclick="addWidget('\${widgetType}', '2x1')" class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                                <div class="w-full h-8 bg-blue-100 rounded mb-2"></div>
-                                <span class="text-sm font-medium">2x1</span>
-                              </button>
-                              <button onclick="addWidget('\${widgetType}', '3x1')" class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                                <div class="w-full h-8 bg-blue-100 rounded mb-2"></div>
-                                <span class="text-sm font-medium">3x1</span>
-                              </button>
-                              <button onclick="addWidget('\${widgetType}', '4x1')" class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                                <div class="w-full h-8 bg-blue-100 rounded mb-2"></div>
-                                <span class="text-sm font-medium">4x1</span>
-                              </button>
-                              <button onclick="addWidget('\${widgetType}', '4x2')" class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                                <div class="w-full h-16 bg-blue-100 rounded mb-2"></div>
-                                <span class="text-sm font-medium">4x2</span>
-                              </button>
-                            </div>
-                            <button onclick="this.closest('.fixed').remove()" class="w-full py-2 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
-                              취소
-                            </button>
-                          </div>
-                        \`;
-                        document.body.appendChild(sizeOptions);
-                      }
-                      
-                      // 페이지 로드 시 카테고리 렌더링
-                      document.addEventListener('DOMContentLoaded', renderCategories);
-                    <\/script>
-                  </body>
-                  </html>
-                `);
-                widgetShopWindow.document.close();
-                setShowWidgetModal(false);
-              }
+              return '';
             })()}
           </script>
         )}
+                 
 
         {/* 배경 설정 모달 */}
         {showBackgroundModal && (
@@ -5337,6 +5146,22 @@ export function MyPage() {
                               onChange={(e) => setFormData({...formData, author: e.target.value})}
                               className="w-full p-2 border rounded"
                               placeholder="작가명을 입력하세요..."
+                            />
+                          </div>
+                        </div>
+                      );
+
+                    case 'bookmark':
+                      return (
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">제목</label>
+                            <input
+                              type="text"
+                              value={formData.title || ''}
+                              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                              className="w-full p-2 border rounded"
+                              placeholder="폴더 이름"
                             />
                           </div>
                         </div>

@@ -160,14 +160,14 @@ export const EconomicCalendarWidget = ({ widget, isEditMode, updateWidget }: any
   };
 
   return (
-    <div className="p-3">
+    <div className="p-3" style={{ minHeight: '300px' }}>
       <div className="text-center mb-3">
         <div className="text-2xl mb-1">📅</div>
         <h4 className="font-semibold text-sm text-gray-800">경제 캘린더</h4>
         <p className="text-xs text-gray-500">중요 경제 지표 발표</p>
       </div>
       
-      <div className="space-y-2">
+      <div className="space-y-2 overflow-auto" style={{ maxHeight: 'calc(100% - 56px)' }}>
         {events.map(event => (
           <div key={event.id} className={`p-2 rounded border-l-4 ${getImpactColor(event.impact)}`}>
             <div className="flex justify-between items-start">
@@ -187,100 +187,4 @@ export const EconomicCalendarWidget = ({ widget, isEditMode, updateWidget }: any
   );
 };
 
-// 기존 가계부 위젯 (간단한 버전 유지)
-export const ExpenseWidget = ({ widget, isEditMode, updateWidget }: any) => {
-  const [expenses, setExpenses] = useState([
-    { id: 1, category: '식비', amount: 45000, date: '2024-01-15', description: '점심 식사' },
-    { id: 2, category: '교통비', amount: 25000, date: '2024-01-14', description: '지하철 월권' },
-    { id: 3, category: '쇼핑', amount: 120000, date: '2024-01-13', description: '온라인 쇼핑' },
-    { id: 4, category: '엔터테인먼트', amount: 35000, date: '2024-01-12', description: '영화 관람' }
-  ]);
-
-  const [budget] = useState({
-    total: 500000,
-    used: expenses.reduce((sum, expense) => sum + expense.amount, 0)
-  });
-
-  const getCategoryColor = (category: string) => {
-    const colors: { [key: string]: string } = {
-      '식비': 'bg-red-100 text-red-800',
-      '교통비': 'bg-blue-100 text-blue-800',
-      '쇼핑': 'bg-purple-100 text-purple-800',
-      '엔터테인먼트': 'bg-green-100 text-green-800',
-      '기타': 'bg-gray-100 text-gray-800'
-    };
-    return colors[category] || colors['기타'];
-  };
-
-  const addExpense = () => {
-    const category = prompt('카테고리를 입력하세요:');
-    const amount = prompt('금액을 입력하세요:');
-    const description = prompt('설명을 입력하세요:');
-    if (category && amount && description) {
-      const newExpense = {
-        id: Date.now(),
-        category,
-        amount: parseInt(amount),
-        date: new Date().toISOString().split('T')[0],
-        description
-      };
-      setExpenses([newExpense, ...expenses]);
-    }
-  };
-
-  return (
-    <div className="p-3">
-      <div className="text-center mb-3">
-        <div className="text-2xl mb-1">📊</div>
-        <h4 className="font-semibold text-sm text-gray-800">가계부</h4>
-        <div className="text-xs text-gray-500">
-          예산: {budget.used.toLocaleString()}원 / {budget.total.toLocaleString()}원
-        </div>
-      </div>
-      
-      {/* 예산 진행률 */}
-      <div className="mb-3">
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${Math.min((budget.used / budget.total) * 100, 100)}%` }}
-          />
-        </div>
-        <div className="text-xs text-gray-500 text-right mt-1">
-          {((budget.used / budget.total) * 100).toFixed(0)}% 사용
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        {expenses.map(expense => (
-          <div key={expense.id} className="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded-full text-xs ${getCategoryColor(expense.category)}`}>
-                  {expense.category}
-                </span>
-                <span className="text-sm text-gray-800">{expense.description}</span>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">{expense.date}</div>
-            </div>
-            <div className="text-sm font-bold text-gray-800">
-              -{expense.amount.toLocaleString()}원
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      {isEditMode && (
-        <Button 
-          size="sm" 
-          variant="outline" 
-          className="w-full h-8 text-xs mt-3"
-          onClick={addExpense}
-          aria-label="새 지출 추가"
-        >
-          지출 추가
-        </Button>
-      )}
-    </div>
-  );
-};
+// 가계부 위젯은 비활성화되었습니다.

@@ -382,99 +382,7 @@ export const WeatherMediumWidget = ({ widget, isEditMode, updateWidget }: any) =
 };
 
 // RSS 피드 위젯
-export const RSSWidget = ({ widget, isEditMode, updateWidget }: any) => {
-  const [feeds, setFeeds] = useState([
-    { 
-      id: 1, 
-      title: 'React 18 새로운 기능 소개', 
-      source: 'React Blog', 
-      time: '1일 전',
-      url: 'https://react.dev/blog'
-    },
-    { 
-      id: 2, 
-      title: 'TypeScript 5.0 업데이트', 
-      source: 'TypeScript News', 
-      time: '2일 전',
-      url: 'https://devblogs.microsoft.com/typescript'
-    },
-    { 
-      id: 3, 
-      title: 'Next.js 14 성능 개선사항', 
-      source: 'Next.js Blog', 
-      time: '3일 전',
-      url: 'https://nextjs.org/blog'
-    }
-  ]);
-
-  const [rssUrl, setRssUrl] = useState('');
-
-  const addRSSFeed = () => {
-    if (rssUrl.trim()) {
-      // 실제로는 RSS 파싱 로직이 필요
-      const newFeed = {
-        id: Date.now(),
-        title: '새 RSS 피드',
-        source: 'RSS Feed',
-        time: '방금 전',
-        url: rssUrl.trim()
-      };
-      setFeeds([newFeed, ...feeds]);
-      setRssUrl('');
-    }
-  };
-
-  return (
-    <div className="p-3">
-      <div className="text-center mb-3">
-        <div className="text-2xl mb-1">📡</div>
-        <h4 className="font-semibold text-sm text-gray-800">RSS 피드</h4>
-        <p className="text-xs text-gray-500">최신 기술 뉴스</p>
-      </div>
-      
-      {/* RSS URL 추가 */}
-      {isEditMode && (
-        <div className="mb-3">
-          <div className="flex gap-1">
-            <input
-              type="url"
-              value={rssUrl}
-              onChange={(e) => setRssUrl(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addRSSFeed()}
-              placeholder="RSS URL 입력"
-              className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
-            />
-            <Button size="sm" onClick={addRSSFeed} className="h-6 w-6 p-0">
-              +
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      <div className="space-y-2">
-        {feeds.map(feed => (
-          <div key={feed.id} className="p-2 bg-gray-50 rounded">
-            <div className="flex justify-between items-start mb-1">
-              <span className="text-xs text-blue-600 bg-blue-100 px-1 rounded">
-                {feed.source}
-              </span>
-              <span className="text-xs text-gray-500">{feed.time}</span>
-            </div>
-            <div className="text-sm font-medium text-gray-800 mb-1">
-              {feed.title}
-            </div>
-            <button
-              onClick={() => window.open(feed.url, '_blank')}
-              className="text-xs text-blue-600 hover:text-blue-800"
-            >
-              읽기 →
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+// RSSWidget 제거됨
 
 // 명언 위젯
 export const QuoteWidget = ({ widget, isEditMode, updateWidget }: any) => {
@@ -568,21 +476,12 @@ export const GoogleSearchWidget = ({ widget, isEditMode, updateWidget }: any) =>
       {/* 상단 고정 영역 (로고) */}
       <div className={`shrink-0 px-2 ${compact ? 'py-1' : 'py-3'}`}>
         <div className={`text-center ${compact ? 'mb-1' : 'mb-4'}`}>
-          {!compact && (
-            <div className="text-xl font-normal">
-              <span className="text-blue-500">G</span>
-              <span className="text-red-500">o</span>
-              <span className="text-yellow-500">o</span>
-              <span className="text-blue-500">g</span>
-              <span className="text-green-500">l</span>
-              <span className="text-red-500">e</span>
-            </div>
-          )}
+          <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" alt="Google" className={`mx-auto ${compact ? 'h-7' : 'h-9'}`} />
         </div>
       </div>
 
       {/* 본문 영역 (검색창) */}
-      <div className="flex-1 overflow-y-auto px-2 pb-2 flex items-start">
+      <div className="flex-1 overflow-y-auto px-2 pb-2 flex items-center">
         <div className={`relative mx-auto w-full ${compact ? 'max-w-[400px]' : 'max-w-2xl'}`}>
         <div className="relative">
           <input
@@ -590,13 +489,13 @@ export const GoogleSearchWidget = ({ widget, isEditMode, updateWidget }: any) =>
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Google 검색"
-            className={`w-full px-10 ${compact ? 'py-1.5 pr-16' : 'py-2 pr-20'} text-xs border border-gray-300 rounded-full focus:outline-none focus:shadow-lg hover:shadow-md transition-shadow`}
+            placeholder="Google 검색 또는 URL 입력"
+            className={`w-full px-10 ${compact ? 'py-3 pr-16' : 'py-4 pr-20'} text-sm border border-gray-200 rounded-full focus:outline-none shadow-[0_1px_6px_rgba(32,33,36,0.28)]`}
           />
           
           {/* 돋보기 아이콘 */}
           <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-            <Search className="w-4 h-4 text-gray-400" />
+            <Search className="w-5 h-5 text-gray-400" />
           </div>
 
           {/* 음성 검색 아이콘 */}
@@ -605,7 +504,7 @@ export const GoogleSearchWidget = ({ widget, isEditMode, updateWidget }: any) =>
             className="absolute right-12 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
             title="음성 검색"
           >
-            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
               <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
             </svg>
@@ -617,7 +516,7 @@ export const GoogleSearchWidget = ({ widget, isEditMode, updateWidget }: any) =>
             className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
             title="이미지 검색"
           >
-            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
               <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
             </svg>
           </button>
@@ -651,7 +550,7 @@ export const YoutubeSearchWidget = ({ widget, isEditMode, updateWidget }: any) =
       </div>
 
       {/* 본문 영역 (검색창) */}
-      <div className="flex-1 overflow-y-auto px-2 pb-2 flex items-start">
+      <div className="flex-1 overflow-y-auto px-2 pb-2 flex items-center">
         <div className="relative mx-auto w-full max-w-2xl">
           <div className="relative">
             <input
@@ -712,10 +611,7 @@ export const NaverSearchWidget = ({ widget, isEditMode, updateWidget }: any) => 
       <div className={`shrink-0 px-2 ${compact ? 'py-1' : 'py-3'}`}>
         <div className={`text-center ${compact ? 'mb-1' : 'mb-4'}`}>
           {!compact && (
-            <div className="text-xl font-bold text-green-600">
-              <span className="bg-green-600 text-white px-2 py-1 rounded">N</span>
-              <span className="ml-1">NAVER</span>
-            </div>
+            <img src="https://s.pstatic.net/static/www/mobile/edit/2016/0705/mobile_212852414260.png" alt="NAVER" className="mx-auto h-7" />
           )}
         </div>
       </div>
@@ -729,13 +625,12 @@ export const NaverSearchWidget = ({ widget, isEditMode, updateWidget }: any) => 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="네이버 검색"
-            className={`w-full px-10 ${compact ? 'py-1.5 pr-16' : 'py-2 pr-20'} text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 hover:border-green-400 transition-colors`}
+            placeholder="검색어를 입력해 주세요."
+            className={`w-full ${compact ? 'pl-12 pr-16 py-3' : 'pl-12 pr-20 py-4'} text-sm border border-green-500 rounded-full focus:outline-none shadow-[0_1px_4px_rgba(3,199,90,0.3)]`}
           />
-          
-          {/* 돋보기 아이콘 */}
-          <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-            <Search className="w-4 h-4 text-green-600" />
+          {/* 좌측 N 로고 (수직 중앙 정렬) */}
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center bg-[#03C75A] text-white rounded-md" style={{ width: compact ? 18 : 20, height: compact ? 18 : 20 }}>
+            <span className="font-extrabold" style={{ lineHeight: 1 }}>N</span>
           </div>
 
           {/* 음성 검색 아이콘 */}
@@ -744,7 +639,7 @@ export const NaverSearchWidget = ({ widget, isEditMode, updateWidget }: any) => 
             className="absolute right-12 top-1/2 transform -translate-y-1/2 p-1 hover:bg-green-50 rounded transition-colors"
             title="음성 검색"
           >
-            <svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
               <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
             </svg>
@@ -756,7 +651,7 @@ export const NaverSearchWidget = ({ widget, isEditMode, updateWidget }: any) => 
             className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-green-50 rounded transition-colors"
             title="이미지 검색"
           >
-            <svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor">
               <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
             </svg>
           </button>
@@ -788,84 +683,40 @@ export const LawSearchWidget = ({ widget, isEditMode, updateWidget }: any) => {
   };
 
   return (
-    <div className="h-full bg-gradient-to-br from-purple-50 to-white flex flex-col justify-center p-2">
-      {/* 상단 고정 영역 (로고) */}
-      <div className={`shrink-0 ${compact ? 'mb-1' : 'mb-2'}`}>
-        <div className={`text-center ${compact ? 'mb-1' : 'mb-2'}`}>
-          {!compact && (
-            <div className="bg-purple-700 text-white py-1 px-2 rounded-t">
-              <div className="text-xs font-bold flex items-center justify-center gap-1">
-                <span>⚖️</span>
-                <span>국가법령정보센터</span>
-              </div>
-            </div>
-          )}
+    <div className="h-full bg-white flex items-center p-2">
+      {/* 검색 입력 그룹: 좌측 타입 선택, 중앙 입력, 우측 파란 버튼 */}
+      <div className="w-full flex items-stretch">
+        {/* 타입 선택 */}
+        <div className="flex items-center">
+          <select
+            value={searchType}
+            onChange={(e) => setSearchType(e.target.value)}
+            className={`${compact ? 'text-xs h-8' : 'text-sm h-10'} px-3 border border-blue-600 border-r-0 rounded-l focus:outline-none bg-white`}
+          >
+            <option value="law">현행법령</option>
+            <option value="statute">조문</option>
+            <option value="case">판례</option>
+          </select>
         </div>
-      </div>
-
-      {/* 본문 영역 (검색 탭 + 검색창) */}
-      <div className="flex-1 flex flex-col">
-        {/* 검색 타입 탭 */}
-        {!compact && (
-          <div className="flex gap-1 mb-2 text-xs">
-            <button
-              onClick={() => setSearchType('law')}
-              className={`flex-1 py-1 rounded ${searchType === 'law' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-            >
-              법령
-            </button>
-            <button
-              onClick={() => setSearchType('statute')}
-              className={`flex-1 py-1 rounded ${searchType === 'statute' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-            >
-              조문
-            </button>
-            <button
-              onClick={() => setSearchType('case')}
-              className={`flex-1 py-1 rounded ${searchType === 'case' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-            >
-              판례
-            </button>
-          </div>
-        )}
-        
-        {/* 검색창 */}
-        <div className="relative w-full">
+        {/* 입력창 */}
+        <div className="flex-1 relative">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder={searchType === 'law' ? '법령명을 입력하세요' : searchType === 'statute' ? '조문 내용을 입력하세요' : '판례를 검색하세요'}
-            className={`w-full px-8 ${compact ? 'py-1 text-xs' : 'py-2 text-sm'} border-2 border-purple-300 rounded focus:outline-none focus:border-purple-600 hover:border-purple-400 transition-colors`}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="검색어를 입력하세요"
+            className={`w-full ${compact ? 'h-8 text-xs' : 'h-10 text-sm'} px-3 border-y border-blue-600 focus:outline-none`}
           />
-          
-          {/* 검색 버튼 */}
-          <button
-            onClick={handleSearch}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
-          >
-            검색
-          </button>
         </div>
-        
-        {/* 인기 검색어 (compact가 아닐 때) */}
-        {!compact && (
-          <div className="mt-2 text-xs text-gray-600">
-            <div className="font-semibold mb-1">인기 검색어</div>
-            <div className="flex flex-wrap gap-1">
-              {['민법', '형법', '상법', '헌법'].map((keyword, i) => (
-                <button
-                  key={i}
-                  onClick={() => { setSearchQuery(keyword); }}
-                  className="px-2 py-0.5 bg-purple-100 hover:bg-purple-200 rounded text-xs"
-                >
-                  {i + 1}. {keyword}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* 검색 버튼 (파란 영역) */}
+        <button
+          onClick={handleSearch}
+          className={`${compact ? 'h-8 w-10' : 'h-10 w-12'} flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 rounded-r`}
+          title="검색"
+        >
+          <Search className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white`} />
+        </button>
       </div>
     </div>
   );

@@ -13,6 +13,9 @@ export const widgetCategories: Record<string, WidgetCategory> = {
       { type: 'todo', name: 'To Do List', icon: CheckSquare, description: '할 일 목록 관리 및 체크' },
       { type: 'quicknote', name: '빠른 메모', icon: FileText, description: '즉석 메모 작성' },
       { type: 'calendar', name: '캘린더', icon: Calendar, description: '일정 관리 및 계획' },
+      { type: 'converter', name: '단위 변환', icon: Calculator, description: '단위 변환기' },
+      { type: 'quote', name: '영감 명언', icon: Quote, description: '영감을 주는 명언' },
+      { type: 'english_words', name: '영어 단어 학습', icon: BookOpen, description: '영어 단어 학습 도구' },
     ]
   },
 
@@ -21,10 +24,9 @@ export const widgetCategories: Record<string, WidgetCategory> = {
     name: '금융 & 투자',
     widgets: [
       { type: 'crypto', name: '암호화폐', icon: DollarSign, description: '실시간 코인 시세 및 스파크라인' },
-      { type: 'stock_alert', name: '주식 알림', icon: Bell, description: '주식 가격 알림 설정' },
       { type: 'economic_calendar', name: '경제 캘린더', icon: Calendar, description: 'FOMC, CPI 등 경제 지표 일정' },
-      { type: 'expense', name: '가계부', icon: DollarSign, description: '수입/지출 관리' },
       { type: 'exchange', name: '환율 정보', icon: DollarSign, description: '실시간 환율 정보' },
+      { type: 'google_ad', name: '구글 광고', icon: DollarSign, description: '구글 광고 위젯' },
     ]
   },
 
@@ -33,7 +35,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
     name: '개발 & 기술',
     widgets: [
       { type: 'converter', name: '단위 변환', icon: Calculator, description: '단위 변환기' },
-      { type: 'qr', name: 'QR 코드', icon: QrCode, description: 'QR 코드 생성' },
+      // QR 코드, 가계부 비활성화
     ]
   },
 
@@ -43,7 +45,6 @@ export const widgetCategories: Record<string, WidgetCategory> = {
     widgets: [
       { type: 'news', name: '뉴스 피드', icon: Globe, description: '최신 뉴스 및 관심사' },
       { type: 'weather', name: '날씨 정보', icon: Cloud, description: '실시간 날씨 정보' },
-      { type: 'rss', name: 'RSS 피드', icon: Rss, description: 'RSS 뉴스 피드' },
       { type: 'google_search', name: '구글 검색', icon: Search, description: '구글 검색 바로가기' },
       { type: 'naver_search', name: '네이버 검색', icon: Search, description: '네이버 검색 바로가기' },
       // 유튜브 검색 타입은 현재 타입 정의에 없어 제외합니다
@@ -55,7 +56,6 @@ export const widgetCategories: Record<string, WidgetCategory> = {
   media: {
     name: '미디어 & 엔터테인먼트',
     widgets: [
-      { type: 'quote', name: '영감 명언', icon: Quote, description: '영감을 주는 명언' },
     ]
   },
 
@@ -72,7 +72,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
   education: {
     name: '교육 & 학습',
     widgets: [
-      { type: 'english_words', name: '영어 단어 학습', icon: BookOpen, description: '영어 단어 학습 도구' },
+      // 이동됨: 생산성 & 업무
     ]
   },
 
@@ -80,7 +80,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
   ads: {
     name: '광고',
     widgets: [
-      { type: 'google_ad', name: '구글 광고', icon: DollarSign, description: '구글 광고 위젯' },
+      
     ]
   },
 

@@ -18,14 +18,18 @@ interface Bookmark {
   url: string;
   icon: string;
   favicon?: string;
+  categoryId?: string;
 }
 
 interface BookmarkState {
   bookmarks: Bookmark[];
+  categories: { id: string; name: string }[];
+  activeCategoryId?: string; // 필터용
   showAddForm: boolean;
   newBookmark: {
     name: string;
     url: string;
+    categoryId?: string;
   };
   editingId?: string;
   editDraft?: { name: string; url: string };
@@ -33,18 +37,51 @@ interface BookmarkState {
 }
 
 const DEFAULT_BOOKMARKS: Bookmark[] = [];
+const DEFAULT_CATEGORIES = [
+  { id: 'default', name: '기본' }
+];
 
 export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWidget }) => {
   const [state, setState] = useState<BookmarkState>(() => {
     const saved = readLocal(widget.id, {
       bookmarks: DEFAULT_BOOKMARKS,
+      categories: DEFAULT_CATEGORIES,
+      activeCategoryId: 'default',
       showAddForm: false,
-      newBookmark: { name: '', url: '' },
+      newBookmark: { name: '', url: '', categoryId: 'default' },
       editingId: undefined,
       editDraft: { name: '', url: '' }
     });
     return saved;
   });
+
+  // 폴더명(위젯 제목) 초기 자동 지정: "새 폴더", "새 폴더(1)" ...
+  useEffect(() => {
+    const currentTitle = (widget.title || '').trim();
+    if (!currentTitle || currentTitle === '즐겨찾기') {
+      const key = 'bookmark_folder_counter';
+      const parsed = parseInt(localStorage.getItem(key) || '0', 10);
+      const next = isNaN(parsed) ? 0 : parsed;
+      const name = next === 0 ? '새 폴더' : `새 폴더(${next})`;
+      try { localStorage.setItem(key, String(next + 1)); } catch {}
+      updateWidget?.(widget.id, { ...widget, title: name });
+    }
+  }, [widget.id]);
+
+  // 내부 제목 편집 UI 제거 (타이틀 바에서만 편집)
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [draftTitle, setDraftTitle] = useState<string>('');
+
+  const startRename = () => {
+    setDraftTitle(widget.title || '');
+    setIsRenaming(true);
+  };
+
+  const commitRename = () => {
+    const name = (draftTitle || '').trim() || '새 폴더';
+    updateWidget?.(widget.id, { ...widget, title: name });
+    setIsRenaming(false);
+  };
 
   // 드래그 앤 드롭 순서 변경용 로컬 상태 (퍼시스트 필요 없음)
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -75,6 +112,51 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
   useEffect(() => {
     persistOrLocal(widget.id, state, updateWidget);
   }, [widget.id, state, updateWidget]);
+
+  // 마이그레이션: 예전 저장본에는 categories/activeCategoryId가 없음
+  useEffect(() => {
+    if (!state.categories || state.categories.length === 0) {
+      setState(prev => ({
+        ...prev,
+        categories: DEFAULT_CATEGORIES,
+        activeCategoryId: prev.activeCategoryId || 'default',
+        newBookmark: { ...prev.newBookmark, categoryId: prev.newBookmark?.categoryId || 'default' }
+      }));
+    }
+  }, []);
+
+  // URL 입력 시 자동 이름 추천 (입력 중에도 동기 반영)
+  useEffect(() => {
+    const url = state.newBookmark.url?.trim();
+    const name = state.newBookmark.name?.trim();
+    if (!url) return;
+
+    try {
+      const normalized = normalizeUrl(url);
+      const u = new URL(normalized);
+      const host = u.hostname.replace(/^www\./, '');
+      const suggestion = (() => {
+        const h = host.toLowerCase();
+        if (h.includes('google')) return 'Google';
+        if (h.includes('naver')) return 'NAVER';
+        if (h.includes('youtube')) return 'YouTube';
+        if (h.includes('github')) return 'GitHub';
+        if (h.includes('kakao') || h.includes('daum')) return '카카오';
+        if (h.includes('apple')) return 'Apple';
+        if (h.includes('microsoft')) return 'Microsoft';
+        if (h.includes('notion')) return 'Notion';
+        if (h.includes('figma')) return 'Figma';
+        return host.split('.')[0].replace(/^[a-z]/, (c) => c.toUpperCase());
+      })();
+
+      // 사용자가 이름을 직접 입력하지 않았거나, 이전 자동추천과 동일하면 갱신
+      if (!name || name === state.newBookmark.name) {
+        setState(prev => ({ ...prev, newBookmark: { ...prev.newBookmark, name: suggestion } }));
+      }
+    } catch {
+      // ignore
+    }
+  }, [state.newBookmark.url]);
 
   // 북마크 개수에 따라 위젯 크기 자동 조절
   useEffect(() => {
@@ -168,7 +250,8 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
       name: autoName,
       url: normalizedUrl,
       icon: getDomainIcon(normalizedUrl),
-      favicon: getFaviconUrl(normalizedUrl)
+      favicon: getFaviconUrl(normalizedUrl),
+      categoryId: state.activeCategoryId || 'default'
     };
 
     setState(prev => ({
@@ -291,12 +374,17 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
   }, []);
 
   // 북마크 목록 (검색/필터링 없이 그대로 사용)
+  const categories = state.categories && state.categories.length > 0 ? state.categories : DEFAULT_CATEGORIES;
+  const activeCategoryId = state.activeCategoryId || 'default';
   const filteredBookmarks = useMemo(() => {
-    return state.bookmarks;
-  }, [state.bookmarks]);
+    if (!activeCategoryId) return state.bookmarks;
+    return state.bookmarks.filter(bm => (bm.categoryId || 'default') === activeCategoryId);
+  }, [state.bookmarks, activeCategoryId]);
 
   return (
     <div className="p-2 px-2.5">
+      {/* 내부 헤더 제거: 페이지 상단 타이틀만 사용 */}
+      {/* 카테고리 선택/추가 UI 제거: 상단에는 이름 수정만 표시 */}
       {/* 북마크 리스트 (세로 배치) */}
       <div className="space-y-2 mb-3">
         {/* 붙여넣기 기능 제거 */}
@@ -405,7 +493,7 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
         )}
 
         {/* 페이지 추가 버튼 (하나만 표시) */}
-        {isEditMode && state.bookmarks.length < 8 && (
+        {isEditMode && state.bookmarks.length < 100 && (
           <button 
             className="w-full p-2 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 flex items-center justify-center transition-colors cursor-pointer"
             onClick={() => setState(prev => ({ ...prev, showAddForm: true }))}
@@ -416,7 +504,7 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
         )}
       </div>
 
-      {/* 북마크 추가 폼 */}
+      {/* 북마크 추가 폼 (카테고리 선택 제거) */}
       {isEditMode && state.showAddForm && (
         <div className="space-y-2 p-2 bg-gray-50 rounded">
           <input
@@ -441,6 +529,11 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
             className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
             aria-label="URL 입력"
           />
+          {/* 폴더 선택 제거: 현재 활성 폴더로 자동 추가 */}
+          {/* 자동 추천 힌트 */}
+          {state.newBookmark.url && (
+            <div className="text-[10px] text-gray-500">URL 기준 이름 자동 추천됨</div>
+          )}
           <div className="flex gap-1">
             <Button
               size="sm"

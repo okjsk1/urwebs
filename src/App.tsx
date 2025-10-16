@@ -12,6 +12,8 @@ import { AdminPage } from './components/AdminPage';
 import { TemplateEditorPage } from './components/admin/TemplateEditorPage';
 import { AllPagesListPage } from './components/AllPagesListPage';
 import { templateService } from './services/templateService';
+import DraggableDashboardGrid from './components/DraggableDashboardGrid';
+import { renderWidget } from './utils/widgetRenderer';
 // import { PageWithTabs } from './pages/PageWithTabs';
 // import { ColumnsBoard } from './components/ColumnsBoard/ColumnsBoard';
 // Firebase는 config.ts에서 초기화됩니다
@@ -39,11 +41,17 @@ function PublicPageViewer() {
           const docData = snapshot.docs[0].data();
           setPageData({ id: snapshot.docs[0].id, ...docData });
           
-          // 조회수 증가
-          const docRef = doc(db, 'userPages', snapshot.docs[0].id);
-          await updateDoc(docRef, {
-            views: increment(1)
-          });
+          // 조회수 증가: 규칙상 작성자만 쓸 수 있으므로, 본인으로 로그인한 경우에만 시도
+          try {
+            const { getAuth } = await import('firebase/auth');
+            const auth = getAuth();
+            if (auth.currentUser?.uid && auth.currentUser.uid === (docData as any).authorId) {
+              const docRef = doc(db, 'userPages', snapshot.docs[0].id);
+              await updateDoc(docRef, { views: increment(1) });
+            }
+          } catch (e) {
+            // 무시: 권한/인증 부재 시 증가 스킵
+          }
         } else {
           setError('페이지를 찾을 수 없습니다.');
         }
@@ -91,7 +99,7 @@ function PublicPageViewer() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="w-full flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">{pageData.title}</h1>
             <p className="text-xs text-gray-600 dark:text-gray-400">by {pageData.authorName}</p>
@@ -111,26 +119,90 @@ function PublicPageViewer() {
         </div>
       </header>
       
-      <main className="max-w-7xl mx-auto p-8">
+      <main className="w-full p-4 sm:p-6 lg:p-8">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
           <p className="text-gray-600 dark:text-gray-400 mb-6">{pageData.description}</p>
           
-          {/* 위젯 미리보기 (간단한 그리드 표시) */}
-          <div className="grid grid-cols-4 gap-4">
-            {pageData.widgets?.map((widget: any) => (
-              <div 
-                key={widget.id} 
-                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700"
-                style={{
-                  gridColumn: `span ${Math.ceil(widget.width / 100)}`,
-                  minHeight: `${widget.height}px`
-                }}
-              >
-                <h3 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">{widget.title}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">타입: {widget.type}</p>
-              </div>
-            ))}
-          </div>
+          {/* 공개보기: 저장된 좌표/크기 그대로 실제 위젯 렌더링 */}
+          {Array.isArray(pageData.widgets) && pageData.widgets.length > 0 ? (
+            <DraggableDashboardGrid
+              widgets={(pageData.widgets || []).map((w: any) => {
+              // 저장 포맷이 다양한 경우를 흡수: (1) grid 단위, (2) size 문자열 '2x1', (3) 픽셀(width/height) 기반
+              const parseSizeFromString = (s: any) => {
+                if (typeof s === 'string' && /^(\d+)x(\d+)$/.test(s)) {
+                  const [, sw, sh] = s.match(/(\d+)x(\d+)/) as any;
+                  return { w: Number(sw), h: Number(sh) };
+                }
+                return null;
+              };
+
+              const pxPerCol = 216; // 마이페이지 저장 간격과 동일
+              const pxPerRow = 176; // 마이페이지 저장 간격과 동일
+
+              const sizeFromString = parseSizeFromString(w?.size);
+
+              const spanW = (() => {
+                // 픽셀 width가 명확히 1칸 이상이면 픽셀 우선
+                const widthPx = typeof w?.width === 'number' ? w.width : (typeof w?.size?.w === 'number' ? w.size.w : undefined);
+                if (typeof widthPx === 'number' && widthPx >= pxPerCol * 0.9) {
+                  return Math.max(1, Math.min(6, Math.round(widthPx / pxPerCol)));
+                }
+                if (w?.gridSize?.w) return Math.max(1, Math.min(6, Math.round(w.gridSize.w)));
+                if (sizeFromString) return Math.max(1, Math.min(6, sizeFromString.w));
+                return 1;
+              })();
+              const spanH = (() => {
+                const heightPx = typeof w?.height === 'number' ? w.height : (typeof w?.size?.h === 'number' ? w.size.h : undefined);
+                if (typeof heightPx === 'number' && heightPx >= pxPerRow * 0.9) {
+                  return Math.max(1, Math.min(6, Math.round(heightPx / pxPerRow)));
+                }
+                if (w?.gridSize?.h) return Math.max(1, Math.min(6, Math.round(w.gridSize.h)));
+                if (sizeFromString) return Math.max(1, Math.min(6, sizeFromString.h));
+                return 1;
+              })();
+
+              return {
+                id: w.id,
+                type: w.type,
+                title: w.title,
+                content: w.content,
+                variant: w.variant,
+                size: { w: spanW, h: spanH },
+                x: (() => {
+                  if (typeof w.x === 'number') return Math.max(0, Math.round(w.x / pxPerCol));
+                  return 0;
+                })(),
+                y: (() => {
+                  if (typeof w.y === 'number') return Math.max(0, Math.round(w.y / pxPerRow));
+                  return 0;
+                })(),
+              };
+            })}
+              renderWidget={(gw) => {
+              const widgetForRender = {
+                id: gw.id,
+                type: gw.type,
+                title: gw.title,
+                content: gw.content,
+                variant: gw.variant,
+                x: typeof gw.x === 'number' ? gw.x : 0,
+                y: typeof gw.y === 'number' ? gw.y : 0,
+                width: gw.size?.w || 1,
+                height: gw.size?.h || 1,
+              } as any;
+              return renderWidget(widgetForRender);
+            }}
+              isEditMode={false}
+              onLayoutChange={undefined}
+              cols={6}
+              className="grid-cols-6 sm:grid-cols-6 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6"
+              showAddButton={false}
+            />
+          ) : (
+            <div className="p-6 bg-gray-50 rounded-lg text-sm text-gray-600">
+              이 페이지에 표시할 위젯이 없습니다. 작성자가 아직 저장하지 않았거나, 이전 버전 형식일 수 있어요.
+            </div>
+          )}
         </div>
       </main>
     </div>

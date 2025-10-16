@@ -37,7 +37,7 @@ export function Header({
 
   const isAdmin = currentUser?.email === 'okjsk1@gmail.com';
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 sticky top-0 z-50 shadow-sm">
+    <header className="bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-900 px-4 py-2 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div 
           className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"

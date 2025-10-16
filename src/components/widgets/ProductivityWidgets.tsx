@@ -8,46 +8,47 @@ import {
 // 스마트 할 일 위젯
 export const TodoWidget = ({ widget, isEditMode, updateWidget }: any) => {
   const [todos, setTodos] = useState([
-    { id: 1, text: '회의 준비하기', completed: false },
-    { id: 2, text: '프로젝트 보고서 작성', completed: true },
-    { id: 3, text: '이메일 확인하기', completed: false }
+    { id: 1, text: '체크리스트 항목 1', completed: false },
+    { id: 2, text: '체크리스트 항목 2', completed: false },
+    { id: 3, text: '체크리스트 항목 3', completed: false },
   ]);
 
   const [newTodo, setNewTodo] = useState('');
 
   const addTodo = () => {
-    if (newTodo.trim()) {
-      const newId = Math.max(...todos.map(t => t.id), 0) + 1;
-      setTodos([...todos, { id: newId, text: newTodo, completed: false }]);
-      setNewTodo('');
-    }
+    const text = newTodo.trim();
+    if (!text) return;
+    const newId = Math.max(...todos.map(t => t.id), 0) + 1;
+    setTodos([...todos, { id: newId, text, completed: false }]);
+    setNewTodo('');
   };
 
   const toggleTodo = (id: number) => {
-    setTodos(todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
+    setTodos(prev => prev.map(todo => todo.id === id ? { ...todo, completed: !todo.completed } : todo));
   };
 
-  const deleteTodo = (id: number) => {
-    setTodos(todos.filter(todo => todo.id !== id));
-  };
+  const deleteTodo = (id: number) => setTodos(prev => prev.filter(todo => todo.id !== id));
+
+  // 항목이 4개 이상이면 세로 2칸으로 자동 확장, 그 외엔 1칸
+  useEffect(() => {
+    const nextHeight = todos.length >= 4 ? 2 : 1;
+    const currentHeight = widget.gridSize?.h || 1;
+    if (nextHeight !== currentHeight) {
+      updateWidget?.(widget.id, { ...widget, gridSize: { w: widget.gridSize?.w || 1, h: nextHeight } });
+    }
+  }, [todos.length]);
 
   return (
     <div className="p-3">
       <div className="space-y-2">
         {todos.map(todo => (
-          <div key={todo.id} className="flex items-center gap-2">
-            <button
-              onClick={() => toggleTodo(todo.id)}
-              className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                todo.completed 
-                  ? 'bg-blue-500 border-blue-500 text-white' 
-                  : 'border-gray-300'
-              }`}
-            >
-              {todo.completed && <CheckSquare className="w-3 h-3" />}
-            </button>
+          <label key={todo.id} className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={todo.completed}
+              onChange={() => toggleTodo(todo.id)}
+              className="w-4 h-4 accent-blue-600"
+            />
             <span className={`text-sm flex-1 ${todo.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
               {todo.text}
             </span>
@@ -55,21 +56,22 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: any) => {
               <button
                 onClick={() => deleteTodo(todo.id)}
                 className="text-red-500 hover:text-red-700"
+                title="삭제"
               >
                 <Trash2 className="w-3 h-3" />
               </button>
             )}
-          </div>
+          </label>
         ))}
-        
+
         {isEditMode && (
           <div className="flex gap-1 mt-3">
             <input
               type="text"
               value={newTodo}
               onChange={(e) => setNewTodo(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addTodo()}
-              placeholder="새 할 일 추가"
+              onKeyDown={(e) => e.key === 'Enter' && addTodo()}
+              placeholder="할 일 추가"
               className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
             />
             <Button size="sm" onClick={addTodo} className="h-6 w-6 p-0">
