@@ -1,5 +1,5 @@
 // 위젯 사이즈 타입
-export type WidgetSize = '1x1' | '1x2' | '2x1' | '3x1' | '4x1' | '4x2';
+export type WidgetSize = '1x1' | '1x2' | '1x3' | '2x1' | '3x1' | '4x1' | '4x2';
 
 // 위젯 타입
 export type WidgetType = 'bookmark' | 'clock' | 'weather' | 'weather_small' | 'weather_medium' | 'todo' | 'note' | 'calendar' | 'stats' | 'news' | 'music' | 'social' | 'stock' | 'crypto' | 'goal' | 'habit' | 'expense' | 'quote' | 'reminder' | 'timer' | 'calculator' | 'converter' | 'google_search' | 'naver_search' | 'law_search' | 'rss' | 'github' | 'email' | 'mail_services' | 'system' | 'media' | 'favorite' | 'recent' | 'quicknote' | 'password' | 'qr' | 'barcode' | 'colorpicker' | 'gradient' | 'icon' | 'emoji' | 'gif' | 'meme' | 'contact' | 'search' | 'meeting' | 'shopping' | 'travel' | 'sports' | 'profile_card' | 'qr_code' | 'portfolio_header' | 'project_gallery' | 'contact_buttons' | 'download_section' | 'business_header' | 'menu_section' | 'business_info' | 'map_section' | 'event_header' | 'countdown' | 'rsvp_form' | 'event_gallery' | 'blog_header' | 'post_list' | 'blog_sidebar' | 'shop_header' | 'product_grid' | 'contact_order' | 'reviews' | 'team_header' | 'member_grid' | 'activity_calendar' | 'join_form' | 'exchange' | 'github_repo' | 'stock_alert' | 'economic_calendar' | 'english_words' | 'google_ad' | 'frequent_sites';

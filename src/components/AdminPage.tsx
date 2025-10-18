@@ -98,10 +98,10 @@ export function AdminPage({ onNavigateTemplateEdit }: AdminPageProps) {
   if (!isAdmin) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Card className="p-12 text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">접근 권한이 없습니다</h2>
-          <p className="text-gray-600">
+        <Card className="p-12 text-center dark:bg-gray-800 dark:border-gray-700">
+          <AlertCircle className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">접근 권한이 없습니다</h2>
+          <p className="text-gray-600 dark:text-gray-400">
             관리자(okjsk1@gmail.com)만 접근할 수 있습니다.
           </p>
         </Card>
@@ -132,26 +132,26 @@ export function AdminPage({ onNavigateTemplateEdit }: AdminPageProps) {
 
   const getTabColor = (color: string) => {
     const colorMap: Record<string, string> = {
-      blue: 'text-blue-600 bg-blue-50 hover:bg-blue-100',
-      green: 'text-green-600 bg-green-50 hover:bg-green-100',
-      purple: 'text-purple-600 bg-purple-50 hover:bg-purple-100',
-      orange: 'text-orange-600 bg-orange-50 hover:bg-orange-100',
-      cyan: 'text-cyan-600 bg-cyan-50 hover:bg-cyan-100',
-      pink: 'text-pink-600 bg-pink-50 hover:bg-pink-100',
-      gray: 'text-gray-600 bg-gray-50 hover:bg-gray-100'
+      blue: 'text-blue-600 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 dark:hover:bg-blue-900/30',
+      green: 'text-green-600 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30',
+      purple: 'text-purple-600 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:bg-purple-900/20 dark:hover:bg-purple-900/30',
+      orange: 'text-orange-600 bg-orange-50 hover:bg-orange-100 dark:text-orange-400 dark:bg-orange-900/20 dark:hover:bg-orange-900/30',
+      cyan: 'text-cyan-600 bg-cyan-50 hover:bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/30',
+      pink: 'text-pink-600 bg-pink-50 hover:bg-pink-100 dark:text-pink-400 dark:bg-pink-900/20 dark:hover:bg-pink-900/30',
+      gray: 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-400 dark:bg-gray-800/50 dark:hover:bg-gray-800/70'
     };
     return colorMap[color] || colorMap.gray;
   };
 
   const getActiveTabColor = (color: string) => {
     const colorMap: Record<string, string> = {
-      blue: 'text-blue-700 bg-blue-100 border-blue-200',
-      green: 'text-green-700 bg-green-100 border-green-200',
-      purple: 'text-purple-700 bg-purple-100 border-purple-200',
-      orange: 'text-orange-700 bg-orange-100 border-orange-200',
-      cyan: 'text-cyan-700 bg-cyan-100 border-cyan-200',
-      pink: 'text-pink-700 bg-pink-100 border-pink-200',
-      gray: 'text-gray-700 bg-gray-100 border-gray-200'
+      blue: 'text-blue-700 bg-blue-100 border-blue-200 dark:text-blue-300 dark:bg-blue-900/40 dark:border-blue-700',
+      green: 'text-green-700 bg-green-100 border-green-200 dark:text-green-300 dark:bg-green-900/40 dark:border-green-700',
+      purple: 'text-purple-700 bg-purple-100 border-purple-200 dark:text-purple-300 dark:bg-purple-900/40 dark:border-purple-700',
+      orange: 'text-orange-700 bg-orange-100 border-orange-200 dark:text-orange-300 dark:bg-orange-900/40 dark:border-orange-700',
+      cyan: 'text-cyan-700 bg-cyan-100 border-cyan-200 dark:text-cyan-300 dark:bg-cyan-900/40 dark:border-cyan-700',
+      pink: 'text-pink-700 bg-pink-100 border-pink-200 dark:text-pink-300 dark:bg-pink-900/40 dark:border-pink-700',
+      gray: 'text-gray-700 bg-gray-100 border-gray-200 dark:text-gray-300 dark:bg-gray-800/70 dark:border-gray-600'
     };
     return colorMap[color] || colorMap.gray;
   };
@@ -161,10 +161,10 @@ export function AdminPage({ onNavigateTemplateEdit }: AdminPageProps) {
       {/* 헤더 */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <Shield className="w-8 h-8 text-purple-600" />
-          <h1 className="text-3xl font-bold text-gray-900">관리페이지</h1>
+          <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">관리페이지</h1>
         </div>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-gray-400">
           URWEBS 서비스 관리 및 운영 도구
         </p>
       </div>
@@ -172,8 +172,8 @@ export function AdminPage({ onNavigateTemplateEdit }: AdminPageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* 탭 네비게이션 */}
         <div className="lg:col-span-1">
-          <Card className="p-4">
-            <h2 className="font-semibold text-gray-900 mb-4">관리 메뉴</h2>
+          <Card className="p-4 dark:bg-gray-800 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">관리 메뉴</h2>
             <nav className="space-y-2">
               {tabs.map((tab) => (
                 <Button

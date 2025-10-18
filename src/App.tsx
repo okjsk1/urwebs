@@ -70,10 +70,10 @@ function PublicPageViewer() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">페이지를 불러오는 중...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">페이지를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -81,13 +81,13 @@ function PublicPageViewer() {
 
   if (error || !pageData) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">페이지를 찾을 수 없습니다</h1>
-          <p className="text-gray-600 mb-4">{error || '존재하지 않거나 비공개된 페이지입니다.'}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">페이지를 찾을 수 없습니다</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error || '존재하지 않거나 비공개된 페이지입니다.'}</p>
           <button 
             onClick={() => navigate('/')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+            className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
           >
             메인으로 돌아가기
           </button>
@@ -97,7 +97,7 @@ function PublicPageViewer() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-50 shadow-sm">
         <div className="w-full flex items-center justify-between">
           <div>
@@ -199,7 +199,7 @@ function PublicPageViewer() {
               showAddButton={false}
             />
           ) : (
-            <div className="p-6 bg-gray-50 rounded-lg text-sm text-gray-600">
+            <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400">
               이 페이지에 표시할 위젯이 없습니다. 작성자가 아직 저장하지 않았거나, 이전 버전 형식일 수 있어요.
             </div>
           )}
@@ -225,7 +225,7 @@ function AppContent() {
       <Routes>
         {/* 메인 페이지 */}
         <Route path="/" element={
-          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <Header 
               currentPage="home"
               onNavigateHome={() => navigate('/')}
@@ -243,7 +243,7 @@ function AppContent() {
 
         {/* 공지사항 */}
         <Route path="/notice" element={
-          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <Header 
               currentPage="notice"
               onNavigateHome={() => navigate('/')}
@@ -261,7 +261,7 @@ function AppContent() {
 
         {/* 자유게시판 */}
         <Route path="/community" element={
-          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <Header 
               currentPage="community"
               onNavigateHome={() => navigate('/')}
@@ -279,7 +279,7 @@ function AppContent() {
 
         {/* 문의하기 */}
         <Route path="/contact" element={
-          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <Header 
               currentPage="contact"
               onNavigateHome={() => navigate('/')}
@@ -297,7 +297,7 @@ function AppContent() {
 
         {/* 나의 페이지 (편집 모드) */}
         <Route path="/mypage" element={
-          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <main>
               <MyPage />
             </main>
@@ -306,7 +306,7 @@ function AppContent() {
         
         {/* 나의 페이지 - 특정 페이지 (편집 모드) */}
         <Route path="/mypage/:pageId" element={
-          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <main>
               <MyPage />
             </main>
@@ -315,7 +315,7 @@ function AppContent() {
 
         {/* 관리자 페이지 */}
         <Route path="/admin" element={
-          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <Header 
               currentPage="admin-inquiries"
               onNavigateHome={() => navigate('/')}
@@ -340,7 +340,7 @@ function AppContent() {
 
         {/* 템플릿 편집 페이지 */}
         <Route path="/template-edit" element={
-          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <main>
               <TemplateEditorPage 
                 onBack={() => navigate('/')}

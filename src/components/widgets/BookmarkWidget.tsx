@@ -158,17 +158,31 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     }
   }, [state.newBookmark.url]);
 
-  // 북마크 개수에 따라 위젯 크기 자동 조절
+  // 북마크 개수에 따라 위젯 크기 자동 조절 (추가 버튼 공간 고려)
   useEffect(() => {
     const bookmarkCount = state.bookmarks.length;
     let newHeight = 2; // 기본 1x2
 
-    if (bookmarkCount > 5) {
-      newHeight = 4; // 1x4 (6-8개)
-    } else if (bookmarkCount > 3) {
-      newHeight = 3; // 1x3 (4-5개)
+    // 편집 모드일 때는 추가 버튼 공간을 고려하여 높이를 더 크게 설정
+    if (isEditMode) {
+      if (bookmarkCount >= 6) {
+        newHeight = 5; // 1x5 (6개 이상)
+      } else if (bookmarkCount >= 4) {
+        newHeight = 4; // 1x4 (4-5개)
+      } else if (bookmarkCount >= 2) {
+        newHeight = 3; // 1x3 (2-3개)
+      } else {
+        newHeight = 3; // 1x3 (0-1개, 추가 버튼 공간 확보)
+      }
     } else {
-      newHeight = 2; // 1x2 (1-3개)
+      // 편집 모드가 아닐 때는 기존 로직 유지
+      if (bookmarkCount > 5) {
+        newHeight = 4; // 1x4 (6-8개)
+      } else if (bookmarkCount > 3) {
+        newHeight = 3; // 1x3 (4-5개)
+      } else {
+        newHeight = 2; // 1x2 (1-3개)
+      }
     }
 
     // 현재 gridSize와 다르면 업데이트
@@ -176,7 +190,7 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     if (currentGridSize.h !== newHeight) {
       updateWidget(widget.id, { ...widget, gridSize: { w: 1, h: newHeight } });
     }
-  }, [state.bookmarks.length, widget, updateWidget]);
+  }, [state.bookmarks.length, widget, updateWidget, isEditMode]);
 
   const getDomainIcon = useCallback((url: string): string => {
     try {
@@ -382,11 +396,11 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
   }, [state.bookmarks, activeCategoryId]);
 
   return (
-    <div className="p-2 px-2.5">
+    <div className="h-full flex flex-col">
       {/* 내부 헤더 제거: 페이지 상단 타이틀만 사용 */}
       {/* 카테고리 선택/추가 UI 제거: 상단에는 이름 수정만 표시 */}
       {/* 북마크 리스트 (세로 배치) */}
-      <div className="space-y-2 mb-3">
+      <div className="space-y-2 mb-3 flex-1 overflow-y-auto px-2.5 pt-2">
         {/* 붙여넣기 기능 제거 */}
         {filteredBookmarks.map((bookmark, index) => (
           <div 
@@ -492,8 +506,11 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
           </div>
         )}
 
-        {/* 페이지 추가 버튼 (하나만 표시) */}
-        {isEditMode && state.bookmarks.length < 100 && (
+      </div>
+      
+      {/* 페이지 추가 버튼 (고정 위치) */}
+      {isEditMode && state.bookmarks.length < 100 && (
+        <div className="mt-2 flex-shrink-0 px-2.5 pb-2">
           <button 
             className="w-full p-2 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 flex items-center justify-center transition-colors cursor-pointer"
             onClick={() => setState(prev => ({ ...prev, showAddForm: true }))}
@@ -501,12 +518,12 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
             <Plus className="w-4 h-4 mr-1 text-gray-400" />
             <div className="text-gray-400 text-xs">사이트 추가</div>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* 북마크 추가 폼 (카테고리 선택 제거) */}
+      {/* 북마크 추가 폼 (고정 위치) */}
       {isEditMode && state.showAddForm && (
-        <div className="space-y-2 p-2 bg-gray-50 rounded">
+        <div className="mt-2 flex-shrink-0 space-y-2 p-2 bg-gray-50 rounded mx-2.5 mb-2">
           <input
             type="text"
             value={state.newBookmark.name}

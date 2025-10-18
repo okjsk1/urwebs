@@ -15,7 +15,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { db } from '../../firebase/config';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 
 interface User {
   id: string;

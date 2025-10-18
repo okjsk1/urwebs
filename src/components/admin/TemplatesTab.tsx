@@ -187,8 +187,8 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">템플릿 관리</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">템플릿 관리</h2>
+          <p className="text-gray-600 dark:text-gray-400">
             페이지 템플릿을 생성, 수정, 삭제하고 사용 현황을 확인합니다.
           </p>
         </div>
@@ -229,22 +229,22 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
         {/* 템플릿 목록 */}
         <div className="lg:col-span-2 space-y-4">
           {loading ? (
-            <Card className="p-8 text-center">
-              <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-gray-400" />
-              <p className="text-gray-500">템플릿을 불러오는 중...</p>
+            <Card className="p-8 text-center dark:bg-gray-800 dark:border-gray-700">
+              <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-gray-400 dark:text-gray-500" />
+              <p className="text-gray-500 dark:text-gray-400">템플릿을 불러오는 중...</p>
             </Card>
           ) : templates.length === 0 ? (
-            <Card className="p-8 text-center">
-              <LayoutDashboard className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500">등록된 템플릿이 없습니다.</p>
+            <Card className="p-8 text-center dark:bg-gray-800 dark:border-gray-700">
+              <LayoutDashboard className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+              <p className="text-gray-500 dark:text-gray-400">등록된 템플릿이 없습니다.</p>
             </Card>
           ) : (
             <div className="space-y-3">
               {templates.map((template) => (
                 <Card
                   key={template.id}
-                  className={`p-4 cursor-pointer transition-all hover:shadow-md ${
-                    selectedTemplate?.id === template.id ? 'ring-2 ring-blue-500' : ''
+                  className={`p-4 cursor-pointer transition-all hover:shadow-md dark:bg-gray-800 dark:border-gray-700 ${
+                    selectedTemplate?.id === template.id ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
                   }`}
                   onClick={() => setSelectedTemplate(template)}
                 >
@@ -253,16 +253,16 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
                       <div className="text-2xl">{template.icon}</div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-gray-900">{template.name}</h3>
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{template.name}</h3>
                           {template.isDefault && (
-                            <Badge variant="secondary" className="text-xs">기본</Badge>
+                            <Badge variant="secondary" className="text-xs dark:bg-gray-700 dark:text-gray-300">기본</Badge>
                           )}
                           {!template.isActive && (
-                            <Badge variant="outline" className="text-xs text-gray-500">비활성</Badge>
+                            <Badge variant="outline" className="text-xs text-gray-500 dark:text-gray-400 dark:border-gray-600">비활성</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mb-1">{template.description}</p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{template.description}</p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                           <span>{template.category}</span>
                           <span>•</span>
                           <span>위젯 {template.widgetCount}개</span>
@@ -347,58 +347,58 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
         {/* 템플릿 상세 정보 및 편집 */}
         <div className="lg:col-span-1">
           {selectedTemplate ? (
-            <Card className="p-6 sticky top-4">
+            <Card className="p-6 sticky top-4 dark:bg-gray-800 dark:border-gray-700">
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-2xl">{selectedTemplate.icon}</span>
-                  <h3 className="text-lg font-bold text-gray-900">{selectedTemplate.name}</h3>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{selectedTemplate.name}</h3>
                 </div>
-                <p className="text-sm text-gray-600 mb-3">{selectedTemplate.description}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{selectedTemplate.description}</p>
                 <div className="flex flex-wrap gap-1">
-                  <Badge>{selectedTemplate.category}</Badge>
-                  {selectedTemplate.isDefault && <Badge variant="secondary">기본</Badge>}
-                  {!selectedTemplate.isActive && <Badge variant="outline">비활성</Badge>}
+                  <Badge className="dark:bg-gray-700 dark:text-gray-300">{selectedTemplate.category}</Badge>
+                  {selectedTemplate.isDefault && <Badge variant="secondary" className="dark:bg-gray-700 dark:text-gray-300">기본</Badge>}
+                  {!selectedTemplate.isActive && <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-400">비활성</Badge>}
                 </div>
               </div>
 
               <div className="space-y-3 mb-4">
                   <div>
-                    <div className="text-xs text-gray-500 mb-1">위젯 구성</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">위젯 구성</div>
                     <div className="flex flex-wrap gap-1">
                       {selectedTemplate.preview.slice(0, 10).map((widgetType, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
+                        <Badge key={index} variant="outline" className="text-xs dark:border-gray-600 dark:text-gray-400">
                           {widgetType}
                         </Badge>
                       ))}
                       {selectedTemplate.preview.length > 10 && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs dark:border-gray-600 dark:text-gray-400">
                           +{selectedTemplate.preview.length - 10}개 더
                         </Badge>
                       )}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 mb-1">생성일</div>
-                    <div className="text-sm">{selectedTemplate.createdAt.toLocaleDateString('ko-KR')}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">생성일</div>
+                    <div className="text-sm dark:text-gray-300">{selectedTemplate.createdAt.toLocaleDateString('ko-KR')}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 mb-1">마지막 수정</div>
-                    <div className="text-sm">{selectedTemplate.lastModified.toLocaleDateString('ko-KR')}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">마지막 수정</div>
+                    <div className="text-sm dark:text-gray-300">{selectedTemplate.lastModified.toLocaleDateString('ko-KR')}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 mb-1">작성자</div>
-                    <div className="text-sm">{selectedTemplate.author}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">작성자</div>
+                    <div className="text-sm dark:text-gray-300">{selectedTemplate.author}</div>
                   </div>
                 </div>
 
-              <div className="pt-4 border-t mt-4">
+              <div className="pt-4 border-t dark:border-gray-600 mt-4">
                 <Button
                   onClick={() => {
                     // 모달 방식으로 편집 (새 페이지 이동 방지)
                     setEditingTemplate(selectedTemplate);
                     setShowEditorPage(true);
                   }}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   템플릿 편집
@@ -406,9 +406,9 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
               </div>
             </Card>
           ) : (
-            <Card className="p-12 text-center">
-              <LayoutDashboard className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500">템플릿을 선택하세요</p>
+            <Card className="p-12 text-center dark:bg-gray-800 dark:border-gray-700">
+              <LayoutDashboard className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+              <p className="text-gray-500 dark:text-gray-400">템플릿을 선택하세요</p>
             </Card>
           )}
         </div>
@@ -416,7 +416,7 @@ export function TemplatesTab({ onNavigateTemplateEdit }: TemplatesTabProps) {
 
       {/* 템플릿 편집 페이지 */}
       {showEditorPage && (
-        <div className="fixed inset-0 z-[9999] bg-white">
+        <div className="fixed inset-0 z-[9999] bg-white dark:bg-gray-900">
           <TemplateEditorPage
             onBack={handleBackFromEditor}
             onSave={handleSaveTemplate}

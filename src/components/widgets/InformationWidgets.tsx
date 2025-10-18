@@ -391,11 +391,29 @@ export const QuoteWidget = ({ widget, isEditMode, updateWidget }: any) => {
     '지금 하지 않으면, 1년 뒤에도 같은 곳에 있을 것이다. — 카렌 램',
     '완벽보다 완료. — 셰릴 샌드버그',
     '천 리 길도 한 걸음부터. — 노자',
+    '꿈을 이루고 싶다면 먼저 깨어나라. — 마크 트웨인',
+    '실패는 성공의 어머니다. — 토마스 에디슨',
+    '오늘 할 수 있는 일을 내일로 미루지 마라. — 벤저민 프랭클린',
+    '인생은 자전거를 타는 것과 같다. 균형을 잡으려면 움직여야 한다. — 알베르트 아인슈타인',
+    '가능성을 믿어라. 그럼 가능해진다. — 마하트마 간디',
+    '성공의 비밀은 시작하는 것이다. — 마크 트웨인'
   ];
-  const [quotes, setQuotes] = useState<string[]>(widget?.content?.quotes || defaultQuotes);
+  
+  // 위젯 콘텐츠가 없거나 quotes가 없으면 기본 명언 사용
+  const savedQuotes = widget?.content?.quotes;
+  const [quotes, setQuotes] = useState<string[]>(savedQuotes && savedQuotes.length > 0 ? savedQuotes : defaultQuotes);
   const [index, setIndex] = useState(0);
   const [editing, setEditing] = useState(false);
   const [newQuote, setNewQuote] = useState('');
+
+  // 자동으로 다음 명언으로 넘어가는 기능
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((i) => (i + 1) % quotes.length);
+    }, 10000); // 10초마다 자동 변경
+
+    return () => clearInterval(interval);
+  }, [quotes.length]);
 
   const next = () => setIndex((i) => (i + 1) % quotes.length);
   const prev = () => setIndex((i) => (i - 1 + quotes.length) % quotes.length);
@@ -418,31 +436,64 @@ export const QuoteWidget = ({ widget, isEditMode, updateWidget }: any) => {
   };
 
   return (
-    <div className="h-full flex flex-col justify-between p-3">
-      <div className="text-center">
-        <div className="text-3xl mb-2">❝</div>
-        <div className="text-sm text-gray-800 dark:text-gray-100 leading-relaxed">
-          {quotes[index]}
+    <div className="p-2 h-full flex flex-col dark:bg-gray-800">
+      {/* 컴팩트 헤더 */}
+      <div className="text-center mb-2 flex-shrink-0">
+        <div className="text-lg mb-1">💭</div>
+        <h4 className="font-semibold text-xs text-gray-800 dark:text-gray-100">영감 명언</h4>
+      </div>
+
+      {/* 명언 표시 - 컴팩트 버전 */}
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 p-3 rounded-lg text-center">
+          <div className="text-2xl mb-2 text-gray-400 dark:text-gray-500">❝</div>
+          <div className="text-xs text-gray-800 dark:text-gray-100 leading-relaxed px-1">
+            {quotes[index] || defaultQuotes[0]}
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            {index + 1} / {quotes.length}
+          </div>
+        </div>
+        
+        {/* 네비게이션 */}
+        <div className="flex items-center justify-between mt-2">
+          <button 
+            className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" 
+            onClick={prev}
+          >
+            이전
+          </button>
+          <button 
+            className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" 
+            onClick={next}
+          >
+            다음
+          </button>
         </div>
       </div>
-      <div className="flex items-center justify-between mt-3">
-        <button className="text-xs px-2 py-1 border rounded" onClick={prev}>이전</button>
-        <button className="text-xs px-2 py-1 border rounded" onClick={next}>다음</button>
-      </div>
+      
+      {/* 편집 모드에서만 표시되는 컨트롤 */}
       {isEditMode && (
-        <div className="mt-2 space-y-2">
+        <div className="mt-2 space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600 flex-shrink-0">
           <div className="flex gap-1">
             <input
               value={newQuote}
               onChange={(e) => setNewQuote(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addQuote()}
               placeholder="명언 추가"
-              className="flex-1 text-xs px-2 py-1 border rounded"
+              className="flex-1 text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-gray-100"
             />
-            <Button size="sm" className="h-7" onClick={addQuote}>추가</Button>
+            <Button size="sm" className="h-6 text-xs" onClick={addQuote}>추가</Button>
           </div>
           <div className="flex justify-end">
-            <Button size="sm" variant="outline" className="h-7 text-red-600" onClick={removeCurrent}>현재 문구 삭제</Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-6 text-xs text-red-600 dark:text-red-400 border-red-300 dark:border-red-600" 
+              onClick={removeCurrent}
+            >
+              현재 문구 삭제
+            </Button>
           </div>
         </div>
       )}

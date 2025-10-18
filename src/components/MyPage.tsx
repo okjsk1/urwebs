@@ -1402,6 +1402,11 @@ export function MyPage() {
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
+    } else if (type === 'todo') {
+      widgetSize = '1x3'; // 할일 위젯은 1칸 너비, 3칸 높이
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
     } else {
       // 기본 크기
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
@@ -2515,7 +2520,7 @@ export function MyPage() {
 
     return (
       <div
-        className={`relative h-full overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200 ${
+        className={`relative h-full overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col ${
           isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
         } ${isDragging ? 'opacity-75' : ''} ${
           dragOverWidget === originalWidget.id && draggedWidget !== originalWidget.id ? 'ring-2 ring-green-500 bg-green-50' : ''
@@ -2540,11 +2545,11 @@ export function MyPage() {
           }
         }}
       >
-        {/* 위젯 헤더 */}
+        {/* 위젯 헤더 - 고정 */}
         <div 
           data-drag-handle="true"
           data-widget-id={originalWidget.id}
-          className="px-2 py-0.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-move group"
+          className="px-2 py-0.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-move group flex-shrink-0"
           onMouseDown={(e) => {
             // 버튼이나 입력창을 클릭한 경우 드래그 방지
             const target = e.target as HTMLElement;
@@ -2604,15 +2609,17 @@ export function MyPage() {
           </div>
         </div>
 
-        {/* 위젯 콘텐츠 */}
+        {/* 위젯 콘텐츠 - 스크롤 가능 */}
         <div 
-          className="p-3 h-full bg-transparent overflow-hidden"
+          className="flex-1 bg-transparent overflow-y-auto"
           onMouseDown={(e) => {
             // 위젯 본문에서는 드래그 완전 방지
             e.stopPropagation();
           }}
         >
-          {renderWidgetContent(originalWidget)}
+          <div className="p-3">
+            {renderWidgetContent(originalWidget)}
+          </div>
         </div>
 
       </div>
@@ -3396,68 +3403,7 @@ export function MyPage() {
         );
 
       case 'exchange':
-        const [exchangeRates, setExchangeRates] = useState({
-          'USD/KRW': 1320.50,
-          'EUR/KRW': 1450.30,
-          'JPY/KRW': 8.95,
-          'GBP/KRW': 1650.20,
-          'CNY/KRW': 185.40
-        });
-
-        // 환율 데이터 시뮬레이션 (5분마다 업데이트)
-        useEffect(() => {
-          const interval = setInterval(() => {
-            setExchangeRates(prev => ({
-              'USD/KRW': prev['USD/KRW'] + (Math.random() - 0.5) * 10,
-              'EUR/KRW': prev['EUR/KRW'] + (Math.random() - 0.5) * 15,
-              'JPY/KRW': prev['JPY/KRW'] + (Math.random() - 0.5) * 0.5,
-              'GBP/KRW': prev['GBP/KRW'] + (Math.random() - 0.5) * 20,
-              'CNY/KRW': prev['CNY/KRW'] + (Math.random() - 0.5) * 5
-            }));
-          }, 300000); // 5분
-
-          return () => clearInterval(interval);
-        }, []);
-
-        return (
-          <div className="space-y-3">
-            <div className="text-center">
-              <div className="text-2xl mb-2">💱</div>
-              <h4 className="font-semibold text-sm text-gray-800">실시간 환율</h4>
-              <p className="text-xs text-gray-500">5분마다 업데이트</p>
-            </div>
-            <div className="space-y-2">
-              {Object.entries(exchangeRates).map(([pair, rate]) => (
-                <div key={pair} className="bg-gray-50 p-2 rounded text-xs hover:bg-gray-100 transition-colors">
-                  <div className="flex justify-between items-center">
-                    <div className="font-medium">{pair}</div>
-                    <div className="text-gray-600 font-mono">{(rate as number).toFixed(2)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {isEditMode && (
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="w-full h-8 text-xs"
-                onClick={() => {
-                  const currency = prompt('추가할 통화를 입력하세요 (예: AUD, CAD):');
-                  if (currency) {
-                    const baseRate = Math.random() * 1000 + 500;
-                    setExchangeRates(prev => ({
-                      ...prev,
-                      [`${currency}/KRW`]: baseRate
-                    }));
-                  }
-                }}
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                통화 추가
-              </Button>
-            )}
-          </div>
-        );
+        return <ExchangeWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
       case 'google_search':
         return <GoogleSearchWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;

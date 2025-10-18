@@ -334,10 +334,13 @@ export const ExchangeWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
   const availableCurrencies = Object.keys(CURRENCY_INFO);
 
   return (
-    <div className="p-3">
-      <div className="text-center mb-3">
-        <p className="text-xs text-gray-500">
-          마지막 업데이트: {new Date(state.lastRefresh).toLocaleTimeString()}
+    <div className="p-2 h-full flex flex-col">
+      {/* 컴팩트 헤더 */}
+      <div className="text-center mb-2 flex-shrink-0">
+        <div className="text-lg mb-1">💱</div>
+        <h4 className="font-semibold text-xs text-gray-800 dark:text-gray-100">환율 정보</h4>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {new Date(state.lastRefresh).toLocaleTimeString()}
         </p>
       </div>
 
@@ -418,142 +421,63 @@ export const ExchangeWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
         </div>
       )}
 
-      {/* 환율 목록 */}
-      <div className="space-y-2">
-        {filteredAndSortedRates.map(rate => {
-          const fromInfo = CURRENCY_INFO[rate.fromCurrency as keyof typeof CURRENCY_INFO];
-          const toInfo = CURRENCY_INFO[rate.toCurrency as keyof typeof CURRENCY_INFO];
-          
+      {/* 환율 목록 - 컴팩트 버전 */}
+      <div className="flex-1 overflow-y-auto space-y-1">
+        {filteredAndSortedRates.slice(0, 5).map(rate => {
           return (
-            <div key={rate.id} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
-              <div className="flex justify-between items-start mb-2">
+            <div key={rate.id} className="bg-gray-50 dark:bg-gray-700 rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+              <div className="flex justify-between items-center">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-gray-800">
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="text-xs font-medium text-gray-800 dark:text-gray-100">
                       {rate.fromCurrency}/{rate.toCurrency}
                     </span>
                     {rate.isWatched && (
                       <span className="text-xs text-blue-500">⭐</span>
                     )}
-                    {rate.alertEnabled && (
-                      <span className="text-xs text-red-500">🔔</span>
-                    )}
                   </div>
-                  <div className="text-xs text-gray-600 mb-1"></div>
-                  <div className="text-xs text-gray-500">
-                    {new Date(rate.lastUpdate).toLocaleTimeString()} 업데이트
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {new Date(rate.lastUpdate).toLocaleTimeString()}
                   </div>
                 </div>
-                <div className="text-right ml-2">
-                  <div className="text-sm font-bold text-gray-800">
+                <div className="text-right">
+                  <div className="text-sm font-bold text-gray-800 dark:text-gray-100">
                     {formatRate(rate.rate)}
                   </div>
-                  <div className={`text-xs font-medium flex items-center gap-1 ${
+                  <div className={`text-xs font-medium ${
                     rate.change >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {rate.change >= 0 ? (
-                      <TrendingUp className="w-3 h-3" />
-                    ) : (
-                      <TrendingDown className="w-3 h-3" />
-                    )}
-                    {rate.change >= 0 ? '+' : ''}{rate.change.toFixed(2)} ({rate.changePercent.toFixed(2)}%)
+                    {rate.change >= 0 ? '+' : ''}{rate.change.toFixed(2)}
                   </div>
                 </div>
               </div>
               
-              <div className="flex justify-between items-center">
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => toggleWatch(rate.id)}
-                    className={`text-xs px-2 py-1 rounded ${
-                      rate.isWatched 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-blue-50'
-                    }`}
-                    aria-label={rate.isWatched ? '관심 환율 해제' : '관심 환율 추가'}
-                  >
-                    {rate.isWatched ? '관심' : '관심 추가'}
-                  </button>
-                  <button
-                    onClick={() => toggleAlert(rate.id)}
-                    className={`text-xs px-2 py-1 rounded ${
-                      rate.alertEnabled 
-                        ? 'bg-red-100 text-red-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-red-50'
-                    }`}
-                    aria-label={rate.alertEnabled ? '알림 해제' : '알림 설정'}
-                  >
-                    <Bell className="w-3 h-3" />
-                  </button>
-                </div>
-                {isEditMode && (
+              {isEditMode && (
+                <div className="flex justify-between items-center mt-1">
                   <div className="flex gap-1">
                     <button
-                      onClick={() => setState(prev => ({ ...prev, editingRate: rate.id }))}
-                      className="text-blue-500 hover:text-blue-700"
-                      aria-label="환율 편집"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWatch(rate.id);
+                      }}
+                      className={`text-xs px-2 py-1 rounded ${
+                        rate.isWatched 
+                          ? 'bg-blue-100 text-blue-700' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-blue-50'
+                      }`}
                     >
-                      <Settings className="w-3 h-3" />
+                      {rate.isWatched ? '관심' : '관심 추가'}
                     </button>
                   </div>
-                )}
-              </div>
-
-              {/* 편집 폼 */}
-              {isEditMode && state.editingRate === rate.id && (
-                <div className="mt-3 p-2 bg-white rounded border space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      value={rate.fromCurrency}
-                      onChange={(e) => updateExchangeRate(rate.id, { fromCurrency: e.target.value })}
-                      className="text-xs px-2 py-1 border border-gray-300 rounded"
-                      aria-label="변환할 통화"
-                    >
-                      {availableCurrencies.map(currency => (
-                        <option key={currency} value={currency}>
-                          {currency} {CURRENCY_INFO[currency as keyof typeof CURRENCY_INFO]?.name}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={rate.toCurrency}
-                      onChange={(e) => updateExchangeRate(rate.id, { toCurrency: e.target.value })}
-                      className="text-xs px-2 py-1 border border-gray-300 rounded"
-                      aria-label="변환 결과 통화"
-                    >
-                      {availableCurrencies.map(currency => (
-                        <option key={currency} value={currency}>
-                          {currency} {CURRENCY_INFO[currency as keyof typeof CURRENCY_INFO]?.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={rate.targetRate || ''}
-                      onChange={(e) => updateExchangeRate(rate.id, { targetRate: parseFloat(e.target.value) || undefined })}
-                      className="flex-1 text-xs px-2 py-1 border border-gray-300 rounded"
-                      placeholder="목표 환율 (선택사항)"
-                      aria-label="목표 환율"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-6 text-xs"
-                      onClick={() => setState(prev => ({ ...prev, editingRate: null }))}
-                    >
-                      완료
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-6 text-xs text-red-600 hover:text-red-700"
-                      onClick={() => deleteExchangeRate(rate.id)}
-                    >
-                      삭제
-                    </Button>
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteExchangeRate(rate.id);
+                    }}
+                    className="text-red-500 hover:text-red-700 text-xs"
+                  >
+                    삭제
+                  </button>
                 </div>
               )}
             </div>
@@ -561,35 +485,34 @@ export const ExchangeWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
         })}
       </div>
 
-      {/* 환율 추가 */}
+      {/* 환율 추가 - 컴팩트 버전 */}
       {isEditMode && (
-        <div className="mt-3">
+        <div className="mt-2 flex-shrink-0">
           {!state.showAddForm ? (
             <Button
               size="sm"
               variant="outline"
-              className="w-full h-6 text-xs"
+              className="w-full h-5 text-xs"
               onClick={() => setState(prev => ({ ...prev, showAddForm: true }))}
             >
               <Plus className="w-3 h-3 mr-1" />
               환율 추가
             </Button>
           ) : (
-            <div className="space-y-2 p-2 bg-gray-50 rounded">
-              <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+              <div className="grid grid-cols-2 gap-1">
                 <select
                   value={state.newRate.fromCurrency || ''}
                   onChange={(e) => setState(prev => ({
                     ...prev,
                     newRate: { ...prev.newRate, fromCurrency: e.target.value }
                   }))}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded"
-                  aria-label="변환할 통화 선택"
+                  className="text-xs px-1 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-600 dark:text-gray-100"
                 >
                   <option value="">통화 선택</option>
                   {availableCurrencies.map(currency => (
                     <option key={currency} value={currency}>
-                      {currency} {CURRENCY_INFO[currency as keyof typeof CURRENCY_INFO]?.name}
+                      {currency}
                     </option>
                   ))}
                 </select>
@@ -599,32 +522,20 @@ export const ExchangeWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
                     ...prev,
                     newRate: { ...prev.newRate, toCurrency: e.target.value }
                   }))}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded"
-                  aria-label="변환 결과 통화 선택"
+                  className="text-xs px-1 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-600 dark:text-gray-100"
                 >
                   <option value="">통화 선택</option>
                   {availableCurrencies.map(currency => (
                     <option key={currency} value={currency}>
-                      {currency} {CURRENCY_INFO[currency as keyof typeof CURRENCY_INFO]?.name}
+                      {currency}
                     </option>
                   ))}
                 </select>
               </div>
-              <input
-                type="number"
-                value={state.newRate.rate || ''}
-                onChange={(e) => setState(prev => ({
-                  ...prev,
-                  newRate: { ...prev.newRate, rate: parseFloat(e.target.value) || undefined }
-                }))}
-                placeholder="초기 환율 (선택사항)"
-                className="w-full text-xs px-2 py-1 border border-gray-300 rounded"
-                aria-label="초기 환율"
-              />
               <div className="flex gap-1">
                 <Button
                   size="sm"
-                  className="flex-1 h-6 text-xs"
+                  className="flex-1 h-5 text-xs"
                   onClick={addExchangeRate}
                 >
                   추가
@@ -632,7 +543,7 @@ export const ExchangeWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex-1 h-6 text-xs"
+                  className="h-5 text-xs"
                   onClick={() => setState(prev => ({ 
                     ...prev, 
                     showAddForm: false,
