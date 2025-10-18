@@ -407,10 +407,22 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
             key={bookmark.id}
             className={`relative group ${dragOverId === bookmark.id ? 'ring-2 ring-blue-300 rounded' : ''}`}
             draggable={isEditMode}
-            onDragStart={(e) => handleDragStart(e, bookmark.id)}
-            onDragOver={(e) => handleDragOver(e, bookmark.id)}
-            onDrop={(e) => handleDrop(e, bookmark.id)}
-            onDragEnd={handleDragEnd}
+            onDragStart={(e) => {
+              e.stopPropagation(); // 위젯 드래그와 충돌 방지
+              handleDragStart(e, bookmark.id);
+            }}
+            onDragOver={(e) => {
+              e.stopPropagation(); // 위젯 드래그와 충돌 방지
+              handleDragOver(e, bookmark.id);
+            }}
+            onDrop={(e) => {
+              e.stopPropagation(); // 위젯 드래그와 충돌 방지
+              handleDrop(e, bookmark.id);
+            }}
+            onDragEnd={(e) => {
+              e.stopPropagation(); // 위젯 드래그와 충돌 방지
+              handleDragEnd();
+            }}
           >
             <button
               onClick={() => openBookmark(bookmark.url)}

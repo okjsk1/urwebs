@@ -269,11 +269,26 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
                 state.draggedOverItem === item.id ? 'border-blue-400 bg-blue-50' : ''
               }`}
               draggable={isEditMode}
-              onDragStart={(e) => handleDragStart(e, item.id)}
-              onDragOver={(e) => handleDragOver(e, item.id)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, item.id)}
-              onDragEnd={handleDragEnd}
+              onDragStart={(e) => {
+                e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                handleDragStart(e, item.id);
+              }}
+              onDragOver={(e) => {
+                e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                handleDragOver(e, item.id);
+              }}
+              onDragLeave={(e) => {
+                e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                handleDragLeave();
+              }}
+              onDrop={(e) => {
+                e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                handleDrop(e, item.id);
+              }}
+              onDragEnd={(e) => {
+                e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                handleDragEnd();
+              }}
             >
               <div className="flex items-center gap-2">
                 {isEditMode && (

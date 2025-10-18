@@ -17,7 +17,6 @@ import {
   Globe, 
   Megaphone,
   BarChart3,
-  Calculator,
   Video,
   Heart,
   Home,
@@ -212,9 +211,24 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
             category: data.category || '일반',
             timeAgo: getTimeAgo(updatedAt),
             views: data.views || 0,
-            likes: data.likes || 0
+            likes: data.likes || 0,
+            authorEmail: data.authorEmail || data.authorId // 이메일 정보 추가
           };
         })
+          .filter((p) => {
+            // 로컬 테스트 페이지 필터링
+            const email = p.authorEmail;
+            if (!email) return true; // 이메일이 없으면 포함
+            
+            // 로컬 테스트 이메일들 제외
+            const isLocalTest = email.includes('localhost') || 
+                               email.includes('127.0.0.1') || 
+                               email.includes('test@') ||
+                               email.includes('okjsk1@gmail.com') ||
+                               email.includes('okjsk2@gmail.com');
+            
+            return !isLocalTest;
+          })
           .filter((p) => (p as any) && (latestSnapshot as any) ? true : true);
         // 폴백일 경우 공개/삭제 필터 적용
         const latestFiltered = latestSnapshot.query === latestQuery ? latest : latest.filter((_, idx) => {
@@ -239,8 +253,22 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
             category: data.category || '일반',
             likes: data.likes || 0,
             views: data.views || 0,
-            tags: data.tags || []
+            tags: data.tags || [],
+            authorEmail: data.authorEmail || data.authorId
           };
+        })
+        .filter((p) => {
+          // 로컬 테스트 페이지 필터링
+          const email = p.authorEmail;
+          if (!email) return true;
+          
+          const isLocalTest = email.includes('localhost') || 
+                             email.includes('127.0.0.1') || 
+                             email.includes('test@') ||
+                             email.includes('okjsk1@gmail.com') ||
+                             email.includes('okjsk2@gmail.com');
+          
+          return !isLocalTest;
         });
         const popularFiltered = popularSnapshot.query === popularQuery ? popular : popular.filter((_, idx) => {
           const d = popularSnapshot.docs[idx].data();
@@ -264,8 +292,22 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
             category: data.category || '일반',
             likes: data.likes || 0,
             views: data.views || 0,
-            tags: data.tags || []
+            tags: data.tags || [],
+            authorEmail: data.authorEmail || data.authorId
           };
+        })
+        .filter((p) => {
+          // 로컬 테스트 페이지 필터링
+          const email = p.authorEmail;
+          if (!email) return true;
+          
+          const isLocalTest = email.includes('localhost') || 
+                             email.includes('127.0.0.1') || 
+                             email.includes('test@') ||
+                             email.includes('okjsk1@gmail.com') ||
+                             email.includes('okjsk2@gmail.com');
+          
+          return !isLocalTest;
         });
         const allFiltered = allPagesSnapshot.query === allPagesQuery ? allPages : allPages.filter((_, idx) => {
           const d = allPagesSnapshot.docs[idx].data();

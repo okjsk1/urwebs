@@ -9,7 +9,7 @@ type GridWidget = {
 
 interface DashboardGridProps {
   widgets: GridWidget[];
-  renderWidget: (w: GridWidget) => React.ReactNode;
+  renderWidget: (w: GridWidget) => any;
   cell?: number;
   className?: string;
   onAddWidget?: () => void;
@@ -41,14 +41,14 @@ export default function DashboardGrid({
   // 반응형 CSS 변수 생성
   const generateResponsiveStyles = () => {
     const baseHeight = responsiveCells.default;
-    const styles: React.CSSProperties = {
+    const styles: any = {
       '--grid-row-height': `${baseHeight}px`,
       '--grid-row-height-sm': `${responsiveCells.sm || baseHeight}px`,
       '--grid-row-height-md': `${responsiveCells.md || baseHeight}px`,
       '--grid-row-height-lg': `${responsiveCells.lg || baseHeight}px`,
       '--grid-row-height-xl': `${responsiveCells.xl || baseHeight}px`,
       gridAutoRows: 'var(--grid-row-height)'
-    } as React.CSSProperties;
+    };
     return styles;
   };
 
@@ -124,21 +124,40 @@ export default function DashboardGrid({
 // 사이즈 프리셋 선택 UI
 export function SizePicker({ 
   value, 
-  onChange 
+  onChange,
+  widgetType
 }: {
   value: { w: number; h: number }; 
   onChange: (v: { w: number; h: number }) => void;
+  widgetType?: string;
 }) {
-  const presets = [
-    { label: '1x3', w: 1, h: 3 },
-    { label: '1x4', w: 1, h: 4 },
-    { label: '2x1', w: 2, h: 1 },
-    { label: '2x2', w: 2, h: 2 },
-    { label: '2x3', w: 2, h: 3 },
-    { label: '3x1', w: 3, h: 1 },
-    { label: '3x2', w: 3, h: 2 },
-    { label: '3x3', w: 3, h: 3 },
-  ];
+  // 위젯 타입에 따른 제한된 크기 옵션
+  const getPresetsForWidget = (type?: string) => {
+    switch (type) {
+      case 'quote': // 영감명언 위젯 - 2x1만 허용
+        return [{ label: '2x1', w: 2, h: 1 }];
+      case 'google_search':
+      case 'naver_search':
+      case 'law_search': // 검색 위젯들 - 1x1, 2x1만 허용
+        return [
+          { label: '1x1', w: 1, h: 1 },
+          { label: '2x1', w: 2, h: 1 }
+        ];
+      default: // 기본 위젯들 - 모든 크기 허용
+        return [
+          { label: '1x3', w: 1, h: 3 },
+          { label: '1x4', w: 1, h: 4 },
+          { label: '2x1', w: 2, h: 1 },
+          { label: '2x2', w: 2, h: 2 },
+          { label: '2x3', w: 2, h: 3 },
+          { label: '3x1', w: 3, h: 1 },
+          { label: '3x2', w: 3, h: 2 },
+          { label: '3x3', w: 3, h: 3 },
+        ];
+    }
+  };
+
+  const presets = getPresetsForWidget(widgetType);
   
   return (
     <select

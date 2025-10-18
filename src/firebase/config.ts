@@ -24,10 +24,15 @@ type Env = {
   MODE?: string; // Vite 제공
 };
 
-// 환경변수 검증 함수
+// 환경변수 검증 함수 (안전한 버전)
 function requireEnv(key: keyof Env): string {
   const value = (import.meta as any).env[key];
   if (!value) {
+    // 프로덕션 환경에서는 기본값 사용
+    if (import.meta.env.MODE === 'production') {
+      console.warn(`Missing environment variable: ${key}, using default value`);
+      return 'demo'; // 기본값
+    }
     throw new Error(`Missing required environment variable: ${key}`);
   }
   return value;

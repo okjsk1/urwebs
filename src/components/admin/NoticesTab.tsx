@@ -14,6 +14,9 @@ import {
   Filter,
   RefreshCw
 } from 'lucide-react';
+import { db } from '../../firebase/config';
+import { collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { toast } from 'sonner';
 
 interface Notice {
   id: string;
@@ -44,47 +47,31 @@ export function NoticesTab() {
   });
 
   useEffect(() => {
-    // 실제 구현에서는 Firestore에서 데이터를 가져와야 함
-    const mockNotices: Notice[] = [
-      {
-        id: '1',
-        title: 'URWEBS 서비스 업데이트 안내',
-        content: '새로운 위젯과 템플릿이 추가되었습니다. 더욱 풍부한 기능으로 시작페이지를 꾸며보세요!',
-        category: '업데이트',
-        isPinned: true,
-        views: 1247,
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-01-15'),
-        author: '관리자'
-      },
-      {
-        id: '2',
-        title: '서비스 점검 안내',
-        content: '더 나은 서비스를 위해 시스템 점검을 진행합니다. 점검 시간: 2024년 1월 20일 02:00-04:00',
-        category: '안내',
-        isPinned: false,
-        views: 892,
-        createdAt: new Date('2024-01-10'),
-        updatedAt: new Date('2024-01-10'),
-        author: '관리자'
-      },
-      {
-        id: '3',
-        title: '신규 사용자 환영 이벤트',
-        content: 'URWEBS에 가입해주신 모든 분들께 특별한 혜택을 드립니다!',
-        category: '이벤트',
-        isPinned: false,
-        views: 2341,
-        createdAt: new Date('2024-01-05'),
-        updatedAt: new Date('2024-01-05'),
-        author: '관리자'
-      }
-    ];
+    const noticesRef = collection(db, 'notices');
+    const q = query(noticesRef, orderBy('createdAt', 'desc'));
 
-    setTimeout(() => {
-      setNotices(mockNotices);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const noticesData: Notice[] = snapshot.docs.map(doc => ({
+        id: doc.id,
+        title: doc.data().title,
+        content: doc.data().content,
+        category: doc.data().category,
+        isPinned: doc.data().isPinned || false,
+        views: doc.data().views || 0,
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+        author: doc.data().author || '관리자'
+      }));
+      
+      setNotices(noticesData);
       setLoading(false);
-    }, 1000);
+    }, (error) => {
+      console.error('공지사항 로드 실패:', error);
+      toast.error('공지사항을 불러오는데 실패했습니다.');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const filteredNotices = notices.filter(notice => {
@@ -110,32 +97,37 @@ export function NoticesTab() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingNotice) {
-      // 수정
-      setNotices(prev => prev.map(notice => 
-        notice.id === editingNotice.id 
-          ? { ...notice, ...formData, updatedAt: new Date() }
-          : notice
-      ));
-    } else {
-      // 새 공지사항 추가
-      const newNotice: Notice = {
-        id: Date.now().toString(),
-        ...formData,
-        views: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        author: '관리자'
-      };
-      setNotices(prev => [newNotice, ...prev]);
+    try {
+      if (editingNotice) {
+        // 수정
+        const noticeRef = doc(db, 'notices', editingNotice.id);
+        await updateDoc(noticeRef, {
+          ...formData,
+          updatedAt: serverTimestamp()
+        });
+        toast.success('공지사항이 수정되었습니다.');
+      } else {
+        // 새 공지사항 추가
+        await addDoc(collection(db, 'notices'), {
+          ...formData,
+          views: 0,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          author: '관리자'
+        });
+        toast.success('공지사항이 추가되었습니다.');
+      }
+      
+      setFormData({ title: '', content: '', category: '공지', isPinned: false });
+      setShowForm(false);
+      setEditingNotice(null);
+    } catch (error) {
+      console.error('공지사항 저장 실패:', error);
+      toast.error('공지사항 저장에 실패했습니다.');
     }
-    
-    setFormData({ title: '', content: '', category: '공지', isPinned: false });
-    setShowForm(false);
-    setEditingNotice(null);
   };
 
   const handleEdit = (notice: Notice) => {
@@ -149,18 +141,34 @@ export function NoticesTab() {
     setShowForm(true);
   };
 
-  const handleDelete = (noticeId: string) => {
+  const handleDelete = async (noticeId: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
-    setNotices(prev => prev.filter(notice => notice.id !== noticeId));
-    setSelectedNotice(null);
+    
+    try {
+      await deleteDoc(doc(db, 'notices', noticeId));
+      toast.success('공지사항이 삭제되었습니다.');
+      setSelectedNotice(null);
+    } catch (error) {
+      console.error('공지사항 삭제 실패:', error);
+      toast.error('공지사항 삭제에 실패했습니다.');
+    }
   };
 
-  const togglePin = (noticeId: string) => {
-    setNotices(prev => prev.map(notice => 
-      notice.id === noticeId 
-        ? { ...notice, isPinned: !notice.isPinned }
-        : notice
-    ));
+  const togglePin = async (noticeId: string) => {
+    try {
+      const notice = notices.find(n => n.id === noticeId);
+      if (!notice) return;
+      
+      const noticeRef = doc(db, 'notices', noticeId);
+      await updateDoc(noticeRef, {
+        isPinned: !notice.isPinned,
+        updatedAt: serverTimestamp()
+      });
+      toast.success(notice.isPinned ? '핀 고정이 해제되었습니다.' : '핀 고정되었습니다.');
+    } catch (error) {
+      console.error('핀 토글 실패:', error);
+      toast.error('핀 토글에 실패했습니다.');
+    }
   };
 
   return (

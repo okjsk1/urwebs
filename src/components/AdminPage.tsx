@@ -23,11 +23,10 @@ import { InquiriesTab } from './admin/InquiriesTab';
 import { UsersTab } from './admin/UsersTab';
 import { DashboardTab } from './admin/DashboardTab';
 import { NoticesTab } from './admin/NoticesTab';
-import { WidgetsTab } from './admin/WidgetsTab';
 import { TemplatesTab } from './admin/TemplatesTab';
 import { SystemSettingsTab } from './admin/SystemSettingsTab';
 
-type TabType = 'inquiries' | 'users' | 'dashboard' | 'notices' | 'widgets' | 'templates' | 'settings';
+type TabType = 'inquiries' | 'users' | 'dashboard' | 'notices' | 'templates' | 'settings';
 
 interface AdminPageProps {
   onNavigateTemplateEdit?: (initialData?: any) => void;
@@ -73,14 +72,6 @@ const tabs: Tab[] = [
     icon: <FileText className="w-4 h-4" />,
     description: '공지사항 작성 및 관리',
     color: 'orange',
-    requiredRoles: ['admin', 'ops']
-  },
-  {
-    id: 'widgets',
-    name: '위젯 관리',
-    icon: <Puzzle className="w-4 h-4" />,
-    description: '위젯 목록 및 사용 통계',
-    color: 'cyan',
     requiredRoles: ['admin', 'ops']
   },
   {
@@ -194,8 +185,6 @@ export function AdminPage({ onNavigateTemplateEdit }: AdminPageProps) {
         return <DashboardTab />;
       case 'notices':
         return <NoticesTab />;
-      case 'widgets':
-        return <WidgetsTab />;
       case 'templates':
         return <TemplatesTab onNavigateTemplateEdit={onNavigateTemplateEdit} />;
       case 'settings':

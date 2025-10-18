@@ -1,6 +1,6 @@
 ﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
 import { auth, googleProvider, db } from '../firebase/config';
@@ -1074,7 +1074,7 @@ export function MyPage() {
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'frequent_sites') {
-      widgetSize = '2x1'; // 자주가는사이트 위젯은 2칸 너비, 1칸 높이
+      widgetSize = '1x1'; // 자주가는사이트 위젯은 1칸 너비, 1칸 높이 고정
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -2071,21 +2071,23 @@ export function MyPage() {
     // gridSize가 없는 경우에만 타입에 따라 자동 설정
     if (!widget.gridSize) {
       if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'law_search') {
-        gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 (컴팩트 모드)
+        gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 기본
       } else if (widget.type === 'bookmark') {
-        gridSize = { w: 1, h: 2 }; // 북마크는 1x2
+        gridSize = { w: 1, h: 1 }; // 북마크는 1x1 고정
       } else if (widget.type === 'calendar') {
         gridSize = { w: 2, h: 2 }; // 캘린더는 2x2
       } else if (widget.type === 'crypto') {
         gridSize = { w: 3, h: 1 }; // 크립토 위젯은 3x1
       } else if (widget.type === 'frequent_sites') {
-        gridSize = { w: 2, h: 1 }; // 자주가는사이트 위젯은 2x1
+        gridSize = { w: 1, h: 1 }; // 자주가는사이트 위젯은 1x1 고정
       } else if (widget.type === 'todo') {
         gridSize = { w: 1, h: 2 }; // To Do 위젯은 1x2
       } else if (widget.type === 'weather') {
         gridSize = { w: 1, h: 3 }; // 날씨 위젯은 1x3
       } else if (widget.type === 'english_words') {
-        gridSize = { w: 1, h: 2 }; // 영어단어 위젯은 1x2 (고정)
+        gridSize = { w: 1, h: 2 }; // 영어단어 위젯은 1x2
+      } else if (widget.type === 'quote') {
+        gridSize = { w: 2, h: 1 }; // 영감명언 위젯은 2x1 고정 (고정)
       } else if (widget.type === 'economic_calendar') {
         gridSize = { w: 2, h: 2 }; // 경제캘린더 위젯은 2x2
       } else {
@@ -2172,13 +2174,14 @@ export function MyPage() {
           </div>
           
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {/* 사이즈 선택기 - 영어단어 위젯은 고정 사이즈 */}
+            {/* 사이즈 선택기 - 특정 위젯들은 제한된 크기만 허용 */}
             {originalWidget.type !== 'english_words' && (
               <SizePicker
                 value={originalWidget.gridSize || { w: 1, h: 1 }}
                 onChange={(newSize) => {
                   updateWidget(originalWidget.id, { ...originalWidget, gridSize: newSize });
                 }}
+                widgetType={originalWidget.type}
               />
             )}
             {isWidgetEditable(originalWidget.type) && (
@@ -2215,6 +2218,11 @@ export function MyPage() {
           className="flex-1 bg-transparent overflow-y-auto"
           onMouseDown={(e) => {
             // 위젯 본문에서는 드래그 완전 방지
+            e.stopPropagation();
+          }}
+          onDragStart={(e) => {
+            // 위젯 내용 영역에서 드래그 시작 방지
+            e.preventDefault();
             e.stopPropagation();
           }}
         >
@@ -3162,9 +3170,13 @@ export function MyPage() {
                   } catch (error: any) {
                     console.error('로그인 오류:', error);
                     // 팝업 차단이나 사용자가 취소한 경우
-                    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-                      console.log('로그인 팝업이 닫혔습니다.');
+                    if (error.code === 'auth/popup-closed-by-user' || 
+                        error.code === 'auth/cancelled-popup-request' ||
+                        error.code === 'auth/popup-blocked') {
+                      console.log('로그인 팝업이 닫혔거나 차단되었습니다.');
+                      // 팝업 취소는 조용히 처리 (사용자에게 알림하지 않음)
                     } else {
+                      console.error('로그인 실패:', error.message);
                       alert('로그인에 실패했습니다. 다시 시도해주세요.');
                     }
                   }
@@ -3450,9 +3462,17 @@ export function MyPage() {
                       await signInWithPopup(auth, googleProvider);
                       // 로그인 성공 시 모달 닫기 (useEffect에서 템플릿 모달을 자동으로 열어줌)
                       setShowIntroModal(false);
-                    } catch (error) {
+                    } catch (error: any) {
                       console.error('Google 로그인 실패:', error);
-                      alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                      // 팝업 차단이나 사용자가 취소한 경우
+                      if (error.code === 'auth/popup-closed-by-user' || 
+                          error.code === 'auth/cancelled-popup-request' ||
+                          error.code === 'auth/popup-blocked') {
+                        console.log('로그인 팝업이 닫혔거나 차단되었습니다.');
+                        // 팝업 취소는 조용히 처리
+                      } else {
+                        alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                      }
                     }
                   }}
                   className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold"

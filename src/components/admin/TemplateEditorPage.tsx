@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
-import { ArrowLeft, Plus, Save, Grid, Trash2, Eye, Settings, Download } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Grid, Trash2, Eye, Settings, Download, X } from 'lucide-react';
 import { Widget, WidgetType } from '../../types/mypage.types';
 import { widgetCategories, allWidgets } from '../../constants/widgetCategories';
 import {
@@ -456,61 +456,50 @@ export function TemplateEditorPage({ onBack, onSave, onDelete, templateId, initi
 
       {/* Widget Panel */}
       {showWidgetPanel && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-blue-500 shadow-2xl z-[99999] max-h-[60vh] overflow-y-auto">
-          <div className="w-full p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">위젯 추가</h3>
-              <Button
-                variant="ghost"
-                onClick={() => setShowWidgetPanel(false)}
-              >
-                닫기
-              </Button>
-            </div>
+        <div className="fixed inset-0 z-[99999]">
+          {/* 바깥 클릭 닫기 오버레이 */}
+          <div className="absolute inset-0 bg-black/20" onClick={() => setShowWidgetPanel(false)} />
+          <div className="absolute bottom-0 left-0 right-0 bg-white border-t-4 border-blue-500 shadow-2xl max-h-[60vh] overflow-y-auto">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">위젯 추가</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowWidgetPanel(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
 
-            <div className="space-y-6">
-              {Object.entries(widgetCategories).map(([categoryKey, category]) => {
-                const CategoryIcon = category.widgets[0]?.icon;
-                const isIconComponent = CategoryIcon && typeof CategoryIcon === 'function';
-                
-                return (
+              <div className="space-y-4">
+                {Object.entries(widgetCategories).map(([categoryKey, category]) => (
                   <div key={categoryKey}>
-                    <h4 className="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        {isIconComponent ? (
-                          <CategoryIcon className="w-4 h-4" />
-                        ) : (
-                          <span className="text-lg">📦</span>
-                        )}
-                      </div>
+                    <h4 className="font-semibold text-gray-800 mb-2">
                       {category.name}
                     </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
                       {category.widgets.map((widget) => {
-                        const WidgetIcon = widget.icon;
-                        const isWidgetIconComponent = WidgetIcon && typeof WidgetIcon === 'function';
-                        
+                        const Icon = widget.icon;
                         return (
                           <button
                             key={widget.type}
-                            onClick={() => handleAddWidget(widget.type as WidgetType)}
-                            className="p-4 border-2 border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-400 transition-all text-left group"
+                            onClick={() => {
+                              handleAddWidget(widget.type as WidgetType);
+                              setShowWidgetPanel(false);
+                            }}
+                            className="p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-all text-left group"
                           >
-                            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform flex items-center justify-center">
-                              {isWidgetIconComponent ? (
-                                <WidgetIcon className="w-8 h-8" />
-                              ) : (
-                                <span className="text-2xl">📦</span>
-                              )}
-                            </div>
-                            <div className="text-sm font-medium text-gray-700">{widget.name}</div>
+                            <div className="text-sm font-medium text-gray-800 truncate mb-1">{widget.name}</div>
+                            <div className="text-xs text-gray-500 truncate">{widget.description}</div>
                           </button>
                         );
                       })}
                     </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
           </div>
         </div>
