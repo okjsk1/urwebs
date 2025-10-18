@@ -11,6 +11,8 @@ export { GitHubWidget } from './GitHubWidget';
 export { GoogleAdWidget } from './GoogleAdWidget';
 export { FrequentSitesWidget } from './FrequentSitesWidget';
 export { CryptoWidget } from './CryptoWidget';
+export { CryptoWidgetSingle } from './CryptoWidgetSingle';
+export { CryptoWidgetTriple } from './CryptoWidgetTriple';
 export { StockAlertWidget } from './StockAlertWidget';
 export { EconomicCalendarWidget } from './EconomicCalendarWidget';
 export { CalculatorWidget } from './CalculatorWidget';

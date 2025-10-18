@@ -119,7 +119,7 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
       showPinnedOnly: false,
       showAddForm: false,
       newSite: { url: '', title: '' },
-      topN: 5
+      topN: 8
     });
     
     // 마이그레이션: 구버전 사이트 데이터를 신버전으로 변환

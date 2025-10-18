@@ -24,9 +24,11 @@ export const widgetCategories: Record<string, WidgetCategory> = {
     name: '금융 & 투자',
     widgets: [
       { type: 'crypto', name: '암호화폐', icon: DollarSign, description: '실시간 코인 시세 및 스파크라인' },
+      { type: 'crypto_single', name: '암호화폐 (단일)', icon: DollarSign, description: '코인 1개만 표시하는 컴팩트 위젯' },
+      { type: 'crypto_triple', name: '암호화폐 (3개)', icon: DollarSign, description: '코인 3개를 표시하는 위젯' },
       { type: 'economic_calendar', name: '경제 캘린더', icon: Calendar, description: 'FOMC, CPI 등 경제 지표 일정' },
       { type: 'exchange', name: '환율 정보', icon: DollarSign, description: '실시간 환율 정보' },
-      { type: 'google_ad', name: '구글 광고', icon: DollarSign, description: '구글 광고 위젯' },
+      { type: 'google_ad', name: '구글 광고 (준비중)', icon: DollarSign, description: '구글 광고 위젯' },
     ]
   },
 
@@ -68,21 +70,6 @@ export const widgetCategories: Record<string, WidgetCategory> = {
     ]
   },
 
-  // 📚 교육 및 학습
-  education: {
-    name: '교육 & 학습',
-    widgets: [
-      // 이동됨: 생산성 & 업무
-    ]
-  },
-
-  // 💰 광고
-  ads: {
-    name: '광고',
-    widgets: [
-      
-    ]
-  },
 
 };
 
@@ -98,10 +85,8 @@ export const getCategoryIcon = (categoryKey: string) => {
     information: '📰',
     media: '🎵',
     design: '🎨',
-    education: '📚',
     social: '👥',
-    system: '⚙️',
-    ads: '📢'
+    system: '⚙️'
   };
   return icons[categoryKey] || '📦';
 };

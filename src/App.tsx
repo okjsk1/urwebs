@@ -12,7 +12,6 @@ import { AdminPage } from './components/AdminPage';
 import { TemplateEditorPage } from './components/admin/TemplateEditorPage';
 import { AllPagesListPage } from './components/AllPagesListPage';
 import { templateService } from './services/templateService';
-import DraggableDashboardGrid from './components/DraggableDashboardGrid';
 import { renderWidget } from './utils/widgetRenderer';
 // import { PageWithTabs } from './pages/PageWithTabs';
 // import { ColumnsBoard } from './components/ColumnsBoard/ColumnsBoard';
@@ -41,16 +40,13 @@ function PublicPageViewer() {
           const docData = snapshot.docs[0].data();
           setPageData({ id: snapshot.docs[0].id, ...docData });
           
-          // 조회수 증가: 규칙상 작성자만 쓸 수 있으므로, 본인으로 로그인한 경우에만 시도
+          // 조회수 증가: 모든 방문자에 대해 조회수 증가
           try {
-            const { getAuth } = await import('firebase/auth');
-            const auth = getAuth();
-            if (auth.currentUser?.uid && auth.currentUser.uid === (docData as any).authorId) {
-              const docRef = doc(db, 'userPages', snapshot.docs[0].id);
-              await updateDoc(docRef, { views: increment(1) });
-            }
+            const docRef = doc(db, 'userPages', snapshot.docs[0].id);
+            await updateDoc(docRef, { views: increment(1) });
           } catch (e) {
             // 무시: 권한/인증 부재 시 증가 스킵
+            console.log('조회수 증가 실패:', e);
           }
         } else {
           setError('페이지를 찾을 수 없습니다.');
@@ -107,7 +103,22 @@ function PublicPageViewer() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
               <span>👁️ {pageData.views?.toLocaleString() || 0}회</span>
-              <span>👍 {pageData.likes || 0}개</span>
+              <button 
+                onClick={async () => {
+                  try {
+                    const { doc, updateDoc, increment } = await import('firebase/firestore');
+                    const { db } = await import('./firebase/config');
+                    const docRef = doc(db, 'userPages', pageData.id);
+                    await updateDoc(docRef, { likes: increment(1) });
+                    setPageData(prev => ({ ...prev, likes: (prev.likes || 0) + 1 }));
+                  } catch (e) {
+                    console.log('좋아요 증가 실패:', e);
+                  }
+                }}
+                className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                👍 {pageData.likes || 0}개
+              </button>
             </div>
             <button 
               onClick={() => navigate('/')}
@@ -125,79 +136,75 @@ function PublicPageViewer() {
           
           {/* 공개보기: 저장된 좌표/크기 그대로 실제 위젯 렌더링 */}
           {Array.isArray(pageData.widgets) && pageData.widgets.length > 0 ? (
-            <DraggableDashboardGrid
-              widgets={(pageData.widgets || []).map((w: any) => {
-              // 저장 포맷이 다양한 경우를 흡수: (1) grid 단위, (2) size 문자열 '2x1', (3) 픽셀(width/height) 기반
-              const parseSizeFromString = (s: any) => {
-                if (typeof s === 'string' && /^(\d+)x(\d+)$/.test(s)) {
-                  const [, sw, sh] = s.match(/(\d+)x(\d+)/) as any;
-                  return { w: Number(sw), h: Number(sh) };
-                }
-                return null;
-              };
+            <div className="grid grid-cols-6 gap-4">
+              {pageData.widgets.map((w: any) => {
+                // 저장 포맷이 다양한 경우를 흡수: (1) grid 단위, (2) size 문자열 '2x1', (3) 픽셀(width/height) 기반
+                const parseSizeFromString = (s: any) => {
+                  if (typeof s === 'string' && /^(\d+)x(\d+)$/.test(s)) {
+                    const [, sw, sh] = s.match(/(\d+)x(\d+)/) as any;
+                    return { w: Number(sw), h: Number(sh) };
+                  }
+                  return null;
+                };
 
-              const pxPerCol = 216; // 마이페이지 저장 간격과 동일
-              const pxPerRow = 176; // 마이페이지 저장 간격과 동일
+                const pxPerCol = 216; // 마이페이지 저장 간격과 동일
+                const pxPerRow = 176; // 마이페이지 저장 간격과 동일
 
-              const sizeFromString = parseSizeFromString(w?.size);
+                const sizeFromString = parseSizeFromString(w?.size);
 
-              const spanW = (() => {
-                // 픽셀 width가 명확히 1칸 이상이면 픽셀 우선
-                const widthPx = typeof w?.width === 'number' ? w.width : (typeof w?.size?.w === 'number' ? w.size.w : undefined);
-                if (typeof widthPx === 'number' && widthPx >= pxPerCol * 0.9) {
-                  return Math.max(1, Math.min(6, Math.round(widthPx / pxPerCol)));
-                }
-                if (w?.gridSize?.w) return Math.max(1, Math.min(6, Math.round(w.gridSize.w)));
-                if (sizeFromString) return Math.max(1, Math.min(6, sizeFromString.w));
-                return 1;
-              })();
-              const spanH = (() => {
-                const heightPx = typeof w?.height === 'number' ? w.height : (typeof w?.size?.h === 'number' ? w.size.h : undefined);
-                if (typeof heightPx === 'number' && heightPx >= pxPerRow * 0.9) {
-                  return Math.max(1, Math.min(6, Math.round(heightPx / pxPerRow)));
-                }
-                if (w?.gridSize?.h) return Math.max(1, Math.min(6, Math.round(w.gridSize.h)));
-                if (sizeFromString) return Math.max(1, Math.min(6, sizeFromString.h));
-                return 1;
-              })();
+                const spanW = (() => {
+                  // 픽셀 width가 명확히 1칸 이상이면 픽셀 우선
+                  const widthPx = typeof w?.width === 'number' ? w.width : (typeof w?.size?.w === 'number' ? w.size.w : undefined);
+                  if (typeof widthPx === 'number' && widthPx >= pxPerCol * 0.9) {
+                    return Math.max(1, Math.min(6, Math.round(widthPx / pxPerCol)));
+                  }
+                  if (w?.gridSize?.w) return Math.max(1, Math.min(6, Math.round(w.gridSize.w)));
+                  if (sizeFromString) return Math.max(1, Math.min(6, sizeFromString.w));
+                  return 1;
+                })();
+                const spanH = (() => {
+                  const heightPx = typeof w?.height === 'number' ? w.height : (typeof w?.size?.h === 'number' ? w.size.h : undefined);
+                  if (typeof heightPx === 'number' && heightPx >= pxPerRow * 0.9) {
+                    return Math.max(1, Math.min(6, Math.round(heightPx / pxPerRow)));
+                  }
+                  if (w?.gridSize?.h) return Math.max(1, Math.min(6, Math.round(w.gridSize.h)));
+                  if (sizeFromString) return Math.max(1, Math.min(6, sizeFromString.h));
+                  return 1;
+                })();
 
-              return {
-                id: w.id,
-                type: w.type,
-                title: w.title,
-                content: w.content,
-                variant: w.variant,
-                size: { w: spanW, h: spanH },
-                x: (() => {
-                  if (typeof w.x === 'number') return Math.max(0, Math.round(w.x / pxPerCol));
-                  return 0;
-                })(),
-                y: (() => {
-                  if (typeof w.y === 'number') return Math.max(0, Math.round(w.y / pxPerRow));
-                  return 0;
-                })(),
-              };
-            })}
-              renderWidget={(gw) => {
-              const widgetForRender = {
-                id: gw.id,
-                type: gw.type,
-                title: gw.title,
-                content: gw.content,
-                variant: gw.variant,
-                x: typeof gw.x === 'number' ? gw.x : 0,
-                y: typeof gw.y === 'number' ? gw.y : 0,
-                width: gw.size?.w || 1,
-                height: gw.size?.h || 1,
-              } as any;
-              return renderWidget(widgetForRender);
-            }}
-              isEditMode={false}
-              onLayoutChange={undefined}
-              cols={6}
-              className="grid-cols-6 sm:grid-cols-6 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6"
-              showAddButton={false}
-            />
+                const widgetForRender = {
+                  id: w.id,
+                  type: w.type,
+                  title: w.title,
+                  content: w.content,
+                  variant: w.variant,
+                  x: (() => {
+                    if (typeof w.x === 'number') return Math.max(0, Math.round(w.x / pxPerCol));
+                    return 0;
+                  })(),
+                  y: (() => {
+                    if (typeof w.y === 'number') return Math.max(0, Math.round(w.y / pxPerRow));
+                    return 0;
+                  })(),
+                  width: spanW,
+                  height: spanH,
+                } as any;
+
+                return (
+                  <div
+                    key={w.id}
+                    className={`col-span-${spanW} row-span-${spanH}`}
+                    style={{
+                      gridColumn: `span ${spanW}`,
+                      gridRow: `span ${spanH}`,
+                      minHeight: `${spanH * 176}px`
+                    }}
+                  >
+                    {renderWidget(widgetForRender, false)}
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400">
               이 페이지에 표시할 위젯이 없습니다. 작성자가 아직 저장하지 않았거나, 이전 버전 형식일 수 있어요.

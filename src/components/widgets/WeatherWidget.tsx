@@ -292,8 +292,8 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
           </div>
         ) : (
           <div className="text-center">
-            <div className="flex items-center justify-between mb-1 px-1">
-              <div className="text-xl">{weatherData.icon}</div>
+            <div className="flex items-center justify-between mb-0.5 px-1">
+              <div className="text-lg">{weatherData.icon}</div>
               <button 
                 onClick={() => setState(prev => ({ ...prev, showSettings: !prev.showSettings }))}
                 className="p-0.5 hover:bg-white/30 rounded"
@@ -302,12 +302,12 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
               </button>
             </div>
             
-            <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-1">
+            <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
               <MapPin className="w-3 h-3" />
               <span>{weatherData.location}</span>
             </div>
             
-            <div className="text-xl font-bold text-gray-800 mb-0.5">
+            <div className="text-lg font-bold text-gray-800 mb-0.5">
               {formatTemperature(weatherData.temperature)}
             </div>
             <div className="text-xs text-gray-600">{weatherData.condition}</div>

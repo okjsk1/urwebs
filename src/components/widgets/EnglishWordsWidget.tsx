@@ -130,32 +130,32 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
   }, [state.newWord]);
 
   return (
-    <div className="p-2 h-full flex flex-col">
+    <div className="p-1 h-full flex flex-col">
       {/* 컴팩트 헤더 */}
-      <div className="text-center mb-2 flex-shrink-0">
-        <div className="text-lg mb-1">📚</div>
+      <div className="text-center mb-1 flex-shrink-0">
+        <div className="text-sm mb-0.5">📚</div>
         <h4 className="font-semibold text-xs text-gray-800 dark:text-gray-100">영어 단어</h4>
       </div>
 
       {/* 현재 단어 표시 - 컴팩트 버전 */}
       {currentWord && (
         <div className="flex-1 flex flex-col justify-center">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-3 rounded-lg text-center">
-            <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-2 rounded text-center">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">
               {state.currentIndex + 1} / {state.words.length}
             </div>
-            <div className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">
+            <div className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">
               {currentWord.english}
             </div>
             {state.showAnswer ? (
-              <div className="text-sm text-gray-600 dark:text-gray-300">
+              <div className="text-xs text-gray-600 dark:text-gray-300">
                 {currentWord.korean}
               </div>
             ) : (
               <Button
                 size="sm"
                 variant="outline"
-                className="h-6 text-xs"
+                className="h-5 text-xs px-2"
                 onClick={() => setState(prev => ({ ...prev, showAnswer: !prev.showAnswer }))}
               >
                 <Eye className="w-3 h-3 mr-1" />
@@ -165,11 +165,11 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
           </div>
           
           {/* 네비게이션 */}
-          <div className="flex justify-between items-center mt-2">
+          <div className="flex justify-between items-center mt-1">
             <Button
               size="sm"
               variant="outline"
-              className="h-5 text-xs"
+              className="h-4 text-xs px-1"
               onClick={prevWord}
               disabled={state.words.length <= 1}
             >
@@ -178,7 +178,7 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
             <Button
               size="sm"
               variant="outline"
-              className="h-5 text-xs"
+              className="h-4 text-xs px-1"
               onClick={nextWord}
               disabled={state.words.length <= 1}
             >
@@ -190,11 +190,11 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
 
       {/* 편집 모드에서만 표시되는 컨트롤 */}
       {isEditMode && (
-        <div className="mt-2 flex-shrink-0">
+        <div className="mt-1 flex-shrink-0">
           <Button
             size="sm"
             variant="outline"
-            className="w-full h-5 text-xs"
+            className="w-full h-4 text-xs"
             onClick={() => setState(prev => ({ ...prev, showAddForm: !prev.showAddForm }))}
           >
             <Plus className="w-3 h-3 mr-1" />
@@ -205,7 +205,7 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
 
       {/* 단어 추가 폼 */}
       {isEditMode && state.showAddForm && (
-        <div className="mt-2 space-y-2 p-2 bg-gray-50 dark:bg-gray-700 rounded flex-shrink-0">
+        <div className="mt-1 space-y-1 p-1 bg-gray-50 dark:bg-gray-700 rounded flex-shrink-0">
           <input
             type="text"
             value={state.newWord.english || ''}
@@ -214,7 +214,7 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
               newWord: { ...prev.newWord, english: e.target.value }
             }))}
             placeholder="영어 단어"
-            className="w-full text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-600 dark:text-gray-100"
+            className="w-full text-xs px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-600 dark:text-gray-100"
           />
           <input
             type="text"
@@ -224,12 +224,12 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
               newWord: { ...prev.newWord, korean: e.target.value }
             }))}
             placeholder="한국어 뜻"
-            className="w-full text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-600 dark:text-gray-100"
+            className="w-full text-xs px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-600 dark:text-gray-100"
           />
           <div className="flex gap-1">
             <Button
               size="sm"
-              className="flex-1 h-5 text-xs"
+              className="flex-1 h-4 text-xs"
               onClick={addWord}
             >
               추가
@@ -237,7 +237,7 @@ export const EnglishWordsWidget: React.FC<WidgetProps> = ({ widget, isEditMode, 
             <Button
               size="sm"
               variant="outline"
-              className="h-5 text-xs"
+              className="h-4 text-xs"
               onClick={() => setState(prev => ({
                 ...prev,
                 showAddForm: false,

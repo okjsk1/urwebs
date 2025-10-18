@@ -16,6 +16,7 @@ import { templateService } from '../services/templateService';
 import { WidgetPanel } from './MyPage/WidgetPanel';
 import DashboardGrid, { SizePicker } from './DashboardGrid';
 import DraggableDashboardGrid from './DraggableDashboardGrid';
+import { renderWidget as renderWidgetUtil, renderEditModeWidget } from '../utils/widgetRenderer';
 
 // 위젯 컴포넌트들 import
 import {
@@ -38,6 +39,8 @@ import {
   GoogleAdWidget,
   FrequentSitesWidget,
   CryptoWidget,
+  CryptoWidgetSingle,
+  CryptoWidgetTriple,
   EconomicCalendarWidget,
   QuoteWidget
 } from './widgets';
@@ -1407,6 +1410,11 @@ export function MyPage() {
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
+    } else if (type === 'frequent_sites') {
+      widgetSize = '1x2'; // 자주가는 사이트 위젯은 1칸 너비, 2칸 높이
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
     } else {
       // 기본 크기
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
@@ -1429,10 +1437,33 @@ export function MyPage() {
         ? Math.max(...columnWidgets.map(w => w.y + w.height))
         : 0;
       
+      // 2칸 위젯 아래에 2칸 공간 확보
+      const requiredSpace = height + spacing;
+      const availableSpace = maxY + requiredSpace;
+      
       position = {
         x: targetColumn * (mainColumnWidth + spacing),
         y: maxY + (columnWidgets.length > 0 ? spacing : 0)
       };
+      
+      // 충돌 검사 및 위치 조정
+      const newWidget = {
+        id: Date.now().toString(),
+        type,
+        title: getWidgetTitle(type),
+        x: position.x,
+        y: position.y,
+        width,
+        height,
+        zIndex: 1
+      };
+      
+      // 다른 위젯과의 충돌 검사
+      const hasCollision = prevWidgets.some(w => isWidgetOverlapping(newWidget, w));
+      if (hasCollision) {
+        // 충돌이 있으면 더 아래로 이동
+        position.y = maxY + spacing * 2;
+      }
     } else {
       // 자동 위치 지정
       position = getNextAvailablePosition(width, height);
@@ -2508,127 +2539,9 @@ export function MyPage() {
     };
   };
 
-  // 위젯 렌더링
-  const renderWidget = (widget: any) => {
-    // GridWidget에서 원본 Widget 찾기
-    const originalWidget = widgets.find(w => w.id === widget.id);
-    if (!originalWidget) return null;
-    
-    const WidgetIcon = allWidgets.find(w => w.type === originalWidget.type)?.icon || Grid;
-    const isSelected = selectedWidget === originalWidget.id;
-    const isDragging = draggedWidget === originalWidget.id;
 
-    return (
-      <div
-        className={`relative h-full overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col ${
-          isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
-        } ${isDragging ? 'opacity-75' : ''} ${
-          dragOverWidget === originalWidget.id && draggedWidget !== originalWidget.id ? 'ring-2 ring-green-500 bg-green-50' : ''
-        }`}
-        style={{
-          zIndex: isDragging ? 10 : isSelected ? 5 : 1
-        }}
-        onClick={() => selectWidget(originalWidget.id)}
-        onMouseEnter={() => {
-          if (isReordering && draggedWidget && draggedWidget !== originalWidget.id) {
-            setDragOverWidget(originalWidget.id);
-          }
-        }}
-        onMouseLeave={() => {
-          if (isReordering) {
-            setDragOverWidget(null);
-          }
-        }}
-        onMouseUp={() => {
-          if (isReordering && draggedWidget && dragOverWidget === originalWidget.id) {
-            reorderWidgets(draggedWidget, originalWidget.id);
-          }
-        }}
-      >
-        {/* 위젯 헤더 - 고정 */}
-        <div 
-          data-drag-handle="true"
-          data-widget-id={originalWidget.id}
-          className="px-2 py-0.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-move group flex-shrink-0"
-          onMouseDown={(e) => {
-            // 버튼이나 입력창을 클릭한 경우 드래그 방지
-            const target = e.target as HTMLElement;
-            if (target.tagName === 'BUTTON' || 
-                target.tagName === 'INPUT' || 
-                target.tagName === 'TEXTAREA' ||
-                target.tagName === 'SELECT' ||
-                target.closest('button') ||
-                target.closest('input') ||
-                target.closest('textarea') ||
-                target.closest('select')) {
-              return;
-            }
-            
-            // 드래그 핸들에서만 드래그 시작
-            e.preventDefault();
-            e.stopPropagation();
-            handleMouseDown(e, originalWidget.id);
-          }}
-        >
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-xs font-medium text-gray-800">{originalWidget.title}</span>
-          </div>
-          
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {/* 사이즈 선택기 */}
-            <SizePicker
-              value={originalWidget.gridSize || { w: 1, h: 1 }}
-              onChange={(newSize) => {
-                updateWidget(originalWidget.id, { ...originalWidget, gridSize: newSize });
-              }}
-            />
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-6 w-6 p-0 hover:bg-blue-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                editWidget(originalWidget.id);
-              }}
-              title="위젯 편집"
-            >
-              <Edit className="w-3 h-3 text-blue-600" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-6 w-6 p-0 hover:bg-red-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeWidget(originalWidget.id);
-              }}
-              title="위젯 삭제"
-            >
-              <X className="w-3 h-3 text-red-600" />
-            </Button>
-          </div>
-        </div>
-
-        {/* 위젯 콘텐츠 - 스크롤 가능 */}
-        <div 
-          className="flex-1 bg-transparent overflow-y-auto"
-          onMouseDown={(e) => {
-            // 위젯 본문에서는 드래그 완전 방지
-            e.stopPropagation();
-          }}
-        >
-          <div className="p-3">
-            {renderWidgetContent(originalWidget)}
-          </div>
-        </div>
-
-      </div>
-    );
-  };
-
-  // 위젯 콘텐츠 렌더링
-  const renderWidgetContent = (widget: Widget) => {
-    switch (widget.type) {
+  // 위젯 콘텐츠 렌더링은 이제 utils/widgetRenderer.tsx에서 처리
+  /*
       case 'bookmark':
         return <BookmarkWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
@@ -2640,6 +2553,12 @@ export function MyPage() {
 
       case 'crypto':
         return <CryptoWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+      
+      case 'crypto_single':
+        return <CryptoWidgetSingle widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+      
+      case 'crypto_triple':
+        return <CryptoWidgetTriple widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
       
       case 'stock_alert':
         return null; // 제거됨
@@ -2875,7 +2794,7 @@ export function MyPage() {
 
       case 'converter':
         return (
-          <div className="p-4">
+          <div className="p-4" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-3">
               {widget.content.conversions?.map((conversion: any) => (
                 <div key={conversion.from} className="p-2 bg-gray-50 rounded-lg">
@@ -3615,6 +3534,7 @@ export function MyPage() {
           </div>
         );
     }
+  */
   };
 
   // 배경 스타일 생성
@@ -3732,6 +3652,9 @@ export function MyPage() {
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 setCustomUrl(tempUrl);
+                                if (currentUser && currentPageId) {
+                                  localStorage.setItem(`customUrl_${currentUser.id}_${currentPageId}`, tempUrl);
+                                }
                                 setIsEditingUrl(false);
                               } else if (e.key === 'Escape') {
                                 setIsEditingUrl(false);
@@ -3739,6 +3662,9 @@ export function MyPage() {
                             }}
                             onBlur={() => {
                               setCustomUrl(tempUrl);
+                              if (currentUser && currentPageId) {
+                                localStorage.setItem(`customUrl_${currentUser.id}_${currentPageId}`, tempUrl);
+                              }
                               setIsEditingUrl(false);
                             }}
                             className="text-xs px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
@@ -3871,11 +3797,6 @@ export function MyPage() {
                   </>
                 )}
               </Button>
-              {shareSettings.isPublic && (
-                <span className="text-xs text-green-600 font-medium">
-                  (저장 시 메인페이지에 표시됨)
-                </span>
-              )}
 
               {/* 빠른 액션 버튼들 */}
               <Button 
@@ -4430,7 +4351,28 @@ export function MyPage() {
           {/* DraggableDashboardGrid 사용 */}
           <DraggableDashboardGrid
             widgets={widgets.map(convertToGridWidget)}
-            renderWidget={(w) => renderWidget(w)}
+            renderWidget={(w) => {
+              const originalWidget = widgets.find(widget => widget.id === w.id);
+              if (!originalWidget) return null;
+              
+              return renderEditModeWidget(
+                w,
+                originalWidget,
+                selectedWidget === originalWidget.id,
+                draggedWidget === originalWidget.id,
+                dragOverWidget,
+                draggedWidget,
+                isReordering,
+                selectWidget,
+                setDragOverWidget,
+                reorderWidgets,
+                handleMouseDown,
+                updateWidget,
+                editWidget,
+                removeWidget,
+                SizePicker
+              );
+            }}
             onLayoutChange={(updatedWidgets) => {
               // 변경 전 스냅샷을 히스토리에 저장 (현재 prevWidgets를 이용)
               // 위젯 위치 업데이트 (그리드 좌표를 픽셀 좌표로 변환)
