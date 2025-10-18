@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Header } from './components/Header';
 import { HomePageNew } from './components/HomePageNew';
@@ -12,7 +13,9 @@ import { AdminPage } from './components/AdminPage';
 import { TemplateEditorPage } from './components/admin/TemplateEditorPage';
 import { AllPagesListPage } from './components/AllPagesListPage';
 import { templateService } from './services/templateService';
+import DraggableDashboardGrid from './components/DraggableDashboardGrid';
 import { renderWidget } from './utils/widgetRenderer';
+import { colToX, rowToY, gridWToPx, gridHToPx } from './utils/layoutConfig';
 // import { PageWithTabs } from './pages/PageWithTabs';
 // import { ColumnsBoard } from './components/ColumnsBoard/ColumnsBoard';
 // Firebase는 config.ts에서 초기화됩니다
@@ -21,9 +24,9 @@ import { renderWidget } from './utils/widgetRenderer';
 function PublicPageViewer() {
   const { pageId } = useParams<{ pageId: string }>();
   const navigate = useNavigate();
-  const [pageData, setPageData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [pageData, setPageData] = useState(() => null as any);
+  const [loading, setLoading] = useState(() => true);
+  const [error, setError] = useState(() => null as string | null);
 
   useEffect(() => {
     const fetchPage = async () => {
@@ -40,13 +43,16 @@ function PublicPageViewer() {
           const docData = snapshot.docs[0].data();
           setPageData({ id: snapshot.docs[0].id, ...docData });
           
-          // 조회수 증가: 모든 방문자에 대해 조회수 증가
+          // 조회수 증가: 규칙상 작성자만 쓸 수 있으므로, 본인으로 로그인한 경우에만 시도
           try {
-            const docRef = doc(db, 'userPages', snapshot.docs[0].id);
-            await updateDoc(docRef, { views: increment(1) });
+            const { getAuth } = await import('firebase/auth');
+            const auth = getAuth();
+            if (auth.currentUser?.uid && auth.currentUser.uid === (docData as any).authorId) {
+              const docRef = doc(db, 'userPages', snapshot.docs[0].id);
+              await updateDoc(docRef, { views: increment(1) });
+            }
           } catch (e) {
             // 무시: 권한/인증 부재 시 증가 스킵
-            console.log('조회수 증가 실패:', e);
           }
         } else {
           setError('페이지를 찾을 수 없습니다.');
@@ -103,22 +109,7 @@ function PublicPageViewer() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
               <span>👁️ {pageData.views?.toLocaleString() || 0}회</span>
-              <button 
-                onClick={async () => {
-                  try {
-                    const { doc, updateDoc, increment } = await import('firebase/firestore');
-                    const { db } = await import('./firebase/config');
-                    const docRef = doc(db, 'userPages', pageData.id);
-                    await updateDoc(docRef, { likes: increment(1) });
-                    setPageData(prev => ({ ...prev, likes: (prev.likes || 0) + 1 }));
-                  } catch (e) {
-                    console.log('좋아요 증가 실패:', e);
-                  }
-                }}
-                className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                👍 {pageData.likes || 0}개
-              </button>
+              <span>👍 {pageData.likes || 0}개</span>
             </div>
             <button 
               onClick={() => navigate('/')}
@@ -136,9 +127,9 @@ function PublicPageViewer() {
           
           {/* 공개보기: 저장된 좌표/크기 그대로 실제 위젯 렌더링 */}
           {Array.isArray(pageData.widgets) && pageData.widgets.length > 0 ? (
-            <div className="grid grid-cols-6 gap-4">
-              {pageData.widgets.map((w: any) => {
-                // 저장 포맷이 다양한 경우를 흡수: (1) grid 단위, (2) size 문자열 '2x1', (3) 픽셀(width/height) 기반
+            <div className="relative min-h-[600px]">
+              {(pageData.widgets || []).map((w: any) => {
+                // 저장된 위젯 데이터를 픽셀 좌표로 변환
                 const parseSizeFromString = (s: any) => {
                   if (typeof s === 'string' && /^(\d+)x(\d+)$/.test(s)) {
                     const [, sw, sh] = s.match(/(\d+)x(\d+)/) as any;
@@ -147,30 +138,32 @@ function PublicPageViewer() {
                   return null;
                 };
 
-                const pxPerCol = 216; // 마이페이지 저장 간격과 동일
-                const pxPerRow = 176; // 마이페이지 저장 간격과 동일
-
-                const sizeFromString = parseSizeFromString(w?.size);
-
-                const spanW = (() => {
-                  // 픽셀 width가 명확히 1칸 이상이면 픽셀 우선
-                  const widthPx = typeof w?.width === 'number' ? w.width : (typeof w?.size?.w === 'number' ? w.size.w : undefined);
-                  if (typeof widthPx === 'number' && widthPx >= pxPerCol * 0.9) {
-                    return Math.max(1, Math.min(6, Math.round(widthPx / pxPerCol)));
+                // 그리드 크기 결정
+                let gridW = 1, gridH = 1;
+                if (w?.gridSize?.w && w?.gridSize?.h) {
+                  gridW = w.gridSize.w;
+                  gridH = w.gridSize.h;
+                } else if (w?.width && w?.height) {
+                  // 저장된 width/height가 그리드 단위인 경우
+                  gridW = w.width;
+                  gridH = w.height;
+                } else {
+                  const sizeFromString = parseSizeFromString(w?.size);
+                  if (sizeFromString) {
+                    gridW = sizeFromString.w;
+                    gridH = sizeFromString.h;
                   }
-                  if (w?.gridSize?.w) return Math.max(1, Math.min(6, Math.round(w.gridSize.w)));
-                  if (sizeFromString) return Math.max(1, Math.min(6, sizeFromString.w));
-                  return 1;
-                })();
-                const spanH = (() => {
-                  const heightPx = typeof w?.height === 'number' ? w.height : (typeof w?.size?.h === 'number' ? w.size.h : undefined);
-                  if (typeof heightPx === 'number' && heightPx >= pxPerRow * 0.9) {
-                    return Math.max(1, Math.min(6, Math.round(heightPx / pxPerRow)));
-                  }
-                  if (w?.gridSize?.h) return Math.max(1, Math.min(6, Math.round(w.gridSize.h)));
-                  if (sizeFromString) return Math.max(1, Math.min(6, sizeFromString.h));
-                  return 1;
-                })();
+                }
+
+                // 그리드 좌표를 픽셀로 변환
+                // w.x, w.y는 이미 그리드 단위로 저장되어 있음
+                const x = colToX(w.x || 0);
+                const y = rowToY(w.y || 0);
+                const width = gridWToPx(gridW);
+                const height = gridHToPx(gridH);
+                
+                
+                
 
                 const widgetForRender = {
                   id: w.id,
@@ -178,29 +171,25 @@ function PublicPageViewer() {
                   title: w.title,
                   content: w.content,
                   variant: w.variant,
-                  x: (() => {
-                    if (typeof w.x === 'number') return Math.max(0, Math.round(w.x / pxPerCol));
-                    return 0;
-                  })(),
-                  y: (() => {
-                    if (typeof w.y === 'number') return Math.max(0, Math.round(w.y / pxPerRow));
-                    return 0;
-                  })(),
-                  width: spanW,
-                  height: spanH,
+                  x: 0, // 절대 위치이므로 0
+                  y: 0, // 절대 위치이므로 0
+                  width: gridW,
+                  height: gridH,
                 } as any;
 
                 return (
                   <div
                     key={w.id}
-                    className={`col-span-${spanW} row-span-${spanH}`}
+                    className="absolute"
                     style={{
-                      gridColumn: `span ${spanW}`,
-                      gridRow: `span ${spanH}`,
-                      minHeight: `${spanH * 176}px`
+                      left: x,
+                      top: y,
+                      width: width,
+                      height: height,
+                      zIndex: w.zIndex || 10, // 기본 zIndex를 10으로 설정
                     }}
                   >
-                    {renderWidget(widgetForRender, false)}
+                    {renderWidget(widgetForRender)}
                   </div>
                 );
               })}
@@ -219,15 +208,15 @@ function PublicPageViewer() {
 // 메인 앱 컴포넌트 (라우터 사용)
 function AppContent() {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState(() => '');
+  const [selectedSubCategory, setSelectedSubCategory] = useState(() => '');
 
   const handleCategorySelect = (categoryId: string, subCategory?: string) => {
     setSelectedCategory(categoryId);
     setSelectedSubCategory(subCategory || '');
   };
 
-        return (
+  return (
     <ThemeProvider>
       <Routes>
         {/* 메인 페이지 */}
@@ -460,6 +449,16 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppContent />
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: 'var(--background)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--border)',
+          },
+        }}
+      />
     </BrowserRouter>
   );
 }

@@ -1,6 +1,6 @@
 export interface Widget {
   id: string;
-  type: 'news' | 'links' | 'weather' | 'calculator' | 'memo' | 'calendar' | 'bookmarks' | 'exchange' | 'stock' | 'todo';
+  type: 'news' | 'links' | 'weather' | 'todo' | 'memo' | 'calendar' | 'bookmarks' | 'exchange' | 'stock';
   title: string;
   data?: any;
 }
@@ -19,6 +19,7 @@ export interface BoardState {
 }
 
 export type WidgetType = Widget['type'];
+
 
 
 

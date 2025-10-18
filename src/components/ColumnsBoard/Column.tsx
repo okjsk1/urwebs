@@ -38,8 +38,8 @@ export function Column({ column, widgets, isEditMode, onAddWidget, onDeleteWidge
         return <LinksWidget />;
       case 'weather':
         return <WeatherWidget />;
-      case 'calculator':
-        return <CalculatorWidget />;
+      case 'todo':
+        return <TodoWidget />;
       case 'memo':
         return <MemoWidget />;
       case 'bookmarks':
@@ -108,6 +108,7 @@ export function Column({ column, widgets, isEditMode, onAddWidget, onDeleteWidge
     </div>
   );
 }
+
 
 
 

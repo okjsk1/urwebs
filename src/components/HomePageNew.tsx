@@ -29,7 +29,6 @@ import {
   Utensils,
   Camera,
   Gamepad2,
-  Music,
   Dumbbell,
   Baby,
   Users,

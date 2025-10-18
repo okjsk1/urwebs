@@ -20,7 +20,7 @@ export const getDefaultBoardState = (): BoardState => ({
     'col-3': {
       id: 'col-3',
       title: '금융',
-      items: ['w-calculator', 'w-exchange', 'w-stock']
+      items: ['w-todo', 'w-exchange', 'w-stock']
     }
   },
   widgets: {
@@ -29,8 +29,7 @@ export const getDefaultBoardState = (): BoardState => ({
     'w-memo': { id: 'w-memo', type: 'memo', title: '빠른 메모' },
     'w-weather': { id: 'w-weather', type: 'weather', title: '날씨' },
     'w-bookmarks': { id: 'w-bookmarks', type: 'bookmarks', title: '즐겨찾기' },
-    'w-todo': { id: 'w-todo', type: 'todo', title: '할 일 목록' },
-    'w-calculator': { id: 'w-calculator', type: 'calculator', title: '계산기' },
+    'w-todo': { id: 'w-todo', type: 'todo', title: '할일' },
     'w-exchange': { id: 'w-exchange', type: 'exchange', title: '환율' },
     'w-stock': { id: 'w-stock', type: 'stock', title: '주식' },
   }
@@ -88,6 +87,7 @@ export const switchLayoutMode = (currentState: BoardState, newMode: 3 | 4): Boar
 
   return newState;
 };
+
 
 
 

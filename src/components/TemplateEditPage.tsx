@@ -81,10 +81,8 @@ export function TemplateEditPage({ onBack, onSave, initialData }: TemplateEditPa
         return <BookmarkWidget {...commonProps} />;
       case 'social':
         return <SocialWidget {...commonProps} />;
-      case 'music':
-        return <MusicWidget {...commonProps} />;
-      case 'calculator':
-        return <CalculatorWidget {...commonProps} />;
+      case 'todo':
+        return <TodoWidget {...commonProps} />;
       case 'contact':
         return <ContactWidget {...commonProps} />;
       case 'qr_code':
