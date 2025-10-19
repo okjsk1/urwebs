@@ -52,7 +52,8 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
           if (popupError?.code === 'auth/popup-blocked' || 
               popupError?.code === 'auth/popup-closed-by-user' ||
               popupError?.code === 'auth/cancelled-popup-request' ||
-              popupError?.message?.includes('Cross-Origin-Opener-Policy')) {
+              popupError?.message?.includes('Cross-Origin-Opener-Policy') ||
+              popupError?.message?.includes('COOP')) {
             setUseRedirect(true);
             console.log('리다이렉트 방식으로 전환합니다...');
             await signInWithRedirect(auth, googleProvider);
@@ -82,6 +83,19 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
         return;
       }
       
+      // COOP 오류인 경우 조용히 리다이렉트로 전환
+      if (error?.message?.includes('Cross-Origin-Opener-Policy') || 
+          error?.message?.includes('COOP')) {
+        console.log('COOP 정책으로 인한 오류, 리다이렉트 방식으로 전환합니다.');
+        setUseRedirect(true);
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirectError) {
+          console.error('리다이렉트 로그인도 실패:', redirectError);
+        }
+      }
+      
       // 더 자세한 오류 메시지
       let errorMessage = '로그인에 실패했습니다.';
       if (error?.code === 'auth/popup-blocked') {
@@ -92,7 +106,16 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
         errorMessage = 'Firebase 설정에 문제가 있습니다. 관리자에게 문의하세요.';
       }
       
-      alert(errorMessage);
+      // 더 나은 사용자 피드백
+      if (error?.code === 'auth/popup-blocked') {
+        alert('팝업이 차단되었습니다.\n\n브라우저 설정에서 팝업을 허용하고 다시 시도해주세요.');
+      } else if (error?.code === 'auth/network-request-failed') {
+        alert('네트워크 연결을 확인해주세요.\n\n인터넷 연결이 불안정할 수 있습니다.');
+      } else if (error?.code === 'auth/invalid-api-key') {
+        alert('로그인 시스템에 문제가 있습니다.\n\n잠시 후 다시 시도하거나 관리자에게 문의하세요.');
+      } else {
+        alert('로그인에 실패했습니다.\n\n잠시 후 다시 시도해주세요.');
+      }
     } finally {
       setIsLoggingIn(false);
     }

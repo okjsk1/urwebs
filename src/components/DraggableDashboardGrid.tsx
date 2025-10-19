@@ -524,10 +524,11 @@ export default function DraggableDashboardGrid({
       </style>
       <div
         ref={gridRef}
-        className={`draggable-grid-container gap-3 grid-cols-8 ${className}`}
+        className={`draggable-grid-container gap-3 ${className}`}
         style={{
           ...generateResponsiveStyles(),
           userSelect: activeId ? 'none' : 'auto',
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         }}
         onMouseLeave={() => setShowAddButtonState({})}
       >

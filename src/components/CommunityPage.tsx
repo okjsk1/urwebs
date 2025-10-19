@@ -105,8 +105,14 @@ export function CommunityPage() {
         loadedPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         
         setPosts(loadedPosts);
-      } catch (error) {
+      } catch (error: any) {
         console.error('게시글 로드 실패:', error);
+        
+        // 권한 오류인 경우 사용자 친화적 메시지 표시
+        if (error?.code === 'permission-denied') {
+          console.warn('게시글 읽기 권한이 없습니다. Firebase 보안 규칙을 확인해주세요.');
+        }
+        
         // 로드 실패 시 빈 배열로 설정
         setPosts([]);
       }

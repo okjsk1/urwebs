@@ -58,7 +58,7 @@ export function MyPage() {
   const [toast, setToast] = useState<{type:'success'|'error', msg:string}|null>(null);
   
   // 하위 호환성을 위한 별칭
-  const spacing = SPACING;
+  const spacing = 12; // DraggableDashboardGrid와 동일한 gap 값 사용
   const MAIN_COLUMNS = COLS;
   const SUB_COLUMNS = 1;
   const [subCellWidth, setSubCellWidth] = useState(COL_INNER);
@@ -1047,11 +1047,13 @@ export function MyPage() {
     let width, height;
     
     if (type === 'google_search' || type === 'naver_search') {
-      // 검색 위젯은 2x1 그리드 크기
+      // 검색 위젯은 2x1 그리드 크기 - 강제로 2칸 너비 설정
       widgetSize = '2x1';
-      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
-      width = dimensions.width;
-      height = dimensions.height;
+      width = 312; // 2 * 150 + 1 * 12 = 312px (강제 설정)
+      height = 160; // 1 * 160 + 0 * 12 = 160px
+      
+      // 디버깅을 위한 로그 추가
+      console.log('🔍 검색 위젯 생성:', { type, width, height, widgetSize });
     } else if (type === 'weather_small') {
       widgetSize = '4x1'; // 메인 컬럼 전체 너비
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
@@ -1294,10 +1296,16 @@ export function MyPage() {
               }
               return null;
             };
-            const gridSize = w.gridSize || parseSize(w.size) || {
-              w: toGridW(w.width || 150),
-              h: toGridH(w.height || 160),
-            };
+      // 구글/네이버 검색 위젯은 강제로 2칸 너비로 설정
+      let gridSize;
+      if (w.type === 'google_search' || w.type === 'naver_search') {
+        gridSize = { w: 2, h: 1 }; // 강제로 2x1 그리드 크기
+      } else {
+        gridSize = w.gridSize || parseSize(w.size) || {
+          w: toGridW(w.width || 150),
+          h: toGridH(w.height || 160),
+        };
+      }
             return ({
               id: w.id,
               type: w.type,
@@ -3085,7 +3093,7 @@ export function MyPage() {
                       type="text"
                       value={tempTitle}
                       onChange={(e) => setTempTitle(e.target.value)}
-                      className="text-xl font-bold text-gray-800 bg-transparent border-b-2 border-blue-500 px-1 py-1 focus:outline-none min-w-[300px]"
+                      className="text-xl font-bold text-gray-800 bg-transparent border-b-2 border-blue-500 px-1 py-1 focus:outline-none min-w-[200px] max-w-[400px]"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -3877,7 +3885,7 @@ export function MyPage() {
             cellHeight={cellHeight}
             cellWidth={subCellWidth}
             gap={12}
-            cols={8}
+            cols={12}
             className=""
             onAddWidget={(columnIndex?: number) => {
               // 위젯 패널을 열어서 선택하도록 하되, 선택 시 해당 컬럼 최하단에 추가되도록 targetColumn 전달

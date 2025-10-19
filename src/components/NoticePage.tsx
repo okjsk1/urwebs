@@ -67,8 +67,15 @@ export function NoticePage() {
         });
         
         setNotices(loadedNotices);
-      } catch (error) {
+      } catch (error: any) {
         console.error('공지사항 로드 실패:', error);
+        
+        // 권한 오류인 경우 사용자 친화적 메시지 표시
+        if (error?.code === 'permission-denied') {
+          console.warn('공지사항 읽기 권한이 없습니다. Firebase 보안 규칙을 확인해주세요.');
+          // 빈 배열로 설정하여 "데이터 없음" 상태 표시
+          setNotices([]);
+        }
       }
     };
     

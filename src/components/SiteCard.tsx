@@ -63,7 +63,19 @@ export function SiteCard({ name, description, url, tags, category, isFavorite = 
   };
 
   return (
-    <Card className="p-3 bg-white border border-gray-200 hover:shadow-xl hover:border-blue-400 transition-all duration-300 h-32 cursor-pointer group flex flex-col hover:transform hover:scale-105" onClick={handleClick}>
+    <Card 
+      className="p-3 bg-white border border-gray-200 hover:shadow-xl hover:border-blue-400 transition-all duration-300 h-32 cursor-pointer group flex flex-col hover:transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" 
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={`${name} 사이트로 이동`}
+    >
       {/* 사이트 이름과 즐겨찾기 */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -71,6 +83,7 @@ export function SiteCard({ name, description, url, tags, category, isFavorite = 
             src={getFaviconUrl(url)} 
             alt="" 
             className="w-4 h-4 flex-shrink-0"
+            loading="lazy"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}

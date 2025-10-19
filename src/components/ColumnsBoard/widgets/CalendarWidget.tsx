@@ -111,7 +111,7 @@ export function CalendarWidget({
       aria-label="달력"
     >
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
         <div className="flex gap-1">
           <button
             onClick={goPrevMonth}
@@ -176,7 +176,7 @@ export function CalendarWidget({
               title={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}
               className={[
                 "flex flex-col items-center justify-center text-xs rounded min-h-[28px] border transition-colors",
-                "border-gray-200 dark:border-gray-800",
+                "border-gray-200 dark:border-gray-700",
                 inCurrentMonth
                   ? "bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer"
                   : "bg-gray-50 dark:bg-gray-800/40 text-gray-400 dark:text-gray-500",

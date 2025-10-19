@@ -144,72 +144,45 @@ function PublicPageViewer() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
           <p className="text-gray-600 dark:text-gray-400 mb-6">{pageData.description}</p>
           
-          {/* 공개보기: 개인 페이지와 동일한 절대 위치 레이아웃 */}
+          {/* 공개보기: DraggableDashboardGrid를 사용한 그리드 레이아웃 */}
           {Array.isArray(pageData.widgets) && pageData.widgets.length > 0 ? (
-            <div className="relative min-h-[800px]">
-              {(pageData.widgets || []).map((w: any) => {
-                // 저장된 위젯 데이터를 픽셀 좌표로 변환
-                const parseSizeFromString = (s: any) => {
-                  if (typeof s === 'string' && /^(\d+)x(\d+)$/.test(s)) {
-                    const [, sw, sh] = s.match(/(\d+)x(\d+)/) as any;
-                    return { w: Number(sw), h: Number(sh) };
-                  }
-                  return null;
-                };
-
-                // 위젯 크기 결정 (픽셀 단위) - DraggableDashboardGrid와 완전히 동일한 계산 방식 사용
-                let width = 150, height = 160; // 기본 크기
-                const cellWidth = 150, cellHeight = 160, gap = 12; // DraggableDashboardGrid와 동일한 값
-                
-                // 개인 페이지에서 저장된 width/height는 그리드 단위이므로 픽셀로 변환
-                if (w?.width && w?.height) {
-                  // DraggableDashboardGrid와 동일한 계산 방식 사용
-                  width = cellWidth * w.width + gap * (w.width - 1);
-                  height = cellHeight * w.height + gap * (w.height - 1);
-                } else if (w?.gridSize?.w && w?.gridSize?.h) {
-                  // gridSize가 있는 경우
-                  width = cellWidth * w.gridSize.w + gap * (w.gridSize.w - 1);
-                  height = cellHeight * w.gridSize.h + gap * (w.gridSize.h - 1);
-                } else {
-                  const sizeFromString = parseSizeFromString(w?.size);
-                  if (sizeFromString) {
-                    width = cellWidth * sizeFromString.w + gap * (sizeFromString.w - 1);
-                    height = cellHeight * sizeFromString.h + gap * (sizeFromString.h - 1);
-                  }
-                }
-
-                // 위젯 위치 (픽셀 단위) - DraggableDashboardGrid와 동일한 계산 방식 사용
-                const x = (w.x || 0) * (cellWidth + gap);
-                const y = (w.y || 0) * (cellHeight + gap);
-
+            <DraggableDashboardGrid
+              widgets={pageData.widgets.map((w: any) => ({
+                id: w.id,
+                type: w.type,
+                title: w.title || allWidgets.find(widget => widget.type === w.type)?.name || '위젯',
+                content: w.content,
+                variant: w.variant,
+                x: w.x || 0,
+                y: w.y || 0,
+                size: w.gridSize || { w: w.width || 1, h: w.height || 1 },
+                width: w.width || 1,
+                height: w.height || 1,
+                // 위젯의 원본 데이터도 전달
+                ...w
+              }))}
+              renderWidget={(widget) => {
                 const widgetForRender = {
-                  id: w.id,
-                  type: w.type,
-                  title: w.title,
-                  content: w.content,
-                  variant: w.variant,
+                  id: widget.id,
+                  type: widget.type,
+                  title: widget.title,
+                  content: widget.content,
+                  variant: widget.variant,
                   x: 0,
                   y: 0,
-                  width: width,
-                  height: height,
+                  width: widget.width * 150 + 12 * (widget.width - 1),
+                  height: widget.height * 160 + 12 * (widget.height - 1),
+                  // 위젯의 모든 원본 데이터를 전달
+                  ...widget
                 } as any;
 
                 return (
-                  <div
-                    key={w.id}
-                    className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-lg border border-gray-300 dark:border-gray-600 overflow-hidden flex flex-col"
-                    style={{
-                      left: `${x}px`,
-                      top: `${y}px`,
-                      width: `${width}px`,
-                      height: `${height}px`,
-                    }}
-                  >
-                    {/* 위젯 헤더 - 나만의 페이지와 동일한 스타일 */}
+                  <div className="h-full flex flex-col">
+                    {/* 위젯 헤더 */}
                     <div className="px-2 py-1 border-b border-gray-100 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex items-center justify-between flex-shrink-0">
                       <div className="flex items-center gap-2 flex-1">
                         <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                          {w.title || allWidgets.find(widget => widget.type === w.type)?.name || '위젯'}
+                          {widget.title}
                         </span>
                       </div>
                     </div>
@@ -220,23 +193,23 @@ function PublicPageViewer() {
                         try {
                           const result = renderWidget(widgetForRender);
                           if (!result) {
-                            console.warn(`위젯 ${w.id} (${w.type}) 렌더링 결과가 null/undefined입니다.`);
+                            console.warn(`위젯 ${widget.id} (${widget.type}) 렌더링 결과가 null/undefined입니다.`);
                             return (
                               <div className="text-center text-yellow-600 text-sm">
                                 <div className="text-lg mb-2">⚠️</div>
                                 <div>위젯 내용 없음</div>
-                                <div className="text-xs">{w.type}</div>
+                                <div className="text-xs">{widget.type}</div>
                               </div>
                             );
                           }
                           return result;
                         } catch (error) {
-                          console.error(`위젯 ${w.id} (${w.type}) 렌더링 오류:`, error);
+                          console.error(`위젯 ${widget.id} (${widget.type}) 렌더링 오류:`, error);
                           return (
                             <div className="text-center text-red-500 text-sm">
                               <div className="text-lg mb-2">⚠️</div>
                               <div>위젯 렌더링 오류</div>
-                              <div className="text-xs">{w.type}</div>
+                              <div className="text-xs">{widget.type}</div>
                               <div className="text-xs mt-1">{error.message}</div>
                             </div>
                           );
@@ -245,8 +218,14 @@ function PublicPageViewer() {
                     </div>
                   </div>
                 );
-              })}
-            </div>
+              }}
+              isEditMode={false}
+              cols={12}
+              cellHeight={160}
+              cellWidth={150}
+              gap={12}
+              className="min-h-[800px]"
+            />
           ) : (
             <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400">
               이 페이지에 표시할 위젯이 없습니다. 작성자가 아직 저장하지 않았거나, 이전 버전 형식일 수 있어요.
