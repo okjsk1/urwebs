@@ -157,23 +157,30 @@ function PublicPageViewer() {
                   return null;
                 };
 
-                // 위젯 크기 결정 (픽셀 단위)
+                // 위젯 크기 결정 (픽셀 단위) - DraggableDashboardGrid와 완전히 동일한 계산 방식 사용
                 let width = 150, height = 160; // 기본 크기
+                const cellWidth = 150, cellHeight = 160, gap = 12; // DraggableDashboardGrid와 동일한 값
+                
+                // 개인 페이지에서 저장된 width/height는 그리드 단위이므로 픽셀로 변환
                 if (w?.width && w?.height) {
-                  // 저장된 width/height가 픽셀 단위인 경우
-                  width = w.width;
-                  height = w.height;
+                  // DraggableDashboardGrid와 동일한 계산 방식 사용
+                  width = cellWidth * w.width + gap * (w.width - 1);
+                  height = cellHeight * w.height + gap * (w.height - 1);
+                } else if (w?.gridSize?.w && w?.gridSize?.h) {
+                  // gridSize가 있는 경우
+                  width = cellWidth * w.gridSize.w + gap * (w.gridSize.w - 1);
+                  height = cellHeight * w.gridSize.h + gap * (w.gridSize.h - 1);
                 } else {
                   const sizeFromString = parseSizeFromString(w?.size);
                   if (sizeFromString) {
-                    width = sizeFromString.w * 150; // 그리드 단위를 픽셀로 변환
-                    height = sizeFromString.h * 160;
+                    width = cellWidth * sizeFromString.w + gap * (sizeFromString.w - 1);
+                    height = cellHeight * sizeFromString.h + gap * (sizeFromString.h - 1);
                   }
                 }
 
-                // 위젯 위치 (픽셀 단위)
-                const x = w.x || 0;
-                const y = w.y || 0;
+                // 위젯 위치 (픽셀 단위) - DraggableDashboardGrid와 동일한 계산 방식 사용
+                const x = (w.x || 0) * (cellWidth + gap);
+                const y = (w.y || 0) * (cellHeight + gap);
 
                 const widgetForRender = {
                   id: w.id,
@@ -209,7 +216,32 @@ function PublicPageViewer() {
                     
                     {/* 위젯 콘텐츠 */}
                     <div className="flex-1 p-3 overflow-hidden">
-                      {renderWidget(widgetForRender)}
+                      {(() => {
+                        try {
+                          const result = renderWidget(widgetForRender);
+                          if (!result) {
+                            console.warn(`위젯 ${w.id} (${w.type}) 렌더링 결과가 null/undefined입니다.`);
+                            return (
+                              <div className="text-center text-yellow-600 text-sm">
+                                <div className="text-lg mb-2">⚠️</div>
+                                <div>위젯 내용 없음</div>
+                                <div className="text-xs">{w.type}</div>
+                              </div>
+                            );
+                          }
+                          return result;
+                        } catch (error) {
+                          console.error(`위젯 ${w.id} (${w.type}) 렌더링 오류:`, error);
+                          return (
+                            <div className="text-center text-red-500 text-sm">
+                              <div className="text-lg mb-2">⚠️</div>
+                              <div>위젯 렌더링 오류</div>
+                              <div className="text-xs">{w.type}</div>
+                              <div className="text-xs mt-1">{error.message}</div>
+                            </div>
+                          );
+                        }
+                      })()}
                     </div>
                   </div>
                 );

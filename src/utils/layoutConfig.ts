@@ -1,6 +1,6 @@
 // 공통 레이아웃 설정 - 편집/공개 페이지가 동일한 그리드 규칙 사용
 export const COLS = 8;
-export const SPACING = 5;           // spacing
+export const SPACING = 12;          // spacing - DraggableDashboardGrid와 동일하게 수정
 export const GRID_H = 160;          // cellHeight
 export const COL_INNER = 150;       // subCellWidth * SUB_COLUMNS + SPACING*(SUB_COLUMNS-1)
 export const COL_TRACK = COL_INNER + SPACING;
