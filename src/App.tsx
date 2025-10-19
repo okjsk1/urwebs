@@ -101,7 +101,7 @@ function PublicPageViewer() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-50 shadow-sm">
         <div className="w-full flex items-center justify-between">
           <div>
@@ -144,9 +144,9 @@ function PublicPageViewer() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
           <p className="text-gray-600 dark:text-gray-400 mb-6">{pageData.description}</p>
           
-          {/* 공개보기: 그리드 레이아웃으로 위젯 렌더링 */}
+          {/* 공개보기: 개인 페이지와 동일한 절대 위치 레이아웃 */}
           {Array.isArray(pageData.widgets) && pageData.widgets.length > 0 ? (
-            <div className="grid grid-cols-8 gap-3">
+            <div className="relative min-h-[800px]">
               {(pageData.widgets || []).map((w: any) => {
                 // 저장된 위젯 데이터를 픽셀 좌표로 변환
                 const parseSizeFromString = (s: any) => {
@@ -157,22 +157,23 @@ function PublicPageViewer() {
                   return null;
                 };
 
-                // 그리드 크기 결정
-                let gridW = 1, gridH = 1;
-                if (w?.gridSize?.w && w?.gridSize?.h) {
-                  gridW = w.gridSize.w;
-                  gridH = w.gridSize.h;
-                } else if (w?.width && w?.height) {
-                  // 저장된 width/height가 그리드 단위인 경우
-                  gridW = w.width;
-                  gridH = w.height;
+                // 위젯 크기 결정 (픽셀 단위)
+                let width = 150, height = 160; // 기본 크기
+                if (w?.width && w?.height) {
+                  // 저장된 width/height가 픽셀 단위인 경우
+                  width = w.width;
+                  height = w.height;
                 } else {
                   const sizeFromString = parseSizeFromString(w?.size);
                   if (sizeFromString) {
-                    gridW = sizeFromString.w;
-                    gridH = sizeFromString.h;
+                    width = sizeFromString.w * 150; // 그리드 단위를 픽셀로 변환
+                    height = sizeFromString.h * 160;
                   }
                 }
+
+                // 위젯 위치 (픽셀 단위)
+                const x = w.x || 0;
+                const y = w.y || 0;
 
                 const widgetForRender = {
                   id: w.id,
@@ -182,17 +183,19 @@ function PublicPageViewer() {
                   variant: w.variant,
                   x: 0,
                   y: 0,
-                  width: gridW,
-                  height: gridH,
+                  width: width,
+                  height: height,
                 } as any;
 
                 return (
                   <div
                     key={w.id}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-lg border border-gray-300 dark:border-gray-600 overflow-hidden flex flex-col"
+                    className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-lg border border-gray-300 dark:border-gray-600 overflow-hidden flex flex-col"
                     style={{
-                      gridColumn: `span ${gridW}`,
-                      gridRow: `span ${gridH}`,
+                      left: `${x}px`,
+                      top: `${y}px`,
+                      width: `${width}px`,
+                      height: `${height}px`,
                     }}
                   >
                     {/* 위젯 헤더 - 나만의 페이지와 동일한 스타일 */}
