@@ -1,12 +1,11 @@
 {
   "version": 2,
   "outputDirectory": "dist",
-  "builds": [
-    {
-      "src": "api/forex.js",
-      "use": "@vercel/node@3.0.7"
+  "functions": {
+    "api/forex.js": {
+      "runtime": "nodejs20.x"
     }
-  ],
+  },
   "headers": [
     {
       "source": "/(.*)",
