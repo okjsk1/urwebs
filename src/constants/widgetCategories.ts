@@ -1,10 +1,6 @@
 import {
   CheckSquare, Target, Repeat, Clock, Bell, FileText, Calendar, Mail,
-<<<<<<< HEAD
   TrendingUp, DollarSign, BarChart3, Github, Calculator, Lock, QrCode,
-=======
-  TrendingUp, DollarSign, BarChart3, Github, Lock, QrCode,
->>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
   Globe, Cloud, Search, Rss, Quote, Palette, Link, BookOpen, Users
 } from 'lucide-react';
 import { WidgetCategory } from '../types/mypage.types';
@@ -17,6 +13,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
       { type: 'todo', name: 'To Do List', icon: CheckSquare, description: '할 일 목록 관리 및 체크' },
       { type: 'quicknote', name: '빠른 메모', icon: FileText, description: '즉석 메모 작성' },
       { type: 'calendar', name: '캘린더', icon: Calendar, description: '일정 관리 및 계획' },
+      { type: 'calculator', name: '계산기', icon: Calculator, description: '간편한 계산 도구' },
       { type: 'quote', name: '영감 명언', icon: Quote, description: '영감을 주는 명언' },
       { type: 'english_words', name: '영어 단어 학습', icon: BookOpen, description: '영어 단어 학습 도구' },
     ]

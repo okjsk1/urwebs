@@ -236,8 +236,8 @@ export function ColumnsBoard() {
         return <ExchangeWidget />;
       case 'stock':
         return <StockWidget />;
-      case 'todo':
-        return <TodoWidget />;
+      case 'calculator':
+        return <CalculatorWidget />;
       default:
         return null;
     }
@@ -253,7 +253,7 @@ export function ColumnsBoard() {
     { type: 'calendar', label: '캘린더', icon: '📅' },
     { type: 'exchange', label: '환율', icon: '💱' },
     { type: 'stock', label: '주식', icon: '📈' },
-    { type: 'todo', label: '할 일', icon: '✅' },
+    { type: 'calculator', label: '계산기', icon: '🧮' },
   ];
 
   return (
@@ -435,8 +435,8 @@ export function ColumnsBoard() {
         return <ExchangeWidget />;
       case 'stock':
         return <StockWidget />;
-      case 'todo':
-        return <TodoWidget />;
+      case 'calculator':
+        return <CalculatorWidget />;
       default:
         return null;
     }

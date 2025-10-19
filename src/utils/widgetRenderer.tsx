@@ -16,6 +16,7 @@ import {
   FrequentSitesWidget,
   NewsWidget
 } from '../components/widgets';
+import { CalculatorWidget } from '../components/ColumnsBoard/widgets';
 
 export function renderWidget(widget: Widget): React.ReactNode {
   const commonProps = {
@@ -51,6 +52,8 @@ export function renderWidget(widget: Widget): React.ReactNode {
       return <FrequentSitesWidget {...commonProps} />;
     case 'news':
       return <NewsWidget {...commonProps} />;
+    case 'calculator':
+      return <CalculatorWidget />;
     default:
       return (
         <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">
