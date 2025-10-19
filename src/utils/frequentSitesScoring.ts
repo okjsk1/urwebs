@@ -112,3 +112,4 @@ export function validateScoringConfig(config: Partial<ScoringConfig>): ScoringCo
     halfLifeDays: Math.max(1, config.halfLifeDays ?? DEFAULT_SCORING.halfLifeDays)
   };
 }
+

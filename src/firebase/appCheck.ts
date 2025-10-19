@@ -39,3 +39,4 @@ export function isAppCheckEnabled(): boolean {
   return import.meta.env.MODE === 'production' && 
          !!import.meta.env.VITE_FIREBASE_APPCHECK_KEY;
 }
+

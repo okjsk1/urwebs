@@ -4,6 +4,11 @@ import { connectAuthEmulator } from 'firebase/auth';
 import { db, auth } from './config';
 
 export function connectEmulatorsIfDev(): void {
+  // 에뮬레이터 연결 비활성화 - 실제 Firebase 사용
+  console.info('🔥 Using production Firebase (emulators disabled)');
+  
+  // 에뮬레이터 연결이 필요한 경우 아래 주석을 해제하세요
+  /*
   if (import.meta.env.MODE === 'development') {
     try {
       // Firestore 에뮬레이터 연결 (중복 연결 방지)
@@ -30,6 +35,7 @@ export function connectEmulatorsIfDev(): void {
       }
     }
   }
+  */
 }
 
 // 에뮬레이터 상태 확인

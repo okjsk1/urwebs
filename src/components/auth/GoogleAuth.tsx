@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, User as FirebaseUser, getRedirectResult } from 'firebase/auth';
 import { auth, googleProvider } from '../../firebase/config';
 
 interface User {
@@ -18,9 +18,8 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  // Firebase 설정 확인
-  const hasValidFirebaseConfig = import.meta.env.VITE_FIREBASE_API_KEY && 
-                                 import.meta.env.VITE_FIREBASE_API_KEY !== '';
+  // Firebase 설정 확인 (개발 환경에서는 항상 true)
+  const hasValidFirebaseConfig = true;
 
   // Firebase 인증 상태 감지
   useEffect(() => {
@@ -52,9 +51,10 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
     return () => unsubscribe();
   }, [onLogin, hasValidFirebaseConfig]);
 
-  // Google 로그인
+  // Google 로그인 (팝업 방식)
   const handleGoogleLogin = async () => {
     try {
+      console.log('Google 로그인 시도...');
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
       
@@ -64,10 +64,13 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
         picture: firebaseUser.photoURL || 'https://via.placeholder.com/40'
       };
       
+      console.log('로그인 성공:', userInfo);
       setUser(userInfo);
       setIsLoggedIn(true);
       onLogin?.(userInfo);
     } catch (error: any) {
+      console.error('Google 로그인 실패:', error);
+      
       // 사용자가 팝업을 닫은 경우는 오류로 표시하지 않음
       if (error?.code === 'auth/popup-closed-by-user') {
         console.log('로그인 팝업이 사용자에 의해 닫혔습니다.');
@@ -80,10 +83,59 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
         return;
       }
       
-      console.error('Google 로그인 실패:', error);
+      // 더 자세한 오류 메시지
+      let errorMessage = '로그인에 실패했습니다.';
+      if (error?.code === 'auth/popup-blocked') {
+        errorMessage = '팝업이 차단되었습니다. 팝업을 허용하고 다시 시도해주세요.';
+      } else if (error?.code === 'auth/network-request-failed') {
+        errorMessage = '네트워크 연결을 확인해주세요.';
+      } else if (error?.code === 'auth/invalid-api-key') {
+        errorMessage = 'Firebase 설정에 문제가 있습니다. 관리자에게 문의하세요.';
+      }
+      
+      alert(errorMessage);
+    }
+  };
+
+  // Google 로그인 (리다이렉트 방식 - COOP 경고 없음)
+  const handleGoogleLoginRedirect = async () => {
+    try {
+      console.log('Google 로그인 리다이렉트 시도...');
+      await signInWithRedirect(auth, googleProvider);
+    } catch (error: any) {
+      console.error('Google 로그인 리다이렉트 실패:', error);
       alert('로그인에 실패했습니다. 다시 시도해주세요.');
     }
   };
+
+  // 리다이렉트 결과 처리
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        console.log('리다이렉트 결과 확인 중...');
+        const result = await getRedirectResult(auth);
+        if (result) {
+          console.log('리다이렉트 로그인 성공:', result.user);
+          const firebaseUser = result.user;
+          const userInfo: User = {
+            name: firebaseUser.displayName || '사용자',
+            email: firebaseUser.email || '',
+            picture: firebaseUser.photoURL || 'https://via.placeholder.com/40'
+          };
+          
+          setUser(userInfo);
+          setIsLoggedIn(true);
+          onLogin?.(userInfo);
+        } else {
+          console.log('리다이렉트 결과 없음');
+        }
+      } catch (error: any) {
+        console.error('리다이렉트 로그인 결과 처리 실패:', error);
+      }
+    };
+
+    handleRedirectResult();
+  }, [onLogin]);
 
   // 로그아웃
   const handleLogout = async () => {
@@ -160,10 +212,10 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
     );
   }
 
-  // 로그인 버튼
+  // 로그인 버튼 (리다이렉트 방식 사용)
   return (
     <button
-      onClick={handleGoogleLogin}
+      onClick={handleGoogleLoginRedirect}
       className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 border border-gray-300 dark:border-gray-600 shadow-sm"
     >
       <svg className="w-5 h-5" viewBox="0 0 24 24">

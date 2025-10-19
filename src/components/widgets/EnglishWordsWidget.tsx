@@ -98,6 +98,26 @@ const THEME_WORDS: Record<string, Word[]> = {
     { id: 'd6', english: 'entertainment', korean: '오락', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
     { id: 'd7', english: 'communication', korean: '소통', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
     { id: 'd8', english: 'technology', korean: '기술', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+  ],
+  business: [
+    { id: 'b1', english: 'entrepreneur', korean: '기업가', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 'b2', english: 'innovation', korean: '혁신', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 'b3', english: 'strategy', korean: '전략', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 'b4', english: 'revenue', korean: '수익', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 'b5', english: 'efficiency', korean: '효율성', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 'b6', english: 'collaboration', korean: '협력', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 'b7', english: 'leadership', korean: '리더십', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 'b8', english: 'productivity', korean: '생산성', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+  ],
+  science: [
+    { id: 's1', english: 'experiment', korean: '실험', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 's2', english: 'hypothesis', korean: '가설', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 's3', english: 'microscope', korean: '현미경', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 's4', english: 'molecule', korean: '분자', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 's5', english: 'ecosystem', korean: '생태계', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 's6', english: 'evolution', korean: '진화', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 's7', english: 'photosynthesis', korean: '광합성', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    { id: 's8', english: 'metabolism', korean: '신진대사', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
   ]
 };
 
@@ -109,6 +129,8 @@ const THEME_OPTIONS = [
   { value: 'toiec', label: '토익', emoji: '💼' },
   { value: 'toefl', label: '토플', emoji: '🎯' },
   { value: 'daily', label: '실생활', emoji: '🏠' },
+  { value: 'business', label: '비즈니스', emoji: '💼' },
+  { value: 'science', label: '과학', emoji: '🔬' },
 ];
 
 export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
@@ -212,38 +234,6 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
 
   return (
     <div className="p-3 h-full flex flex-col">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-3 shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-800">영어 단어 학습</span>
-          <span className="text-xs text-gray-500">
-            {state.currentIndex + 1} / {state.words.length}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          {isEditMode && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 w-6 p-0"
-              onClick={() => setState(prev => ({ ...prev, showSettings: !prev.showSettings }))}
-              title="설정"
-            >
-              <Settings className="w-3 h-3" />
-            </Button>
-          )}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 w-6 p-0"
-            onClick={toggleAutoPlay}
-            title={state.isPlaying ? "일시정지" : "재생"}
-          >
-            {state.isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-          </Button>
-        </div>
-      </div>
-
       {/* 설정 패널 */}
       {isEditMode && state.showSettings && (
         <div className="mb-3 p-2 bg-gray-50 rounded-lg space-y-2 shrink-0">
@@ -297,6 +287,11 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
       {/* 단어 카드 */}
       <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
         <div className="w-full">
+          {/* 현재 단어 번호 표시 */}
+          <div className="text-xs text-gray-500 mb-2">
+            {state.currentIndex + 1} / {state.words.length}
+          </div>
+          
           <div className="text-2xl font-bold text-gray-800 mb-2">
             {currentWord.english}
           </div>
@@ -306,21 +301,10 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
             {currentWord.level === 'advanced' && '🔴 고급'}
           </div>
           
-          {state.showAnswer ? (
-            <div className="text-lg text-blue-600 font-medium">
-              {currentWord.korean}
-            </div>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8"
-              onClick={toggleAnswer}
-            >
-              <Eye className="w-3 h-3 mr-1" />
-              답 보기
-            </Button>
-          )}
+          {/* 답 항상 표시 */}
+          <div className="text-lg text-blue-600 font-medium">
+            {currentWord.korean}
+          </div>
         </div>
 
         {/* 학습 통계 */}
@@ -331,7 +315,7 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
         </div>
       </div>
 
-      {/* 네비게이션 */}
+      {/* 네비게이션 및 컨트롤 */}
       <div className="flex items-center justify-between shrink-0">
         <Button
           size="sm"
@@ -343,6 +327,15 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
         </Button>
         
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 w-6 p-0"
+            onClick={toggleAutoPlay}
+            title={state.isPlaying ? "일시정지" : "재생"}
+          >
+            {state.isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+          </Button>
           <div className="text-xs text-gray-500">
             {state.autoPlay && state.isPlaying ? `${state.autoPlayInterval}초` : '수동'}
           </div>

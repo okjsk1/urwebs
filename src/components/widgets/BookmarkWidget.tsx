@@ -1,5 +1,5 @@
 // 북마크 위젯 - 파비콘 자동, URL 정규화, 인라인 추가 폼, 재정렬 기능
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Plus, Trash2, ArrowUp, ArrowDown, ExternalLink, Edit, Check, X as XIcon } from 'lucide-react';
 import { 
@@ -41,7 +41,8 @@ const DEFAULT_CATEGORIES = [
   { id: 'default', name: '기본' }
 ];
 
-export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWidget }) => {
+export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (count: number) => void }> = ({ widget, isEditMode, updateWidget, onBookmarkCountChange }) => {
+  const lastBookmarkCountRef = useRef<number>(0);
   const [state, setState] = useState<BookmarkState>(() => {
     const saved = readLocal(widget.id, {
       bookmarks: DEFAULT_BOOKMARKS,
@@ -158,39 +159,38 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     }
   }, [state.newBookmark.url]);
 
-  // 북마크 개수에 따라 위젯 크기 자동 조절 (추가 버튼 공간 고려)
+  // 북마크 개수에 따라 위젯 크기 자동 조절
   useEffect(() => {
     const bookmarkCount = state.bookmarks.length;
-    let newHeight = 2; // 기본 1x2
+    
+    // 북마크 개수가 변경되었을 때만 처리 (무한 루프 방지)
+    if (bookmarkCount === lastBookmarkCountRef.current) {
+      return;
+    }
+    
+    lastBookmarkCountRef.current = bookmarkCount;
+    
+    let newSize = '1x1'; // 기본 1x1
 
-    // 편집 모드일 때는 추가 버튼 공간을 고려하여 높이를 더 크게 설정
-    if (isEditMode) {
-      if (bookmarkCount >= 6) {
-        newHeight = 5; // 1x5 (6개 이상)
-      } else if (bookmarkCount >= 4) {
-        newHeight = 4; // 1x4 (4-5개)
-      } else if (bookmarkCount >= 2) {
-        newHeight = 3; // 1x3 (2-3개)
-      } else {
-        newHeight = 3; // 1x3 (0-1개, 추가 버튼 공간 확보)
-      }
+    // 북마크 개수에 따른 크기 결정
+    if (bookmarkCount >= 7) {
+      newSize = '1x4'; // 7-9개: 1x4
+    } else if (bookmarkCount >= 4) {
+      newSize = '1x2'; // 4-6개: 1x2
     } else {
-      // 편집 모드가 아닐 때는 기존 로직 유지
-      if (bookmarkCount > 5) {
-        newHeight = 4; // 1x4 (6-8개)
-      } else if (bookmarkCount > 3) {
-        newHeight = 3; // 1x3 (4-5개)
-      } else {
-        newHeight = 2; // 1x2 (1-3개)
-      }
+      newSize = '1x1'; // 1-3개: 1x1
     }
 
-    // 현재 gridSize와 다르면 업데이트
-    const currentGridSize = widget.gridSize || { w: 1, h: 2 };
-    if (currentGridSize.h !== newHeight) {
-      updateWidget(widget.id, { ...widget, gridSize: { w: 1, h: newHeight } });
+    // 크기가 변경되었을 때만 업데이트
+    if (widget.size !== newSize && updateWidget) {
+      console.log('북마크 위젯 크기 변경:', widget.size, '->', newSize);
+      updateWidget({ size: newSize });
     }
-  }, [state.bookmarks.length, widget, updateWidget, isEditMode]);
+
+    // 부모 컴포넌트에게 북마크 개수 변경 알림
+    onBookmarkCountChange?.(bookmarkCount);
+
+  }, [state.bookmarks.length, widget.size, onBookmarkCountChange]);
 
   const getDomainIcon = useCallback((url: string): string => {
     try {
@@ -268,21 +268,27 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
       categoryId: state.activeCategoryId || 'default'
     };
 
-    setState(prev => ({
-      ...prev,
-      bookmarks: [...prev.bookmarks, newBookmark],
-      newBookmark: { name: '', url: '' },
-      showAddForm: false
-    }));
+    setState(prev => {
+      const updatedBookmarks = [...prev.bookmarks, newBookmark];
+      return {
+        ...prev,
+        bookmarks: updatedBookmarks,
+        newBookmark: { name: '', url: '' },
+        showAddForm: false
+      };
+    });
     
     showToast('북마크 추가됨', 'success');
   }, [state.newBookmark, state.bookmarks, getDomainIcon]);
 
   const deleteBookmark = useCallback((id: string) => {
-    setState(prev => ({
-      ...prev,
-      bookmarks: prev.bookmarks.filter(bookmark => bookmark.id !== id)
-    }));
+    setState(prev => {
+      const updatedBookmarks = prev.bookmarks.filter(bookmark => bookmark.id !== id);
+      return {
+        ...prev,
+        bookmarks: updatedBookmarks
+      };
+    });
     showToast('북마크 삭제됨', 'success');
   }, []);
 
@@ -301,6 +307,17 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     });
   }, []);
 
+  // 키보드 단축키 처리 (간단한 버전)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Z, Ctrl+Y 단축키는 나중에 구현
+      console.log('키보드 단축키:', e.key, e.ctrlKey);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // DnD: 시작
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     if (!isEditMode) return;
@@ -308,7 +325,13 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     e.dataTransfer.effectAllowed = 'move';
     // 파이어폭스 호환: setData 필요
     e.dataTransfer.setData('text/plain', id);
-  }, [isEditMode]);
+    // 다른 즐겨찾기 위젯으로 이동 가능하도록 타입 정보 추가
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      type: 'bookmark',
+      bookmarkId: id,
+      widgetId: widget.id
+    }));
+  }, [isEditMode, widget.id]);
 
   // DnD: 드래그 중 (타겟 위)
   const handleDragOver = useCallback((e: React.DragEvent, overId: string) => {
@@ -366,18 +389,21 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     const normalizedUrl = normalizeUrl(url);
     if (!isValidUrl(normalizedUrl)) { showToast('올바른 URL을 입력하세요', 'error'); return; }
 
-    setState(prev => ({
-      ...prev,
-      bookmarks: prev.bookmarks.map(bm => bm.id === id ? {
+    setState(prev => {
+      const updatedBookmarks = prev.bookmarks.map(bm => bm.id === id ? {
         ...bm,
         name,
         url: normalizedUrl,
         icon: getDomainIcon(normalizedUrl),
         favicon: getFaviconUrl(normalizedUrl)
-      } : bm),
-      editingId: undefined,
-      editDraft: { name: '', url: '' }
-    }));
+      } : bm);
+      return {
+        ...prev,
+        bookmarks: updatedBookmarks,
+        editingId: undefined,
+        editDraft: { name: '', url: '' }
+      };
+    });
     showToast('수정되었습니다', 'success');
   }, [state.editDraft, getDomainIcon]);
 
@@ -395,8 +421,29 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
     return state.bookmarks.filter(bm => (bm.categoryId || 'default') === activeCategoryId);
   }, [state.bookmarks, activeCategoryId]);
 
+  // 다른 즐겨찾기 위젯에서 드롭받기
+  const handleExternalDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (data.type === 'bookmark' && data.widgetId !== widget.id) {
+        // 다른 즐겨찾기 위젯에서 온 북마크
+        showToast('다른 즐겨찾기 위젯에서 북마크를 이동하려면 위젯 타이틀을 클릭하여 편집 모드에서 이동하세요', 'info');
+      }
+    } catch {
+      // 일반 드래그 처리
+    }
+  }, [widget.id]);
+
   return (
-    <div className="h-full flex flex-col">
+    <div 
+      className="h-full flex flex-col"
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      }}
+      onDrop={handleExternalDrop}
+    >
       {/* 내부 헤더 제거: 페이지 상단 타이틀만 사용 */}
       {/* 카테고리 선택/추가 UI 제거: 상단에는 이름 수정만 표시 */}
       {/* 북마크 리스트 (세로 배치) */}
@@ -496,6 +543,12 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
                 type="text"
                 value={state.editDraft?.name || ''}
                 onChange={(e) => setState(prev => ({ ...prev, editDraft: { ...(prev.editDraft || { name: '', url: '' }), name: e.target.value } }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit(state.editingId!);
+                  }
+                }}
                 placeholder="사이트 이름"
                 className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
               />
@@ -503,6 +556,12 @@ export const BookmarkWidget: React.FC<WidgetProps> = ({ widget, isEditMode, upda
                 type="url"
                 value={state.editDraft?.url || ''}
                 onChange={(e) => setState(prev => ({ ...prev, editDraft: { ...(prev.editDraft || { name: '', url: '' }), url: e.target.value } }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit(state.editingId!);
+                  }
+                }}
                 placeholder="https://example.com"
                 className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
               />

@@ -2175,7 +2175,7 @@ export function MyPage() {
           
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {/* 사이즈 선택기 - 특정 위젯들은 제한된 크기만 허용 */}
-            {originalWidget.type !== 'english_words' && (
+            {originalWidget.type !== 'english_words' && originalWidget.type !== 'bookmark' && (
               <SizePicker
                 value={originalWidget.gridSize || { w: 1, h: 1 }}
                 onChange={(newSize) => {
@@ -2196,6 +2196,26 @@ export function MyPage() {
                 title="위젯 편집"
               >
                 <Edit className="w-3 h-3 text-blue-600" />
+              </Button>
+            )}
+            {originalWidget.type === 'english_words' && (
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-6 w-6 p-0 hover:bg-blue-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // 영어단어학습 위젯의 설정 토글
+                  const englishWidget = widgets.find(w => w.id === originalWidget.id);
+                  if (englishWidget) {
+                    // 설정 상태를 토글하는 로직을 여기에 추가할 수 있습니다
+                    // 현재는 단순히 알림만 표시
+                    console.log('영어단어학습 위젯 설정 토글');
+                  }
+                }}
+                title="영어단어학습 설정"
+              >
+                <Settings className="w-3 h-3 text-blue-600" />
               </Button>
             )}
             <Button 
@@ -2239,7 +2259,9 @@ export function MyPage() {
   const renderWidgetContent = (widget: Widget) => {
     switch (widget.type) {
       case 'bookmark':
-        return <BookmarkWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+        return <BookmarkWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} onBookmarkCountChange={(count) => {
+          // 북마크 개수에 따른 크기 자동 조정은 BookmarkWidget 내부에서 처리됨
+        }} />;
 
       case 'weather':
         return <WeatherWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;

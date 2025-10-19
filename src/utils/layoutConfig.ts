@@ -21,3 +21,4 @@ export const gridHToPx = (h: number) => h * GRID_H + (h - 1) * SPACING;
 export const snapColIndex = (px: number) => Math.max(0, Math.min(Math.round(px / COL_TRACK), COLS - 1));
 export const snapX = (px: number) => colToX(snapColIndex(px));
 export const snapY = (py: number) => Math.max(0, Math.round(py / GRID_H) * GRID_H);
+

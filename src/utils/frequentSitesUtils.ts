@@ -204,3 +204,4 @@ export function importSitesData(jsonData: string): Partial<SiteVisit>[] {
     throw new Error('Failed to parse import data');
   }
 }
+

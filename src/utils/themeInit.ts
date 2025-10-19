@@ -64,3 +64,4 @@ export function toggleTheme(): 'light' | 'dark' {
 export function getCurrentTheme(): 'light' | 'dark' {
   return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
 }
+

@@ -322,3 +322,4 @@ export const getSymbolInfo = (symbol: Symbol) => {
   
   return info[symbol] || { name: symbol, icon: symbol };
 };
+

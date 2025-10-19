@@ -39,3 +39,4 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   backupEnabled: true,
   backupFrequency: "daily",
 };
+

@@ -80,3 +80,4 @@ export function useSystemSettings() {
     isAdmin: auth.currentUser?.email === "okjsk1@gmail.com"
   };
 }
+
