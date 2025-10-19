@@ -29,6 +29,9 @@ export function useRoles(): UseRolesResult {
         setLoading(true);
         const tokenResult = await getIdTokenResult(user);
         const userRoles = (tokenResult.claims.roles as string[]) || [];
+        console.log('사용자 이메일:', user.email);
+        console.log('토큰 클레임:', tokenResult.claims);
+        console.log('사용자 역할:', userRoles);
         setRoles(userRoles);
         setError(null);
       } catch (err) {
@@ -43,9 +46,17 @@ export function useRoles(): UseRolesResult {
     return () => unsubscribe();
   }, []);
 
+  const isEmailAdmin = auth.currentUser?.email === 'okjsk1@gmail.com';
+  
+  // 디버깅: 관리자 상태 확인
+  console.log('관리자 상태 확인:');
+  console.log('- 이메일 기반 관리자:', isEmailAdmin);
+  console.log('- 역할 기반 관리자:', !!roles?.includes('admin'));
+  console.log('- 최종 관리자 여부:', !!roles?.includes('admin') || isEmailAdmin);
+
   return {
     roles,
-    isAdmin: !!roles?.includes('admin'),
+    isAdmin: !!roles?.includes('admin') || isEmailAdmin,
     isOps: !!roles?.includes('ops'),
     loading,
     error
