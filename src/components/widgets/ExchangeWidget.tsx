@@ -50,7 +50,7 @@ const DEFAULT_RATES: ExchangeRate[] = [
     id: '1',
     fromCurrency: 'USD',
     toCurrency: 'KRW',
-    rate: 1320.50,
+    rate: 1420.50,
     change: 5.20,
     changePercent: 0.39,
     lastUpdate: Date.now(),
@@ -61,7 +61,7 @@ const DEFAULT_RATES: ExchangeRate[] = [
     id: '2',
     fromCurrency: 'EUR',
     toCurrency: 'KRW',
-    rate: 1450.30,
+    rate: 1540.80,
     change: -8.70,
     changePercent: -0.60,
     lastUpdate: Date.now(),
@@ -72,7 +72,7 @@ const DEFAULT_RATES: ExchangeRate[] = [
     id: '3',
     fromCurrency: 'JPY',
     toCurrency: 'KRW',
-    rate: 8.95,
+    rate: 9.45,
     change: 0.12,
     changePercent: 1.36,
     lastUpdate: Date.now(),
@@ -332,8 +332,11 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
 
   return (
     <div className="p-2 h-full flex flex-col">
+      {/* 드래그 핸들 영역 */}
+      <div className="absolute top-0 left-0 right-0 h-6 cursor-move" style={{ zIndex: 10 }}></div>
+      
       {/* 컴팩트 헤더 */}
-      <div className="text-center mb-2 flex-shrink-0">
+      <div className="text-center mb-2 flex-shrink-0 relative" style={{ userSelect: 'none' }}>
         <div className="flex items-center justify-center gap-2 mb-1">
           <div className="text-lg">💱</div>
           <div className="flex items-center gap-1">

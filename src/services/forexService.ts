@@ -103,10 +103,6 @@ async function fetchRates(options: {
   
   // JSON 파싱 전에 텍스트 검증
   if (!text || text.trim().startsWith('//') || text.trim().startsWith('<!DOCTYPE')) {
-    // 개발 환경에서는 조용히 더미 데이터 반환 (콘솔 경고 제거)
-    if (import.meta.env.MODE === 'development') {
-      return generateDummyRates(base, symbols);
-    }
     console.warn('Invalid response format from forex API:', text.substring(0, 100));
     throw new Error('Invalid JSON response from forex API');
   }
@@ -115,10 +111,6 @@ async function fetchRates(options: {
   try {
     data = JSON.parse(text);
   } catch (parseError) {
-    // 개발 환경에서는 조용히 더미 데이터 반환
-    if (import.meta.env.MODE === 'development') {
-      return generateDummyRates(base, symbols);
-    }
     console.error('JSON parse error:', parseError);
     console.error('Response text:', text.substring(0, 200));
     throw new Error('Failed to parse forex API response');
@@ -126,10 +118,6 @@ async function fetchRates(options: {
   
   // 서버 응답을 표준화된 형태로 변환
   if (!data || !Array.isArray(data.rates)) {
-    // 개발 환경에서는 조용히 더미 데이터 반환
-    if (import.meta.env.MODE === 'development') {
-      return generateDummyRates(base, symbols);
-    }
     console.warn('Invalid forex API response format:', data);
     throw new Error('Invalid forex API response format');
   }

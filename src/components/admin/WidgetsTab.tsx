@@ -119,7 +119,6 @@ export function WidgetsTab() {
       'todo': '✅',
       'google_search': '🔍',
       'naver_search': '🔍',
-      'law_search': '📜',
       'calendar': '📅',
       'news': '📰',
       'bookmark': '🔖',

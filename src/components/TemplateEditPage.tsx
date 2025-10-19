@@ -94,8 +94,6 @@ export function TemplateEditPage({ onBack, onSave, initialData }: TemplateEditPa
         return <GoogleSearchWidget {...commonProps} />;
       case 'naver_search':
         return <NaverSearchWidget {...commonProps} />;
-      case 'law_search':
-        return <LawSearchWidget {...commonProps} />;
       case 'english_words':
         return <EnglishWordsWidget {...commonProps} />;
       default:

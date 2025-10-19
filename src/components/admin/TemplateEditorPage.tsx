@@ -111,8 +111,6 @@ export function TemplateEditorPage({ onBack, onSave, onDelete, templateId, initi
         return <GoogleSearchWidget {...commonProps} />;
       case 'naver_search':
         return <NaverSearchWidget {...commonProps} />;
-      case 'law_search':
-        return <LawSearchWidget {...commonProps} />;
       case 'english_words':
         return <EnglishWordsWidget {...commonProps} />;
       default:
@@ -161,7 +159,7 @@ export function TemplateEditorPage({ onBack, onSave, onDelete, templateId, initi
       if (found) break;
     }
 
-    const isSearchWidget = type === 'google_search' || type === 'naver_search' || type === 'law_search';
+    const isSearchWidget = type === 'google_search' || type === 'naver_search';
     const width = isSearchWidget ? CELL_WIDTH * 2 + SPACING : CELL_WIDTH; // MyPage의 서브셀/메인컬럼 폭 기준
     const height = isSearchWidget ? 225 : CELL_HEIGHT;
 

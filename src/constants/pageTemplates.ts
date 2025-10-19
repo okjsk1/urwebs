@@ -126,7 +126,6 @@ export const getDefaultWidgets = (): Widget[] => {
     // 5-6컬럼 - 법제처검색, 계산기
     {
       id: '9',
-      type: 'law_search',
       x: (cellWidth + spacing) * 4,
       y: 540,
       width: (cellWidth + spacing) * 2 - spacing,

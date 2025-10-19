@@ -653,7 +653,7 @@ export function MyPage() {
         const row = Math.floor(index / 4);
         
         // 검색 위젯은 2x1 그리드 크기로 설정
-        if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'law_search') {
+        if (widget.type === 'google_search' || widget.type === 'naver_search') {
           return {
             ...widget,
             id: `${widget.type}_${Date.now()}_${index}`,
@@ -1046,8 +1046,7 @@ export function MyPage() {
     let widgetSize = size;
     let width, height;
     
-    if (type === 'google_search' || type === 'naver_search' ||
-        type === 'law_search') {
+    if (type === 'google_search' || type === 'naver_search') {
       // 검색 위젯은 2x1 그리드 크기
       widgetSize = '2x1';
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
@@ -1156,7 +1155,7 @@ export function MyPage() {
         : undefined,
       zIndex: 1, // 모든 새 위젯은 기본 Z-index로 설정
       size: widgetSize, // 위젯 사이즈 추가
-      variant: (type === 'google_search' || type === 'naver_search' || type === 'law_search') ? 'compact' : undefined // 검색 위젯은 컴팩트 모드
+      variant: (type === 'google_search' || type === 'naver_search') ? 'compact' : undefined // 검색 위젯은 컴팩트 모드
   };
       
       console.log('🎨 새 위젯 추가:', {
@@ -2070,7 +2069,7 @@ export function MyPage() {
     
     // gridSize가 없는 경우에만 타입에 따라 자동 설정
     if (!widget.gridSize) {
-      if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'law_search') {
+      if (widget.type === 'google_search' || widget.type === 'naver_search') {
         gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 기본
       } else if (widget.type === 'bookmark') {
         gridSize = { w: 1, h: 1 }; // 북마크는 1x1 고정
@@ -2081,7 +2080,7 @@ export function MyPage() {
       } else if (widget.type === 'frequent_sites') {
         gridSize = { w: 1, h: 1 }; // 자주가는사이트 위젯은 1x1 고정
       } else if (widget.type === 'todo') {
-        gridSize = { w: 1, h: 2 }; // To Do 위젯은 1x2
+        gridSize = { w: 2, h: 2 }; // To Do 위젯은 2x2 (2칸 너비만)
       } else if (widget.type === 'weather') {
         gridSize = { w: 1, h: 3 }; // 날씨 위젯은 1x3
       } else if (widget.type === 'english_words') {
@@ -2090,6 +2089,10 @@ export function MyPage() {
         gridSize = { w: 2, h: 1 }; // 영감명언 위젯은 2x1 고정 (고정)
       } else if (widget.type === 'economic_calendar') {
         gridSize = { w: 2, h: 2 }; // 경제캘린더 위젯은 2x2
+      } else if (widget.type === 'exchange') {
+        gridSize = { w: 1, h: 2 }; // 환율 위젯은 1x2 (1칸 너비만)
+      } else if (widget.type === 'law_search') {
+        gridSize = { w: 2, h: 1 }; // 법제처 검색 위젯은 2x1 고정
       } else {
         gridSize = { w: 1, h: 1 }; // 기본적으로 1x1
       }
@@ -2945,40 +2948,6 @@ export function MyPage() {
 
       case 'naver_search':
         return <NaverSearchWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
-
-      case 'law_search':
-        return (
-          <div className="space-y-3">
-            <div className="text-center">
-              <div className="text-2xl mb-2">⚖️</div>
-              <h4 className="font-semibold text-sm text-gray-800">법제처 검색</h4>
-            </div>
-            <div className="space-y-2">
-              <div className="flex gap-1">
-                <input 
-                  type="text" 
-                  placeholder="법령명 검색" 
-                  className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      const query = e.currentTarget.value;
-                      if (query) {
-                        window.open(`https://www.law.go.kr/LSW/lsInfoP.do?efYd=20240101&lsiSeq=000000&chrClsCd=010202&urlMode=lsInfoP&viewCls=lsInfoP&ancYnChk=0#0000`, '_blank');
-                      }
-                    }
-                  }}
-                />
-              </div>
-              <Button 
-                size="sm" 
-                className="w-full h-8 text-xs bg-purple-500 hover:bg-purple-600"
-                onClick={() => window.open('https://www.law.go.kr', '_blank')}
-              >
-                법제처 바로가기
-              </Button>
-            </div>
-          </div>
-        );
 
 
       case 'github_repo':
@@ -4548,11 +4517,10 @@ export function MyPage() {
                           <p className="text-sm text-gray-400">
                             {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'google_search' && '검색 위젯은 편집할 수 없습니다.'}
                             {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'naver_search' && '검색 위젯은 편집할 수 없습니다.'}
-                            {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'law_search' && '검색 위젯은 편집할 수 없습니다.'}
                             {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'social' && '소셜 링크 위젯은 편집할 수 없습니다.'}
                             {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'news' && '뉴스 위젯은 편집할 수 없습니다.'}
                             {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'calendar' && '캘린더 위젯은 편집할 수 없습니다.'}
-                            {!editingWidget || !widgets.find(w => w.id === editingWidget) || !['google_search', 'naver_search', 'law_search', 'social', 'news', 'calendar'].includes(widgets.find(w => w.id === editingWidget)?.type || '') ? '이 위젯은 편집할 수 없습니다.' : ''}
+                            {!editingWidget || !widgets.find(w => w.id === editingWidget) || !['google_search', 'naver_search', 'social', 'news', 'calendar'].includes(widgets.find(w => w.id === editingWidget)?.type || '') ? '이 위젯은 편집할 수 없습니다.' : ''}
                           </p>
                         </div>
                       );

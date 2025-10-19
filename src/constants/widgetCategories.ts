@@ -37,7 +37,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
       { type: 'weather', name: '날씨 정보', icon: Cloud, description: '실시간 날씨 정보' },
       { type: 'google_search', name: '구글 검색', icon: Search, description: '구글 검색 바로가기' },
       { type: 'naver_search', name: '네이버 검색', icon: Search, description: '네이버 검색 바로가기' },
-      { type: 'law_search', name: '법제처 검색', icon: Search, description: '법령 검색 바로가기' },
+      { type: 'law_search', name: '법제처 검색', icon: Search, description: '법령 검색 도구' },
     ]
   },
 

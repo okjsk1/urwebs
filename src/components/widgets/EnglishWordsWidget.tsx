@@ -1,132 +1,135 @@
-// 영어 단어 학습 위젯 - 테마별 학습
-import React, { useState, useEffect, useCallback } from 'react';
+// 영어 단어 학습 위젯 - 단순 자동전환판 (10초 고정, 테마 선택만)
+// 기능: 10초마다 자동으로 다음 단어로 이동, 테마 변경 가능(편집 모드에서만), 불필요 기능/통계 제거
+
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Button } from '../ui/button';
-import { ChevronLeft, ChevronRight, Eye, Settings, Play, Pause, RotateCcw } from 'lucide-react';
-import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
+import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { WidgetProps, persistOrLocal, readLocal } from './utils/widget-helpers';
+
+type Level = 'beginner' | 'intermediate' | 'advanced';
 
 interface Word {
   id: string;
   english: string;
   korean: string;
-  level: 'beginner' | 'intermediate' | 'advanced';
-  correct: number;
-  wrong: number;
-  streak: number;
-  nextDue: number;
+  level: Level;
   createdAt: number;
 }
 
-interface EnglishWordsState {
-  words: Word[];
-  currentIndex: number;
-  showAnswer: boolean;
-  showSettings: boolean;
-  selectedTheme: string;
-  autoPlay: boolean;
-  autoPlayInterval: number; // 초 단위
-  isPlaying: boolean;
-}
+type ThemeKey =
+  | 'elementary' | 'middle' | 'high'
+  | 'travel' | 'toeic' | 'toefl'
+  | 'daily' | 'business' | 'science';
 
-// 테마별 단어 데이터
-const THEME_WORDS: Record<string, Word[]> = {
+const now = Date.now();
+const W = (id: string, english: string, korean: string, level: Level = 'beginner'): Word =>
+  ({ id, english, korean, level, createdAt: now });
+
+// --- 단어 데이터 (확장 버전) ---
+const THEME_WORDS: Record<ThemeKey, Word[]> = {
   elementary: [
-    { id: 'e1', english: 'apple', korean: '사과', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'e2', english: 'book', korean: '책', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'e3', english: 'cat', korean: '고양이', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'e4', english: 'dog', korean: '개', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'e5', english: 'house', korean: '집', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'e6', english: 'water', korean: '물', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'e7', english: 'friend', korean: '친구', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'e8', english: 'happy', korean: '행복한', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    W('e1','apple','사과'), W('e2','book','책'), W('e3','cat','고양이'), W('e4','dog','개'),
+    W('e5','house','집'), W('e6','water','물'), W('e7','friend','친구'), W('e8','happy','행복한'),
+    W('e9','school','학교'), W('e10','teacher','선생님'), W('e11','student','학생'), W('e12','family','가족'),
+    W('e13','mother','어머니'), W('e14','father','아버지'), W('e15','sister','언니/누나'), W('e16','brother','형/오빠'),
+    W('e17','car','자동차'), W('e18','bike','자전거'), W('e19','food','음식'), W('e20','milk','우유'),
+    W('e21','bread','빵'), W('e22','rice','쌀'), W('e23','fish','물고기'), W('e24','chicken','닭'),
+    W('e25','red','빨간색'), W('e26','blue','파란색'), W('e27','green','초록색'), W('e28','yellow','노란색'),
+    // 추가
+    W('e29','window','창문'), W('e30','door','문'), W('e31','table','탁자'), W('e32','chair','의자'),
+    W('e33','flower','꽃'), W('e34','tree','나무'), W('e35','sun','태양'), W('e36','moon','달'), W('e37','star','별'),
   ],
   middle: [
-    { id: 'm1', english: 'beautiful', korean: '아름다운', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'm2', english: 'important', korean: '중요한', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'm3', english: 'difficult', korean: '어려운', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'm4', english: 'interesting', korean: '흥미로운', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'm5', english: 'comfortable', korean: '편안한', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'm6', english: 'necessary', korean: '필요한', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'm7', english: 'possible', korean: '가능한', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'm8', english: 'different', korean: '다른', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    W('m1','beautiful','아름다운','intermediate'), W('m2','important','중요한','intermediate'),
+    W('m3','difficult','어려운','intermediate'), W('m4','interesting','흥미로운','intermediate'),
+    W('m5','comfortable','편안한','intermediate'), W('m6','necessary','필요한','intermediate'),
+    W('m7','possible','가능한','intermediate'), W('m8','different','다른','intermediate'),
+    W('m9','wonderful','훌륭한','intermediate'), W('m10','fantastic','환상적인','intermediate'),
+    // 추가
+    W('m11','efficient','효율적인','intermediate'),
+    W('m12','curious','호기심 많은','intermediate'),
+    W('m13','creative','창의적인','intermediate'),
+    W('m14','polite','공손한','intermediate'),
+    W('m15','helpful','도움이 되는','intermediate'),
   ],
   high: [
-    { id: 'h1', english: 'serendipity', korean: '우연한 발견', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'h2', english: 'ephemeral', korean: '일시적인, 덧없는', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'h3', english: 'ubiquitous', korean: '어디에나 있는', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'h4', english: 'mellifluous', korean: '달콤한 소리의', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'h5', english: 'perspicacious', korean: '통찰력 있는', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'h6', english: 'luminous', korean: '빛나는', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'h7', english: 'resilient', korean: '탄력 있는', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'h8', english: 'eloquent', korean: '웅변의', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    W('h1','serendipity','우연한 발견','advanced'),
+    W('h2','ephemeral','일시적인','advanced'),
+    W('h3','ubiquitous','어디에나 있는','advanced'),
+    W('h4','mellifluous','감미로운(소리)','advanced'),
+    W('h5','perspicacious','통찰력 있는','advanced'),
+    W('h6','luminous','빛나는','advanced'),
+    W('h7','resilient','회복력 있는','advanced'),
+    W('h8','eloquent','유창한','advanced'),
+    // 추가
+    W('h9','meticulous','꼼꼼한','advanced'),
+    W('h10','alacrity','민첩, 열의','advanced'),
   ],
   travel: [
-    { id: 't1', english: 'passport', korean: '여권', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 't2', english: 'airport', korean: '공항', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 't3', english: 'hotel', korean: '호텔', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 't4', english: 'restaurant', korean: '레스토랑', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 't5', english: 'ticket', korean: '표', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 't6', english: 'luggage', korean: '짐', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 't7', english: 'currency', korean: '통화', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 't8', english: 'souvenir', korean: '기념품', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    W('t1','passport','여권','intermediate'), W('t2','airport','공항','intermediate'),
+    W('t3','hotel','호텔'), W('t4','restaurant','레스토랑','intermediate'),
+    W('t5','ticket','표'), W('t6','luggage','짐','intermediate'),
+    W('t7','currency','통화','intermediate'), W('t8','souvenir','기념품','intermediate'),
+    // 추가
+    W('t9','boarding pass','탑승권','intermediate'),
+    W('t10','reservation','예약','intermediate'),
+    W('t11','customs','세관','intermediate'),
+    W('t12','itinerary','여행 일정','intermediate'),
   ],
-  toiec: [
-    { id: 'to1', english: 'meeting', korean: '회의', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'to2', english: 'deadline', korean: '마감일', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'to3', english: 'budget', korean: '예산', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'to4', english: 'contract', korean: '계약', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'to5', english: 'schedule', korean: '일정', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'to6', english: 'presentation', korean: '발표', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'to7', english: 'negotiation', korean: '협상', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'to8', english: 'investment', korean: '투자', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+  toeic: [
+    W('to1','meeting','회의','intermediate'), W('to2','deadline','마감일','intermediate'),
+    W('to3','budget','예산','intermediate'), W('to4','contract','계약','intermediate'),
+    W('to5','schedule','일정','intermediate'), W('to6','presentation','발표','intermediate'),
+    W('to7','negotiation','협상','advanced'), W('to8','investment','투자','intermediate'),
+    // 추가
+    W('to9','proposal','제안서','intermediate'),
+    W('to10','invoice','송장','intermediate'),
   ],
   toefl: [
-    { id: 'tf1', english: 'hypothesis', korean: '가설', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'tf2', english: 'analysis', korean: '분석', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'tf3', english: 'synthesis', korean: '종합', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'tf4', english: 'evaluation', korean: '평가', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'tf5', english: 'interpretation', korean: '해석', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'tf6', english: 'comprehensive', korean: '포괄적인', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'tf7', english: 'sophisticated', korean: '정교한', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'tf8', english: 'substantial', korean: '상당한', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    W('tf1','hypothesis','가설','advanced'), W('tf2','analysis','분석','advanced'),
+    W('tf3','synthesis','종합','advanced'), W('tf4','evaluation','평가','advanced'),
+    W('tf5','interpretation','해석','advanced'), W('tf6','comprehensive','포괄적인','advanced'),
+    W('tf7','sophisticated','정교한','advanced'), W('tf8','substantial','상당한','advanced'),
+    // 추가
+    W('tf9','phenomenon','현상','advanced'),
+    W('tf10','correlation','상관관계','advanced'),
   ],
   daily: [
-    { id: 'd1', english: 'breakfast', korean: '아침식사', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'd2', english: 'exercise', korean: '운동', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'd3', english: 'shopping', korean: '쇼핑', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'd4', english: 'weather', korean: '날씨', level: 'beginner', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'd5', english: 'transportation', korean: '교통수단', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'd6', english: 'entertainment', korean: '오락', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'd7', english: 'communication', korean: '소통', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'd8', english: 'technology', korean: '기술', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    W('d1','breakfast','아침식사'), W('d2','exercise','운동','intermediate'),
+    W('d3','shopping','쇼핑'), W('d4','weather','날씨'),
+    W('d5','transportation','교통수단','intermediate'), W('d6','entertainment','오락','intermediate'),
+    W('d7','communication','소통','intermediate'), W('d8','technology','기술','intermediate'),
+    // 추가
+    W('d9','laundry','세탁','intermediate'),
+    W('d10','appointment','약속/예약','intermediate'),
   ],
   business: [
-    { id: 'b1', english: 'entrepreneur', korean: '기업가', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'b2', english: 'innovation', korean: '혁신', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'b3', english: 'strategy', korean: '전략', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'b4', english: 'revenue', korean: '수익', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'b5', english: 'efficiency', korean: '효율성', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'b6', english: 'collaboration', korean: '협력', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'b7', english: 'leadership', korean: '리더십', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 'b8', english: 'productivity', korean: '생산성', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
+    W('b1','entrepreneur','기업가','advanced'), W('b2','innovation','혁신','intermediate'),
+    W('b3','strategy','전략','intermediate'), W('b4','revenue','수익','intermediate'),
+    W('b5','efficiency','효율성','intermediate'), W('b6','collaboration','협력','intermediate'),
+    W('b7','leadership','리더십','intermediate'), W('b8','productivity','생산성','intermediate'),
+    // 추가
+    W('b9','stakeholder','이해관계자','intermediate'),
+    W('b10','scalability','확장성','advanced'),
   ],
   science: [
-    { id: 's1', english: 'experiment', korean: '실험', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 's2', english: 'hypothesis', korean: '가설', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 's3', english: 'microscope', korean: '현미경', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 's4', english: 'molecule', korean: '분자', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 's5', english: 'ecosystem', korean: '생태계', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 's6', english: 'evolution', korean: '진화', level: 'intermediate', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 's7', english: 'photosynthesis', korean: '광합성', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-    { id: 's8', english: 'metabolism', korean: '신진대사', level: 'advanced', correct: 0, wrong: 0, streak: 0, nextDue: Date.now(), createdAt: Date.now() },
-  ]
+    W('s1','experiment','실험','intermediate'), W('s2','hypothesis','가설','advanced'),
+    W('s3','microscope','현미경','intermediate'), W('s4','molecule','분자','intermediate'),
+    W('s5','ecosystem','생태계','intermediate'), W('s6','evolution','진화','intermediate'),
+    W('s7','photosynthesis','광합성','advanced'), W('s8','metabolism','신진대사','advanced'),
+    // 추가
+    W('s9','gravity','중력','intermediate'),
+    W('s10','atom','원자','intermediate'),
+  ],
 };
 
-const THEME_OPTIONS = [
+// 테마 옵션
+const THEME_OPTIONS: { value: ThemeKey; label: string; emoji: string }[] = [
   { value: 'elementary', label: '초등학생', emoji: '🎒' },
   { value: 'middle', label: '중학생', emoji: '📚' },
   { value: 'high', label: '고등학생', emoji: '🎓' },
   { value: 'travel', label: '해외여행', emoji: '✈️' },
-  { value: 'toiec', label: '토익', emoji: '💼' },
+  { value: 'toeic', label: '토익', emoji: '💼' },
   { value: 'toefl', label: '토플', emoji: '🎯' },
   { value: 'daily', label: '실생활', emoji: '🏠' },
   { value: 'business', label: '비즈니스', emoji: '💼' },
@@ -134,94 +137,53 @@ const THEME_OPTIONS = [
 ];
 
 export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
-  const [state, setState] = useState(() => {
+  // 저장/복원 최소 상태만
+  const [selectedTheme, setSelectedTheme] = useState<ThemeKey>('elementary');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // 복원 (기존 'toiec' 저장값 호환)
+  useEffect(() => {
     const saved = readLocal(widget.id, {
-      words: THEME_WORDS.elementary,
-      currentIndex: 0,
-      showAnswer: false,
-      showSettings: false,
       selectedTheme: 'elementary',
-      autoPlay: true,
-      autoPlayInterval: 10,
-      isPlaying: true
+      currentIndex: 0,
+      showSettings: false,
     });
-    return saved;
-  });
+    const theme: ThemeKey = saved.selectedTheme === 'toiec' ? 'toeic' : saved.selectedTheme;
+    setSelectedTheme(theme);
+    setCurrentIndex(Number(saved.currentIndex) || 0);
+    setShowSettings(!!saved.showSettings);
+  }, [widget.id]);
 
-  // 상태 저장
+  // 저장 (간단 디바운스)
   useEffect(() => {
-    persistOrLocal(widget.id, state, updateWidget);
-  }, [widget.id, state, updateWidget]);
+    const t = setTimeout(() => {
+      persistOrLocal(widget.id, { selectedTheme, currentIndex, showSettings }, updateWidget);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [widget.id, updateWidget, selectedTheme, currentIndex, showSettings]);
 
-  // 자동 재생 타이머
+  const words = useMemo(() => THEME_WORDS[selectedTheme] ?? THEME_WORDS.elementary, [selectedTheme]);
+  const currentWord = words[currentIndex];
+
+  // 10초 고정 자동 전환
   useEffect(() => {
-    if (!state.autoPlay || !state.isPlaying || state.words.length === 0) return;
+    if (!words.length) return;
+    const id = window.setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % words.length);
+    }, 10_000);
+    return () => window.clearInterval(id);
+  }, [words.length]);
 
-    const timer = setInterval(() => {
-      setState(prev => ({
-        ...prev,
-        currentIndex: (prev.currentIndex + 1) % prev.words.length,
-        showAnswer: false
-      }));
-    }, state.autoPlayInterval * 1000);
+  const prev = useCallback(() => {
+    if (!words.length) return;
+    setCurrentIndex((i) => (i === 0 ? words.length - 1 : i - 1));
+  }, [words.length]);
 
-    return () => clearInterval(timer);
-  }, [state.autoPlay, state.isPlaying, state.autoPlayInterval, state.words.length]);
-
-  const currentWord = state.words[state.currentIndex];
-
-  const nextWord = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      currentIndex: (prev.currentIndex + 1) % prev.words.length,
-      showAnswer: false
-    }));
-  }, []);
-
-  const prevWord = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      currentIndex: prev.currentIndex === 0 ? prev.words.length - 1 : prev.currentIndex - 1,
-      showAnswer: false
-    }));
-  }, []);
-
-  const toggleAnswer = useCallback(() => {
-    setState(prev => ({ ...prev, showAnswer: !prev.showAnswer }));
-  }, []);
-
-  const toggleAutoPlay = useCallback(() => {
-    setState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
-  }, []);
-
-  const changeTheme = useCallback((theme: string) => {
-    setState(prev => ({
-      ...prev,
-      selectedTheme: theme,
-      words: THEME_WORDS[theme] || THEME_WORDS.elementary,
-      currentIndex: 0,
-      showAnswer: false
-    }));
-  }, []);
-
-  const changeInterval = useCallback((interval: number) => {
-    setState(prev => ({ ...prev, autoPlayInterval: interval }));
-  }, []);
-
-  const resetProgress = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      words: prev.words.map(word => ({
-        ...word,
-        correct: 0,
-        wrong: 0,
-        streak: 0
-      })),
-      currentIndex: 0,
-      showAnswer: false
-    }));
-    showToast('학습 진도가 초기화되었습니다.');
-  }, []);
+  const next = useCallback(() => {
+    if (!words.length) return;
+    setCurrentIndex((i) => (i + 1) % words.length);
+  }, [words.length]);
 
   if (!currentWord) {
     return (
@@ -234,8 +196,8 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
 
   return (
     <div className="p-3 h-full flex flex-col">
-      {/* 설정 패널 */}
-      {isEditMode && state.showSettings && (
+      {/* 설정 패널 (편집 모드에서만) */}
+      {isEditMode && showSettings && (
         <div className="mb-3 p-2 bg-gray-50 rounded-lg space-y-2 shrink-0">
           <div>
             <label className="text-xs font-medium text-gray-700 mb-1 block">테마 선택</label>
@@ -244,9 +206,13 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
                 <Button
                   key={theme.value}
                   size="sm"
-                  variant={state.selectedTheme === theme.value ? 'default' : 'outline'}
+                  variant={selectedTheme === theme.value ? 'default' : 'outline'}
                   className="h-6 text-xs justify-start"
-                  onClick={() => changeTheme(theme.value)}
+                  onClick={() => { 
+                    setSelectedTheme(theme.value); 
+                    setCurrentIndex(0); 
+                    setShowSettings(false); 
+                  }}
                 >
                   <span className="mr-1">{theme.emoji}</span>
                   {theme.label}
@@ -254,99 +220,43 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
               ))}
             </div>
           </div>
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">자동 재생 간격</label>
-            <div className="flex gap-1">
-              {[10, 20, 30].map(interval => (
-                <Button
-                  key={interval}
-                  size="sm"
-                  variant={state.autoPlayInterval === interval ? 'default' : 'outline'}
-                  className="h-6 text-xs flex-1"
-                  onClick={() => changeInterval(interval)}
-                >
-                  {interval}초
-                </Button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-1">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-6 text-xs flex-1"
-              onClick={resetProgress}
-            >
-              <RotateCcw className="w-3 h-3 mr-1" />
-              진도 초기화
-            </Button>
-          </div>
         </div>
       )}
 
-      {/* 단어 카드 */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
-        <div className="w-full">
-          {/* 현재 단어 번호 표시 */}
-          <div className="text-xs text-gray-500 mb-2">
-            {state.currentIndex + 1} / {state.words.length}
-          </div>
-          
-          <div className="text-2xl font-bold text-gray-800 mb-2">
-            {currentWord.english}
-          </div>
-          <div className="text-sm text-gray-500 mb-4">
-            {currentWord.level === 'beginner' && '🟢 초급'}
-            {currentWord.level === 'intermediate' && '🟡 중급'}
-            {currentWord.level === 'advanced' && '🔴 고급'}
-          </div>
-          
-          {/* 답 항상 표시 */}
-          <div className="text-lg text-blue-600 font-medium">
-            {currentWord.korean}
-          </div>
-        </div>
-
-        {/* 학습 통계 */}
-        <div className="flex gap-4 text-xs text-gray-500">
-          <span>정답: {currentWord.correct}</span>
-          <span>오답: {currentWord.wrong}</span>
-          <span>연속: {currentWord.streak}</span>
-        </div>
-      </div>
-
-      {/* 네비게이션 및 컨트롤 */}
-      <div className="flex items-center justify-between shrink-0">
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8 w-8 p-0"
-          onClick={prevWord}
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        
-        <div className="flex items-center gap-2">
+      {/* 상단 표시줄 */}
+      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+        <div>{currentIndex + 1} / {words.length}</div>
+        {isEditMode && (
           <Button
             size="sm"
             variant="ghost"
             className="h-6 w-6 p-0"
-            onClick={toggleAutoPlay}
-            title={state.isPlaying ? "일시정지" : "재생"}
+            onClick={() => setShowSettings(s => !s)}
+            title="설정"
           >
-            {state.isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+            <Settings className="w-3 h-3" />
           </Button>
-          <div className="text-xs text-gray-500">
-            {state.autoPlay && state.isPlaying ? `${state.autoPlayInterval}초` : '수동'}
-          </div>
+        )}
+      </div>
+
+      {/* 단어 카드 */}
+      <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
+        <div className="text-2xl font-bold text-gray-800">{currentWord.english}</div>
+        <div className="text-sm text-gray-500">
+          {currentWord.level === 'beginner' && '🟢 초급'}
+          {currentWord.level === 'intermediate' && '🟡 중급'}
+          {currentWord.level === 'advanced' && '🔴 고급'}
         </div>
-        
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8 w-8 p-0"
-          onClick={nextWord}
-        >
+        <div className="text-lg text-blue-600 font-medium">{currentWord.korean}</div>
+      </div>
+
+      {/* 좌/우 네비게이션 */}
+      <div className="flex items-center justify-between shrink-0">
+        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={prev}>
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <div className="text-xs text-gray-500">10초마다 자동 전환</div>
+        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={next}>
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>

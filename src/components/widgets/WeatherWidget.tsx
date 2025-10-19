@@ -104,7 +104,7 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
         lastUpdated: Date.now()
       }));
 
-      showToast('날씨 정보가 업데이트되었습니다', 'success');
+      // showToast('날씨 정보가 업데이트되었습니다', 'success');
     } catch (error) {
       console.error('날씨 정보 업데이트 실패:', error);
       setState(prev => ({
@@ -194,7 +194,7 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
 
       // 위치 변경 후 새로운 날씨 정보 가져오기
       await refreshWeather();
-      showToast(`위치가 ${newLocation.name}으로 변경되었습니다`, 'success');
+      // showToast(`위치가 ${newLocation.name}으로 변경되었습니다`, 'success');
     } catch (error) {
       showToast('위치 검색에 실패했습니다', 'error');
     }
@@ -211,7 +211,7 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
       }));
       
       await refreshWeather();
-      showToast('현재 위치로 설정되었습니다', 'success');
+      // showToast('현재 위치로 설정되었습니다', 'success');
     } catch (error) {
       showToast('위치 감지에 실패했습니다. 위치 권한을 확인해주세요.', 'error');
     }
@@ -223,7 +223,7 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
       ...prev,
       units: newUnits
     }));
-    showToast(`단위가 ${newUnits === 'metric' ? '섭씨' : '화씨'}로 변경되었습니다`, 'success');
+    // showToast(`단위가 ${newUnits === 'metric' ? '섭씨' : '화씨'}로 변경되었습니다`, 'success');
   }, [state.units]);
 
   const getWeatherColor = useCallback((condition: string | undefined) => {

@@ -320,12 +320,10 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
             const email = p.authorEmail;
             if (!email) return true; // 이메일이 없으면 포함
             
-            // 로컬 테스트 이메일들 제외
+            // 로컬 테스트 이메일들 제외 (okjsk1@gmail.com은 실제 사용자이므로 포함)
             const isLocalTest = email.includes('localhost') || 
                                email.includes('127.0.0.1') || 
-                               email.includes('test@') ||
-                               email.includes('okjsk1@gmail.com') ||
-                               email.includes('okjsk2@gmail.com');
+                               email.includes('test@');
             
             return !isLocalTest;
           })
@@ -368,9 +366,7 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
           
           const isLocalTest = email.includes('localhost') || 
                              email.includes('127.0.0.1') || 
-                             email.includes('test@') ||
-                             email.includes('okjsk1@gmail.com') ||
-                             email.includes('okjsk2@gmail.com');
+                             email.includes('test@');
           
           return !isLocalTest;
         });
@@ -411,9 +407,7 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
           
           const isLocalTest = email.includes('localhost') || 
                              email.includes('127.0.0.1') || 
-                             email.includes('test@') ||
-                             email.includes('okjsk1@gmail.com') ||
-                             email.includes('okjsk2@gmail.com');
+                             email.includes('test@');
           
           return !isLocalTest;
         });

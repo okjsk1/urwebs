@@ -173,8 +173,10 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
     let newSize = '1x1'; // 기본 1x1
 
     // 북마크 개수에 따른 크기 결정
-    if (bookmarkCount >= 7) {
-      newSize = '1x4'; // 7-9개: 1x4
+    if (bookmarkCount >= 8) {
+      newSize = '1x4'; // 8개 이상: 1x4
+    } else if (bookmarkCount >= 7) {
+      newSize = '1x3'; // 7개: 1x3
     } else if (bookmarkCount >= 4) {
       newSize = '1x2'; // 4-6개: 1x2
     } else {
