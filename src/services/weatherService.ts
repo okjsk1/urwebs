@@ -312,6 +312,110 @@ class OpenWeatherProvider implements WeatherProvider {
     };
     return iconMap[iconCode] || '☀️';
   }
+
+  // 시뮬레이션 데이터 생성 메서드들 추가
+  private generateSimulationData(location: WeatherLocation): CurrentWeather {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // 시간대별 온도 시뮬레이션
+    const baseTemp = 20 + Math.sin((hour - 6) * Math.PI / 12) * 8;
+    const temp = Math.round(baseTemp + (Math.random() - 0.5) * 4);
+    
+    const conditions = ['맑음', '구름많음', '흐림', '비', '눈'];
+    const condition = conditions[Math.floor(Math.random() * conditions.length)];
+    
+    return {
+      location,
+      temperature: temp,
+      feelsLike: temp + Math.round((Math.random() - 0.5) * 3),
+      condition,
+      description: condition,
+      humidity: Math.round(40 + Math.random() * 40),
+      windSpeed: Math.round(Math.random() * 10),
+      windDirection: Math.round(Math.random() * 360),
+      visibility: Math.round(8000 + Math.random() * 2000),
+      pressure: Math.round(1010 + Math.random() * 20),
+      uvIndex: Math.round(Math.random() * 10),
+      icon: ['☀️', '⛅', '☁️', '🌧️', '❄️'][Math.floor(Math.random() * 5)],
+      timestamp: Date.now(),
+      sunrise: this.getSunriseTime(now),
+      sunset: this.getSunsetTime(now),
+    };
+  }
+
+  private generateHourlySimulation(location: WeatherLocation): HourlyForecast[] {
+    const forecasts: HourlyForecast[] = [];
+    const now = new Date();
+    
+    for (let i = 0; i < 24; i++) {
+      const hour = (now.getHours() + i) % 24;
+      const baseTemp = 20 + Math.sin((hour - 6) * Math.PI / 12) * 8;
+      const temp = Math.round(baseTemp + (Math.random() - 0.5) * 4);
+      
+      forecasts.push({
+        timestamp: now.getTime() + i * 3600000,
+        temperature: temp,
+        condition: ['맑음', '구름많음', '흐림', '비', '눈'][Math.floor(Math.random() * 5)],
+        description: '시뮬레이션 데이터',
+        humidity: Math.round(40 + Math.random() * 40),
+        windSpeed: Math.round(Math.random() * 10),
+        windDirection: Math.round(Math.random() * 360),
+        precipitation: Math.round(Math.random() * 5),
+        precipitationProbability: Math.round(Math.random() * 100),
+        icon: ['☀️', '⛅', '☁️', '🌧️', '❄️'][Math.floor(Math.random() * 5)],
+      });
+    }
+    
+    return forecasts;
+  }
+
+  private generateDailySimulation(location: WeatherLocation): DailyForecast[] {
+    const forecasts: DailyForecast[] = [];
+    const now = new Date();
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(now.getTime() + i * 86400000);
+      const baseTemp = 20 + Math.sin((date.getMonth() / 12) * Math.PI * 2) * 10;
+      const randomVariation = (Math.random() - 0.5) * 6;
+      const minTemp = Math.round(baseTemp + randomVariation - 5);
+      const maxTemp = Math.round(baseTemp + randomVariation + 5);
+      
+      forecasts.push({
+        date: date.toISOString().split('T')[0],
+        timestamp: date.getTime(),
+        temperature: { min: minTemp, max: maxTemp },
+        condition: ['맑음', '구름많음', '흐림', '비', '눈'][Math.floor(Math.random() * 5)],
+        description: '시뮬레이션 데이터',
+        humidity: Math.round(40 + Math.random() * 40),
+        windSpeed: Math.round(Math.random() * 10),
+        windDirection: Math.round(Math.random() * 360),
+        precipitation: Math.round(Math.random() * 10),
+        precipitationProbability: Math.round(Math.random() * 100),
+        icon: ['☀️', '⛅', '☁️', '🌧️', '❄️'][Math.floor(Math.random() * 5)],
+        sunrise: this.getSunriseTime(date),
+        sunset: this.getSunsetTime(date),
+      });
+    }
+    
+    return forecasts;
+  }
+
+  private getSunriseTime(date: Date): number {
+    // 간단한 일출/일몰 시뮬레이션
+    const hour = 6 + Math.random() * 2; // 6-8시
+    const sunrise = new Date(date);
+    sunrise.setHours(Math.floor(hour), (hour % 1) * 60, 0, 0);
+    return sunrise.getTime();
+  }
+
+  private getSunsetTime(date: Date): number {
+    // 간단한 일출/일몰 시뮬레이션
+    const hour = 18 + Math.random() * 2; // 18-20시
+    const sunset = new Date(date);
+    sunset.setHours(Math.floor(hour), (hour % 1) * 60, 0, 0);
+    return sunset.getTime();
+  }
 }
 
 // 메인 날씨 서비스

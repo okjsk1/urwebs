@@ -50,8 +50,6 @@ export function Column({ column, widgets, isEditMode, onAddWidget, onDeleteWidge
         return <ExchangeWidget />;
       case 'stock':
         return <StockWidget />;
-      case 'todo':
-        return <TodoWidget />;
       default:
         return <div className="text-sm text-gray-500">알 수 없는 위젯</div>;
     }

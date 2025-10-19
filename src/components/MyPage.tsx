@@ -3915,14 +3915,6 @@ export function MyPage() {
           onAddWidget={(type) => addWidget(type)}
         />
 
-        {/* (구) 새 창 코드 제거 - 완전 비활성화 */}
-        {false && (
-          <script>
-            {(() => {
-              return '';
-            })()}
-          </script>
-        )}
                  
 
         {/* 배경 설정 모달 */}

@@ -45,16 +45,14 @@ function PublicPageViewer() {
           const docData = snapshot.docs[0].data();
           setPageData({ id: snapshot.docs[0].id, ...docData });
           
-          // 조회수 증가: 권한이 있는 경우에만 시도
+          // 조회수 증가: 백그라운드에서 조용히 시도 (실패해도 무시)
           try {
             const docRef = doc(db, 'userPages', snapshot.docs[0].id);
             await updateDoc(docRef, { views: increment(1) });
             // 페이지 데이터에도 조회수 업데이트
             docData.views = (docData.views || 0) + 1;
-            console.log('조회수 증가 성공');
           } catch (e) {
-            console.warn('조회수 증가 실패 (권한 없음):', e.message);
-            // 조회수 증가 실패해도 페이지는 정상 표시
+            // 조회수 증가 실패는 조용히 무시 (페이지 표시에는 영향 없음)
           }
         } else {
           setError('페이지를 찾을 수 없습니다.');
@@ -147,14 +145,15 @@ function PublicPageViewer() {
           {/* 공개보기: DraggableDashboardGrid를 사용한 그리드 레이아웃 */}
           {Array.isArray(pageData.widgets) && pageData.widgets.length > 0 ? (
             <DraggableDashboardGrid
-              widgets={pageData.widgets.map((w: any) => ({
+              widgets={pageData.widgets.map((w: any, index: number) => ({
                 id: w.id,
                 type: w.type,
                 title: w.title || allWidgets.find(widget => widget.type === w.type)?.name || '위젯',
                 content: w.content,
                 variant: w.variant,
-                x: w.x || 0,
-                y: w.y || 0,
+                // 좌표가 없으면 순차적으로 배치 (그리드 단위로)
+                x: w.x !== undefined ? Math.floor(w.x / 150) : (index % 8),
+                y: w.y !== undefined ? Math.floor(w.y / 160) : Math.floor(index / 8),
                 size: w.gridSize || { w: w.width || 1, h: w.height || 1 },
                 width: w.width || 1,
                 height: w.height || 1,
