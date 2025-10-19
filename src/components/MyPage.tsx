@@ -129,7 +129,7 @@ export function MyPage() {
   };
 
   const [shareSettings, setShareSettings] = useState<ShareSettings>({
-    isPublic: true,
+    isPublic: false, // 기본값을 비공개로 변경하여 로컬 저장 페이지가 최신 업데이트에 표시되지 않도록 함
     customDomain: 'user123', // 실제로는 사용자 ID나 사용자명을 가져와야 함
     allowComments: true,
     showStats: true
