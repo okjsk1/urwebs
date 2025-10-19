@@ -1,41 +1,14 @@
-// 날씨 위젯 - 실시간 날씨 정보, 시간별 예보, 위치 설정
+// 날씨 위젯 - 개선된 데이터 소스, 단위 변환, 위치 감지
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
-import { MapPin, RefreshCw, Settings, Thermometer, Droplets, Wind, Eye, Sunrise, Sunset } from 'lucide-react';
+import { MapPin, RefreshCw, Settings, Thermometer, Droplets, Wind, Eye, Sunrise, Sunset, AlertCircle, Wifi, WifiOff, Navigation } from 'lucide-react';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
-
-interface WeatherData {
-  location: string;
-  temperature: number;
-  condition: string;
-  humidity: number;
-  windSpeed: number;
-  visibility: number;
-  feelsLike: number;
-  icon: string;
-  lastUpdated: string;
-}
-
-interface HourlyForecast {
-  time: string;
-  temperature: number;
-  condition: string;
-  icon: string;
-  precipitation: number;
-}
-
-interface DailyForecast {
-  date: string;
-  day: string;
-  highTemp: number;
-  lowTemp: number;
-  condition: string;
-  icon: string;
-  precipitation: number;
-}
+import { weatherService, WeatherLocation, CurrentWeather, HourlyForecast, DailyForecast } from '../../services/weatherService';
+import { WeatherUnits, formatTemperature, formatWindSpeed, formatDistance, formatHumidity, formatPressure } from '../../utils/weatherUnits';
 
 interface WeatherState {
-  weatherData: WeatherData;
+  location: WeatherLocation;
+  currentWeather: CurrentWeather | null;
   hourlyForecast: HourlyForecast[];
   dailyForecast: DailyForecast[];
   showHourly: boolean;
@@ -44,179 +17,204 @@ interface WeatherState {
   customLocation: string;
   autoRefresh: boolean;
   refreshInterval: number; // minutes
-  units: 'metric' | 'imperial';
+  units: WeatherUnits;
+  loading: boolean;
+  error: string | null;
+  lastUpdated: number;
+  isOnline: boolean;
 }
 
-const DEFAULT_WEATHER_DATA: WeatherData = {
-  location: '서울',
-  temperature: 22,
-  condition: '맑음',
-  humidity: 65,
-  windSpeed: 12,
-  visibility: 10,
-  feelsLike: 24,
-  icon: '☀️',
-  lastUpdated: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+const DEFAULT_LOCATION: WeatherLocation = {
+  name: '서울',
+  lat: 37.5665,
+  lon: 126.9780,
+  timezone: 'Asia/Seoul'
 };
 
-const SAMPLE_HOURLY_FORECAST: HourlyForecast[] = [
-  { time: '14:00', temperature: 22, condition: '맑음', icon: '☀️', precipitation: 0 },
-  { time: '15:00', temperature: 23, condition: '맑음', icon: '☀️', precipitation: 0 },
-  { time: '16:00', temperature: 21, condition: '구름조금', icon: '⛅', precipitation: 0 },
-  { time: '17:00', temperature: 20, condition: '구름많음', icon: '☁️', precipitation: 10 },
-  { time: '18:00', temperature: 19, condition: '비', icon: '🌧️', precipitation: 80 },
-  { time: '19:00', temperature: 18, condition: '비', icon: '🌧️', precipitation: 90 },
-  { time: '20:00', temperature: 17, condition: '흐림', icon: '☁️', precipitation: 20 },
-  { time: '21:00', temperature: 16, condition: '흐림', icon: '☁️', precipitation: 10 }
-];
-
-const SAMPLE_DAILY_FORECAST: DailyForecast[] = [
-  { date: '2024-01-16', day: '화', highTemp: 25, lowTemp: 15, condition: '맑음', icon: '☀️', precipitation: 0 },
-  { date: '2024-01-17', day: '수', highTemp: 23, lowTemp: 13, condition: '구름조금', icon: '⛅', precipitation: 10 },
-  { date: '2024-01-18', day: '목', highTemp: 21, lowTemp: 11, condition: '비', icon: '🌧️', precipitation: 80 },
-  { date: '2024-01-19', day: '금', highTemp: 19, lowTemp: 9, condition: '흐림', icon: '☁️', precipitation: 30 },
-  { date: '2024-01-20', day: '토', highTemp: 22, lowTemp: 12, condition: '맑음', icon: '☀️', precipitation: 0 }
-];
-
-export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWidget }) => {
-  const [state, setState] = useState<WeatherState>(() => {
+export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
+  const [state, setState] = useState(() => {
     const saved = readLocal(widget.id, {
-      weatherData: DEFAULT_WEATHER_DATA,
-      hourlyForecast: SAMPLE_HOURLY_FORECAST,
-      dailyForecast: SAMPLE_DAILY_FORECAST,
+      location: DEFAULT_LOCATION,
+      currentWeather: null,
+      hourlyForecast: [],
+      dailyForecast: [],
       showHourly: false,
       showDaily: false,
       showSettings: false,
       customLocation: '서울',
       autoRefresh: true,
       refreshInterval: 10,
-      units: 'metric' as const
+      units: 'metric' as WeatherUnits,
+      loading: false,
+      error: null,
+      lastUpdated: 0,
+      isOnline: navigator.onLine
     });
+    
+    // 기존 데이터 호환성 처리
+    if (saved) {
+      if (typeof saved.location === 'string') {
+        saved.location = {
+          name: saved.location,
+          lat: DEFAULT_LOCATION.lat,
+          lon: DEFAULT_LOCATION.lon,
+          timezone: DEFAULT_LOCATION.timezone
+        };
+      } else if (!saved.location || typeof saved.location.lat !== 'number' || typeof saved.location.lon !== 'number') {
+        saved.location = DEFAULT_LOCATION;
+      }
+    }
+    
     return saved;
   });
 
-  // 상태 저장 (수동으로만 호출)
-  const saveState = useCallback(() => {
-    persistOrLocal(widget.id, state, updateWidget);
-  }, [widget.id, state, updateWidget]);
-
-  // 초기 날씨 데이터 로드
+  // 온라인 상태 감지
   useEffect(() => {
-    // 컴포넌트 마운트 시 날씨 정보 초기화
-    refreshWeather();
+    const handleOnline = () => setState(prev => ({ ...prev, isOnline: true }));
+    const handleOffline = () => setState(prev => ({ ...prev, isOnline: false }));
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
-  // 자동 새로고침
-  useEffect(() => {
-    if (!state.autoRefresh) return;
-
-    const interval = setInterval(() => {
-      refreshWeather();
-    }, state.refreshInterval * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [state.autoRefresh, state.refreshInterval]);
-
   const refreshWeather = useCallback(async () => {
+    if (state.loading) return;
+    
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    
     try {
-      // 한국 날씨 정보 API 호출 (기상청 단기예보 API 대신 간단한 공개 API 사용)
-      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(state.weatherData.location)}&appid=demo&units=metric`);
+      const [currentWeather, hourlyForecast, dailyForecast] = await Promise.all([
+        weatherService.getCurrentWeather(state.location),
+        weatherService.getHourlyForecast(state.location),
+        weatherService.getDailyForecast(state.location)
+      ]);
       
-      // API 키가 없으므로 실제 데이터 대신 더 현실적인 시뮬레이션 사용
-      const currentHour = new Date().getHours();
-      const seasonalTemp = currentHour < 6 ? 15 : currentHour < 12 ? 22 : currentHour < 18 ? 25 : 20;
-      const tempVariation = Math.floor(Math.random() * 6) - 3; // ±3도 변화
-      const finalTemp = seasonalTemp + tempVariation;
-      
-      const conditions = ['맑음', '구름조금', '구름많음', '흐림'];
-      const conditionIcons = ['☀️', '⛅', '☁️', '☁️'];
-      const randomIndex = Math.floor(Math.random() * conditions.length);
-      
-      const newWeatherData = {
-        ...state.weatherData,
-        temperature: finalTemp,
-        condition: conditions[randomIndex],
-        humidity: Math.floor(Math.random() * 25) + 45, // 45-70%
-        windSpeed: Math.floor(Math.random() * 15) + 8, // 8-23 km/h
-        visibility: Math.floor(Math.random() * 5) + 8, // 8-13km
-        feelsLike: finalTemp + Math.floor(Math.random() * 3) - 1, // ±1도 체감온도
-        icon: conditionIcons[randomIndex],
-        lastUpdated: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-      };
-
-      // 시간별 예보도 업데이트
-      const hourlyForecast: HourlyForecast[] = [];
-      for (let i = 0; i < 8; i++) {
-        const hour = (currentHour + i) % 24;
-        const hourTemp = seasonalTemp + Math.floor(Math.random() * 4) - 2;
-        const hourCondition = conditions[Math.floor(Math.random() * conditions.length)];
-        const hourIcon = conditionIcons[conditions.indexOf(hourCondition)];
-        
-        hourlyForecast.push({
-          time: `${hour.toString().padStart(2, '0')}:00`,
-          temperature: hourTemp,
-          condition: hourCondition,
-          icon: hourIcon,
-          precipitation: Math.floor(Math.random() * 20)
-        });
-      }
-
-      // 일별 예보도 업데이트
-      const dailyForecast: DailyForecast[] = [];
-      const days = ['오늘', '내일', '모레', '3일후', '4일후'];
-      for (let i = 0; i < 5; i++) {
-        const highTemp = seasonalTemp + Math.floor(Math.random() * 6) + 2;
-        const lowTemp = seasonalTemp - Math.floor(Math.random() * 4) - 2;
-        const dayCondition = conditions[Math.floor(Math.random() * conditions.length)];
-        const dayIcon = conditionIcons[conditions.indexOf(dayCondition)];
-        
-        dailyForecast.push({
-          date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          day: days[i] || `${i+1}일후`,
-          highTemp,
-          lowTemp,
-          condition: dayCondition,
-          icon: dayIcon,
-          precipitation: Math.floor(Math.random() * 30)
-        });
-      }
-
       setState(prev => ({
         ...prev,
-        weatherData: newWeatherData,
+        currentWeather,
         hourlyForecast,
-        dailyForecast
+        dailyForecast,
+        loading: false,
+        error: null,
+        lastUpdated: Date.now()
       }));
-      saveState();
 
       showToast('날씨 정보가 업데이트되었습니다', 'success');
     } catch (error) {
       console.error('날씨 정보 업데이트 실패:', error);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : '날씨 정보를 가져올 수 없습니다'
+      }));
       showToast('날씨 정보 업데이트에 실패했습니다', 'error');
     }
-  }, [state.weatherData.location]);
+  }, [state.location, state.loading]);
 
-  const updateLocation = useCallback(async (location: string) => {
-    if (!location.trim()) {
+  // 가시성 기반 자동 새로고침
+  useEffect(() => {
+    if (!state.autoRefresh) return;
+
+    let timer: number | null = null;
+
+    const tick = async () => {
+      if (document.visibilityState === 'visible' && state.isOnline) {
+        await refreshWeather();
+      }
+      timer = window.setTimeout(tick, state.refreshInterval * 60 * 1000);
+    };
+
+    const start = () => {
+      if (document.visibilityState === 'visible') tick();
+    };
+    
+    const stop = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        stop();
+      } else {
+        start();
+      }
+    });
+
+    start();
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', () => {});
+    };
+  }, [state.autoRefresh, state.refreshInterval, state.isOnline, refreshWeather]);
+
+  // 자동 저장 (디바운스)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      persistOrLocal(widget.id, state, updateWidget);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [widget.id, state, updateWidget]);
+
+  // 초기 날씨 데이터 로드
+  useEffect(() => {
+    if (!state.currentWeather && !state.loading) {
+      refreshWeather();
+    }
+  }, [refreshWeather, state.currentWeather, state.loading]);
+
+  const updateLocation = useCallback(async (locationName: string) => {
+    if (!locationName.trim()) {
       showToast('위치를 입력하세요', 'error');
       return;
     }
 
-    setState(prev => ({
-      ...prev,
-      weatherData: {
-        ...prev.weatherData,
-        location: location.trim(),
-        lastUpdated: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-      },
-      customLocation: location.trim(),
-      showSettings: false
-    }));
-    saveState();
+    try {
+      const locations = await weatherService.searchLocation(locationName.trim());
+      if (locations.length === 0) {
+        showToast('해당 위치를 찾을 수 없습니다', 'error');
+        return;
+      }
 
-    // 위치 변경 후 새로운 날씨 정보 가져오기
-    await refreshWeather();
-    showToast(`위치가 ${location}으로 변경되었습니다`, 'success');
+      const newLocation = locations[0];
+      setState(prev => ({
+        ...prev,
+        location: newLocation,
+        customLocation: locationName.trim(),
+        showSettings: false
+      }));
+
+      // 위치 변경 후 새로운 날씨 정보 가져오기
+      await refreshWeather();
+      showToast(`위치가 ${newLocation.name}으로 변경되었습니다`, 'success');
+    } catch (error) {
+      showToast('위치 검색에 실패했습니다', 'error');
+    }
+  }, [refreshWeather]);
+
+  const detectCurrentLocation = useCallback(async () => {
+    try {
+      const location = await weatherService.getCurrentLocation();
+      setState(prev => ({
+        ...prev,
+        location,
+        customLocation: location.name,
+        showSettings: false
+      }));
+      
+      await refreshWeather();
+      showToast('현재 위치로 설정되었습니다', 'success');
+    } catch (error) {
+      showToast('위치 감지에 실패했습니다. 위치 권한을 확인해주세요.', 'error');
+    }
   }, [refreshWeather]);
 
   const toggleUnits = useCallback(() => {
@@ -225,22 +223,7 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
       ...prev,
       units: newUnits
     }));
-    saveState();
     showToast(`단위가 ${newUnits === 'metric' ? '섭씨' : '화씨'}로 변경되었습니다`, 'success');
-  }, [state.units]);
-
-  const formatTemperature = useCallback((temp: number) => {
-    if (state.units === 'imperial') {
-      return `${Math.round(temp * 9/5 + 32)}°F`;
-    }
-    return `${temp}°C`;
-  }, [state.units]);
-
-  const formatWindSpeed = useCallback((speed: number) => {
-    if (state.units === 'imperial') {
-      return `${Math.round(speed * 0.621371)} mph`;
-    }
-    return `${speed} km/h`;
   }, [state.units]);
 
   const getWeatherColor = useCallback((condition: string | undefined) => {
@@ -261,193 +244,249 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
     return 'bg-gradient-to-br from-gray-100 to-gray-200';
   }, []);
 
-  // 데이터가 없을 때 기본값 사용
-  const weatherData = state.weatherData || DEFAULT_WEATHER_DATA;
+  // 현재 날씨 데이터
+  const currentWeather = state.currentWeather;
   
   // 위젯 크기 확인 (gridSize.h 기준)
-  const widgetHeight = widget?.gridSize?.h || 1;
+  const widgetHeight = (widget as any)?.gridSize?.h || 1;
 
   // 1x1: 오늘 날씨만
   if (widgetHeight === 1) {
     return (
-      <div className={`p-1 h-full flex flex-col justify-center ${getBackgroundColor(weatherData.condition)}`}>
-        {state.showSettings ? (
+      <div className={`p-1 h-full flex flex-col justify-center ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100'}`}>
+        {state.loading ? (
+          <div className="text-center">
+            <div className="animate-pulse h-4 bg-gray-300 rounded mb-1"></div>
+            <div className="animate-pulse h-3 bg-gray-300 rounded mb-1"></div>
+            <div className="animate-pulse h-2 bg-gray-300 rounded"></div>
+          </div>
+        ) : state.error ? (
+          <div className="text-center">
+            <AlertCircle className="w-4 h-4 text-red-500 mx-auto mb-1" />
+            <div className="text-xs text-red-600">오류 발생</div>
+            <div className="text-xs text-gray-500">{state.location?.name || '위치 없음'}</div>
+          </div>
+        ) : state.showSettings ? (
           <div className="bg-white/70 rounded p-1">
             <div className="grid grid-cols-2 gap-1">
               {['서울', '부산', '대구', '인천'].map(city => (
-                <button
+                <Button
                   key={city}
-                  onClick={() => {
-                    updateLocation(city);
-                    setState(prev => ({ ...prev, showSettings: false }));
-                  }}
-                  className={`px-1 py-0.5 text-xs rounded ${
-                    weatherData.location === city ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                  }`}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-4"
+                  onClick={() => updateLocation(city)}
                 >
                   {city}
-                </button>
+                </Button>
               ))}
             </div>
+            <div className="mt-1 flex gap-1">
+              <input
+                type="text"
+                placeholder="도시명 입력"
+                value={state.customLocation}
+                onChange={(e) => setState(prev => ({ ...prev, customLocation: e.target.value }))}
+                className="flex-1 text-xs px-1 py-0.5 border rounded"
+                onKeyPress={(e) => e.key === 'Enter' && updateLocation(state.customLocation)}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-4 px-1"
+                onClick={() => updateLocation(state.customLocation)}
+              >
+                설정
+              </Button>
+            </div>
+            <div className="mt-1 flex gap-1">
+              <Button
+                size="sm"
+                variant={state.units === 'metric' ? 'default' : 'outline'}
+                className="text-xs h-4 flex-1"
+                onClick={toggleUnits}
+              >
+                {state.units === 'metric' ? '°C' : '°F'}
+              </Button>
+              <Button
+                size="sm"
+                variant={state.autoRefresh ? 'default' : 'outline'}
+                className="text-xs h-4 flex-1"
+                onClick={() => setState(prev => ({ ...prev, autoRefresh: !prev.autoRefresh }))}
+              >
+                자동
+              </Button>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full text-xs h-4 mt-1"
+              onClick={() => setState(prev => ({ ...prev, showSettings: false }))}
+            >
+              닫기
+            </Button>
+          </div>
+        ) : currentWeather ? (
+          <div className="text-center">
+            <div className="text-lg mb-1">{currentWeather.icon}</div>
+            <div className="text-sm font-semibold">{formatTemperature(currentWeather.temperature, state.units)}</div>
+            <div className="text-xs text-gray-600">{currentWeather.condition}</div>
+            <div className="text-xs text-gray-500">{currentWeather.location?.name || state.location?.name || '위치 없음'}</div>
+            {!state.isOnline && (
+              <div className="text-xs text-amber-600 mt-1">오프라인</div>
+            )}
+            {isEditMode && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="w-full text-xs h-4 mt-1"
+                onClick={() => setState(prev => ({ ...prev, showSettings: true }))}
+              >
+                <Settings className="w-2 h-2" />
+              </Button>
+            )}
           </div>
         ) : (
           <div className="text-center">
-            <div className="flex items-center justify-between mb-0.5 px-1">
-              <div className="text-lg">{weatherData.icon}</div>
-              <button 
-                onClick={() => setState(prev => ({ ...prev, showSettings: !prev.showSettings }))}
-                className="p-0.5 hover:bg-white/30 rounded"
-              >
-                <Settings className="w-3 h-3 text-gray-600" />
-              </button>
-            </div>
-            
-            <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-              <MapPin className="w-3 h-3" />
-              <span>{weatherData.location}</span>
-            </div>
-            
-            <div className="text-lg font-bold text-gray-800 mb-0.5">
-              {formatTemperature(weatherData.temperature)}
-            </div>
-            <div className="text-xs text-gray-600">{weatherData.condition}</div>
+            <div className="text-xs text-gray-500">날씨 정보 없음</div>
+            <div className="text-xs text-gray-400">{state.location?.name || '위치 없음'}</div>
           </div>
         )}
       </div>
     );
   }
-  
-  // 1x2: 시간대별 날씨
+
+  // 1x2: 오늘 날씨 + 시간별 예보
   if (widgetHeight === 2) {
-    const hourlyData = [];
-    const currentHour = new Date().getHours();
-    for (let i = 0; i < 8; i += 3) {
-      const hour = (currentHour + i) % 24;
-      hourlyData.push({
-        time: `${hour.toString().padStart(2, '0')}:00`,
-        temp: weatherData.temperature + Math.floor(Math.random() * 4) - 2,
-        icon: weatherData.icon
-      });
-    }
-    
     return (
-      <div className={`p-2 h-full flex flex-col ${getBackgroundColor(weatherData.condition)}`}>
+      <div className={`p-2 h-full flex flex-col ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100'}`}>
         <div className="flex items-center justify-between mb-2 shrink-0">
           <div className="flex items-center gap-1">
             <MapPin className="w-3 h-3" />
-            <span className="text-sm font-semibold">{weatherData.location}</span>
+            <span className="text-sm font-semibold">{state.location?.name || '위치 없음'}</span>
           </div>
-          <button 
-            onClick={() => setState(prev => ({ ...prev, showSettings: !prev.showSettings }))}
-            className="p-1 hover:bg-white/30 rounded"
-          >
-            <Settings className="w-3 h-3 text-gray-600" />
-          </button>
+          <div className="flex items-center gap-1">
+            {!state.isOnline && <WifiOff className="w-3 h-3 text-amber-500" />}
+            {state.loading && <RefreshCw className="w-3 h-3 animate-spin" />}
+            {isEditMode && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-4 w-4 p-0"
+                onClick={() => setState(prev => ({ ...prev, showSettings: !prev.showSettings }))}
+              >
+                <Settings className="w-2 h-2" />
+              </Button>
+            )}
+          </div>
         </div>
-        
+
         {state.showSettings ? (
-          <div className="bg-white/70 rounded p-2">
-            <div className="grid grid-cols-2 gap-1">
+          <div className="bg-white/70 rounded p-2 mb-2">
+            <div className="grid grid-cols-2 gap-1 mb-2">
               {['서울', '부산', '대구', '인천'].map(city => (
-                <button
+                <Button
                   key={city}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-4"
                   onClick={() => updateLocation(city)}
-                  className={`px-2 py-1 text-xs rounded ${
-                    weatherData.location === city ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                  }`}
                 >
                   {city}
-                </button>
+                </Button>
               ))}
             </div>
+            <div className="flex gap-1 mb-2">
+              <input
+                type="text"
+                placeholder="도시명 입력"
+                value={state.customLocation}
+                onChange={(e) => setState(prev => ({ ...prev, customLocation: e.target.value }))}
+                className="flex-1 text-xs px-1 py-0.5 border rounded"
+                onKeyPress={(e) => e.key === 'Enter' && updateLocation(state.customLocation)}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-4 px-1"
+                onClick={() => updateLocation(state.customLocation)}
+              >
+                설정
+              </Button>
+            </div>
+            <div className="flex gap-1 mb-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-4 flex-1"
+                onClick={detectCurrentLocation}
+              >
+                <Navigation className="w-2 h-2 mr-1" />
+                현재위치
+              </Button>
+              <Button
+                size="sm"
+                variant={state.units === 'metric' ? 'default' : 'outline'}
+                className="text-xs h-4 flex-1"
+                onClick={toggleUnits}
+              >
+                {state.units === 'metric' ? '°C' : '°F'}
+              </Button>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full text-xs h-4"
+              onClick={() => setState(prev => ({ ...prev, showSettings: false }))}
+            >
+              닫기
+            </Button>
           </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto">
-            <div className="text-xs text-gray-600 mb-2">시간대별 날씨</div>
-            <div className="space-y-1">
-              {hourlyData.map((item, i) => (
-                <div key={i} className="bg-white/50 rounded p-2 flex items-center justify-between">
-                  <span className="text-xs">{item.time}</span>
-                  <span className="text-base">{item.icon}</span>
-                  <span className="text-sm font-bold">{formatTemperature(item.temp)}</span>
-                </div>
-              ))}
+        ) : null}
+
+        {state.loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+              <div className="text-xs text-gray-500">날씨 정보 로딩 중...</div>
             </div>
           </div>
-        )}
-      </div>
-    );
-  }
-  
-  // 1x3: 7일 날씨
-  if (widgetHeight >= 3) {
-    const weeklyData = [];
-    const today = new Date();
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
-    
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      const dayName = i === 0 ? '오늘' : i === 1 ? '내일' : days[date.getDay()];
-      
-      weeklyData.push({
-        day: dayName,
-        date: `${date.getMonth() + 1}/${date.getDate()}`,
-        high: weatherData.temperature + Math.floor(Math.random() * 6) - 3,
-        low: weatherData.temperature - Math.floor(Math.random() * 8) - 2,
-        icon: i === 0 ? weatherData.icon : ['☀️', '⛅', '☁️', '🌧️'][Math.floor(Math.random() * 4)]
-      });
-    }
-    
-    return (
-      <div className={`p-2 h-full flex flex-col ${getBackgroundColor(weatherData.condition)}`}>
-        <div className="flex items-center justify-between mb-2 shrink-0">
-          <div className="flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            <span className="text-sm font-semibold">{weatherData.location}</span>
-          </div>
-          <button 
-            onClick={() => setState(prev => ({ ...prev, showSettings: !prev.showSettings }))}
-            className="p-1 hover:bg-white/30 rounded"
-          >
-            <Settings className="w-3 h-3 text-gray-600" />
-          </button>
-        </div>
-        
-        {state.showSettings ? (
-          <div className="bg-white/70 rounded p-2">
-            <div className="grid grid-cols-2 gap-1">
-              {['서울', '부산', '대구', '인천', '광주', '대전', '울산', '제주'].map(city => (
-                <button
-                  key={city}
-                  onClick={() => updateLocation(city)}
-                  className={`px-2 py-1 text-xs rounded ${
-                    weatherData.location === city ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                  }`}
-                >
-                  {city}
-                </button>
-              ))}
+        ) : state.error ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <AlertCircle className="w-6 h-6 text-red-500 mx-auto mb-2" />
+              <div className="text-xs text-red-600 mb-1">오류 발생</div>
+              <div className="text-xs text-gray-500">{state.error}</div>
             </div>
           </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto">
-            <div className="text-xs text-gray-600 mb-2">주간 날씨</div>
-            <div className="space-y-1">
-              {weeklyData.map((item, i) => (
-                <div key={i} className="bg-white/50 rounded p-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-xs font-medium w-8">{item.day}</span>
-                    <span className="text-xs text-gray-600">{item.date}</span>
+        ) : currentWeather ? (
+          <>
+            <div className="text-center mb-3">
+              <div className="text-2xl mb-1">{currentWeather.icon}</div>
+              <div className="text-lg font-semibold">{formatTemperature(currentWeather.temperature, state.units)}</div>
+              <div className="text-sm text-gray-600">{currentWeather.condition}</div>
+              <div className="text-xs text-gray-500">체감 {formatTemperature(currentWeather.feelsLike, state.units)}</div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              <div className="grid grid-cols-4 gap-1">
+                {state.hourlyForecast.slice(0, 8).map((hour, index) => (
+                  <div key={index} className="text-center">
+                    <div className="text-xs text-gray-500">
+                      {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div className="text-sm">{hour.icon}</div>
+                    <div className="text-xs font-semibold">{formatTemperature(hour.temperature, state.units)}</div>
                   </div>
-                  <span className="text-base mx-2">{item.icon}</span>
-                  <div className="text-xs font-bold">
-                    <span className="text-red-600">{formatTemperature(item.high)}</span>
-                    <span className="text-gray-400 mx-1">/</span>
-                    <span className="text-blue-600">{formatTemperature(item.low)}</span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-xs text-gray-500">날씨 정보 없음</div>
+              <div className="text-xs text-gray-400">{state.location?.name || '위치 없음'}</div>
             </div>
           </div>
         )}
@@ -455,244 +494,191 @@ export const WeatherWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updat
     );
   }
 
-  // 기본 (모든 정보)
+  // 1x3: 오늘 날씨 + 시간별 + 일별 예보
   return (
-    <div className={`p-3 h-full ${getBackgroundColor(weatherData.condition)}`}>
-      <div className="text-center mb-3">
-        <div className="text-3xl mb-1">{weatherData.icon}</div>
-        <h4 className="font-semibold text-sm text-gray-800">날씨</h4>
-        <div className="flex items-center justify-center gap-1 text-xs text-gray-600">
-          <MapPin className="w-3 h-3" />
-          <span>{weatherData.location}</span>
+    <div className={`p-3 h-full flex flex-col ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100'}`}>
+      <div className="flex items-center justify-between mb-3 shrink-0">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4" />
+          <span className="font-semibold text-sm">{state.location?.name || '위치 없음'}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {!state.isOnline && <WifiOff className="w-4 h-4 text-amber-500" />}
+          {state.loading && <RefreshCw className="w-4 h-4 animate-spin" />}
+          {isEditMode && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0"
+              onClick={() => setState(prev => ({ ...prev, showSettings: !prev.showSettings }))}
+            >
+              <Settings className="w-3 h-3" />
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* 현재 날씨 */}
-      <div className="text-center mb-3">
-        <div className="text-3xl font-bold text-gray-800 mb-1">
-          {formatTemperature(weatherData.temperature)}
-        </div>
-        <div className={`text-sm font-medium ${getWeatherColor(weatherData.condition)}`}>
-          {weatherData.condition}
-        </div>
-        <div className="text-xs text-gray-600 mt-1">
-          체감온도 {formatTemperature(weatherData.feelsLike)}
-        </div>
-      </div>
-
-      {/* 날씨 정보 */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <div className="bg-white/50 rounded-lg p-2 text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Droplets className="w-3 h-3 text-blue-600" />
-            <span className="text-xs text-gray-600">습도</span>
-          </div>
-          <div className="text-sm font-bold text-gray-800">{weatherData.humidity}%</div>
-        </div>
-        
-        <div className="bg-white/50 rounded-lg p-2 text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Wind className="w-3 h-3 text-gray-600" />
-            <span className="text-xs text-gray-600">바람</span>
-          </div>
-          <div className="text-sm font-bold text-gray-800">{formatWindSpeed(weatherData.windSpeed)}</div>
-        </div>
-        
-        <div className="bg-white/50 rounded-lg p-2 text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Eye className="w-3 h-3 text-purple-600" />
-            <span className="text-xs text-gray-600">가시거리</span>
-          </div>
-          <div className="text-sm font-bold text-gray-800">{weatherData.visibility}km</div>
-        </div>
-        
-        <div className="bg-white/50 rounded-lg p-2 text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Thermometer className="w-3 h-3 text-red-600" />
-            <span className="text-xs text-gray-600">온도</span>
-          </div>
-          <div className="text-sm font-bold text-gray-800">{formatTemperature(weatherData.temperature)}</div>
-        </div>
-      </div>
-
-      {/* 시간별 예보 */}
-      {state.showHourly && (
-        <div className="mb-3">
-          <div className="text-xs font-medium text-gray-600 mb-2">시간별 예보</div>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {state.hourlyForecast.slice(0, 6).map((hour, index) => (
-              <div key={index} className="bg-white/50 rounded-lg p-2 text-center min-w-[60px]">
-                <div className="text-xs text-gray-600 mb-1">{hour.time}</div>
-                <div className="text-lg mb-1">{hour.icon}</div>
-                <div className="text-sm font-bold text-gray-800">{formatTemperature(hour.temperature)}</div>
-                <div className="text-xs text-gray-600">{hour.precipitation}%</div>
-              </div>
+      {state.showSettings ? (
+        <div className="bg-white/70 rounded p-3 mb-3">
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {['서울', '부산', '대구', '인천'].map(city => (
+              <Button
+                key={city}
+                size="sm"
+                variant="outline"
+                className="text-xs h-6"
+                onClick={() => updateLocation(city)}
+              >
+                {city}
+              </Button>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* 일별 예보 */}
-      {state.showDaily && (
-        <div className="mb-3">
-          <div className="text-xs font-medium text-gray-600 mb-2">일별 예보</div>
-          <div className="space-y-1">
-            {state.dailyForecast.slice(0, 3).map((day, index) => (
-              <div key={index} className="bg-white/50 rounded-lg p-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="text-lg">{day.icon}</div>
-                  <div>
-                    <div className="text-xs font-medium text-gray-800">{day.day}</div>
-                    <div className="text-xs text-gray-600">{day.condition}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold text-gray-800">
-                    {formatTemperature(day.highTemp)} / {formatTemperature(day.lowTemp)}
-                  </div>
-                  <div className="text-xs text-gray-600">{day.precipitation}%</div>
-                </div>
-              </div>
-            ))}
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              placeholder="도시명 입력"
+              value={state.customLocation}
+              onChange={(e) => setState(prev => ({ ...prev, customLocation: e.target.value }))}
+              className="flex-1 text-xs px-2 py-1 border rounded"
+              onKeyPress={(e) => e.key === 'Enter' && updateLocation(state.customLocation)}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs h-6 px-2"
+              onClick={() => updateLocation(state.customLocation)}
+            >
+              설정
+            </Button>
           </div>
-        </div>
-      )}
-
-      {/* 컨트롤 버튼 */}
-      <div className="flex gap-1 mb-3">
-        <Button
-          size="sm"
-          variant="outline"
-          className="flex-1 h-6 text-xs"
-          onClick={refreshWeather}
-          aria-label="날씨 새로고침"
-        >
-          <RefreshCw className="w-3 h-3 mr-1" />
-          새로고침
-        </Button>
-        
-        <Button
-          size="sm"
-          variant="outline"
-          className="flex-1 h-6 text-xs"
-          onClick={() => {
-            setState(prev => ({ ...prev, showHourly: !prev.showHourly }));
-            saveState();
-          }}
-          aria-label="시간별 예보 토글"
-        >
-          시간별
-        </Button>
-        
-        <Button
-          size="sm"
-          variant="outline"
-          className="flex-1 h-6 text-xs"
-          onClick={() => {
-            setState(prev => ({ ...prev, showDaily: !prev.showDaily }));
-            saveState();
-          }}
-          aria-label="일별 예보 토글"
-        >
-          일별
-        </Button>
-      </div>
-
-      {/* 설정 */}
-      {isEditMode && (
-        <div className="space-y-2">
+          <div className="flex gap-2 mb-3">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs h-6 flex-1"
+              onClick={detectCurrentLocation}
+            >
+              <Navigation className="w-3 h-3 mr-1" />
+              현재위치
+            </Button>
+            <Button
+              size="sm"
+              variant={state.units === 'metric' ? 'default' : 'outline'}
+              className="text-xs h-6 flex-1"
+              onClick={toggleUnits}
+            >
+              {state.units === 'metric' ? '°C' : '°F'}
+            </Button>
+          </div>
           <Button
             size="sm"
             variant="outline"
-            className="w-full h-6 text-xs"
-            onClick={() => {
-              setState(prev => ({ ...prev, showSettings: !prev.showSettings }));
-              saveState();
-            }}
-            aria-label="날씨 설정"
+            className="w-full text-xs h-6"
+            onClick={() => setState(prev => ({ ...prev, showSettings: false }))}
           >
-            <Settings className="w-3 h-3 mr-1" />
-            설정
+            닫기
           </Button>
+        </div>
+      ) : null}
 
-          {state.showSettings && (
-            <div className="bg-white/70 rounded-lg p-2 space-y-2">
-              <div>
-                <label className="text-xs text-gray-600">위치</label>
-                <div className="flex gap-1">
-                  <input
-                    type="text"
-                    value={state.customLocation}
-                    onChange={(e) => {
-                      setState(prev => ({ ...prev, customLocation: e.target.value }));
-                      saveState();
-                    }}
-                    placeholder="도시명 입력"
-                    className="flex-1 text-xs px-2 py-1 border border-gray-300 rounded"
-                    aria-label="위치 입력"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-6 text-xs"
-                    onClick={() => updateLocation(state.customLocation)}
-                  >
-                    변경
-                  </Button>
-                </div>
-              </div>
+      {state.loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3" />
+            <div className="text-sm text-gray-500">날씨 정보 로딩 중...</div>
+          </div>
+        </div>
+      ) : state.error ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
+            <div className="text-sm text-red-600 mb-2">오류 발생</div>
+            <div className="text-xs text-gray-500">{state.error}</div>
+          </div>
+        </div>
+      ) : currentWeather ? (
+        <>
+          {/* 현재 날씨 */}
+          <div className="text-center mb-4">
+            <div className="text-4xl mb-2">{currentWeather.icon}</div>
+            <div className="text-2xl font-bold mb-1">{formatTemperature(currentWeather.temperature, state.units)}</div>
+            <div className="text-sm text-gray-600 mb-1">{currentWeather.condition}</div>
+            <div className="text-xs text-gray-500">체감 {formatTemperature(currentWeather.feelsLike, state.units)}</div>
+          </div>
 
-              <div className="flex items-center justify-between">
-                <label className="text-xs text-gray-600">단위</label>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 text-xs"
-                  onClick={toggleUnits}
-                >
-                  {state.units === 'metric' ? '섭씨' : '화씨'}
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <label className="text-xs text-gray-600">자동 새로고침</label>
-                <input
-                  type="checkbox"
-                  checked={state.autoRefresh}
-                  onChange={(e) => {
-                    setState(prev => ({ ...prev, autoRefresh: e.target.checked }));
-                    saveState();
-                  }}
-                  className="w-3 h-3"
-                />
-              </div>
-
-              {state.autoRefresh && (
-                <div>
-                  <label className="text-xs text-gray-600">새로고침 간격 (분)</label>
-                  <select
-                    value={state.refreshInterval}
-                    onChange={(e) => {
-                      setState(prev => ({ ...prev, refreshInterval: parseInt(e.target.value) }));
-                      saveState();
-                    }}
-                    className="w-full text-xs px-2 py-1 border border-gray-300 rounded"
-                  >
-                    <option value={5}>5분</option>
-                    <option value={10}>10분</option>
-                    <option value={15}>15분</option>
-                    <option value={30}>30분</option>
-                  </select>
-                </div>
-              )}
+          {/* 상세 정보 */}
+          <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+            <div className="flex items-center gap-1">
+              <Droplets className="w-3 h-3" />
+              <span>{formatHumidity(currentWeather.humidity)}</span>
             </div>
-          )}
+            <div className="flex items-center gap-1">
+              <Wind className="w-3 h-3" />
+              <span>{formatWindSpeed(currentWeather.windSpeed, state.units)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Eye className="w-3 h-3" />
+              <span>{formatDistance(currentWeather.visibility, state.units)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Thermometer className="w-3 h-3" />
+              <span>{formatPressure(currentWeather.pressure, state.units)}</span>
+            </div>
+          </div>
+
+          {/* 시간별 예보 */}
+          <div className="mb-4">
+            <div className="text-xs font-semibold mb-2">시간별 예보</div>
+            <div className="grid grid-cols-4 gap-1">
+              {state.hourlyForecast.slice(0, 8).map((hour, index) => (
+                <div key={index} className="text-center">
+                  <div className="text-xs text-gray-500">
+                    {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <div className="text-sm">{hour.icon}</div>
+                  <div className="text-xs font-semibold">{formatTemperature(hour.temperature, state.units)}</div>
+                  {hour.precipitation > 0 && (
+                    <div className="text-xs text-blue-600">{hour.precipitation}mm</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 일별 예보 */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="text-xs font-semibold mb-2">일별 예보</div>
+            <div className="space-y-1">
+              {state.dailyForecast.slice(0, 5).map((day, index) => (
+                <div key={index} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8">
+                      {index === 0 ? '오늘' : 
+                       index === 1 ? '내일' : 
+                       new Date(day.timestamp).toLocaleDateString('ko-KR', { weekday: 'short' })}
+                    </span>
+                    <span className="text-sm">{day.icon}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500">{formatTemperature(day.temperature.min, state.units)}</span>
+                    <span className="font-semibold">{formatTemperature(day.temperature.max, state.units)}</span>
+                    {day.precipitation > 0 && (
+                      <span className="text-blue-600">{day.precipitation}mm</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-sm text-gray-500">날씨 정보 없음</div>
+            <div className="text-xs text-gray-400">{state.location?.name || '위치 없음'}</div>
+          </div>
         </div>
       )}
-
-      {/* 마지막 업데이트 */}
-      <div className="text-center text-xs text-gray-500 mt-2">
-        마지막 업데이트: {weatherData.lastUpdated}
-      </div>
     </div>
   );
 };

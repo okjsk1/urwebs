@@ -1,82 +1,174 @@
-# Firebase 설정 가이드
+# Firebase 설정 및 운영 가이드
 
-## 🔧 Firestore Rules 배포하기
+## 🔧 환경변수 설정
 
-### 문제 상황
-`공지사항 로드 실패: FirebaseError: Missing or insufficient permissions` 오류가 발생하는 경우, Firestore 보안 규칙이 배포되지 않았을 가능성이 높습니다.
-
-### 해결 방법
-
-#### 방법 1: Firebase Console에서 직접 배포 (권장)
-
-1. [Firebase Console](https://console.firebase.google.com/) 접속
-2. 프로젝트 선택
-3. 좌측 메뉴에서 **Firestore Database** 클릭
-4. 상단 탭에서 **규칙(Rules)** 클릭
-5. `firestore.rules` 파일의 내용을 복사하여 붙여넣기
-6. **게시(Publish)** 버튼 클릭
-
-#### 방법 2: Firebase CLI 사용
-
-1. Firebase CLI 설치
+### 필수 환경변수
 ```bash
+# .env 파일에 다음 변수들을 설정하세요
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+```
+
+### 선택적 환경변수
+```bash
+# App Check (프로덕션에서 봇 방어용)
+VITE_FIREBASE_APPCHECK_KEY=your_recaptcha_site_key
+```
+
+## 🛡️ 보안 설정
+
+### 1. Auth 지속성 정책
+```typescript
+import { applyAuthPersistence } from './firebase/config';
+
+// 보안 민감 페이지 (관리자 등)
+await applyAuthPersistence('session'); // 브라우저 닫으면 로그아웃
+
+// 일반 사용자 편의
+await applyAuthPersistence('local'); // 로컬에 저장
+
+// 최고 보안 (메모리만)
+await applyAuthPersistence('memory'); // 페이지 새로고침 시 로그아웃
+```
+
+### 2. Custom Claims 설정
+Firebase Admin SDK로 사용자 역할 설정:
+```javascript
+// Firebase Functions 또는 Admin SDK
+const admin = require('firebase-admin');
+
+await admin.auth().setCustomUserClaims(uid, {
+  roles: ['admin', 'ops']
+});
+```
+
+### 3. Firestore 보안 규칙
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 관리자만 접근 가능
+    match /admin/{document} {
+      allow read, write: if request.auth != null && 
+        request.auth.token.roles.hasAny(['admin', 'ops']);
+    }
+    
+    // 사용자 데이터
+    match /users/{userId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == userId;
+    }
+  }
+}
+```
+
+## 🚀 개발 환경
+
+### 에뮬레이터 사용
+```bash
+# Firebase CLI 설치
 npm install -g firebase-tools
+
+# 에뮬레이터 시작
+firebase emulators:start
+
+# 개발 서버 시작 (에뮬레이터 자동 연결)
+npm run dev
 ```
 
-2. Firebase 로그인
+### 환경변수 검증
 ```bash
-firebase login
+# 빌드 전 환경변수 검증
+npm run validate-env
+
+# 빌드 시 자동 검증
+npm run build
 ```
 
-3. 프로젝트 초기화 (이미 되어있다면 생략)
+## 📱 운영 환경
+
+### 1. App Check 설정
 ```bash
-firebase init
+# reCAPTCHA v3 사이트 키 발급
+# https://www.google.com/recaptcha/admin
+
+# 환경변수 설정
+VITE_FIREBASE_APPCHECK_KEY=your_recaptcha_site_key
 ```
 
-4. Firestore Rules 배포
+### 2. 빌드 및 배포
 ```bash
-firebase deploy --only firestore:rules
+# 환경변수 검증 후 빌드
+npm run build
+
+# 빌드 결과물 배포
+# (Vercel, Netlify, Firebase Hosting 등)
 ```
 
-### 현재 설정된 규칙
+## 🔍 모니터링 및 디버깅
 
-현재 `firestore.rules` 파일에 설정된 주요 규칙:
+### 로그 확인
+- **개발**: 브라우저 콘솔에서 Firebase 로그 확인
+- **운영**: Firebase Console > Functions > Logs
 
-- **communityPosts** (자유게시판)
-  - 읽기: 누구나 가능
-  - 생성: 로그인한 사용자만
-  - 수정/삭제: 작성자만
+### 일반적인 문제 해결
 
-- **notices** (공지사항)
-  - 읽기: 누구나 가능
-  - 생성/수정/삭제: 관리자(`okjsk1@gmail.com`)만
+#### 1. 환경변수 누락
+```
+Error: Missing required environment variable: VITE_FIREBASE_API_KEY
+```
+**해결**: `.env` 파일에 누락된 변수 추가
 
-- **userPages** (사용자 페이지)
-  - 읽기: 공개 페이지는 누구나, 비공개는 작성자만
-  - 생성: 로그인한 사용자만
-  - 수정/삭제: 작성자만
+#### 2. 에뮬레이터 연결 실패
+```
+Warning: Firebase emulator connection failed
+```
+**해결**: `firebase emulators:start` 실행 확인
 
-- **inquiries** (문의사항)
-  - 생성: 누구나 가능
-  - 읽기/수정/삭제: 관리자만
+#### 3. App Check 실패
+```
+Error: App Check initialization failed
+```
+**해결**: reCAPTCHA 사이트 키 확인 및 도메인 설정
 
-### 확인 방법
+#### 4. 권한 오류
+```
+Error: Missing or insufficient permissions
+```
+**해결**: Firestore 보안 규칙 및 Custom Claims 확인
 
-1. Firebase Console에서 **Firestore Database > 규칙** 탭 확인
-2. 마지막 게시 시간이 최근인지 확인
-3. 애플리케이션에서 게시글 작성/조회 테스트
+## 📊 성능 최적화
 
-### 문제 해결
+### 1. 오프라인 지원
+- IndexedDB 영속화 자동 활성화
+- 멀티탭 지원 (`forceOwnership: false`)
 
-rules 배포 후에도 오류가 계속되는 경우:
+### 2. 캐싱 전략
+- Auth 토큰 자동 갱신
+- Firestore 오프라인 캐시
 
-1. 브라우저 캐시 삭제
-2. 애플리케이션 새로고침 (Ctrl+Shift+R)
-3. Firebase Console에서 규칙이 올바르게 적용되었는지 재확인
-4. 개발자 도구 콘솔에서 자세한 오류 메시지 확인
+### 3. 번들 최적화
+- 필요한 Firebase 모듈만 import
+- Tree shaking 지원
 
-## 📌 참고사항
+## 🔐 보안 체크리스트
 
-- Firestore rules는 클라이언트 측 보안의 첫 번째 방어선입니다
-- rules 변경 후에는 반드시 배포해야 적용됩니다
-- 테스트 환경과 프로덕션 환경의 rules를 별도로 관리하세요
+- [ ] 모든 환경변수 설정 완료
+- [ ] Firestore 보안 규칙 적용
+- [ ] Custom Claims 설정
+- [ ] App Check 활성화 (프로덕션)
+- [ ] Auth 지속성 정책 적용
+- [ ] HTTPS 강제 (프로덕션)
+- [ ] CORS 설정 확인
+
+## 📞 지원
+
+문제가 발생하면:
+1. 환경변수 검증: `npm run validate-env`
+2. Firebase Console에서 로그 확인
+3. 브라우저 개발자 도구에서 오류 확인
+4. Firebase 문서 참조: https://firebase.google.com/docs

@@ -205,7 +205,6 @@ export function ColumnsBoard() {
       news: '최신 뉴스',
       links: '링크 모음',
       weather: '날씨',
-      calculator: '계산기',
       memo: '메모',
       bookmarks: '즐겨찾기',
       calendar: '캘린더',
@@ -225,8 +224,8 @@ export function ColumnsBoard() {
         return <LinksWidget />;
       case 'weather':
         return <WeatherWidget />;
-      case 'calculator':
-        return <CalculatorWidget />;
+      case 'todo':
+        return <TodoWidget />;
       case 'memo':
         return <MemoWidget />;
       case 'bookmarks':
@@ -248,7 +247,7 @@ export function ColumnsBoard() {
     { type: 'news', label: '뉴스', icon: '📰' },
     { type: 'links', label: '링크 모음', icon: '🔗' },
     { type: 'weather', label: '날씨', icon: '🌤️' },
-    { type: 'calculator', label: '계산기', icon: '🧮' },
+    { type: 'todo', label: '할일', icon: '✅' },
     { type: 'memo', label: '메모', icon: '📝' },
     { type: 'bookmarks', label: '즐겨찾기', icon: '⭐' },
     { type: 'calendar', label: '캘린더', icon: '📅' },
@@ -424,8 +423,8 @@ export function ColumnsBoard() {
         return <LinksWidget />;
       case 'weather':
         return <WeatherWidget />;
-      case 'calculator':
-        return <CalculatorWidget />;
+      case 'todo':
+        return <TodoWidget />;
       case 'memo':
         return <MemoWidget />;
       case 'bookmarks':
@@ -443,6 +442,7 @@ export function ColumnsBoard() {
     }
   }
 }
+
 
 
 

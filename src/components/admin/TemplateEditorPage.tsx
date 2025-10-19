@@ -4,17 +4,19 @@ import { ArrowLeft, Plus, Save, Grid, Trash2, Eye, Settings, Download } from 'lu
 import { Widget, WidgetType } from '../../types/mypage.types';
 import { widgetCategories, allWidgets } from '../../constants/widgetCategories';
 import {
-  CalendarWidget,
   TodoWidget,
-  NewsWidget,
   BookmarkWidget,
-  ContactWidget,
-  QRCodeWidget,
-  GitHubWidget,
   GoogleSearchWidget,
   NaverSearchWidget,
   LawSearchWidget,
-  EnglishWordsWidget
+  EnglishWordsWidget,
+  WeatherWidget,
+  CryptoWidget,
+  EconomicCalendarWidget,
+  ExchangeWidget,
+  GoogleAdWidget,
+  FrequentSitesWidget,
+  NewsWidget
 } from '../widgets';
 
 interface TemplateEditorPageProps {
@@ -85,10 +87,8 @@ export function TemplateEditorPage({ onBack, onSave, onDelete, templateId, initi
     };
 
     switch (widget.type) {
-      case 'calendar':
-        return <CalendarWidget {...commonProps} />;
-      case 'weather_small':
-        return <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">날씨 위젯</div>;
+      case 'weather':
+        return <WeatherWidget {...commonProps} />;
       case 'todo':
         return <TodoWidget {...commonProps} />;
       case 'news':
@@ -97,16 +97,16 @@ export function TemplateEditorPage({ onBack, onSave, onDelete, templateId, initi
         return <BookmarkWidget {...commonProps} />;
       case 'social':
         return <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">소셜 위젯</div>;
-      case 'music':
-        return <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">음악 위젯</div>;
-      case 'calculator':
-        return <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">계산기 위젯</div>;
-      case 'contact':
-        return <ContactWidget {...commonProps} />;
-      case 'qr_code':
-        return <QRCodeWidget {...commonProps} />;
-      case 'github_repo':
-        return <GitHubWidget {...commonProps} />;
+      case 'crypto':
+        return <CryptoWidget {...commonProps} />;
+      case 'economic_calendar':
+        return <EconomicCalendarWidget {...commonProps} />;
+      case 'exchange':
+        return <ExchangeWidget {...commonProps} />;
+      case 'google_ad':
+        return <GoogleAdWidget {...commonProps} />;
+      case 'frequent_sites':
+        return <FrequentSitesWidget {...commonProps} />;
       case 'google_search':
         return <GoogleSearchWidget {...commonProps} />;
       case 'naver_search':

@@ -5,7 +5,9 @@ export const getWidgetDimensions = (size: WidgetSize, cellWidth: number, cellHei
   const sizeMap = {
     '1x1': { cols: 1, rows: 1 },
     '1x2': { cols: 1, rows: 2 },
+    '1x3': { cols: 1, rows: 3 },
     '2x1': { cols: 2, rows: 1 },
+    '2x2': { cols: 2, rows: 2 },
     '3x1': { cols: 3, rows: 1 },
     '4x1': { cols: 4, rows: 1 },
     '4x2': { cols: 4, rows: 2 }
@@ -89,6 +91,7 @@ export const getColumnBottomY = (
   if (!lastWidget) return 0;
   return lastWidget.y + lastWidget.height + spacing;
 };
+
 
 
 

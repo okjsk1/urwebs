@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -11,9 +12,13 @@ import {
   Layout, 
   Settings,
   Shield,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { auth } from '../firebase/config';
+import { requireAdmin, checkUserRoles, filterTabsByRole, logAccessDenied, logAccessGranted } from '../utils/authGuard';
+
+// 정적 import (코드 스플리팅은 나중에 구현)
 import { InquiriesTab } from './admin/InquiriesTab';
 import { UsersTab } from './admin/UsersTab';
 import { DashboardTab } from './admin/DashboardTab';
@@ -31,83 +36,153 @@ interface AdminPageProps {
 interface Tab {
   id: TabType;
   name: string;
-  icon: React.ReactNode;
+  icon: any;
   description: string;
   color: string;
+  requiredRoles?: string[]; // RBAC 지원
 }
 
 const tabs: Tab[] = [
+  {
+    id: 'dashboard',
+    name: '대시보드',
+    icon: <BarChart3 className="w-4 h-4" />,
+    description: '전체 통계 및 현황',
+    color: 'purple',
+    requiredRoles: ['admin', 'ops']
+  },
   {
     id: 'inquiries',
     name: '문의 관리',
     icon: <Mail className="w-4 h-4" />,
     description: '사용자 문의사항 관리',
-    color: 'blue'
+    color: 'blue',
+    requiredRoles: ['admin', 'ops']
   },
   {
     id: 'users',
     name: '사용자 관리',
     icon: <Users className="w-4 h-4" />,
     description: '가입자 목록 및 활동 관리',
-    color: 'green'
-  },
-  {
-    id: 'dashboard',
-    name: '대시보드',
-    icon: <BarChart3 className="w-4 h-4" />,
-    description: '전체 통계 및 현황',
-    color: 'purple'
+    color: 'green',
+    requiredRoles: ['admin'] // 슈퍼 관리자만
   },
   {
     id: 'notices',
     name: '공지사항 관리',
     icon: <FileText className="w-4 h-4" />,
     description: '공지사항 작성 및 관리',
-    color: 'orange'
+    color: 'orange',
+    requiredRoles: ['admin', 'ops']
   },
   {
     id: 'widgets',
     name: '위젯 관리',
     icon: <Puzzle className="w-4 h-4" />,
     description: '위젯 목록 및 사용 통계',
-    color: 'cyan'
+    color: 'cyan',
+    requiredRoles: ['admin', 'ops']
   },
   {
     id: 'templates',
     name: '템플릿 관리',
     icon: <Layout className="w-4 h-4" />,
     description: '페이지 템플릿 관리',
-    color: 'pink'
+    color: 'pink',
+    requiredRoles: ['admin', 'ops']
   },
   {
     id: 'settings',
     name: '시스템 설정',
     icon: <Settings className="w-4 h-4" />,
     description: '사이트 설정 및 구성',
-    color: 'gray'
+    color: 'gray',
+    requiredRoles: ['admin'] // 슈퍼 관리자만
   }
 ];
 
 export function AdminPage({ onNavigateTemplateEdit }: AdminPageProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
-  
-  const currentUser = auth.currentUser;
-  const isAdmin = currentUser?.email === 'okjsk1@gmail.com';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState('dashboard' as TabType);
+  const [roles, setRoles] = useState(() => [] as string[]);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [authError, setAuthError] = useState(() => null as string | null);
 
-  // 관리자가 아니면 접근 불가
-  if (!isAdmin) {
+  // URL에서 탭 상태 복원
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') as TabType;
+    const lastTab = localStorage.getItem('admin:lastTab') as TabType;
+    const initialTab = tabFromUrl || lastTab || 'dashboard';
+    setActiveTab(initialTab);
+  }, [searchParams]);
+
+  // URL과 로컬 스토리지에 탭 상태 저장
+  useEffect(() => {
+    setSearchParams({ tab: activeTab });
+    localStorage.setItem('admin:lastTab', activeTab);
+  }, [activeTab, setSearchParams]);
+
+  // 권한 확인
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const result = await requireAdmin();
+        if (result.ok && result.roles) {
+          setRoles(result.roles);
+          logAccessGranted('admin_page', result.user?.email || null, result.roles);
+        } else {
+          setAuthError(result.reason || 'unknown');
+          if (result.roles) {
+            logAccessDenied('admin_page', result.user?.email || null, result.roles, ['admin', 'ops']);
+          }
+        }
+      } catch (error) {
+        console.error('권한 확인 실패:', error);
+        setAuthError('auth-check-failed');
+      } finally {
+        setAuthChecked(true);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // 로딩 중
+  if (!authChecked) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Card className="p-12 text-center dark:bg-gray-800 dark:border-gray-700">
-          <AlertCircle className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">접근 권한이 없습니다</h2>
+          <Loader2 className="w-16 h-16 text-blue-500 dark:text-blue-400 mx-auto mb-4 animate-spin" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">권한 확인 중...</h2>
           <p className="text-gray-600 dark:text-gray-400">
-            관리자(okjsk1@gmail.com)만 접근할 수 있습니다.
+            관리자 권한을 확인하고 있습니다.
           </p>
         </Card>
       </div>
     );
   }
+
+  // 권한 없음
+  if (authError || roles.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <Card className="p-12 text-center dark:bg-gray-800 dark:border-gray-700">
+          <AlertCircle className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">접근 권한이 없습니다</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            관리자 권한이 필요합니다.
+          </p>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            <p>필요한 역할: admin 또는 ops</p>
+            <p>현재 역할: {roles.length > 0 ? roles.join(', ') : '없음'}</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // 권한에 따른 탭 필터링
+  const visibleTabs = filterTabsByRole(tabs, roles);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -128,6 +203,13 @@ export function AdminPage({ onNavigateTemplateEdit }: AdminPageProps) {
       default:
         return <DashboardTab />;
     }
+  };
+
+  // 탭 변경 핸들러
+  const handleTabChange = (tabId: TabType) => {
+    setActiveTab(tabId);
+    // 탭 변경 로깅
+    logAccessGranted(`admin_tab_${tabId}`, auth.currentUser?.email || null, roles);
   };
 
   const getTabColor = (color: string) => {
@@ -160,9 +242,19 @@ export function AdminPage({ onNavigateTemplateEdit }: AdminPageProps) {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* 헤더 */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">관리페이지</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">관리페이지</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              {roles.includes('admin') ? '슈퍼 관리자' : '운영자'}
+            </Badge>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {auth.currentUser?.email}
+            </span>
+          </div>
         </div>
         <p className="text-gray-600 dark:text-gray-400">
           URWEBS 서비스 관리 및 운영 도구
@@ -174,16 +266,21 @@ export function AdminPage({ onNavigateTemplateEdit }: AdminPageProps) {
         <div className="lg:col-span-1">
           <Card className="p-4 dark:bg-gray-800 dark:border-gray-700">
             <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">관리 메뉴</h2>
-            <nav className="space-y-2">
-              {tabs.map((tab) => (
+            <nav className="space-y-2" role="tablist">
+              {visibleTabs.map((tab) => (
                 <Button
                   key={tab.id}
                   variant="ghost"
-                  className={`w-full justify-start ${activeTab === tab.id 
-                    ? getActiveTabColor(tab.color) 
-                    : getTabColor(tab.color)
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
+                  aria-label={`${tab.name} 탭`}
+                  className={`w-full justify-start focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 ${
+                    activeTab === tab.id 
+                      ? getActiveTabColor(tab.color) 
+                      : getTabColor(tab.color)
                   }`}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                 >
                   {tab.icon}
                   <div className="ml-3 text-left">

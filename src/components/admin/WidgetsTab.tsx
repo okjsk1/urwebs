@@ -123,7 +123,6 @@ export function WidgetsTab() {
       'calendar': '📅',
       'news': '📰',
       'bookmark': '🔖',
-      'calculator': '🧮',
       'exchange': '💱',
       'stock': '📈',
       'crypto': '₿',
@@ -133,7 +132,6 @@ export function WidgetsTab() {
       'quicknote': '📝',
       'quote': '💬',
       'english_words': '📚',
-      'converter': '🔄',
       'qr': '📱',
       'rss': '📡'
     };
