@@ -68,7 +68,7 @@
             "vite": "6.3.5"
       },
       "engines": {
-            "node": ">=20 <23"
+            "node": "18.x"
       },
       "scripts": {
             "dev": "vite",
