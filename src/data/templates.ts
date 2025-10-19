@@ -2,7 +2,7 @@ import { Code, Palette, DollarSign, Video, Heart, Clock, Star, Globe, BarChart3,
 
 export interface WidgetTemplate {
   id: string;
-  type: 'bookmark' | 'clock' | 'weather' | 'todo' | 'note' | 'calendar' | 'stats' | 'news' | 'music' | 'social';
+  type: 'bookmark' | 'clock' | 'weather' | 'todo' | 'note' | 'calendar' | 'stats' | 'news' | 'social';
   x: number;
   y: number;
   width: number;

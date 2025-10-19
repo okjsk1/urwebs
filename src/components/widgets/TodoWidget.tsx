@@ -1,30 +1,27 @@
 // 할일 위젯 - 작업 관리, 우선순위, 마감일, 진행률
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
-import { Plus, Check, Trash2, Edit, Calendar, Flag, Clock, Filter } from 'lucide-react';
+import { Plus, Check, Trash2, Edit, Calendar, Flag, Clock, Filter, GripVertical } from 'lucide-react';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
 
 interface TodoItem {
   id: string;
   text: string;
   completed: boolean;
-  priority: 'low' | 'medium' | 'high';
-  dueDate?: string;
   createdAt: string;
   completedAt?: string;
-  tags: string[];
 }
 
 interface TodoState {
   items: TodoItem[];
   newItem: string;
-  newPriority: 'low' | 'medium' | 'high';
-  newDueDate: string;
   showAddForm: boolean;
   editingItem: string | null;
-  filter: 'all' | 'active' | 'completed' | 'high' | 'medium' | 'low';
-  sortBy: 'created' | 'due' | 'priority' | 'alphabetical';
+  filter: 'all' | 'completed';
+  sortBy: 'created' | 'alphabetical';
   showCompleted: boolean;
+  draggedItem: string | null;
+  draggedOverItem: string | null;
 }
 
 const DEFAULT_TODOS: TodoItem[] = [
@@ -32,43 +29,35 @@ const DEFAULT_TODOS: TodoItem[] = [
     id: '1',
     text: '프로젝트 기획서 작성',
     completed: false,
-    priority: 'high',
-    dueDate: '2024-01-20',
-    createdAt: new Date().toISOString(),
-    tags: ['업무', '중요']
+    createdAt: new Date().toISOString()
   },
   {
     id: '2',
     text: '팀 미팅 준비',
     completed: false,
-    priority: 'medium',
-    dueDate: '2024-01-18',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    tags: ['업무']
+    createdAt: new Date(Date.now() - 86400000).toISOString()
   },
   {
     id: '3',
     text: '사무용품 주문',
     completed: true,
-    priority: 'low',
     createdAt: new Date(Date.now() - 172800000).toISOString(),
-    completedAt: new Date().toISOString(),
-    tags: ['관리']
+    completedAt: new Date().toISOString()
   }
 ];
 
-export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWidget }) => {
-  const [state, setState] = useState<TodoState>(() => {
+export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
+  const [state, setState] = useState(() => {
     const saved = readLocal(widget.id, {
       items: DEFAULT_TODOS,
       newItem: '',
-      newPriority: 'medium' as const,
-      newDueDate: '',
       showAddForm: false,
       editingItem: null,
       filter: 'all' as const,
       sortBy: 'created' as const,
-      showCompleted: true
+      showCompleted: true,
+      draggedItem: null,
+      draggedOverItem: null
     });
     // items가 undefined인 경우 기본값 사용
     if (!saved.items || !Array.isArray(saved.items)) {
@@ -83,7 +72,7 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
   }, [widget.id, state, updateWidget]);
 
   const addTodo = useCallback(() => {
-    const { newItem, newPriority, newDueDate } = state;
+    const { newItem } = state;
     
     if (!newItem.trim()) {
       showToast('할일을 입력하세요', 'error');
@@ -94,24 +83,19 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
       id: Date.now().toString(),
       text: newItem.trim(),
       completed: false,
-      priority: newPriority,
-      dueDate: newDueDate || undefined,
-      createdAt: new Date().toISOString(),
-      tags: []
+      createdAt: new Date().toISOString()
     };
 
     setState(prev => ({
       ...prev,
       items: [...prev.items, newTodo],
       newItem: '',
-      newPriority: 'medium',
-      newDueDate: '',
       showAddForm: false
     }));
     saveState();
 
     showToast('할일이 추가되었습니다', 'success');
-  }, [state.newItem, state.newPriority, state.newDueDate]);
+  }, [state.newItem]);
 
   const toggleTodo = useCallback((id: string) => {
     setState(prev => ({
@@ -139,18 +123,57 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
     showToast('할일이 삭제되었습니다', 'success');
   }, []);
 
-  const moveTodo = useCallback((id: string, direction: 'up' | 'down') => {
+  // 드래그 앤 드롭 함수들
+  const handleDragStart = useCallback((e: React.DragEvent, itemId: string) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', itemId);
+    setState(prev => ({ ...prev, draggedItem: itemId }));
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, itemId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setState(prev => ({ ...prev, draggedOverItem: itemId }));
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setState(prev => ({ ...prev, draggedOverItem: null }));
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetItemId: string) => {
+    e.preventDefault();
+    const draggedItemId = e.dataTransfer.getData('text/plain');
+    
+    if (draggedItemId === targetItemId) {
+      setState(prev => ({ ...prev, draggedItem: null, draggedOverItem: null }));
+      return;
+    }
+
     setState(prev => {
-      const index = prev.items.findIndex(i => i.id === id);
-      if (index === -1) return prev;
-      const newItems = [...prev.items];
-      const targetIndex = direction === 'up' ? index - 1 : index + 1;
-      if (targetIndex < 0 || targetIndex >= newItems.length) return prev;
-      const [moved] = newItems.splice(index, 1);
-      newItems.splice(targetIndex, 0, moved);
-      return { ...prev, items: newItems };
+      const items = [...prev.items];
+      const draggedIndex = items.findIndex(item => item.id === draggedItemId);
+      const targetIndex = items.findIndex(item => item.id === targetItemId);
+      
+      if (draggedIndex === -1 || targetIndex === -1) {
+        return { ...prev, draggedItem: null, draggedOverItem: null };
+      }
+      
+      // 항목 제거 후 새 위치에 삽입
+      const [draggedItem] = items.splice(draggedIndex, 1);
+      items.splice(targetIndex, 0, draggedItem);
+      
+      return { 
+        ...prev, 
+        items, 
+        draggedItem: null, 
+        draggedOverItem: null 
+      };
     });
     saveState();
+  }, [saveState]);
+
+  const handleDragEnd = useCallback(() => {
+    setState(prev => ({ ...prev, draggedItem: null, draggedOverItem: null }));
   }, []);
 
   const updateTodo = useCallback((id: string, updates: Partial<TodoItem>) => {
@@ -165,42 +188,6 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
     showToast('할일이 업데이트되었습니다', 'success');
   }, []);
 
-  const getPriorityColor = useCallback((priority: string) => {
-    switch (priority) {
-      case 'high': return 'text-red-600 bg-red-50 border-red-200';
-      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'low': return 'text-green-600 bg-green-50 border-green-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  }, []);
-
-  const getPriorityIcon = useCallback((priority: string) => {
-    switch (priority) {
-      case 'high': return '🔴';
-      case 'medium': return '🟡';
-      case 'low': return '🟢';
-      default: return '⚪';
-    }
-  }, []);
-
-  const isOverdue = useCallback((dueDate: string) => {
-    return new Date(dueDate) < new Date();
-  }, []);
-
-  const formatDate = useCallback((dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const diffTime = date.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return '오늘';
-    if (diffDays === 1) return '내일';
-    if (diffDays === -1) return '어제';
-    if (diffDays > 1) return `${diffDays}일 후`;
-    if (diffDays < -1) return `${Math.abs(diffDays)}일 전`;
-    
-    return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-  }, []);
 
   // 필터링 및 정렬된 할일 목록
   const filteredAndSortedItems = useMemo(() => {
@@ -208,20 +195,12 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
 
     // 필터 적용
     switch (state.filter) {
-      case 'active':
-        filtered = filtered.filter(item => !item.completed);
-        break;
       case 'completed':
         filtered = filtered.filter(item => item.completed);
         break;
-      case 'high':
-        filtered = filtered.filter(item => item.priority === 'high');
-        break;
-      case 'medium':
-        filtered = filtered.filter(item => item.priority === 'medium');
-        break;
-      case 'low':
-        filtered = filtered.filter(item => item.priority === 'low');
+      case 'all':
+      default:
+        // 전체 표시 (필터링 없음)
         break;
     }
 
@@ -233,14 +212,6 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
     // 정렬
     return filtered.sort((a, b) => {
       switch (state.sortBy) {
-        case 'due':
-          if (!a.dueDate && !b.dueDate) return 0;
-          if (!a.dueDate) return 1;
-          if (!b.dueDate) return -1;
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        case 'priority':
-          const priorityOrder = { high: 3, medium: 2, low: 1 };
-          return priorityOrder[b.priority] - priorityOrder[a.priority];
         case 'alphabetical':
           return a.text.localeCompare(b.text);
         case 'created':
@@ -260,57 +231,27 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
 
   return (
     <div className="p-3 h-full flex flex-col">
-      <div className="text-center mb-3 shrink-0">
-        <div className="text-2xl mb-1">✅</div>
-        <h4 className="font-semibold text-sm text-gray-800">To Do List</h4>
-        <div className="text-xs text-gray-500">
-          {completionStats.completed}/{completionStats.total} 완료 ({completionStats.percentage}%)
+      {/* 편집 모드에서만 표시되는 필터 */}
+      {isEditMode && (
+        <div className="mb-3 space-y-2 shrink-0">
+          <div className="flex gap-1">
+            {['all', 'completed'].map(filter => (
+              <Button
+                key={filter}
+                size="sm"
+                variant={state.filter === filter ? 'default' : 'outline'}
+                className="flex-1 h-6 text-xs"
+                onClick={() => setState(prev => ({ ...prev, filter: filter as any }))}
+              >
+                {filter === 'all' ? '전체' : '완료'}
+              </Button>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* 진행률 바 */}
-      <div className="mb-3">
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-green-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${completionStats.percentage}%` }}
-          />
-        </div>
-      </div>
-
-      {/* 필터 및 정렬 */}
-      <div className="mb-3 space-y-2">
-        <div className="flex gap-1">
-          {['all', 'active', 'completed'].map(filter => (
-            <Button
-              key={filter}
-              size="sm"
-              variant={state.filter === filter ? 'default' : 'outline'}
-              className="flex-1 h-6 text-xs"
-              onClick={() => setState(prev => ({ ...prev, filter: filter as any }))}
-            >
-              {filter === 'all' ? '전체' : filter === 'active' ? '진행중' : '완료'}
-            </Button>
-          ))}
-        </div>
-        
-        <div className="flex gap-1">
-          {['high', 'medium', 'low'].map(priority => (
-            <Button
-              key={priority}
-              size="sm"
-              variant={state.filter === priority ? 'default' : 'outline'}
-              className="flex-1 h-6 text-xs"
-              onClick={() => setState(prev => ({ ...prev, filter: priority as any }))}
-            >
-              {getPriorityIcon(priority)}
-            </Button>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* 할일 목록 */}
-      <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
+      <div className="flex-1 space-y-2 overflow-y-auto">
         {filteredAndSortedItems.length === 0 ? (
           <div className="text-center text-gray-500 text-xs py-4">
             <div className="text-2xl mb-2">📝</div>
@@ -318,13 +259,47 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
           </div>
         ) : (
           filteredAndSortedItems.map(item => (
-            <div key={item.id} className={`p-2 rounded-lg border transition-all ${
-              item.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200 hover:border-blue-300'
-            }`}>
-              <div className="flex items-start gap-2">
+            <div 
+              key={item.id} 
+              className={`p-2 rounded-lg border transition-all ${
+                item.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200 hover:border-blue-300'
+              } ${
+                state.draggedItem === item.id ? 'opacity-50' : ''
+              } ${
+                state.draggedOverItem === item.id ? 'border-blue-400 bg-blue-50' : ''
+              }`}
+              draggable={isEditMode}
+              onDragStart={(e) => {
+                e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                handleDragStart(e, item.id);
+              }}
+              onDragOver={(e) => {
+                e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                handleDragOver(e, item.id);
+              }}
+              onDragLeave={(e) => {
+                e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                handleDragLeave();
+              }}
+              onDrop={(e) => {
+                e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                handleDrop(e, item.id);
+              }}
+              onDragEnd={(e) => {
+                e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                handleDragEnd();
+              }}
+            >
+              <div className="flex items-center gap-2">
+                {isEditMode && (
+                  <div className="cursor-move text-gray-400 hover:text-gray-600">
+                    <GripVertical className="w-4 h-4" />
+                  </div>
+                )}
+                
                 <button
                   onClick={() => toggleTodo(item.id)}
-                  className={`w-4 h-4 rounded border-2 flex items-center justify-center mt-0.5 ${
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                     item.completed 
                       ? 'bg-green-500 border-green-500 text-white' 
                       : 'border-gray-300 hover:border-green-500'
@@ -354,23 +329,11 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
                         autoFocus
                       />
                     ) : (
-                      <div onClick={() => isEditMode && setState(prev => ({ ...prev, editingItem: item.id }))}>
+                      <div 
+                        onClick={() => isEditMode && setState(prev => ({ ...prev, editingItem: item.id }))}
+                        className={item.completed ? 'line-through text-gray-500' : ''}
+                      >
                         {item.text}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`px-1 py-0.5 rounded text-xs border ${getPriorityColor(item.priority)}`}>
-                      {getPriorityIcon(item.priority)}
-                    </span>
-                    
-                    {item.dueDate && (
-                      <div className={`flex items-center gap-1 text-xs ${
-                        isOverdue(item.dueDate) ? 'text-red-600' : 'text-gray-500'
-                      }`}>
-                        <Calendar className="w-3 h-3" />
-                        <span>{formatDate(item.dueDate)}</span>
                       </div>
                     )}
                   </div>
@@ -378,20 +341,6 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
                 
                 {isEditMode && (
                   <div className="flex gap-1">
-                    <button
-                      onClick={() => moveTodo(item.id, 'up')}
-                      className="w-5 h-5 text-gray-400 hover:text-gray-700"
-                      aria-label="위로 이동"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      onClick={() => moveTodo(item.id, 'down')}
-                      className="w-5 h-5 text-gray-400 hover:text-gray-700"
-                      aria-label="아래로 이동"
-                    >
-                      ▼
-                    </button>
                     <button
                       onClick={() => setState(prev => ({ 
                         ...prev, 
@@ -440,32 +389,12 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
                 className="w-full text-xs px-2 py-1 border border-gray-300 rounded"
                 aria-label="새 할일"
                 autoFocus
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    addTodo();
+                  }
+                }}
               />
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-gray-600">우선순위</label>
-                  <select
-                    value={state.newPriority}
-                    onChange={(e) => setState(prev => ({ ...prev, newPriority: e.target.value as any }))}
-                    className="w-full text-xs px-2 py-1 border border-gray-300 rounded"
-                  >
-                    <option value="low">낮음</option>
-                    <option value="medium">보통</option>
-                    <option value="high">높음</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="text-xs text-gray-600">마감일</label>
-                  <input
-                    type="date"
-                    value={state.newDueDate}
-                    onChange={(e) => setState(prev => ({ ...prev, newDueDate: e.target.value }))}
-                    className="w-full text-xs px-2 py-1 border border-gray-300 rounded"
-                  />
-                </div>
-              </div>
               
               <div className="flex gap-1">
                 <Button
@@ -482,9 +411,7 @@ export const TodoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWi
                   onClick={() => setState(prev => ({ 
                     ...prev, 
                     showAddForm: false, 
-                    newItem: '', 
-                    newPriority: 'medium',
-                    newDueDate: ''
+                    newItem: ''
                   }))}
                 >
                   취소

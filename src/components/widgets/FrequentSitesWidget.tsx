@@ -1,101 +1,82 @@
-// 자주가는 사이트 위젯 - 방문 횟수 기반 추천 (고도화)
+// 자주가는 사이트 위젯 - 개선된 추천 시스템, 보안, 성능
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
-import { TrendingUp, ExternalLink, BarChart3, Trash2, Plus, Pin, PinOff, EyeOff, Search, MoreVertical } from 'lucide-react';
-import { WidgetProps, persistOrLocal, readLocal, getFaviconUrl, normalizeUrl, showToast } from './utils/widget-helpers';
+import { TrendingUp, ExternalLink, BarChart3, Trash2, Plus, Pin, PinOff, EyeOff, Search, MoreVertical, Settings, Download, Upload, RotateCcw } from 'lucide-react';
+import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
-
-interface SiteVisit {
-  id: string;
-  url: string;
-  domain: string;          // 정규화된 도메인 (예: youtube.com)
-  title: string;
-  visitCount: number;
-  lastVisit: string;       // ISO 형식
-  favicon?: string;
-  pinned?: boolean;        // 고정
-  blocked?: boolean;       // 숨김
-  history?: number[];      // 방문 타임스탬프 배열 (최근 100개)
-}
+import { 
+  SiteVisit, 
+  ScoringConfig, 
+  DEFAULT_SCORING, 
+  SCORING_PRESETS,
+  calculateScore, 
+  sortSitesByScore,
+  validateScoringConfig 
+} from '../../utils/frequentSitesScoring';
+import { 
+  safeNormalizeUrl, 
+  extractDomain, 
+  sanitizeTitle, 
+  spreadHistoryDeterministic,
+  isMigrationCompleted,
+  markMigrationCompleted,
+  generateFaviconUrl,
+  getDomainInitial,
+  formatRelativeTime,
+  calculateStats,
+  exportSitesData,
+  importSitesData
+} from '../../utils/frequentSitesUtils';
 
 interface FrequentSitesState {
   sites: SiteVisit[];
-  showStats: boolean;
   searchQuery: string;
   sortBy: 'recommended' | 'visitCount' | 'recent' | 'title';
   showPinnedOnly: boolean;
   showAddForm: boolean;
   newSite: { url: string; title: string };
-  topN: number; // 표시할 상위 개수
+  topN: number;
+  scoringConfig: ScoringConfig;
+  showSettings: boolean;
+  showDataManagement: boolean;
 }
 
-// 도메인 추출 헬퍼
-const extractDomain = (url: string): string => {
-  try {
-    const normalized = normalizeUrl(url);
-    const urlObj = new URL(normalized);
-    return urlObj.hostname.replace(/^www\./, '');
-  } catch {
-    return url;
-  }
-};
-
-// 마이그레이션: 구버전 데이터를 신버전으로 변환
+// 마이그레이션: 구버전 데이터를 신버전으로 변환 (결정론적)
 const migrateSite = (site: Partial<SiteVisit>): SiteVisit => {
   const now = Date.now();
   const lastVisitTime = site.lastVisit ? new Date(site.lastVisit).getTime() : now;
+  const domain = site.domain || extractDomain(site.url || '');
   
-  // history 생성: visitCount를 과거에 분산
+  // 결정론적 히스토리 생성 (랜덤 대신)
   const history: number[] = [];
   if (site.visitCount && site.visitCount > 0) {
-    for (let i = 0; i < Math.min(site.visitCount, 100); i++) {
-      // 과거로 거슬러 올라가며 방문 기록 생성 (임의 분산)
-      const timeOffset = i * 3600000 * (1 + Math.random() * 24); // 1-25시간씩 분산
-      history.push(lastVisitTime - timeOffset);
-    }
+    history.push(...spreadHistoryDeterministic(site.visitCount, lastVisitTime, domain));
   }
   
   return {
     id: site.id || Date.now().toString(),
     url: site.url || '',
-    domain: site.domain || extractDomain(site.url || ''),
-    title: site.title || '제목 없음',
+    domain,
+    title: sanitizeTitle(site.title || '제목 없음'),
     visitCount: site.visitCount || 0,
     lastVisit: site.lastVisit || new Date().toISOString(),
-    favicon: site.favicon,
+    favicon: site.favicon || generateFaviconUrl(domain),
     pinned: site.pinned ?? false,
     blocked: site.blocked ?? false,
-    history: history.sort((a, b) => b - a).slice(0, 100)
+    history: history.slice(0, 100)
   };
 };
 
 const DEFAULT_SITES: SiteVisit[] = [];
 
-// 스코어 계산 (최근성 가중치)
-const calculateScore = (site: SiteVisit, now: number = Date.now()): number => {
-  const hist = site.history ?? [];
-  const inHours = (hours: number) => hist.filter(t => now - t <= hours * 3600000).length;
-  
-  const recent1d = inHours(24);
-  const recent7d = inHours(24 * 7) - recent1d;
-  const lastGapDays = (now - new Date(site.lastVisit).getTime()) / 86400000;
-  
-  const base = site.visitCount;
-  const recency = recent1d * 3 + recent7d * 1 + Math.exp(-Math.max(0, lastGapDays) / 30) * 2;
-  const pin = site.pinned ? 1000 : 0;
-  
-  return base + recency + pin;
-};
-
-// 사이트 정렬
-const sortSites = (sites: SiteVisit[], sortBy: string): SiteVisit[] => {
-  const now = Date.now();
+// 사이트 정렬 (새로운 시스템)
+const sortSites = (sites: SiteVisit[], sortBy: string, scoringConfig: ScoringConfig): SiteVisit[] => {
   return [...sites]
     .filter(s => !s.blocked)
     .sort((a, b) => {
       if (sortBy === 'recommended') {
-        const scoreA = calculateScore(a, now);
-        const scoreB = calculateScore(b, now);
+        const scoreA = calculateScore(a, Date.now(), scoringConfig);
+        const scoreB = calculateScore(b, Date.now(), scoringConfig);
         if (scoreB !== scoreA) return scoreB - scoreA;
         return new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime();
       } else if (sortBy === 'visitCount') {
@@ -109,39 +90,49 @@ const sortSites = (sites: SiteVisit[], sortBy: string): SiteVisit[] => {
     });
 };
 
-export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWidget }) => {
-  const [state, setState] = useState<FrequentSitesState>(() => {
+export const FrequentSitesWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
+  const [state, setState] = useState(() => {
     const saved = readLocal(widget.id, {
       sites: DEFAULT_SITES,
-      showStats: false,
       searchQuery: '',
       sortBy: 'recommended' as const,
       showPinnedOnly: false,
       showAddForm: false,
       newSite: { url: '', title: '' },
-      topN: 8
+      topN: 10,
+      scoringConfig: DEFAULT_SCORING,
+      showSettings: false,
+      showDataManagement: false
     });
     
-    // 마이그레이션: 구버전 사이트 데이터를 신버전으로 변환
-    const migratedSites = (saved.sites || DEFAULT_SITES).map(migrateSite);
+    // 마이그레이션: 구버전 사이트 데이터를 신버전으로 변환 (1회만 실행)
+    let migratedSites = saved.sites || DEFAULT_SITES;
     
-    // 중복 도메인 병합
+    if (!isMigrationCompleted()) {
+      migratedSites = migratedSites.map(migrateSite);
+      markMigrationCompleted();
+    }
+    
+    // 중복 도메인 병합 (개선된 정책)
     const siteMap = new Map<string, SiteVisit>();
     migratedSites.forEach(site => {
       const existing = siteMap.get(site.domain);
       if (existing) {
-        // 병합
+        // 병합: 최근 방문 제목 우선
+        const existingTime = new Date(existing.lastVisit).getTime();
+        const siteTime = new Date(site.lastVisit).getTime();
+        const isNewer = siteTime > existingTime;
+        
         siteMap.set(site.domain, {
           ...existing,
           visitCount: existing.visitCount + site.visitCount,
-          lastVisit: new Date(Math.max(
-            new Date(existing.lastVisit).getTime(),
-            new Date(site.lastVisit).getTime()
-          )).toISOString(),
+          lastVisit: isNewer ? site.lastVisit : existing.lastVisit,
+          title: isNewer ? site.title : existing.title,
           history: [...(existing.history || []), ...(site.history || [])]
             .sort((a, b) => b - a)
             .slice(0, 100),
-          title: existing.title.length >= site.title.length ? existing.title : site.title
+          pinned: existing.pinned || site.pinned,
+          blocked: existing.blocked || site.blocked
         });
       } else {
         siteMap.set(site.domain, site);
@@ -149,7 +140,7 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
     });
     
     const uniqueSites = Array.from(siteMap.values());
-    const sorted = sortSites(uniqueSites, saved.sortBy || 'recommended');
+    const sorted = sortSites(uniqueSites, saved.sortBy || 'recommended', saved.scoringConfig || DEFAULT_SCORING);
     
     return {
       ...saved,
@@ -177,13 +168,7 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
         return s;
       });
       
-      const sorted = sortSites(sites, prev.sortBy);
-      
-      // 사이트 열기
-      const target = sites.find(s => s.id === siteId);
-      if (target) {
-        setTimeout(() => window.open(target.url, '_blank', 'noopener,noreferrer'), 0);
-      }
+      const sorted = sortSites(sites, prev.sortBy, prev.scoringConfig);
       
       return { ...prev, sites: sorted };
     });
@@ -194,7 +179,8 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
       ...prev,
       sites: sortSites(
         prev.sites.map(s => s.id === siteId ? { ...s, pinned: !s.pinned } : s),
-        prev.sortBy
+        prev.sortBy,
+        prev.scoringConfig
       )
     }));
   }, []);
@@ -233,7 +219,13 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
       return;
     }
     
-    const normalized = normalizeUrl(url);
+    // URL 검증 및 정규화
+    const normalized = safeNormalizeUrl(url);
+    if (!normalized) {
+      showToast('올바른 URL을 입력하세요', 'error');
+      return;
+    }
+    
     const domain = extractDomain(normalized);
     
     // 중복 체크
@@ -246,10 +238,10 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
       id: Date.now().toString(),
       url: normalized,
       domain,
-      title: title.trim() || domain,
+      title: sanitizeTitle(title.trim() || domain),
       visitCount: 0,
       lastVisit: new Date().toISOString(),
-      favicon: getFaviconUrl(normalized),
+      favicon: generateFaviconUrl(domain),
       pinned: false,
       blocked: false,
       history: []
@@ -257,13 +249,67 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
     
     setState(prev => ({
       ...prev,
-      sites: sortSites([...prev.sites, newSite], prev.sortBy),
+      sites: sortSites([...prev.sites, newSite], prev.sortBy, prev.scoringConfig),
       showAddForm: false,
       newSite: { url: '', title: '' }
     }));
     
     showToast('사이트가 추가되었습니다', 'success');
   }, [state.newSite, state.sites, state.sortBy]);
+
+  // 데이터 관리 함수들
+  const exportData = useCallback(() => {
+    try {
+      const data = exportSitesData(state.sites);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `frequent-sites-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('데이터가 내보내기되었습니다', 'success');
+    } catch (error) {
+      showToast('내보내기 실패', 'error');
+    }
+  }, [state.sites]);
+
+  const importData = useCallback((event: any) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result as string;
+        const importedSites = importSitesData(data);
+        
+        setState(prev => ({
+          ...prev,
+          sites: [...prev.sites, ...importedSites],
+          showDataManagement: false
+        }));
+        
+        showToast(`${importedSites.length}개 사이트가 가져오기되었습니다`, 'success');
+      } catch (error) {
+        showToast('가져오기 실패: 잘못된 파일 형식', 'error');
+      }
+    };
+    reader.readAsText(file);
+  }, []);
+
+  const clearAllData = useCallback(() => {
+    if (window.confirm('모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      setState(prev => ({
+        ...prev,
+        sites: [],
+        showDataManagement: false
+      }));
+      showToast('모든 데이터가 삭제되었습니다', 'success');
+    }
+  }, []);
 
   const getTimeSince = useCallback((dateString: string) => {
     const diff = Date.now() - new Date(dateString).getTime();
@@ -277,7 +323,7 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
 
   // 필터링 및 정렬된 사이트
   const filteredSites = useMemo(() => {
-    let filtered = sortSites(state.sites, state.sortBy);
+    let filtered = sortSites(state.sites, state.sortBy, state.scoringConfig);
     
     // 검색 필터
     if (state.searchQuery) {
@@ -296,36 +342,21 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
     return filtered.slice(0, state.topN);
   }, [state.sites, state.sortBy, state.searchQuery, state.showPinnedOnly, state.topN]);
 
-  // 통계 계산
+  // 통계 계산 (새로운 시스템)
   const stats = useMemo(() => {
-    const now = Date.now();
-    const todayVisits = state.sites.reduce((sum, s) => {
-      const todayCount = (s.history || []).filter(t => now - t <= 24 * 3600000).length;
-      return sum + todayCount;
-    }, 0);
-    
-    const weekVisits = state.sites.reduce((sum, s) => {
-      const weekCount = (s.history || []).filter(t => now - t <= 7 * 24 * 3600000).length;
-      return sum + weekCount;
-    }, 0);
-    
-    return {
-      total: state.sites.filter(s => !s.blocked).length,
-      today: todayVisits,
-      week: weekVisits
-    };
+    return calculateStats(state.sites);
   }, [state.sites]);
 
   return (
     <div className="p-2 h-full flex flex-col">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-2 shrink-0">
-        <div className="flex items-center gap-1">
-          <TrendingUp className="w-4 h-4 text-blue-600" />
-          <h4 className="font-semibold text-sm text-gray-800">자주가는 사이트</h4>
-        </div>
-        <div className="flex items-center gap-1">
-          {isEditMode && (
+      {/* 편집 모드에서만 표시되는 헤더 */}
+      {isEditMode && (
+        <div className="flex items-center justify-between mb-2 shrink-0">
+          <div className="flex items-center gap-1">
+            <TrendingUp className="w-4 h-4 text-blue-600" />
+            <h4 className="font-semibold text-sm text-gray-800">자주가는 사이트</h4>
+          </div>
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setState(prev => ({ ...prev, showAddForm: !prev.showAddForm }))}
               className="p-1 hover:bg-gray-100 rounded"
@@ -333,31 +364,20 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
             >
               <Plus className="w-3 h-3 text-green-600" />
             </button>
-          )}
-          <button
-            onClick={() => setState(prev => ({ ...prev, showStats: !prev.showStats }))}
-            className="p-1 hover:bg-gray-100 rounded"
-            title="통계 보기"
-          >
-            <BarChart3 className="w-3 h-3 text-gray-600" />
-          </button>
-        </div>
-      </div>
-      
-      {/* 요약 통계 */}
-      {!state.showStats && (
-        <div className="grid grid-cols-3 gap-1 mb-2 shrink-0">
-          <div className="bg-blue-50 rounded p-1 text-center">
-            <div className="text-xs text-blue-600 font-bold">{stats.total}</div>
-            <div className="text-xs text-gray-500">총</div>
-          </div>
-          <div className="bg-green-50 rounded p-1 text-center">
-            <div className="text-xs text-green-600 font-bold">{stats.today}</div>
-            <div className="text-xs text-gray-500">오늘</div>
-          </div>
-          <div className="bg-purple-50 rounded p-1 text-center">
-            <div className="text-xs text-purple-600 font-bold">{stats.week}</div>
-            <div className="text-xs text-gray-500">7일</div>
+            <button
+              onClick={() => setState(prev => ({ ...prev, showSettings: !prev.showSettings }))}
+              className="p-1 hover:bg-gray-100 rounded"
+              title="설정"
+            >
+              <Settings className="w-3 h-3 text-blue-600" />
+            </button>
+            <button
+              onClick={() => setState(prev => ({ ...prev, showDataManagement: !prev.showDataManagement }))}
+              className="p-1 hover:bg-gray-100 rounded"
+              title="데이터 관리"
+            >
+              <MoreVertical className="w-3 h-3 text-gray-600" />
+            </button>
           </div>
         </div>
       )}
@@ -414,18 +434,19 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
         ) : (
           filteredSites.map((site, index) => (
             <div key={site.id} className="relative group">
-              <button
+              <a
+                href={site.url}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => visitSite(site.id)}
                 className="w-full p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors flex items-center gap-2"
               >
-                {/* 핀 아이콘 또는 순위 */}
-                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                  {site.pinned ? (
+                {/* 핀 아이콘 (고정된 사이트만) */}
+                {site.pinned && (
+                  <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
                     <Pin className="w-3 h-3 text-blue-600 fill-blue-600" />
-                  ) : (
-                    <span className="text-xs font-bold text-gray-600">{index + 1}</span>
-                  )}
-                </div>
+                  </div>
+                )}
                 
                 {/* 파비콘 */}
                 <div className="flex-shrink-0">
@@ -435,12 +456,19 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
                       alt="" 
                       className="w-4 h-4"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
                       }}
                     />
-                  ) : (
-                    <div className="w-4 h-4 bg-gray-300 rounded"></div>
-                  )}
+                  ) : null}
+                  <div 
+                    className="w-4 h-4 bg-gray-300 rounded items-center justify-center text-xs font-bold text-gray-600"
+                    style={{ display: site.favicon ? 'none' : 'flex' }}
+                  >
+                    {getDomainInitial(site.domain)}
+                  </div>
                 </div>
                 
                 {/* 사이트 정보 */}
@@ -448,14 +476,11 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
                   <div className="text-xs font-medium text-gray-800 truncate">
                     {site.title}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {state.showStats ? `${site.visitCount}회` : getTimeSince(site.lastVisit)}
-                  </div>
                 </div>
                 
                 {/* 외부 링크 아이콘 */}
                 <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-              </button>
+              </a>
               
               {/* 편집 메뉴 */}
               {isEditMode && (
@@ -501,12 +526,111 @@ export const FrequentSitesWidget: React.FC<WidgetProps> = ({ widget, isEditMode,
         )}
       </div>
 
-      {/* 하단 정보 */}
-      <div className="text-xs text-gray-500 text-center mt-2 pt-2 border-t border-gray-200 shrink-0">
-        {state.sortBy === 'recommended' ? '추천 순위' : 
-         state.sortBy === 'visitCount' ? '방문 횟수' :
-         state.sortBy === 'recent' ? '최근 방문' : '가나다 순'} • 상위 {state.topN}개
-      </div>
+      {/* 설정 패널 */}
+      {isEditMode && state.showSettings && (
+        <div className="mt-3 p-3 bg-gray-50 rounded border">
+          <h5 className="text-sm font-medium mb-2">추천 알고리즘 설정</h5>
+          <div className="space-y-2">
+            <div>
+              <label className="text-xs text-gray-600">고정 가중치</label>
+              <input
+                type="range"
+                min="0"
+                max="500"
+                value={state.scoringConfig.pin}
+                onChange={(e) => setState(prev => ({
+                  ...prev,
+                  scoringConfig: { ...prev.scoringConfig, pin: parseInt(e.target.value) }
+                }))}
+                className="w-full"
+              />
+              <span className="text-xs text-gray-500">{state.scoringConfig.pin}</span>
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">최근성 가중치 (1일)</label>
+              <input
+                type="range"
+                min="0"
+                max="10"
+                value={state.scoringConfig.w1d}
+                onChange={(e) => setState(prev => ({
+                  ...prev,
+                  scoringConfig: { ...prev.scoringConfig, w1d: parseInt(e.target.value) }
+                }))}
+                className="w-full"
+              />
+              <span className="text-xs text-gray-500">{state.scoringConfig.w1d}</span>
+            </div>
+            <div className="flex gap-2">
+              {Object.entries(SCORING_PRESETS).map(([key, preset]) => (
+                <Button
+                  key={key}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={() => setState(prev => ({ ...prev, scoringConfig: preset }))}
+                >
+                  {key === 'balanced' ? '균형' : 
+                   key === 'recency' ? '최근성' : 
+                   key === 'frequency' ? '빈도' : '고정우선'}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 데이터 관리 패널 */}
+      {isEditMode && state.showDataManagement && (
+        <div className="mt-3 p-3 bg-gray-50 rounded border">
+          <h5 className="text-sm font-medium mb-2">데이터 관리</h5>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs"
+                onClick={exportData}
+              >
+                <Download className="w-3 h-3 mr-1" />
+                내보내기
+              </Button>
+              <label className="text-xs">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={importData}
+                  className="hidden"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  asChild
+                >
+                  <span>
+                    <Upload className="w-3 h-3 mr-1" />
+                    가져오기
+                  </span>
+                </Button>
+              </label>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs text-red-600"
+                onClick={clearAllData}
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                전체 삭제
+              </Button>
+            </div>
+            <div className="text-xs text-gray-500">
+              데이터는 로컬에만 저장되며 외부로 전송되지 않습니다.
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

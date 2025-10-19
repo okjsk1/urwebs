@@ -1,6 +1,6 @@
 ﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, Music, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Calculator, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
 import { auth, googleProvider, db } from '../firebase/config';
@@ -9,8 +9,15 @@ import { collection, addDoc, updateDoc, doc, query, where, getDocs, serverTimest
 
 // 타입 및 상수 import
 import { Widget, WidgetSize, BackgroundSettings, ShareSettings, Page, Bookmark, FontSettings, LayoutSettings } from '../types/mypage.types';
+import { isWidgetEditable } from './widgets/utils/widget-helpers';
 import { widgetCategories, getCategoryIcon, fontOptions, allWidgets } from '../constants/widgetCategories';
 import { getWidgetDimensions, isWidgetOverlapping, getNextAvailablePosition, getColumnLastWidget as getColumnLastWidgetUtil, getColumnBottomY as getColumnBottomYUtil } from '../utils/widgetHelpers';
+import { 
+  COLS, SPACING, GRID_H, COL_INNER, COL_TRACK,
+  toGridX, toGridY, toGridW, toGridH,
+  colToX, rowToY, gridWToPx, gridHToPx,
+  snapX, snapY, snapColIndex
+} from '../utils/layoutConfig';
 import { templates, getDefaultWidgets } from '../constants/pageTemplates';
 import { templateService } from '../services/templateService';
 import { WidgetPanel } from './MyPage/WidgetPanel';
@@ -20,14 +27,7 @@ import DraggableDashboardGrid from './DraggableDashboardGrid';
 // 위젯 컴포넌트들 import
 import {
   TodoWidget,
-  GoalWidget,
-  ReminderWidget,
-  QuickNoteWidget,
-  CalendarWidget,
-  StockWidget,
   ExchangeWidget,
-  ConverterWidget,
-  QRCodeWidget,
   NewsWidget,
   WeatherWidget,
   GoogleSearchWidget,
@@ -55,19 +55,16 @@ export function MyPage() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragOverWidget, setDragOverWidget] = useState<string | null>(null);
   const [isReordering, setIsReordering] = useState(false);
+  const [toast, setToast] = useState<{type:'success'|'error', msg:string}|null>(null);
   
-  // 그리드 설정 상수
-  const spacing = 5;
-  const MAIN_COLUMNS = 8; // 메인 컬럼 개수 (8칸 고정)
-  const SUB_COLUMNS = 1; // 각 메인 컬럼 내부 서브 그리드 개수
-  
-  // 동적 셀 크기 계산 (서브셀 크기)
-  const [subCellWidth, setSubCellWidth] = useState(150); // 서브셀 너비 (초기값을 합리적으로 설정)
-  const [cellHeight] = useState(160); // 기본 셀 높이 (그리드용) - 고정값
-  
-  // 메인 컬럼 너비 계산
-  const mainColumnWidth = subCellWidth * SUB_COLUMNS + spacing * (SUB_COLUMNS - 1); // 1칸 (서브분할 없음)
-  const cellWidth = subCellWidth; // 하위 호환성 유지
+  // 하위 호환성을 위한 별칭
+  const spacing = SPACING;
+  const MAIN_COLUMNS = COLS;
+  const SUB_COLUMNS = 1;
+  const [subCellWidth, setSubCellWidth] = useState(COL_INNER);
+  const [cellHeight] = useState(GRID_H);
+  const mainColumnWidth = COL_INNER;
+  const cellWidth = COL_INNER;
   
   // 위젯 상태 관리
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -89,43 +86,6 @@ export function MyPage() {
       { time: '16:00', temp: 23, icon: '☁️' },
       { time: '17:00', temp: 21, icon: '🌧️' }
     ]
-  });
-  const [cryptoPrices, setCryptoPrices] = useState({
-    bitcoin: { price: 0, change: 0 },
-    ethereum: { price: 0, change: 0 },
-    solana: { price: 0, change: 0 }
-  });
-
-  // 비트코인 실시간 가격 가져오기
-  useEffect(() => {
-    const fetchCryptoPrice = async () => {
-      try {
-        const response = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC');
-        const data = await response.json();
-        if (data && data[0]) {
-          const price = Math.round(data[0].trade_price);
-          const change = data[0].signed_change_rate * 100;
-          setCryptoPrices(prev => ({
-            ...prev,
-            bitcoin: { price, change }
-          }));
-        }
-      } catch (error) {
-        console.error('비트코인 가격 조회 실패:', error);
-      }
-    };
-
-    fetchCryptoPrice();
-    const interval = setInterval(fetchCryptoPrice, 10000); // 10초마다 업데이트
-
-    return () => clearInterval(interval);
-  }, []);
-  const [musicState, setMusicState] = useState({
-    isPlaying: false,
-    currentSong: '샘플 음악',
-    artist: '샘플 아티스트',
-    duration: 180,
-    currentTime: 0
   });
   const [englishWordsSettings, setEnglishWordsSettings] = useState({
     interval: 5000, // 5초 기본값
@@ -443,21 +403,7 @@ export function MyPage() {
             setCurrentPageId(targetPage.id);
             setPageTitle(targetPage.title);
             
-            // 위젯 불러오기 - 검색 위젯 크기 자동 업데이트
-            const updatedWidgets = (targetPage.widgets || []).map((widget: Widget) => {
-              if (widget.type === 'google_search' || widget.type === 'naver_search' || 
-                  widget.type === 'law_search') {
-                // 검색 위젯은 2칸 너비, 150px 높이로 업데이트
-                return {
-                  ...widget,
-                  width: (subCellWidth + spacing) * 2 - spacing, // 2칸 (다른 위젯 1개 크기)
-                  height: 150
-                };
-              }
-              return widget;
-            });
-            
-            setWidgets(updatedWidgets);
+            setWidgets(targetPage.widgets || []);
             
             // URL 업데이트 (URL이 없거나 다른 경우)
             const pageIndex = loadedPages.findIndex((p: any) => p.id === targetPage.id);
@@ -499,21 +445,7 @@ export function MyPage() {
             setCurrentPageId(activePage.id);
             setPageTitle(activePage.title);
             
-            // 위젯 불러오기 - 검색 위젯 크기 자동 업데이트
-            const updatedWidgets = (activePage.widgets || []).map((widget: Widget) => {
-              if (widget.type === 'google_search' || widget.type === 'naver_search' || 
-                  widget.type === 'law_search') {
-                // 검색 위젯은 2칸 너비, 150px 높이로 업데이트
-                return {
-                  ...widget,
-                  width: (subCellWidth + spacing) * 2 - spacing, // 2칸 (다른 위젯 1개 크기)
-                  height: 150
-                };
-              }
-              return widget;
-            });
-            
-            setWidgets(updatedWidgets);
+            setWidgets(activePage.widgets || []);
           }
         } catch (error) {
           console.error('페이지 로드 실패:', error);
@@ -522,31 +454,6 @@ export function MyPage() {
     }
   }, [currentUser, pageId, navigate]);
 
-  // 검색 위젯 크기 자동 업데이트 (2칸 너비)
-  useEffect(() => {
-    const searchWidgetWidth = (subCellWidth + spacing) * 2 - spacing; // 2칸 (다른 위젯 1개 크기)
-    const hasSearchWidgets = widgets.some(w => 
-      (w.type === 'google_search' || w.type === 'naver_search' || 
-       w.type === 'law_search') && 
-      (w.width !== searchWidgetWidth || w.height !== 150)
-    );
-    
-    if (hasSearchWidgets) {
-      setWidgets(prevWidgets => 
-        prevWidgets.map(widget => {
-          if (widget.type === 'google_search' || widget.type === 'naver_search' ||
-              widget.type === 'law_search') {
-            return {
-              ...widget,
-              width: searchWidgetWidth, // 2칸 (다른 위젯 1개 크기)
-              height: 150
-            };
-          }
-          return widget;
-        })
-      );
-    }
-  }, [subCellWidth, spacing]);
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -745,13 +652,12 @@ export function MyPage() {
         const col = index % 4;
         const row = Math.floor(index / 4);
         
-        // 검색 위젯은 자동으로 크기 조정 (2칸 너비)
+        // 검색 위젯은 2x1 그리드 크기로 설정
         if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'law_search') {
           return {
             ...widget,
             id: `${widget.type}_${Date.now()}_${index}`,
-            width: (subCellWidth + spacing) * 2 - spacing, // 2칸 (다른 위젯 1개 크기)
-            height: 150,
+            gridSize: { w: 2, h: 1 }, // 2칸 너비, 1칸 높이
             x: widget.x || col * (subCellWidth + spacing),
             y: widget.y || row * (cellHeight + spacing)
           };
@@ -909,13 +815,20 @@ export function MyPage() {
     // Firestore에 soft delete 표시 (공개 목록에서 숨김)
     try {
       if (currentUser) {
-        const pagesRef = collection(db, 'userPages');
-        const q = query(pagesRef, where('authorId', '==', currentUser.id), where('title', '==', pageTitle));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const docId = snapshot.docs[0].id;
-          const docRef = doc(db, 'userPages', docId);
-          await updateDoc(docRef, { isDeleted: true, updatedAt: serverTimestamp() });
+        const pageToDelete = pages.find(p => p.id === pageId);
+        if (pageToDelete) {
+          const userIdPart = (currentUser?.email?.split('@')[0] || 'user');
+          const userPageIndex = pages.findIndex(p => p.id === pageId) + 1;
+          const urlId = pageToDelete.customUrl || `${userIdPart}_${userPageIndex}`;
+          
+          const pagesRef = collection(db, 'userPages');
+          const q = query(pagesRef, where('authorId', '==', currentUser.id), where('urlId', '==', urlId));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            const docId = snapshot.docs[0].id;
+            const docRef = doc(db, 'userPages', docId);
+            await updateDoc(docRef, { isDeleted: true, updatedAt: serverTimestamp() });
+          }
         }
       }
     } catch (e) {
@@ -1053,199 +966,6 @@ export function MyPage() {
   // 위젯 미리보기 렌더링 함수
   const renderWidgetPreview = (widgetType: string) => {
     switch (widgetType) {
-      case 'profile_card':
-        return (
-          <div className="text-center">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full mx-auto mb-2 flex items-center justify-center">
-              <span className="text-white text-xs">👤</span>
-            </div>
-            <div className="text-xs font-semibold text-gray-800 mb-1">김사용자</div>
-            <div className="text-xs text-blue-600 mb-2">@username</div>
-            <div className="space-y-1">
-              <div className="w-full h-4 bg-gray-200 rounded text-xs flex items-center justify-center">📷 Instagram</div>
-              <div className="w-full h-4 bg-gray-200 rounded text-xs flex items-center justify-center">📺 YouTube</div>
-            </div>
-          </div>
-        );
-
-      case 'portfolio_header':
-        return (
-          <div className="text-center bg-gradient-to-r from-blue-50 to-purple-50 p-2 rounded">
-            <div className="text-sm font-bold text-gray-800 mb-1">김사용자</div>
-            <div className="text-xs text-blue-600 mb-1">Frontend Developer</div>
-            <div className="text-xs text-gray-600">사용자 경험을 중시하는 개발자</div>
-          </div>
-        );
-
-      case 'project_gallery':
-        return (
-          <div className="space-y-2">
-            <div className="border border-gray-200 rounded p-2">
-              <div className="text-xs font-semibold text-gray-800">웹사이트 리뉴얼</div>
-              <div className="text-xs text-gray-600">React 기반 웹사이트</div>
-              <div className="flex gap-1 mt-1">
-                <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">React</span>
-                <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">TS</span>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'business_header':
-        return (
-          <div className="text-center bg-gradient-to-r from-orange-50 to-red-50 p-2 rounded">
-            <div className="text-sm font-bold text-gray-800 mb-1">맛있는 카페</div>
-            <div className="text-xs text-gray-600">신선한 원두로 만드는 커피</div>
-          </div>
-        );
-
-      case 'menu_section':
-        return (
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-xs">
-              <div>
-                <div className="font-semibold text-gray-800">아메리카노</div>
-                <div className="text-gray-600">진한 에스프레소</div>
-              </div>
-              <span className="font-bold text-orange-600">4000원</span>
-            </div>
-            <div className="flex justify-between items-center text-xs">
-              <div>
-                <div className="font-semibold text-gray-800">라떼</div>
-                <div className="text-gray-600">부드러운 우유거품</div>
-              </div>
-              <span className="font-bold text-orange-600">4500원</span>
-            </div>
-          </div>
-        );
-
-      case 'event_header':
-        return (
-          <div className="text-center bg-gradient-to-r from-pink-50 to-purple-50 p-2 rounded">
-            <div className="text-sm font-bold text-gray-800 mb-1">2024 신년 파티</div>
-            <div className="text-xs text-gray-600 space-y-1">
-              <div>📅 2024-01-15</div>
-              <div>⏰ 19:00-22:00</div>
-              <div>📍 강남구 파티홀</div>
-            </div>
-          </div>
-        );
-
-      case 'countdown':
-        return (
-          <div className="text-center bg-red-100 rounded p-2">
-            <div className="text-lg font-bold text-red-600">D-7</div>
-            <p className="text-xs text-red-600">행사까지</p>
-          </div>
-        );
-
-      case 'rsvp_form':
-        return (
-          <div className="space-y-1">
-            <input type="text" placeholder="이름" className="w-full p-1 border rounded text-xs" disabled />
-            <input type="number" placeholder="인원" className="w-full p-1 border rounded text-xs" disabled />
-            <textarea placeholder="메시지" className="w-full p-1 border rounded text-xs h-8 resize-none" disabled />
-            <button className="w-full p-1 bg-blue-600 text-white rounded text-xs">참석 확인</button>
-          </div>
-        );
-
-      case 'blog_header':
-        return (
-          <div className="text-center bg-gradient-to-r from-green-50 to-blue-50 p-2 rounded">
-            <div className="text-sm font-bold text-gray-800 mb-1">김사용자의 블로그</div>
-            <div className="text-xs text-gray-600">개발과 일상을 기록합니다</div>
-          </div>
-        );
-
-      case 'post_list':
-        return (
-          <div className="space-y-2">
-            <div className="border border-gray-200 rounded p-2">
-              <div className="text-xs font-semibold text-gray-800">React Hooks 완벽 가이드</div>
-              <div className="text-xs text-gray-600">React Hooks에 대해 알아보자</div>
-              <div className="flex justify-between items-center mt-1">
-                <span className="text-xs text-gray-500">2024-01-10</span>
-                <div className="flex gap-1">
-                  <span className="text-xs bg-gray-100 text-gray-600 px-1 rounded">React</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'shop_header':
-        return (
-          <div className="text-center bg-gradient-to-r from-yellow-50 to-orange-50 p-2 rounded">
-            <div className="text-sm font-bold text-gray-800 mb-1">브랜드 이름</div>
-            <div className="text-xs text-gray-600">고품질 상품을 만나보세요</div>
-          </div>
-        );
-
-      case 'product_grid':
-        return (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="border border-gray-200 rounded p-1">
-              <div className="aspect-square bg-gray-200 rounded mb-1 flex items-center justify-center">
-                <span className="text-gray-400 text-xs">📦</span>
-              </div>
-              <div className="text-xs font-semibold text-gray-800">상품 1</div>
-              <div className="text-xs font-bold text-orange-600">29,000원</div>
-            </div>
-            <div className="border border-gray-200 rounded p-1">
-              <div className="aspect-square bg-gray-200 rounded mb-1 flex items-center justify-center">
-                <span className="text-gray-400 text-xs">📦</span>
-              </div>
-              <div className="text-xs font-semibold text-gray-800">상품 2</div>
-              <div className="text-xs font-bold text-orange-600">39,000원</div>
-            </div>
-          </div>
-        );
-
-      case 'team_header':
-        return (
-          <div className="text-center bg-gradient-to-r from-indigo-50 to-purple-50 p-2 rounded">
-            <div className="text-sm font-bold text-gray-800 mb-1">개발 동아리</div>
-            <div className="text-xs text-gray-600">함께 성장하는 개발자들의 모임</div>
-          </div>
-        );
-
-      case 'member_grid':
-        return (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 p-2 border border-gray-200 rounded">
-              <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs">👤</span>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-gray-800">김리더</div>
-                <div className="text-xs text-blue-600">팀장</div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'qr_code':
-        return (
-          <div className="text-center">
-            <div className="w-16 h-16 bg-white border-2 border-gray-200 rounded mx-auto mb-2 flex items-center justify-center">
-              <div className="w-12 h-12 bg-gray-800 rounded grid grid-cols-4 gap-0.5 p-1">
-                {Array.from({ length: 16 }).map((_, i) => (
-                  <div key={i} className={`w-1 h-1 ${Math.random() > 0.5 ? 'bg-white' : 'bg-gray-800'} rounded-sm`}></div>
-                ))}
-              </div>
-            </div>
-            <p className="text-xs text-gray-600">QR 코드</p>
-          </div>
-        );
-
-      case 'contact_buttons':
-        return (
-          <div className="space-y-1">
-            <button className="w-full p-1 bg-blue-600 text-white rounded text-xs">📧 이메일</button>
-            <button className="w-full p-1 bg-green-600 text-white rounded text-xs">📱 전화</button>
-            <button className="w-full p-1 bg-purple-600 text-white rounded text-xs">💼 LinkedIn</button>
-          </div>
-        );
 
       case 'business_info':
         return (
@@ -1315,68 +1035,7 @@ export function MyPage() {
   // 사용 가능한 위젯들 (카테고리별로 분류)
   // widgetCategories, allWidgets, fontOptions는 이제 import로 사용
 
-  // 위젯 겹침 감지 함수
-  const isWidgetOverlapping = (widget1: Widget, widget2: Widget) => {
-    return !(
-      widget1.x + widget1.width <= widget2.x ||
-      widget2.x + widget2.width <= widget1.x ||
-      widget1.y + widget1.height <= widget2.y ||
-      widget2.y + widget2.height <= widget1.y
-    );
-  };
 
-  // 4컬럼 그리드에 위젯 자동 배치 (겹침 방지)
-  const getNextAvailablePosition = (width: number, height: number) => {
-    const cols = MAIN_COLUMNS; // 메인 컬럼 개수
-    
-    // 각 메인 컬럼별로 마지막 위젯의 Y 위치 계산
-    const columnHeights = Array(cols).fill(0);
-    
-    widgets.forEach(widget => {
-      const col = Math.floor(widget.x / (mainColumnWidth + spacing));
-      if (col >= 0 && col < cols) {
-        const widgetBottom = widget.y + widget.height + spacing;
-        columnHeights[col] = Math.max(columnHeights[col], widgetBottom);
-      }
-    });
-    
-    // 가장 낮은 컬럼 찾기
-    const minHeight = Math.min(...columnHeights);
-    const targetCol = columnHeights.indexOf(minHeight);
-    
-    // 충돌 감지하여 위치 조정
-    let testX = targetCol * (mainColumnWidth + spacing);
-    let testY = minHeight;
-    
-    const testWidget: Widget = {
-      id: 'test',
-      type: 'bookmark',
-      x: testX,
-      y: testY,
-      width,
-      height,
-      title: ''
-    };
-    
-    // 다른 위젯과 겹치는지 확인
-    let hasCollision = true;
-    let attempts = 0;
-    
-    while (hasCollision && attempts < 10) {
-      hasCollision = widgets.some(widget => isWidgetOverlapping(widget, testWidget));
-      
-      if (hasCollision) {
-        testY += cellHeight / 2;
-        testWidget.y = testY;
-        attempts++;
-      }
-    }
-    
-    return {
-      x: testX,
-      y: testY
-    };
-  };
 
 
   // 위젯 추가
@@ -1389,9 +1048,11 @@ export function MyPage() {
     
     if (type === 'google_search' || type === 'naver_search' ||
         type === 'law_search') {
-      // 검색 위젯은 2칸 너비, 150px 높이
-      width = (subCellWidth + spacing) * 2 - spacing; // 2칸 (다른 위젯 1개 크기)
-      height = 150; // 높이
+      // 검색 위젯은 2x1 그리드 크기
+      widgetSize = '2x1';
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
     } else if (type === 'weather_small') {
       widgetSize = '4x1'; // 메인 컬럼 전체 너비
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
@@ -1399,6 +1060,41 @@ export function MyPage() {
       height = dimensions.height;
     } else if (type === 'weather_medium') {
       widgetSize = '4x2'; // 메인 컬럼 전체 너비 + 2칸 높이
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'todo') {
+      widgetSize = '1x2'; // 할일 위젯은 1칸 너비, 2칸 높이
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'crypto') {
+      widgetSize = '3x1'; // 크립토 위젯은 3칸 너비, 1칸 높이
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'frequent_sites') {
+      widgetSize = '1x1'; // 자주가는사이트 위젯은 1칸 너비, 1칸 높이 고정
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'calendar') {
+      widgetSize = '2x2'; // 캘린더 위젯은 2칸 너비, 2칸 높이
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'weather') {
+      widgetSize = '1x3'; // 날씨 위젯은 1칸 너비, 3칸 높이
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'english_words') {
+      widgetSize = '1x2'; // 영어단어 위젯은 1칸 너비, 2칸 높이 (고정)
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'economic_calendar') {
+      widgetSize = '2x2'; // 경제캘린더 위젯은 2칸 너비, 2칸 높이
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -1429,8 +1125,18 @@ export function MyPage() {
         y: maxY + (columnWidgets.length > 0 ? spacing : 0)
       };
     } else {
-      // 자동 위치 지정
-      position = getNextAvailablePosition(width, height);
+      // 자동 위치 지정 - 첫 번째 컬럼의 맨 아래에 배치
+      const firstColumnWidgets = prevWidgets.filter(widget => {
+        const col = Math.floor(widget.x / COL_TRACK);
+        return col === 0;
+      });
+      const maxY = firstColumnWidgets.length > 0 
+        ? Math.max(...firstColumnWidgets.map(w => w.y + w.height)) 
+        : 0;
+      position = {
+        x: 0,
+        y: maxY + (firstColumnWidgets.length > 0 ? spacing : 0)
+      };
     }
     
     const newWidget: Widget = {
@@ -1543,11 +1249,10 @@ export function MyPage() {
         const currentPage = updatedPages.find(p => p.id === targetPageId);
         if (!currentPage) return;
 
-        // 페이지 번호 계산 (사용자의 몇 번째 페이지인지)
+        // urlId 생성
+        const userIdPart = (currentUser?.email?.split('@')[0] || 'user');
         const userPageIndex = updatedPages.findIndex(p => p.id === targetPageId) + 1;
-        // URL에 사용할 고유 ID: 사용자 정의 URL 또는 기본 형식 (이메일 아이디 사용)
-        const userId = currentUser.email?.split('@')[0] || 'user';
-        const urlId = customUrl || `${userId}_${userPageIndex}`;
+        const urlId = customUrl || `${userIdPart}_${userPageIndex}`;
 
         // undefined 값을 제거하는 헬퍼 함수
         const removeUndefined = (obj: any): any => {
@@ -1584,18 +1289,15 @@ export function MyPage() {
               return null;
             };
             const gridSize = w.gridSize || parseSize(w.size) || {
-              w: Math.max(1, Math.round((w.width || 150) / 150)),
-              h: Math.max(1, Math.round((w.height || 160) / 160)),
+              w: toGridW(w.width || 150),
+              h: toGridH(w.height || 160),
             };
-            const toGrid = (val: any, step: number) => (typeof val === 'number' && val > 20 ? Math.max(0, Math.round(val / step)) : (val || 0));
-            const gx = toGrid(w.x, 216);
-            const gy = toGrid(w.y, 176);
             return ({
               id: w.id,
               type: w.type,
               title: w.title || '',
-              x: gx,
-              y: gy,
+              x: toGridX(w.x),
+              y: toGridY(w.y),
               width: gridSize.w,
               height: gridSize.h,
               gridSize,
@@ -1618,10 +1320,10 @@ export function MyPage() {
           widgetCount: pageData.widgets.length
         });
 
-        // 기존 페이지가 있는지 확인
-        console.log('🔍 기존 페이지 확인 중... (authorId:', currentUser.id, ', title:', pageTitle, ')');
+        // 기존 페이지가 있는지 확인 (authorId, urlId 기준)
+        console.log('🔍 기존 페이지 확인 중... (authorId:', currentUser.id, ', urlId:', urlId, ')');
         const pagesRef = collection(db, 'userPages');
-        const q = query(pagesRef, where('authorId', '==', currentUser.id), where('title', '==', pageTitle));
+        const q = query(pagesRef, where('authorId', '==', currentUser.id), where('urlId', '==', urlId));
         const snapshot = await getDocs(q);
         console.log('기존 페이지 검색 결과:', snapshot.docs.length, '개');
 
@@ -1658,19 +1360,7 @@ export function MyPage() {
         const shareUrl = `${window.location.origin}/${urlId}`;
         
         // 성공 메시지 with 공유 URL
-        const message = document.createElement('div');
-        message.className = 'fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[10000] max-w-md';
-        message.innerHTML = `
-          <div class="flex flex-col gap-2">
-            <div class="font-semibold">✓ 저장 및 공개되었습니다!</div>
-            <div class="text-xs opacity-90">공유 URL: <span class="font-mono bg-green-600 px-2 py-1 rounded">${shareUrl}</span></div>
-            <button onclick="navigator.clipboard.writeText('${shareUrl}'); this.textContent='복사됨!'" class="text-xs bg-green-600 hover:bg-green-700 px-2 py-1 rounded mt-1">URL 복사</button>
-          </div>
-        `;
-        document.body.appendChild(message);
-        setTimeout(() => {
-          message.remove();
-        }, 5000); // 5초로 연장
+        setToast({ type: 'success', msg: `저장 완료! 공유 URL: ${shareUrl}` }); // 5초로 연장
         
         console.log('공유 URL:', shareUrl);
         return;
@@ -1680,19 +1370,7 @@ export function MyPage() {
         console.error('에러 코드:', error?.code);
         
         // 사용자에게 에러 알림
-        const errorMessage = document.createElement('div');
-        errorMessage.className = 'fixed top-20 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-[10000] max-w-md';
-        errorMessage.innerHTML = `
-          <div class="flex flex-col gap-2">
-            <div class="font-semibold">❌ Firebase 저장 실패</div>
-            <div class="text-xs opacity-90">${error?.message || '알 수 없는 오류'}</div>
-            <div class="text-xs opacity-75">로컬에는 저장되었습니다.</div>
-          </div>
-        `;
-        document.body.appendChild(errorMessage);
-        setTimeout(() => {
-          errorMessage.remove();
-        }, 5000);
+        setToast({ type: 'error', msg: `Firebase 저장 실패: ${error?.message || '알 수 없는 오류'}. 로컬에는 저장되었습니다.` });
         
         // Firebase 저장 실패해도 로컬에는 저장되었으므로 계속 진행
       }
@@ -1703,17 +1381,11 @@ export function MyPage() {
     }
     
     // 성공 메시지 (비공개 또는 게스트)
-    const message = document.createElement('div');
-    message.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000]';
     if (currentUser) {
-      message.textContent = shareSettings.isPublic ? '✓ 저장되었습니다 (공개)' : '✓ 저장되었습니다 (비공개)';
+      setToast({ type: 'success', msg: shareSettings.isPublic ? '저장되었습니다 (공개)' : '저장되었습니다 (비공개)' });
     } else {
-      message.textContent = '✓ 저장되었습니다 (게스트)';
+      setToast({ type: 'success', msg: '저장되었습니다 (게스트)' });
     }
-    document.body.appendChild(message);
-    setTimeout(() => {
-      message.remove();
-    }, 3000);
   }, [pages, currentPageId, pageTitle, widgets, currentUser, shareSettings, customUrl]);
 
   // 위젯 변경 시 자동 저장 (localStorage에만 저장, Firebase는 수동 저장 버튼으로만)
@@ -1721,31 +1393,21 @@ export function MyPage() {
     // 초기 로드 시에는 저장하지 않음
     if (widgets.length === 0) return;
     
-    const autoSave = () => {
-      const updatedPages = pages.map(page => {
-        if (page.id === currentPageId) {
-          return {
-            ...page,
-            title: pageTitle,
-            widgets: widgets
-          };
-        }
-        return page;
-      });
-      
-      // localStorage에만 자동 저장 (조용히)
-      if (currentUser) {
-        localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
-      } else {
-        localStorage.setItem('myPages', JSON.stringify(updatedPages));
-      }
-    };
-    
-    // 디바운스를 위해 타이머 설정 (1초 후 저장)
-    const timer = setTimeout(autoSave, 1000);
-    
+    const timer = setTimeout(() => {
+      const updated = pages.map(p => p.id === currentPageId ? { ...p, title: pageTitle, widgets } : p);
+      const key = currentUser ? `myPages_${currentUser.id}` : 'myPages';
+      localStorage.setItem(key, JSON.stringify(updated));
+      setPages(updated);
+    }, 800);
     return () => clearTimeout(timer);
-  }, [widgets, pages, currentPageId, pageTitle, currentUser]);
+  }, [widgets, currentPageId, pageTitle, currentUser?.id]); // pages는 의존성에서 제외
+
+  // 토스트 자동 제거
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // 위젯 업데이트
   const updateWidget = useCallback((id: string, updates: Partial<Widget>) => {
@@ -1793,74 +1455,36 @@ export function MyPage() {
     setIsReordering(true);
   };
 
-  // 드래그 중
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!draggedWidget) return;
-
-    e.preventDefault();
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const canvasRect = canvas.getBoundingClientRect();
-    const rawX = e.clientX - canvasRect.left - dragOffset.x;
-    const rawY = e.clientY - canvasRect.top - dragOffset.y;
-
-    // 그리드 스냅핑 (8개의 메인 컬럼 그리드)
-    const targetCol = Math.max(0, Math.min(7, Math.floor(rawX / (mainColumnWidth + spacing))));
-    let newX = targetCol * (mainColumnWidth + spacing);
-    let newY = Math.round(rawY / cellHeight) * cellHeight;
-
-    // 경계 체크
-    newX = Math.max(0, Math.min(newX, 7 * (mainColumnWidth + spacing)));
-    newY = Math.max(0, newY);
-
-    // 드래그 중인 위젯 위치 업데이트
-    setWidgets(prevWidgets => 
-      prevWidgets.map(w => 
-        w.id === draggedWidget ? { ...w, x: newX, y: newY } : w
-      )
-    );
-  };
 
   // 드래그 종료
   const handleMouseUp = () => {
-    if (draggedWidget) {
-      // 드래그 종료 시 충돌 처리 (같은 컬럼 내에서만)
-      const draggedWidgetData = widgets.find(w => w.id === draggedWidget);
-      if (draggedWidgetData) {
-        // 드래그한 위젯이 속한 컬럼 찾기
-        const draggedCol = Math.floor(draggedWidgetData.x / (mainColumnWidth + spacing));
-        
-        // 같은 컬럼 내의 충돌하는 위젯만 찾기
-        const collidingWidgets = widgets.filter(w => {
-          if (w.id === draggedWidget) return false;
-          const widgetCol = Math.floor(w.x / (mainColumnWidth + spacing));
-          return widgetCol === draggedCol && isWidgetOverlapping(draggedWidgetData, w);
-        });
+    if (!draggedWidget) return;
 
-        if (collidingWidgets.length > 0) {
-          // 충돌하는 위젯들과 그 아래 모든 위젯들을 아래로 이동
-          const draggedBottom = draggedWidgetData.y + draggedWidgetData.height;
-          
-          // 가장 위에 있는 충돌 위젯의 위치를 기준으로 이동 거리 계산
-          const topCollidingWidget = collidingWidgets.reduce((top, current) => 
-            current.y < top.y ? current : top
-          );
-          
-          const moveDistance = draggedBottom + spacing - topCollidingWidget.y;
-          
-          // 같은 컬럼 내에서만 충돌하는 위젯과 그 아래 모든 위젯들을 이동
-          setWidgets(widgets.map(w => {
-            const widgetCol = Math.floor(w.x / (mainColumnWidth + spacing));
-            if (widgetCol === draggedCol && w.y >= topCollidingWidget.y && w.id !== draggedWidget) {
-              return { ...w, y: w.y + moveDistance };
-            }
-            return w;
-          }));
+    setWidgets(prev => {
+      const dw = prev.find(w => w.id === draggedWidget);
+      if (!dw) return prev;
+
+      const draggedCol = Math.floor(dw.x / COL_TRACK);
+      const colliders = prev.filter(w => {
+        if (w.id === draggedWidget) return false;
+        const col = Math.floor(w.x / COL_TRACK);
+        return col === draggedCol && isWidgetOverlapping(dw, w); // utils의 함수 사용
+      });
+
+      if (colliders.length === 0) return prev;
+
+      const topCollider = colliders.reduce((a, b) => (a.y < b.y ? a : b));
+      const draggedBottom = dw.y + dw.height;
+      const moveDistance = draggedBottom + spacing - topCollider.y;
+
+      return prev.map(w => {
+        const col = Math.floor(w.x / COL_TRACK);
+        if (w.id !== draggedWidget && col === draggedCol && w.y >= topCollider.y) {
+          return { ...w, y: w.y + moveDistance };
         }
-      }
-    }
+        return w;
+      });
+    });
 
     setDraggedWidget(null);
     setDragOverWidget(null);
@@ -1965,28 +1589,6 @@ export function MyPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // 암호화폐 가격 시뮬레이션
-  useEffect(() => {
-    const cryptoTimer = setInterval(() => {
-      setCryptoPrices(prev => ({
-        bitcoin: { 
-          price: prev.bitcoin.price + (Math.random() - 0.5) * 100000, 
-          change: (Math.random() - 0.5) * 5 
-        },
-        ethereum: { 
-          price: prev.ethereum.price + (Math.random() - 0.5) * 10000, 
-          change: (Math.random() - 0.5) * 5 
-        },
-        solana: { 
-          price: prev.solana.price + (Math.random() - 0.5) * 1000, 
-          change: (Math.random() - 0.5) * 5 
-        }
-      }));
-    }, 5000);
-
-    return () => clearInterval(cryptoTimer);
-  }, []);
-
   // 영어 단어 자동 재생
   useEffect(() => {
     if (englishWordsSettings.isAutoPlay) {
@@ -2031,13 +1633,6 @@ export function MyPage() {
   }, []); // addWidget을 의존성에서 제거 (한 번만 등록)
 
   // 각 컬럼의 마지막 위젯과 컬럼 하단 여백에 마우스 오버 시 위젯 추가 기능
-  const getColumnLastWidget = (columnIndex: number) => {
-    return getColumnLastWidgetUtil(widgets, columnIndex, mainColumnWidth, spacing);
-  };
-
-  const getColumnBottomY = (columnIndex: number) => {
-    return getColumnBottomYUtil(widgets, columnIndex, mainColumnWidth, spacing);
-  };
 
   const openWidgetShop = () => {
     setShowWidgetModal(true);
@@ -2437,17 +2032,12 @@ export function MyPage() {
         if (!canvas) return;
 
         const canvasRect = canvas.getBoundingClientRect();
-        let newX = e.clientX - canvasRect.left - dragOffset.x;
-        let newY = e.clientY - canvasRect.top - dragOffset.y;
+        const rawX = e.clientX - canvasRect.left - dragOffset.x;
+        const rawY = e.clientY - canvasRect.top - dragOffset.y;
 
-        // 그리드 스냅핑 (8컬럼 그리드)
-        const targetCol = Math.floor(newX / (cellWidth + spacing));
-        newX = targetCol * (cellWidth + spacing);
-        newY = Math.round(newY / cellHeight) * cellHeight;
-
-        // 경계 체크
-        newX = Math.max(0, Math.min(newX, 7 * (cellWidth + spacing))); // 8컬럼이므로 0~7
-        newY = Math.max(0, newY);
+        // 그리드 스냅핑 - snapX/snapY 사용
+        const newX = snapX(rawX);
+        const newY = snapY(rawY);
 
         // 드래그 중인 위젯 위치 업데이트
         setWidgets(prevWidgets => 
@@ -2471,7 +2061,7 @@ export function MyPage() {
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
-  }, [draggedWidget, dragOffset, cellWidth, cellHeight, spacing]);
+  }, [draggedWidget, dragOffset, COL_TRACK, cellHeight]);
 
   // 위젯을 그리드 형식으로 변환
   const convertToGridWidget = (widget: Widget) => {
@@ -2481,11 +2071,25 @@ export function MyPage() {
     // gridSize가 없는 경우에만 타입에 따라 자동 설정
     if (!widget.gridSize) {
       if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'law_search') {
-        gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 (컴팩트 모드)
+        gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 기본
       } else if (widget.type === 'bookmark') {
-        gridSize = { w: 1, h: 2 }; // 북마크는 1x2
+        gridSize = { w: 1, h: 1 }; // 북마크는 1x1 고정
       } else if (widget.type === 'calendar') {
         gridSize = { w: 2, h: 2 }; // 캘린더는 2x2
+      } else if (widget.type === 'crypto') {
+        gridSize = { w: 3, h: 1 }; // 크립토 위젯은 3x1
+      } else if (widget.type === 'frequent_sites') {
+        gridSize = { w: 1, h: 1 }; // 자주가는사이트 위젯은 1x1 고정
+      } else if (widget.type === 'todo') {
+        gridSize = { w: 1, h: 2 }; // To Do 위젯은 1x2
+      } else if (widget.type === 'weather') {
+        gridSize = { w: 1, h: 3 }; // 날씨 위젯은 1x3
+      } else if (widget.type === 'english_words') {
+        gridSize = { w: 1, h: 2 }; // 영어단어 위젯은 1x2
+      } else if (widget.type === 'quote') {
+        gridSize = { w: 2, h: 1 }; // 영감명언 위젯은 2x1 고정 (고정)
+      } else if (widget.type === 'economic_calendar') {
+        gridSize = { w: 2, h: 2 }; // 경제캘린더 위젯은 2x2
       } else {
         gridSize = { w: 1, h: 1 }; // 기본적으로 1x1
       }
@@ -2515,7 +2119,7 @@ export function MyPage() {
 
     return (
       <div
-        className={`relative h-full overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200 ${
+        className={`relative h-full overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col ${
           isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
         } ${isDragging ? 'opacity-75' : ''} ${
           dragOverWidget === originalWidget.id && draggedWidget !== originalWidget.id ? 'ring-2 ring-green-500 bg-green-50' : ''
@@ -2540,11 +2144,11 @@ export function MyPage() {
           }
         }}
       >
-        {/* 위젯 헤더 */}
+        {/* 위젯 헤더 - 고정 */}
         <div 
           data-drag-handle="true"
           data-widget-id={originalWidget.id}
-          className="px-2 py-0.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-move group"
+          className="px-2 py-0.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-move group flex-shrink-0"
           onMouseDown={(e) => {
             // 버튼이나 입력창을 클릭한 경우 드래그 방지
             const target = e.target as HTMLElement;
@@ -2570,25 +2174,50 @@ export function MyPage() {
           </div>
           
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {/* 사이즈 선택기 */}
-            <SizePicker
-              value={originalWidget.gridSize || { w: 1, h: 1 }}
-              onChange={(newSize) => {
-                updateWidget(originalWidget.id, { ...originalWidget, gridSize: newSize });
-              }}
-            />
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-6 w-6 p-0 hover:bg-blue-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                editWidget(originalWidget.id);
-              }}
-              title="위젯 편집"
-            >
-              <Edit className="w-3 h-3 text-blue-600" />
-            </Button>
+            {/* 사이즈 선택기 - 특정 위젯들은 제한된 크기만 허용 */}
+            {originalWidget.type !== 'english_words' && originalWidget.type !== 'bookmark' && (
+              <SizePicker
+                value={originalWidget.gridSize || { w: 1, h: 1 }}
+                onChange={(newSize) => {
+                  updateWidget(originalWidget.id, { ...originalWidget, gridSize: newSize });
+                }}
+                widgetType={originalWidget.type}
+              />
+            )}
+            {isWidgetEditable(originalWidget.type) && (
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-6 w-6 p-0 hover:bg-blue-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  editWidget(originalWidget.id);
+                }}
+                title="위젯 편집"
+              >
+                <Edit className="w-3 h-3 text-blue-600" />
+              </Button>
+            )}
+            {originalWidget.type === 'english_words' && (
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-6 w-6 p-0 hover:bg-blue-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // 영어단어학습 위젯의 설정 토글
+                  const englishWidget = widgets.find(w => w.id === originalWidget.id);
+                  if (englishWidget) {
+                    // 설정 상태를 토글하는 로직을 여기에 추가할 수 있습니다
+                    // 현재는 단순히 알림만 표시
+                    console.log('영어단어학습 위젯 설정 토글');
+                  }
+                }}
+                title="영어단어학습 설정"
+              >
+                <Settings className="w-3 h-3 text-blue-600" />
+              </Button>
+            )}
             <Button 
               size="sm" 
               variant="ghost" 
@@ -2604,15 +2233,22 @@ export function MyPage() {
           </div>
         </div>
 
-        {/* 위젯 콘텐츠 */}
+        {/* 위젯 콘텐츠 - 스크롤 가능 */}
         <div 
-          className="p-3 h-full bg-transparent overflow-hidden"
+          className="flex-1 bg-transparent overflow-y-auto"
           onMouseDown={(e) => {
             // 위젯 본문에서는 드래그 완전 방지
             e.stopPropagation();
           }}
+          onDragStart={(e) => {
+            // 위젯 내용 영역에서 드래그 시작 방지
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
-          {renderWidgetContent(originalWidget)}
+          <div className="p-3">
+            {renderWidgetContent(originalWidget)}
+          </div>
         </div>
 
       </div>
@@ -2623,7 +2259,9 @@ export function MyPage() {
   const renderWidgetContent = (widget: Widget) => {
     switch (widget.type) {
       case 'bookmark':
-        return <BookmarkWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+        return <BookmarkWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} onBookmarkCountChange={(count) => {
+          // 북마크 개수에 따른 크기 자동 조정은 BookmarkWidget 내부에서 처리됨
+        }} />;
 
       case 'weather':
         return <WeatherWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
@@ -2846,60 +2484,8 @@ export function MyPage() {
           </div>
         );
 
-      case 'meeting':
-        return (
-          <div className="p-4">
-            <div className="space-y-3">
-              {widget.content.meetings?.map((meeting: any) => (
-                <div key={meeting.id} className={`p-2 rounded-lg ${meeting.status === 'reserved' ? 'bg-red-50 border-l-4 border-red-400' : 'bg-green-50 border-l-4 border-green-400'}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-gray-800">{meeting.room}</span>
-                    <span className="text-xs text-gray-500">{meeting.time}</span>
-                  </div>
-                  <div className="text-xs text-gray-700">{meeting.title}</div>
-                  <div className={`text-xs mt-1 ${meeting.status === 'reserved' ? 'text-red-600' : 'text-green-600'}`}>
-                    {meeting.status === 'reserved' ? '예약됨' : '사용 가능'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
 
-      case 'converter':
-        return (
-          <div className="p-4">
-            <div className="space-y-3">
-              {widget.content.conversions?.map((conversion: any) => (
-                <div key={conversion.from} className="p-2 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-gray-800">{conversion.from}</span>
-                    <span className="text-xs text-gray-500">→</span>
-                    <span className="text-xs font-medium text-gray-800">{conversion.to}</span>
-                  </div>
-                  <div className="text-sm font-bold text-blue-600">{conversion.rate.toLocaleString()}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
 
-      case 'note':
-        return (
-          <div className="p-4">
-            <div className="space-y-2">
-              {widget.content.notes?.map((note: any) => (
-                <div key={note.id} className={`p-2 rounded-lg ${note.pinned ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-gray-50'}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-500">{note.time}</span>
-                    {note.pinned && <span className="text-xs text-yellow-600">📌</span>}
-                  </div>
-                  <div className="text-xs text-gray-700">{note.text}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
 
       case 'quicknote':
         return (
@@ -2968,111 +2554,6 @@ export function MyPage() {
           </div>
         );
 
-      case 'sports':
-        return (
-          <div className="p-4">
-            <div className="space-y-3">
-              {widget.content.news?.map((news: any) => (
-                <div key={news.id} className="border-b border-gray-200 pb-2 last:border-b-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-blue-600 font-medium">{news.league}</span>
-                    <span className="text-xs text-gray-500">{news.time}</span>
-                  </div>
-                  <div className="text-sm text-gray-800 leading-tight">{news.title}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'profile_card':
-        return (
-          <div className="p-4 h-full flex flex-col">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-2xl text-white">👤</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-gray-800 mb-1">{widget.content.name}</h3>
-                <p className="text-sm text-blue-600 mb-1">{widget.content.nickname}</p>
-                <p className="text-sm text-gray-600">{widget.content.bio}</p>
-              </div>
-            </div>
-            <div className="flex-1 grid grid-cols-3 gap-3">
-              {widget.content.socialLinks?.map((link: any, index: number) => (
-                <button
-                  key={index}
-                  className="flex items-center justify-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-sm"
-                  onClick={() => window.open(link.url, '_blank')}
-                >
-                  <span className="text-base">{link.icon}</span>
-                  <span className="font-medium">{link.platform}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'qr_code':
-        return (
-          <div className="p-2 text-center h-full flex flex-col">
-            <div className="w-20 h-20 bg-white border-2 border-gray-200 rounded-lg mx-auto mb-2 flex items-center justify-center flex-shrink-0">
-              <div className="w-16 h-16 bg-gray-800 rounded grid grid-cols-6 gap-0.5 p-1">
-                {Array.from({ length: 36 }).map((_, i) => (
-                  <div key={i} className={`w-1 h-1 ${Math.random() > 0.5 ? 'bg-white' : 'bg-gray-800'} rounded-sm`}></div>
-                ))}
-              </div>
-            </div>
-            <p className="text-xs text-gray-600">QR 코드</p>
-          </div>
-        );
-
-      case 'portfolio_header':
-        return (
-          <div className="p-4 text-center bg-gradient-to-r from-blue-50 to-purple-50 h-full flex flex-col justify-center">
-            <h2 className="text-lg font-bold text-gray-800 mb-2">{widget.content.name}</h2>
-            <p className="text-sm text-blue-600 mb-2">{widget.content.title}</p>
-            <p className="text-xs text-gray-600">{widget.content.bio}</p>
-          </div>
-        );
-
-      case 'project_gallery':
-        return (
-          <div className="p-3 h-full overflow-y-auto">
-            <div className="space-y-3">
-              {widget.content.projects?.map((project: any) => (
-                <div key={project.id} className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-                  <h4 className="font-semibold text-sm text-gray-800 mb-2 truncate">{project.title}</h4>
-                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">{project.description}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {project.tools?.slice(0, 3).map((tool: string, index: number) => (
-                      <span key={index} className="text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded">
-                        {tool}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'contact_buttons':
-        return (
-          <div className="p-3 h-full flex flex-col justify-center">
-            <div className="space-y-2">
-              <button className="w-full p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                📧 이메일
-              </button>
-              <button className="w-full p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
-                📱 전화
-              </button>
-              <button className="w-full p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm">
-                💼 LinkedIn
-              </button>
-            </div>
-          </div>
-        );
 
       case 'download_section':
         return (
@@ -3545,120 +3026,10 @@ export function MyPage() {
         return <FrequentSitesWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
       case 'english_words':
-        return (
-          <div className="h-full flex flex-col justify-center space-y-3">
-            {/* 픽토그램과 제목 제거 */}
-            <div className="bg-gray-50 p-4 rounded text-center">
-              <div className="font-bold text-xl mb-2">{widget.content?.currentWord?.word || 'Serendipity'}</div>
-              <div className="text-base text-gray-600 mb-2">{widget.content?.currentWord?.pronunciation || '[serənˈdipəti]'}</div>
-              <div className="text-sm text-gray-700">{widget.content?.currentWord?.meaning || '우연히 좋은 일을 발견하는 것'}</div>
-            </div>
-            
-            {/* 시간 조절 버튼들 */}
-            <div className="flex gap-1">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="flex-1 h-7 text-xs"
-                onClick={() => setEnglishWordsSettings(prev => ({ ...prev, interval: 3000 }))}
-              >
-                3초
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="flex-1 h-7 text-xs"
-                onClick={() => setEnglishWordsSettings(prev => ({ ...prev, interval: 5000 }))}
-              >
-                5초
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="flex-1 h-7 text-xs"
-                onClick={() => setEnglishWordsSettings(prev => ({ ...prev, interval: 10000 }))}
-              >
-                10초
-              </Button>
-            </div>
-            
-            <div className="flex gap-1">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="flex-1 h-8 text-xs"
-                onClick={() => {
-                  const words = [
-                    { word: 'Serendipity', pronunciation: '[serənˈdipəti]', meaning: '우연히 좋은 일을 발견하는 것' },
-                    { word: 'Ephemeral', pronunciation: '[ɪˈfemərəl]', meaning: '순간적인, 덧없는' },
-                    { word: 'Resilience', pronunciation: '[rɪˈzɪljəns]', meaning: '회복력, 탄력성' },
-                    { word: 'Ubiquitous', pronunciation: '[juˈbɪkwɪtəs]', meaning: '어디에나 있는, 만연한' },
-                    { word: 'Magnificent', pronunciation: '[mæɡˈnɪfəsənt]', meaning: '웅장한, 훌륭한' },
-                    { word: 'Melancholy', pronunciation: '[ˈmelənkɑːli]', meaning: '우울함, 서정적 슬픔' }
-                  ];
-                  const randomWord = words[Math.floor(Math.random() * words.length)];
-                  updateWidget(widget.id, { 
-                    content: { ...(widget.content || {}), currentWord: randomWord }
-                  });
-                }}
-              >
-                <RefreshCw className="w-3 h-3 mr-1" />
-                새 단어
-              </Button>
-              <Button 
-                size="sm" 
-                variant={englishWordsSettings.isAutoPlay ? "default" : "outline"}
-                className="flex-1 h-8 text-xs"
-                onClick={() => {
-                  setEnglishWordsSettings(prev => ({ 
-                    ...prev, 
-                    isAutoPlay: !prev.isAutoPlay 
-                  }));
-                }}
-              >
-                {englishWordsSettings.isAutoPlay ? '정지' : '자동'}
-              </Button>
-            </div>
-          </div>
-        );
+        return <EnglishWordsWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
       case 'quote':
         return <QuoteWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
-        /*
-          <div className="space-y-3">
-            <div className="text-center">
-              <div className="text-2xl mb-2">💭</div>
-              <h4 className="font-semibold text-sm text-gray-800">명언</h4>
-            </div>
-            <div className="bg-gray-50 p-3 rounded text-center">
-              <div className="text-sm text-gray-700 italic mb-2">
-                "성공은 준비된 자에게 찾아오는 기회다."
-              </div>
-              <div className="text-xs text-gray-500">- 알베르트 아인슈타인</div>
-            </div>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="w-full h-8 text-xs"
-              onClick={() => {
-                const quotes = [
-                  { text: "성공은 준비된 자에게 찾아오는 기회다.", author: "알베르트 아인슈타인" },
-                  { text: "꿈을 계속 간직하고 있으면 반드시 실현할 때가 온다.", author: "괴테" },
-                  { text: "성공한 사람이 되려고 노력하기보다 가치있는 사람이 되려고 노력하라.", author: "알베르트 아인슈타인" },
-                  { text: "오늘 할 수 있는 일에 전력을 다하라.", author: "토마스 에디슨" }
-                ];
-                const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-                updateWidget(widget.id, { 
-                  content: { ...widget.content, currentQuote: randomQuote }
-                });
-              }}
-            >
-              <RefreshCw className="w-3 h-3 mr-1" />
-              새 명언
-            </Button>
-          </div>
-        );
-        */
 
 
       default:
@@ -3882,9 +3253,13 @@ export function MyPage() {
                   } catch (error: any) {
                     console.error('로그인 오류:', error);
                     // 팝업 차단이나 사용자가 취소한 경우
-                    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-                      console.log('로그인 팝업이 닫혔습니다.');
+                    if (error.code === 'auth/popup-closed-by-user' || 
+                        error.code === 'auth/cancelled-popup-request' ||
+                        error.code === 'auth/popup-blocked') {
+                      console.log('로그인 팝업이 닫혔거나 차단되었습니다.');
+                      // 팝업 취소는 조용히 처리 (사용자에게 알림하지 않음)
                     } else {
+                      console.error('로그인 실패:', error.message);
                       alert('로그인에 실패했습니다. 다시 시도해주세요.');
                     }
                   }
@@ -4175,9 +3550,17 @@ export function MyPage() {
                       await signInWithPopup(auth, googleProvider);
                       // 로그인 성공 시 모달 닫기 (useEffect에서 템플릿 모달을 자동으로 열어줌)
                       setShowIntroModal(false);
-                    } catch (error) {
+                    } catch (error: any) {
                       console.error('Google 로그인 실패:', error);
-                      alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                      // 팝업 차단이나 사용자가 취소한 경우
+                      if (error.code === 'auth/popup-closed-by-user' || 
+                          error.code === 'auth/cancelled-popup-request' ||
+                          error.code === 'auth/popup-blocked') {
+                        console.log('로그인 팝업이 닫혔거나 차단되었습니다.');
+                        // 팝업 취소는 조용히 처리
+                      } else {
+                        alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                      }
                     }
                   }}
                   className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold"
@@ -4389,19 +3772,8 @@ export function MyPage() {
                                 </div>
                               )}
                               
-                              {/* 계산기 위젯 */}
-                              {widget.type === 'calculator' && (
-                                <div className="space-y-0.5">
-                                  <div className="grid grid-cols-3 gap-0.5">
-                                    {[1,2,3,4,5,6].map(i => (
-                                      <div key={i} className="w-1 h-0.5 bg-gray-200 rounded"></div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              
                               {/* 기본 위젯 (기타) */}
-                              {!['bookmark', 'social', 'qr_code', 'github_repo', 'contact', 'stats', 'todo', 'stock', 'news', 'weather', 'calculator'].includes(widget.type) && (
+                              {!['bookmark', 'social', 'qr_code', 'github_repo', 'contact', 'stats', 'todo', 'stock', 'news', 'weather'].includes(widget.type) && (
                                 <div className="flex flex-col items-center justify-center h-full">
                                   <div className="w-1.5 h-1.5 bg-gray-200 rounded"></div>
                                 </div>
@@ -4464,7 +3836,6 @@ export function MyPage() {
             style={{ 
               position: 'relative'
             }}
-            onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
           >
           {/* 빈 상태 안내 */}
@@ -5170,7 +4541,19 @@ export function MyPage() {
                     default:
                       return (
                         <div className="text-center text-gray-500 py-8">
-                          <p>이 위젯은 편집할 수 없습니다.</p>
+                          <div className="mb-4">
+                            <Settings className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+                          </div>
+                          <p className="text-lg font-medium mb-2">편집 불가능한 위젯</p>
+                          <p className="text-sm text-gray-400">
+                            {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'google_search' && '검색 위젯은 편집할 수 없습니다.'}
+                            {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'naver_search' && '검색 위젯은 편집할 수 없습니다.'}
+                            {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'law_search' && '검색 위젯은 편집할 수 없습니다.'}
+                            {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'social' && '소셜 링크 위젯은 편집할 수 없습니다.'}
+                            {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'news' && '뉴스 위젯은 편집할 수 없습니다.'}
+                            {editingWidget && widgets.find(w => w.id === editingWidget)?.type === 'calendar' && '캘린더 위젯은 편집할 수 없습니다.'}
+                            {!editingWidget || !widgets.find(w => w.id === editingWidget) || !['google_search', 'naver_search', 'law_search', 'social', 'news', 'calendar'].includes(widgets.find(w => w.id === editingWidget)?.type || '') ? '이 위젯은 편집할 수 없습니다.' : ''}
+                          </p>
                         </div>
                       );
                   }
@@ -5196,6 +4579,15 @@ export function MyPage() {
           </div>
         )}
 
+        </div>
+      )}
+
+      {/* 토스트 메시지 */}
+      {toast && (
+        <div className={`fixed top-20 right-4 px-4 py-2 rounded shadow-lg z-[10000] ${
+          toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {toast.msg}
         </div>
       )}
 

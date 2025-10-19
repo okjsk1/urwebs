@@ -1,38 +1,53 @@
 // 암호화폐 위젯 - 실시간 시세, 스파크라인, 편집 가능
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
-import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Grid as GridIcon, List } from 'lucide-react';
-import { getQuotes, subscribeQuotes, formatMoney, formatPercent, type Quote } from '../../services/finance/api';
+import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Grid as GridIcon, List, Wifi, WifiOff } from 'lucide-react';
 import { Sparkline } from '../ui/Sparkline';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
+import { 
+  subscribePrices, 
+  formatPrice, 
+  formatChangePct, 
+  formatChange, 
+  getSymbolInfo,
+  type Symbol, 
+  type Quote, 
+  type Exchange,
+  type PriceTick,
+  type Status 
+} from '../../services/cryptoService';
 
 interface CryptoState {
-  symbols: string[];
-  quotes: Record<string, Quote>;
-  history: Record<string, number[]>; // 심볼별 가격 이력 (스파크라인용)
-  currency: 'USD' | 'KRW';
+  symbols: Symbol[];
+  quotes: Record<Symbol, PriceTick>;
+  history: Record<Symbol, number[]>; // 심볼별 가격 이력 (스파크라인용)
+  currency: Quote;
+  exchange: Exchange;
   view: 'list' | 'grid';
   showAddForm: boolean;
   newSymbol: string;
-  isLoading: boolean;
+  status: Status;
   lastUpdate: number;
+  intervalMs: number;
 }
 
-const DEFAULT_SYMBOLS = ['BTC', 'ETH', 'XRP', 'ADA', 'SOL'];
+const DEFAULT_SYMBOLS: Symbol[] = ['BTC', 'ETH', 'SOL'];
 
-export const CryptoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, updateWidget }) => {
-  const [state, setState] = useState<CryptoState>(() => {
+export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
+  const [state, setState] = useState(() => {
     const saved = readLocal(widget.id, {
       symbols: DEFAULT_SYMBOLS,
-      quotes: {},
-      history: {},
-      currency: 'USD' as const,
+      quotes: {} as Record<Symbol, PriceTick>,
+      history: {} as Record<Symbol, number[]>,
+      currency: 'KRW' as Quote,
+      exchange: 'upbit' as Exchange,
       view: 'list' as const,
       showAddForm: false,
       newSymbol: '',
-      isLoading: false,
-      lastUpdate: Date.now()
+      status: 'idle' as Status,
+      lastUpdate: Date.now(),
+      intervalMs: 5000
     });
     return saved;
   });
@@ -42,70 +57,41 @@ export const CryptoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
     persistOrLocal(widget.id, state, updateWidget);
   }, [widget.id, state], 300);
 
-  // 시세 업데이트
-  const refreshQuotes = useCallback(async () => {
-    if (state.symbols.length === 0) return;
-    
-    setState(prev => ({ ...prev, isLoading: true }));
-    
-    try {
-      const quotes = await getQuotes(state.symbols, { asset: 'crypto' });
-      
-      setState(prev => {
-        const newQuotes: Record<string, Quote> = {};
-        const newHistory: Record<string, number[]> = { ...prev.history };
-        
-        quotes.forEach(q => {
-          newQuotes[q.symbol] = q;
-          
-          // 가격 이력 추가 (최근 60개만 유지)
-          const hist = newHistory[q.symbol] || [];
-          newHistory[q.symbol] = [...hist, q.price].slice(-60);
-        });
-        
-        return {
-          ...prev,
-          quotes: newQuotes,
-          history: newHistory,
-          isLoading: false,
-          lastUpdate: Date.now()
-        };
-      });
-    } catch (error) {
-      console.error('Failed to fetch crypto quotes:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
-      showToast('시세 업데이트 실패', 'error');
-    }
-  }, [state.symbols]);
-
-  // 실시간 구독
+  // 실시간 가격 구독
   useEffect(() => {
     if (state.symbols.length === 0) return;
     
-    const sub = subscribeQuotes(
-      state.symbols,
-      (quote) => {
+    const subscription = subscribePrices(
+      {
+        symbols: state.symbols,
+        quote: state.currency,
+        exchange: state.exchange,
+        intervalMs: state.intervalMs
+      },
+      (tick: PriceTick) => {
         setState(prev => {
           const newHistory = { ...prev.history };
-          const hist = newHistory[quote.symbol] || [];
-          newHistory[quote.symbol] = [...hist, quote.price].slice(-60);
+          const hist = newHistory[tick.symbol] || [];
+          newHistory[tick.symbol] = [...hist, tick.price].slice(-60);
           
           return {
             ...prev,
-            quotes: { ...prev.quotes, [quote.symbol]: quote },
+            quotes: { ...prev.quotes, [tick.symbol]: tick },
             history: newHistory,
-            lastUpdate: Date.now()
+            lastUpdate: tick.timestamp
           };
         });
       },
-      { asset: 'crypto', interval: 10000 }
+      (status: Status) => {
+        setState(prev => ({ ...prev, status }));
+      }
     );
     
-    return () => sub.close();
-  }, [state.symbols]);
+    return () => subscription.unsubscribe();
+  }, [state.symbols, state.currency, state.exchange, state.intervalMs]);
 
   const addSymbol = useCallback(() => {
-    const symbol = state.newSymbol.trim().toUpperCase();
+    const symbol = state.newSymbol.trim().toUpperCase() as Symbol;
     
     if (!symbol) {
       showToast('심볼을 입력하세요', 'error');
@@ -127,13 +113,20 @@ export const CryptoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
     showToast('심볼이 추가되었습니다', 'success');
   }, [state.newSymbol, state.symbols]);
 
-  const removeSymbol = useCallback((symbol: string) => {
-    setState(prev => ({
-      ...prev,
-      symbols: prev.symbols.filter(s => s !== symbol),
-      quotes: Object.fromEntries(Object.entries(prev.quotes).filter(([k]) => k !== symbol)),
-      history: Object.fromEntries(Object.entries(prev.history).filter(([k]) => k !== symbol))
-    }));
+  const removeSymbol = useCallback((symbol: Symbol) => {
+    setState(prev => {
+      const newQuotes = { ...prev.quotes };
+      const newHistory = { ...prev.history };
+      delete newQuotes[symbol];
+      delete newHistory[symbol];
+      
+      return {
+        ...prev,
+        symbols: prev.symbols.filter(s => s !== symbol),
+        quotes: newQuotes,
+        history: newHistory
+      };
+    });
     showToast('심볼이 제거되었습니다', 'success');
   }, []);
 
@@ -157,7 +150,6 @@ export const CryptoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
       <div className="flex items-center justify-between mb-2 shrink-0">
         <div className="flex items-center gap-1">
           <span className="text-lg">₿</span>
-          <h4 className="font-semibold text-sm text-gray-800">암호화폐</h4>
         </div>
         <div className="flex items-center gap-1">
           {isEditMode && (
@@ -177,13 +169,21 @@ export const CryptoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
             {state.currency}
           </button>
           <button
-            onClick={refreshQuotes}
-            disabled={state.isLoading}
-            className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
-            title="새로고침"
+            onClick={() => setState(prev => ({ ...prev, exchange: prev.exchange === 'upbit' ? 'binance' : 'upbit' }))}
+            className="px-2 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+            title="거래소 전환"
           >
-            <RefreshCw className={`w-3 h-3 text-gray-600 ${state.isLoading ? 'animate-spin' : ''}`} />
+            {state.exchange}
           </button>
+          <div className="flex items-center gap-1">
+            {state.status === 'live' ? (
+              <Wifi className="w-3 h-3 text-green-600" title="실시간 연결" />
+            ) : state.status === 'error' ? (
+              <WifiOff className="w-3 h-3 text-red-600" title="연결 오류" />
+            ) : (
+              <RefreshCw className={`w-3 h-3 text-gray-600 ${state.status === 'connecting' ? 'animate-spin' : ''}`} title={state.status} />
+            )}
+          </div>
           <button
             onClick={() => setState(prev => ({ ...prev, view: prev.view === 'list' ? 'grid' : 'list' }))}
             className="p-1 hover:bg-gray-100 rounded"
@@ -233,18 +233,18 @@ export const CryptoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
                   {/* 심볼 & 가격 */}
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex-1">
-                      <div className="text-xs font-bold text-gray-800">{symbol}</div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold text-gray-800">{symbol}</span>
+                        <span className="text-xs text-gray-500">{getSymbolInfo(symbol).name}</span>
+                      </div>
                       {quote ? (
                         <>
                           <div className="text-sm font-bold text-gray-900">
-                            {state.currency === 'USD' 
-                              ? `$${quote.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                              : `₩${(quote.price * 1300).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-                            }
+                            {formatPrice(quote.price, state.currency)}
                           </div>
-                          <div className={`text-xs font-medium ${quote.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {quote.change >= 0 ? <TrendingUp className="w-3 h-3 inline mr-0.5" /> : <TrendingDown className="w-3 h-3 inline mr-0.5" />}
-                            {formatPercent(quote.changePct)}
+                          <div className={`text-xs font-medium ${quote.changePct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {quote.changePct >= 0 ? <TrendingUp className="w-3 h-3 inline mr-0.5" /> : <TrendingDown className="w-3 h-3 inline mr-0.5" />}
+                            {formatChangePct(quote.changePct)}
                           </div>
                         </>
                       ) : (
@@ -259,7 +259,7 @@ export const CryptoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
                           data={hist} 
                           width={40} 
                           height={20} 
-                          color={quote && quote.change >= 0 ? '#16a34a' : '#dc2626'}
+                          color={quote && quote.changePct >= 0 ? '#16a34a' : '#dc2626'}
                           className="opacity-70"
                         />
                       </div>
@@ -285,7 +285,13 @@ export const CryptoWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
 
       {/* 하단 정보 */}
       <div className="text-xs text-gray-500 text-center mt-2 pt-2 border-t border-gray-200 shrink-0">
-        마지막 업데이트: {new Date(state.lastUpdate).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+        <div className="flex items-center justify-center gap-2">
+          <span>마지막 업데이트: {new Date(state.lastUpdate).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+          <span>•</span>
+          <span className={`${state.status === 'live' ? 'text-green-600' : state.status === 'error' ? 'text-red-600' : 'text-gray-500'}`}>
+            {state.status === 'live' ? '실시간' : state.status === 'error' ? '오류' : state.status === 'connecting' ? '연결중' : '대기'}
+          </span>
+        </div>
       </div>
     </div>
   );

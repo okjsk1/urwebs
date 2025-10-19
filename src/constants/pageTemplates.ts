@@ -137,12 +137,12 @@ export const getDefaultWidgets = (): Widget[] => {
     },
     {
       id: '10',
-      type: 'calculator',
+      type: 'todo',
       x: (cellWidth + spacing) * 4,
       y: 310,
       width: (cellWidth + spacing) * 2 - spacing,
       height: cellHeight,
-      title: '계산기',
+      title: '할일',
       zIndex: 1,
       size: '2x1'
     }

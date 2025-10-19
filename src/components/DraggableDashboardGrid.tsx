@@ -655,13 +655,14 @@ export function SizePicker({
   onChange: (v: { w: number; h: number }) => void;
 }) {
   const presets = [
-    { label: '1x1', w: 1, h: 1 },
-    { label: '1x2', w: 1, h: 2 },
     { label: '1x3', w: 1, h: 3 },
     { label: '1x4', w: 1, h: 4 },
     { label: '2x1', w: 2, h: 1 },
     { label: '2x2', w: 2, h: 2 },
     { label: '2x3', w: 2, h: 3 },
+    { label: '3x1', w: 3, h: 1 },
+    { label: '3x2', w: 3, h: 2 },
+    { label: '3x3', w: 3, h: 3 },
   ];
 
   const currentSize = `${value.w}x${value.h}`;

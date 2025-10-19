@@ -9,6 +9,36 @@ export interface WidgetProps {
   updateWidget?: (widgetId: string, partial: any) => void;
 }
 
+// 편집 가능한 위젯 타입 목록
+export const EDITABLE_WIDGET_TYPES = [
+  'weather',           // 날씨 위젯 - 위치 설정, 단위 변경
+  'todo',              // 할일 위젯 - 할일 추가/편집/삭제
+  'english_words',     // 영어 단어 위젯 - 단어 추가/편집
+  'bookmark',          // 북마크 위젯 - 북마크 추가/편집/삭제
+  'frequent_sites',    // 자주가는 사이트 위젯 - 사이트 관리
+  'exchange',          // 환율 위젯 - 관심 통화 설정
+  'crypto',            // 암호화폐 위젯 - 관심 코인 설정
+  'stock',             // 주식 위젯 - 관심 종목 설정
+  'memo',              // 메모 위젯 - 메모 편집
+  'quicknote',         // 빠른 메모 위젯 - 메모 편집
+  'links',             // 링크 위젯 - 링크 관리
+  'news',              // 뉴스 위젯 - 카테고리 설정
+  'social',            // 소셜 링크 위젯 - 링크 관리
+  'music',             // 음악 위젯 - 플레이리스트 설정
+  'github',            // GitHub 위젯 - 저장소 설정
+  'qr',                // QR 코드 위젯 - 텍스트 설정
+  'contact',           // 연락처 위젯 - 연락처 관리
+  'calendar',          // 캘린더 위젯 - 이벤트 관리
+  'stock_alert',       // 주식 알림 위젯 - 알림 설정
+  'economic_calendar', // 경제 캘린더 위젯 - 설정
+  'google_ad'          // Google 광고 위젯 - 설정
+];
+
+// 위젯이 편집 가능한지 확인하는 함수
+export const isWidgetEditable = (widgetType: string): boolean => {
+  return EDITABLE_WIDGET_TYPES.includes(widgetType);
+};
+
 // 로컬 스토리지 저장/불러오기
 export const persistOrLocal = (widgetId: string, data: any, updateWidget?: (widgetId: string, partial: any) => void) => {
   try {
