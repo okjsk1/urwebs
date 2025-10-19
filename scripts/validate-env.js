@@ -85,12 +85,6 @@ function main() {
   
   const { errors, warnings } = validateFirebaseEnv();
   
-<<<<<<< HEAD
-  if (errors.length > 0) {
-    console.error('❌ Environment validation failed:');
-    errors.forEach(error => console.error(`  - ${error}`));
-    process.exit(1);
-=======
   // 프로덕션 환경에서는 환경변수 검증을 건너뛰고 경고만 표시
   const isProduction = process.env.NODE_ENV === 'production' || 
                       process.env.VERCEL === '1' ||
@@ -109,18 +103,12 @@ function main() {
     }
   } else {
     console.log('✅ Environment validation passed');
->>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
   }
   
   if (warnings.length > 0) {
     console.warn('⚠️ Environment validation warnings:');
     warnings.forEach(warning => console.warn(`  - ${warning}`));
   }
-<<<<<<< HEAD
-  
-  console.log('✅ Environment validation passed');
-=======
->>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
 }
 
 if (require.main === module) {
