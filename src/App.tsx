@@ -220,7 +220,7 @@ function PublicPageViewer() {
                 );
               }}
               isEditMode={false}
-              cols={12}
+              cols={8}
               cellHeight={160}
               cellWidth={150}
               gap={12}

@@ -3885,7 +3885,7 @@ export function MyPage() {
             cellHeight={cellHeight}
             cellWidth={subCellWidth}
             gap={12}
-            cols={12}
+            cols={8}
             className=""
             onAddWidget={(columnIndex?: number) => {
               // 위젯 패널을 열어서 선택하도록 하되, 선택 시 해당 컬럼 최하단에 추가되도록 targetColumn 전달
