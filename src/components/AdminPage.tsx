@@ -73,17 +73,6 @@ const tabs: Tab[] = [
     description: '공지사항 작성 및 관리',
     color: 'orange',
     requiredRoles: ['admin', 'ops']
-<<<<<<< HEAD
-  },
-  {
-    id: 'widgets',
-    name: '위젯 관리',
-    icon: <Puzzle className="w-4 h-4" />,
-    description: '위젯 목록 및 사용 통계',
-    color: 'cyan',
-    requiredRoles: ['admin', 'ops']
-=======
->>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
   },
   {
     id: 'templates',
