@@ -1,75 +1,76 @@
+// firestore.rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 각 사용자의 루트 문서
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // 0) 관리자 식별
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == "okjsk1@gmail.com";
+    }
 
-      // 하위 컬렉션들 (필요한 것만 남겨도 됨)
-      match /bookmarks/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-      match /folders/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-      match /widgets/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-      match /settings/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+    // 1) 사용자 루트 및 하위 컬렉션: 본인만 읽기/쓰기
+    match /users/{userId} {
+      // 루트 문서
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+
+      // 하위 컬렉션 중 허용 목록만
+      match /{collectionName}/{docId} {
+        allow read, write: if isSignedIn()
+          && request.auth.uid == userId
+          && (collectionName == "bookmarks"
+              || collectionName == "folders"
+              || collectionName == "widgets"
+              || collectionName == "settings");
       }
     }
 
-    // 공개 읽기만 필요한 문서가 있다면 이런 식으로 별도 컬렉션을 두세요
+    // 2) 공개 전용 컬렉션: 전체 읽기만
     match /public/{docId} {
       allow read: if true;
       allow write: if false;
     }
 
-    // 문의 게시판 컬렉션
-    match /inquiries/{document} {
-      // 모든 사용자가 문의 작성 가능
+    // 3) 문의사항: 생성은 모두 가능, 읽기/수정/삭제는 관리자만
+    match /inquiries/{docId} {
       allow create: if true;
-      
-      // 관리자(okjsk1@gmail.com)만 읽기, 수정, 삭제 가능
-      allow read, update, delete: if request.auth != null && 
-        request.auth.token.email == 'okjsk1@gmail.com';
+      allow read, update, delete: if isAdmin();
     }
-    
-    // 템플릿 관리 - 모든 사용자가 읽기 가능, 인증된 사용자가 쓰기 가능
-    match /templates/{document} {
+
+    // 4) 템플릿: 모두 읽기 가능, "관리자만" 생성/수정/삭제 가능
+    //    -> 일반 사용자는 원본 템플릿 문서를 건드릴 수 없음
+    match /templates/{docId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create, update, delete: if isAdmin();
     }
-    
-    // 사용자별 템플릿 사용 기록 - 본인 것만 접근 가능
-    match /userTemplates/{document} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+
+    // 5) 사용자 템플릿 사용 기록: 본인 것만 접근 가능
+    match /userTemplates/{docId} {
+      // 생성: 요청 본문 기준 검사
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // 읽기/수정/삭제: 저장된 문서 기준 검사
+      allow read, update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
-    
-    // 사용자 페이지 - 공개된 페이지는 누구나 읽기 가능, 본인 페이지만 쓰기 가능
-    match /userPages/{document} {
-      // 공개된 페이지는 누구나 읽기 가능
-      allow read: if resource.data.isPublic == true || (request.auth != null && request.auth.uid == resource.data.authorId);
-      // 생성은 로그인한 사용자만 가능
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId;
-      // 수정/삭제는 본인만 가능
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+
+    // 6) 사용자 페이지: 공개는 모두 읽기, 쓰기는 본인만
+    //    -> 유저는 템플릿을 바탕으로 자신의 페이지를 만들고 자유롭게 수정 가능
+    match /userPages/{docId} {
+      // 읽기: 공개 or 본인 소유
+      allow read: if resource.data.isPublic == true
+        || (isSignedIn() && resource.data.authorId == request.auth.uid);
+
+      // 생성: 요청 본문(authorId)이 본인
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+
+      // 수정/삭제: 저장된 문서(authorId)가 본인
+      allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
     }
-    
-    // 자유게시판 - 모든 사용자가 읽기 가능, 로그인한 사용자만 쓰기 가능
-    match /communityPosts/{document} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+
+    // 7) 관리자 페이지 접근을 위한 모든 데이터 읽기 권한
+    match /{document=**} {
+      allow read: if isAdmin();
     }
-    
-    // 공지사항 - 모든 사용자가 읽기 가능, 관리자만 쓰기 가능
-    match /notices/{document} {
-      allow read: if true;
-      allow create, update, delete: if request.auth != null && request.auth.token.email == 'okjsk1@gmail.com';
-    }
-    
   }
 }

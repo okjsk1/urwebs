@@ -27,16 +27,34 @@ export async function requireRole(allowedRoles: string[]): Promise<AuthResult> {
     const token = await getIdTokenResult(user);
     const roles: string[] = token.claims.roles || [];
     
-    if (roles.length === 0) {
-      return { ok: false, reason: 'no-roles', roles, user };
+    // 이메일 기반 관리자 확인 추가
+    const isEmailAdmin = user.email === 'okjsk1@gmail.com';
+    
+    // 역할 기반 권한 확인
+    const hasRolePermission = roles.length > 0 && allowedRoles.some(role => roles.includes(role));
+    
+    // 이메일 기반 관리자 권한 확인 (admin 또는 ops 역할이 필요한 경우)
+    const hasEmailPermission = isEmailAdmin && (allowedRoles.includes('admin') || allowedRoles.includes('ops'));
+    
+    const hasPermission = hasRolePermission || hasEmailPermission;
+    
+    console.log('권한 확인 상세:', {
+      userEmail: user.email,
+      roles,
+      isEmailAdmin,
+      hasRolePermission,
+      hasEmailPermission,
+      hasPermission,
+      allowedRoles
+    });
+    
+    if (!hasPermission) {
+      return { ok: false, reason: roles.length === 0 ? 'no-roles' : 'insufficient-permissions', roles, user };
     }
-
-    const hasPermission = allowedRoles.some(role => roles.includes(role));
     
     return { 
-      ok: hasPermission, 
-      reason: hasPermission ? undefined : 'insufficient-permissions',
-      roles, 
+      ok: true,
+      roles: isEmailAdmin ? ['admin', ...roles] : roles, 
       user 
     };
   } catch (error) {
@@ -67,9 +85,13 @@ export async function checkUserRoles(): Promise<RoleCheckResult> {
     const token = await getIdTokenResult(user);
     const roles: string[] = token.claims.roles || [];
     
+    // 이메일 기반 관리자 확인 추가
+    const isEmailAdmin = user.email === 'okjsk1@gmail.com';
+    const finalRoles = isEmailAdmin ? ['admin', ...roles] : roles;
+    
     return { 
-      hasRole: roles.length > 0, 
-      roles, 
+      hasRole: finalRoles.length > 0, 
+      roles: finalRoles, 
       user 
     };
   } catch (error) {
