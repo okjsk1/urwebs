@@ -253,7 +253,7 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
   // 1x1: 오늘 날씨만
   if (widgetHeight === 1) {
     return (
-      <div className={`p-1 h-full flex flex-col justify-center ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100'}`}>
+      <div className={`p-1 h-full flex flex-col justify-center ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100 dark:bg-gray-800'}`}>
         {/* 시뮬레이션 모드 배너 */}
         {(import.meta as any).env.VITE_OPENWEATHER_API_KEY === 'demo' && (
           <div className="mb-1 px-1 py-0.5 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded text-[10px] text-amber-800 dark:text-amber-200 text-center">
@@ -365,7 +365,7 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
   // 1x2: 오늘 날씨 + 시간별 예보
   if (widgetHeight === 2) {
     return (
-      <div className={`p-2 h-full flex flex-col ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100'}`}>
+      <div className={`p-2 h-full flex flex-col ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100 dark:bg-gray-800'}`}>
         {/* 시뮬레이션 모드 배너 */}
         {(import.meta as any).env.VITE_OPENWEATHER_API_KEY === 'demo' && (
           <div className="mb-1 px-1 py-0.5 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded text-[10px] text-amber-800 dark:text-amber-200 text-center">
@@ -508,7 +508,7 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
 
   // 1x3: 오늘 날씨 + 시간별 + 일별 예보
   return (
-    <div className={`p-3 h-full flex flex-col ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100'}`}>
+    <div className={`p-3 h-full flex flex-col ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100 dark:bg-gray-800'}`}>
       {/* 시뮬레이션 모드 배너 */}
       {import.meta.env.VITE_OPENWEATHER_API_KEY === 'demo' && (
         <div className="mb-2 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded text-xs text-amber-800 dark:text-amber-200 text-center">
@@ -620,43 +620,43 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
           <div className="text-center mb-4">
             <div className="text-4xl mb-2">{currentWeather.icon}</div>
             <div className="text-2xl font-bold mb-1">{formatTemperature(currentWeather.temperature, state.units)}</div>
-            <div className="text-sm text-gray-600 mb-1">{currentWeather.condition}</div>
-            <div className="text-xs text-gray-500">체감 {formatTemperature(currentWeather.feelsLike, state.units)}</div>
+            <div className="text-base text-gray-700 mb-1 font-medium">{currentWeather.condition}</div>
+            <div className="text-sm text-gray-600">체감 {formatTemperature(currentWeather.feelsLike, state.units)}</div>
           </div>
 
           {/* 상세 정보 */}
-          <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
-            <div className="flex items-center gap-1">
-              <Droplets className="w-3 h-3" />
-              <span>{formatHumidity(currentWeather.humidity)}</span>
+          <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+            <div className="flex items-center gap-2">
+              <Droplets className="w-4 h-4 text-blue-500" />
+              <span className="font-medium">{formatHumidity(currentWeather.humidity)}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <Wind className="w-3 h-3" />
-              <span>{formatWindSpeed(currentWeather.windSpeed, state.units)}</span>
+            <div className="flex items-center gap-2">
+              <Wind className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">{formatWindSpeed(currentWeather.windSpeed, state.units)}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <Eye className="w-3 h-3" />
-              <span>{formatDistance(currentWeather.visibility, state.units)}</span>
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">{formatDistance(currentWeather.visibility, state.units)}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <Thermometer className="w-3 h-3" />
-              <span>{formatPressure(currentWeather.pressure, state.units)}</span>
+            <div className="flex items-center gap-2">
+              <Thermometer className="w-4 h-4 text-red-500" />
+              <span className="font-medium">{formatPressure(currentWeather.pressure, state.units)}</span>
             </div>
           </div>
 
           {/* 시간별 예보 */}
           <div className="mb-4">
-            <div className="text-xs font-semibold mb-2">시간별 예보</div>
-            <div className="grid grid-cols-4 gap-1">
+            <div className="text-sm font-semibold mb-3">시간별 예보</div>
+            <div className="grid grid-cols-4 gap-2">
               {state.hourlyForecast.slice(0, 8).map((hour, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-xs text-gray-500">
+                <div key={index} className="text-center space-y-1">
+                  <div className="text-xs text-gray-600 font-medium">
                     {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <div className="text-sm">{hour.icon}</div>
-                  <div className="text-xs font-semibold">{formatTemperature(hour.temperature, state.units)}</div>
+                  <div className="text-lg">{hour.icon}</div>
+                  <div className="text-sm font-semibold text-gray-800">{formatTemperature(hour.temperature, state.units)}</div>
                   {hour.precipitation > 0 && (
-                    <div className="text-xs text-blue-600">{hour.precipitation}mm</div>
+                    <div className="text-xs text-blue-600 font-medium">{hour.precipitation}mm</div>
                   )}
                 </div>
               ))}

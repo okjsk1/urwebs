@@ -175,18 +175,68 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
     return () => unsubscribe();
   }, []);
 
-  // 시간 경과 계산
-  const getTimeAgo = (date: Date | undefined): string => {
-    if (!date) return '알 수 없음';
+  // 시간 경과 계산 - 완전히 새로운 안전한 처리 (v2.0)
+  const getTimeAgo = (dateInput: any): string => {
+    // null이나 undefined 체크
+    if (!dateInput) {
+      return '알 수 없음';
+    }
     
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-    
-    if (days > 0) return `${days}일 전`;
-    if (hours > 0) return `${hours}시간 전`;
-    return '방금 전';
+    try {
+      let timestamp: number;
+      
+      // Firebase Timestamp 객체 (toDate 메서드가 있는 경우)
+      if (dateInput && typeof dateInput.toDate === 'function') {
+        timestamp = dateInput.toDate().getTime();
+      }
+      // Date 객체인 경우
+      else if (dateInput instanceof Date) {
+        timestamp = dateInput.getTime();
+      }
+      // 숫자 타임스탬프인 경우
+      else if (typeof dateInput === 'number') {
+        timestamp = dateInput;
+      }
+      // seconds 속성이 있는 객체 (Firebase Timestamp)
+      else if (dateInput && typeof dateInput.seconds === 'number') {
+        timestamp = dateInput.seconds * 1000;
+      }
+      // _seconds 속성이 있는 객체
+      else if (dateInput && typeof dateInput._seconds === 'number') {
+        timestamp = dateInput._seconds * 1000;
+      }
+      // 문자열인 경우
+      else if (typeof dateInput === 'string') {
+        const parsed = new Date(dateInput);
+        if (isNaN(parsed.getTime())) {
+          return '알 수 없음';
+        }
+        timestamp = parsed.getTime();
+      }
+      // 기타 경우
+      else {
+        console.warn('알 수 없는 날짜 형태:', dateInput);
+        return '알 수 없음';
+      }
+      
+      // 유효한 타임스탬프인지 확인
+      if (isNaN(timestamp) || timestamp <= 0) {
+        return '알 수 없음';
+      }
+      
+      const now = Date.now();
+      const diff = now - timestamp;
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const days = Math.floor(hours / 24);
+      
+      if (days > 0) return `${days}일 전`;
+      if (hours > 0) return `${hours}시간 전`;
+      return '방금 전';
+      
+    } catch (error) {
+      console.error('날짜 처리 오류:', error, '입력 데이터:', dateInput);
+      return '알 수 없음';
+    }
   };
 
   const fetchUserPages = async () => {
@@ -194,242 +244,107 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
       setError(null);
       setLoading(true);
       
-      // 로그인하지 않은 상태에서는 샘플 데이터만 표시
-      if (!isAuthenticated) {
-        console.log('로그인하지 않은 상태 - 샘플 데이터 표시');
-        setLatestPages(defaultLatestUpdates);
-        setPopularPagesList(defaultPopularPages);
-        setAllPagesList(defaultPopularPages);
-        setLoading(false);
-        return;
-      }
-      
-      console.log('로그인된 상태 - Firebase 데이터 가져오기');
+      // 로그인 상태와 관계없이 실제 데이터 가져오기
+      console.log('Firebase 데이터 가져오기 시작...');
+      console.log('현재 사용자:', auth.currentUser?.email);
+      console.log('인증 상태:', !!auth.currentUser);
       
       console.log('Firebase에서 페이지 데이터 가져오기 시작...');
       
       // 사용자 페이지 컬렉션에서 공개된 페이지들 가져오기
       const pagesRef = collection(db, 'userPages');
       
-      // 먼저 모든 페이지를 가져와서 데이터 구조 확인
-      console.log('전체 페이지 데이터 확인 중...');
-      const debugSnapshot = await getDocs(query(pagesRef, limit(20)));
-      console.log('전체 페이지 개수:', debugSnapshot.docs.length);
-      
-      if (!debugSnapshot.empty) {
-        debugSnapshot.docs.forEach((doc, index) => {
-          const data = doc.data();
-          console.log(`페이지 ${index + 1}:`, {
-            id: doc.id,
-            title: data.title,
-            isPublic: data.isPublic,
-            isDeleted: data.isDeleted,
-            authorName: data.authorName,
-            authorEmail: data.authorEmail,
-            updatedAt: data.updatedAt,
-            createdAt: data.createdAt,
-            views: data.views,
-            likes: data.likes
-          });
-        });
-      }
-      
-      // 최신 업데이트 가져오기 (공개 + 삭제되지 않은 페이지, 최신순 10개)
-      const latestQuery = query(
+      // 간단한 쿼리로 시작 - 복합 쿼리 대신 기본 쿼리 사용
+      const simpleQuery = query(
         pagesRef,
         where('isPublic', '==', true),
-        where('isDeleted', '==', false),
-        orderBy('updatedAt', 'desc'),
-        limit(10)
-      );
-      
-      // 인기 페이지 가져오기 (공개 + 삭제되지 않은 페이지, 조회수 순 10개)
-      const popularQuery = query(
-        pagesRef,
-        where('isPublic', '==', true),
-        where('isDeleted', '==', false),
-        orderBy('views', 'desc'),
-        limit(10)
-      );
-      
-      // 전체 페이지 가져오기 (공개 + 삭제되지 않은 페이지, 생성일 기준 10개)
-      const allPagesQuery = query(
-        pagesRef,
-        where('isPublic', '==', true),
-        where('isDeleted', '==', false),
-        orderBy('createdAt', 'desc'),
-        limit(10)
+        limit(20)
       );
 
-      let latestSnapshot, popularSnapshot, allPagesSnapshot;
-      try {
-        [latestSnapshot, popularSnapshot, allPagesSnapshot] = await Promise.all([
-          getDocs(latestQuery),
-          getDocs(popularQuery),
-          getDocs(allPagesQuery)
-        ]);
-      } catch (e: any) {
-        // 색인 미구성/빌드 중(failed-precondition)일 때 임시 폴백: 서버에서 넓게 가져와 클라이언트 필터링
-        console.warn('색인 폴백 사용:', e?.message || e);
-        const latestFallback = await getDocs(query(pagesRef, orderBy('updatedAt', 'desc'), limit(50)));
-        const popularFallback = await getDocs(query(pagesRef, orderBy('views', 'desc'), limit(50)));
-        const allFallback = await getDocs(query(pagesRef, orderBy('createdAt', 'desc'), limit(50)));
-        latestSnapshot = latestFallback as any;
-        popularSnapshot = popularFallback as any;
-        allPagesSnapshot = allFallback as any;
-      }
+      // 간단한 쿼리로 데이터 가져오기
+      console.log('간단한 쿼리 실행 중...');
+      const snapshot = await getDocs(simpleQuery);
+      console.log('쿼리 결과:', snapshot.docs.length, '개 문서');
 
-      // 데이터가 전혀 없는 경우 더 간단한 쿼리 시도
-      if (latestSnapshot.empty && popularSnapshot.empty && allPagesSnapshot.empty) {
-        console.log('필터링된 데이터가 없음. 모든 페이지 가져오기 시도...');
-        const simpleQuery = await getDocs(query(pagesRef, limit(50)));
-        latestSnapshot = simpleQuery;
-        popularSnapshot = simpleQuery;
-        allPagesSnapshot = simpleQuery;
-      }
+      // 데이터 처리
+      const allPages = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        console.log('페이지 데이터:', doc.id, data);
+        
+        // 날짜 처리 개선 - 더 안전한 처리
+        let timeAgo = '알 수 없음';
+        try {
+          timeAgo = getTimeAgo(data.updatedAt || data.createdAt);
+        } catch (dateError) {
+          console.warn('날짜 처리 오류:', dateError, '데이터:', data.updatedAt || data.createdAt);
+          timeAgo = '알 수 없음';
+        }
+        
+        return {
+          id: doc.id,
+          urlId: data.urlId || doc.id,
+          title: data.title || '제목 없음',
+          description: data.description || '설명 없음',
+          authorName: data.authorName || '익명',
+          authorEmail: data.authorEmail || '',
+          category: data.category || '일반',
+          isPublic: data.isPublic || false,
+          isDeleted: data.isDeleted || false,
+          views: data.views || 0,
+          likes: data.likes || 0,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+          timeAgo: timeAgo
+        };
+      }).filter(page => page.isPublic && !page.isDeleted);
 
-      console.log('최신 업데이트 개수:', latestSnapshot.docs.length);
-      console.log('인기 페이지 개수:', popularSnapshot.docs.length);
-      console.log('전체 페이지 개수:', allPagesSnapshot.docs.length);
+      console.log('처리된 페이지 개수:', allPages.length);
 
-      // 최신 업데이트 데이터 변환
-      if (!latestSnapshot.empty) {
-        const latest = latestSnapshot.docs
-          .map((doc) => {
-          const data = doc.data();
-          console.log('최신 업데이트 문서:', doc.id, data);
-          const updatedAt = (data.updatedAt && typeof (data.updatedAt as any).toDate === 'function')
-            ? (data.updatedAt as any).toDate()
-            : (typeof data.updatedAt === 'string' || typeof data.updatedAt === 'number')
-              ? new Date(data.updatedAt)
-              : undefined;
-          return {
-            id: doc.id,
-            urlId: data.urlId || doc.id, // URL ID 추가
-            title: data.title || '제목 없음',
-            author: data.authorName || '익명',
-            category: data.category || '일반',
-            timeAgo: getTimeAgo(updatedAt),
-            views: data.views || 0,
-            likes: data.likes || 0,
-            authorEmail: data.authorEmail || data.authorId // 이메일 정보 추가
-          };
+      // 최신 업데이트 데이터 설정
+      const latestPages = allPages
+        .sort((a, b) => {
+          // 시간순 정렬 (최신순)
+          const timeA = a.timeAgo.includes('방금') ? 0 : 
+                       a.timeAgo.includes('분') ? 1 :
+                       a.timeAgo.includes('시간') ? 2 : 3;
+          const timeB = b.timeAgo.includes('방금') ? 0 : 
+                       b.timeAgo.includes('분') ? 1 :
+                       b.timeAgo.includes('시간') ? 2 : 3;
+          return timeA - timeB;
         })
-          .filter((p) => {
-            // 로컬 테스트 페이지 필터링
-            const email = p.authorEmail;
-            if (!email) return true; // 이메일이 없으면 포함
-            
-            // 로컬 테스트 이메일들 제외 (okjsk1@gmail.com은 실제 사용자이므로 포함)
-            const isLocalTest = email.includes('localhost') || 
-                               email.includes('127.0.0.1') || 
-                               email.includes('test@');
-            
-            return !isLocalTest;
-          })
-          .filter((p) => (p as any) && (latestSnapshot as any) ? true : true);
-        // 폴백일 경우 공개/삭제 필터 적용
-        const latestFiltered = latestSnapshot.query === latestQuery ? latest : latest.filter((_, idx) => {
-          const d = latestSnapshot.docs[idx].data();
-          return d.isPublic === true && d.isDeleted === false;
-        });
-        setLatestPages(latestFiltered as any);
-        console.log('최신 업데이트 설정 완료:', latest);
-      } else {
-        // 데이터가 없으면 기본 샘플 데이터 사용
-        console.log('최신 업데이트 데이터가 없음. 샘플 데이터 사용');
-        setLatestPages(defaultLatestUpdates);
-      }
+        .slice(0, 10);
 
-      // 인기 페이지 데이터 변환
-      if (!popularSnapshot.empty) {
-        const popular = popularSnapshot.docs.map((doc) => {
-          const data = doc.data();
-          console.log('인기 페이지 문서:', doc.id, data);
-          return {
-            id: doc.id,
-            urlId: data.urlId || doc.id,
-            title: data.title || '제목 없음',
-            description: data.description || '설명 없음',
-            author: data.authorName || '익명',
-            category: data.category || '일반',
-            likes: data.likes || 0,
-            views: data.views || 0,
-            tags: data.tags || [],
-            authorEmail: data.authorEmail || data.authorId
-          };
-        })
-        .filter((p) => {
-          // 로컬 테스트 페이지 필터링
-          const email = p.authorEmail;
-          if (!email) return true;
-          
-          const isLocalTest = email.includes('localhost') || 
-                             email.includes('127.0.0.1') || 
-                             email.includes('test@');
-          
-          return !isLocalTest;
-        });
-        const popularFiltered = popularSnapshot.query === popularQuery ? popular : popular.filter((_, idx) => {
-          const d = popularSnapshot.docs[idx].data();
-          return d.isPublic === true && d.isDeleted === false;
-        });
-        setPopularPagesList(popularFiltered as any);
-        console.log('인기 페이지 설정 완료:', popular);
-      } else {
-        // 데이터가 없으면 기본 샘플 데이터 사용
-        console.log('인기 페이지 데이터가 없음. 샘플 데이터 사용');
-        setPopularPagesList(defaultPopularPages);
-      }
-      
-      // 전체 페이지 데이터 변환
-      if (!allPagesSnapshot.empty) {
-        const allPages = allPagesSnapshot.docs.map((doc) => {
-          const data = doc.data();
-          console.log('전체 페이지 문서:', doc.id, data);
-          return {
-            id: doc.id,
-            urlId: data.urlId || doc.id,
-            title: data.title || '제목 없음',
-            description: data.description || '설명 없음',
-            author: data.authorName || '익명',
-            category: data.category || '일반',
-            likes: data.likes || 0,
-            views: data.views || 0,
-            tags: data.tags || [],
-            authorEmail: data.authorEmail || data.authorId
-          };
-        })
-        .filter((p) => {
-          // 로컬 테스트 페이지 필터링
-          const email = p.authorEmail;
-          if (!email) return true;
-          
-          const isLocalTest = email.includes('localhost') || 
-                             email.includes('127.0.0.1') || 
-                             email.includes('test@');
-          
-          return !isLocalTest;
-        });
-        const allFiltered = allPagesSnapshot.query === allPagesQuery ? allPages : allPages.filter((_, idx) => {
-          const d = allPagesSnapshot.docs[idx].data();
-          return d.isPublic === true && d.isDeleted === false;
-        });
-        setAllPagesList(allFiltered as any);
-        console.log('전체 페이지 설정 완료:', allPages);
-      } else {
-        // 데이터가 없으면 기본 샘플 데이터 사용
-        console.log('전체 페이지 데이터가 없음. 샘플 데이터 사용');
-        setAllPagesList(defaultPopularPages);
-      }
+      setLatestPages(latestPages as any);
+      console.log('최신 업데이트 설정 완료:', latestPages.length, '개');
+
+      // 인기 페이지 데이터 설정
+      const popularPages = allPages
+        .sort((a, b) => (b.views || 0) - (a.views || 0))
+        .slice(0, 10);
+
+      setPopularPagesList(popularPages as any);
+      console.log('인기 페이지 설정 완료:', popularPages.length, '개');
+
+      // 전체 페이지 데이터 설정
+      setAllPagesList(allPages as any);
+      console.log('전체 페이지 설정 완료:', allPages.length, '개');
+
+
     } catch (error) {
       console.error('페이지 데이터 가져오기 실패:', error);
+      console.error('오류 상세:', {
+        errorType: error.constructor.name,
+        errorMessage: error.message,
+        errorCode: error.code,
+        userEmail: auth.currentUser?.email,
+        isAuthenticated: !!auth.currentUser
+      });
       setError('데이터를 불러오는데 실패했습니다.');
       
-      // 오류 발생 시에도 기본 샘플 데이터 표시
-      setLatestPages(defaultLatestUpdates);
-      setPopularPagesList(defaultPopularPages);
-      setAllPagesList(defaultPopularPages);
+      // 오류 발생 시 빈 배열 표시
+      setLatestPages([]);
+      setPopularPagesList([]);
+      setAllPagesList([]);
     } finally {
       setLoading(false);
     }
@@ -437,7 +352,7 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
 
   useEffect(() => {
     fetchUserPages();
-  }, [isAuthenticated]);
+  }, []); // 로그인 상태와 관계없이 페이지 로드 시 데이터 가져오기
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -569,7 +484,7 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
                           {page.views.toLocaleString()}회
                         </div>
                         <div className="flex flex-wrap gap-0.5">
-                          {page.tags.slice(0, 2).map((tag) => (
+                          {(page.tags || []).slice(0, 2).map((tag) => (
                             <span key={tag} className="px-1 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-200 rounded text-xs">
                               #{tag}
                             </span>
@@ -637,7 +552,7 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
                           {page.views.toLocaleString()}회
                         </div>
                         <div className="flex flex-wrap gap-0.5">
-                          {page.tags.slice(0, 2).map((tag) => (
+                          {(page.tags || []).slice(0, 2).map((tag) => (
                             <span key={tag} className="px-1 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-200 rounded text-xs">
                               #{tag}
                             </span>

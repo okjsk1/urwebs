@@ -159,6 +159,13 @@ export function SizePicker({
           { label: '2x3', w: 2, h: 3 },
           { label: '2x4', w: 2, h: 4 }
         ];
+      case 'crypto': // 암호화폐 위젯 - 1칸 너비만 허용
+        return [
+          { label: '1x1', w: 1, h: 1 },
+          { label: '1x2', w: 1, h: 2 },
+          { label: '1x3', w: 1, h: 3 },
+          { label: '1x4', w: 1, h: 4 }
+        ];
       default: // 기본 위젯들 - 모든 크기 허용
         return [
           { label: '1x3', w: 1, h: 3 },

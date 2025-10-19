@@ -103,7 +103,7 @@ export default function DraggableDashboardGrid({
   cellHeight = 160,
   cellWidth = 150,
   gap = 16,
-  cols = 6,
+  cols = 8,
   className = '',
   onAddWidget,
   showAddButton = false,
@@ -524,7 +524,7 @@ export default function DraggableDashboardGrid({
       </style>
       <div
         ref={gridRef}
-        className={`draggable-grid-container gap-3 grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-8 xl:grid-cols-8 2xl:grid-cols-8 ${className}`}
+        className={`draggable-grid-container gap-3 grid-cols-8 ${className}`}
         style={{
           ...generateResponsiveStyles(),
           userSelect: activeId ? 'none' : 'auto',

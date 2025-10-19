@@ -209,6 +209,7 @@ export const QuoteWidget = ({ widget, isEditMode, updateWidget }: any) => {
 
   const [selectedCategory, setSelectedCategory] = useState(widget?.content?.category || 'motivation');
   const [showSettings, setShowSettings] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [autoPlayInterval, setAutoPlayInterval] = useState(widget?.content?.autoPlayInterval || 10);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -257,7 +258,7 @@ export const QuoteWidget = ({ widget, isEditMode, updateWidget }: any) => {
             size="sm"
             variant="ghost"
             className="h-6 w-6 p-0"
-            onClick={() => setShowSettings(!showSettings)}
+            onClick={() => setShowSettingsModal(true)}
             title="설정"
           >
             <Settings className="w-3 h-3" />
@@ -265,40 +266,66 @@ export const QuoteWidget = ({ widget, isEditMode, updateWidget }: any) => {
         </div>
       )}
 
-      {/* 설정 패널 */}
-      {isEditMode && showSettings && (
-        <div className="mb-3 p-2 bg-gray-50 rounded-lg space-y-2 shrink-0">
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">카테고리 선택</label>
-            <div className="grid grid-cols-2 gap-1">
-              {CATEGORY_OPTIONS.map(category => (
-                <Button
-                  key={category.value}
-                  size="sm"
-                  variant={selectedCategory === category.value ? 'default' : 'outline'}
-                  className="h-6 text-xs justify-start"
-                  onClick={() => changeCategory(category.value)}
-                >
-                  <span className="mr-1">{category.emoji}</span>
-                  {category.label}
-                </Button>
-              ))}
+      {/* 설정 모달 */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96 max-w-[90vw] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">영감 명언 설정</h3>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={() => setShowSettingsModal(false)}
+              >
+                ✕
+              </Button>
             </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">자동 재생 간격</label>
-            <div className="flex gap-1">
-              {[10, 20, 30].map(interval => (
-                <Button
-                  key={interval}
-                  size="sm"
-                  variant={autoPlayInterval === interval ? 'default' : 'outline'}
-                  className="h-6 text-xs flex-1"
-                  onClick={() => changeInterval(interval)}
-                >
-                  {interval}초
-                </Button>
-              ))}
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">카테고리 선택</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {CATEGORY_OPTIONS.map(category => (
+                    <Button
+                      key={category.value}
+                      size="sm"
+                      variant={selectedCategory === category.value ? 'default' : 'outline'}
+                      className="h-8 text-sm justify-start"
+                      onClick={() => changeCategory(category.value)}
+                    >
+                      <span className="mr-2">{category.emoji}</span>
+                      {category.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">자동 재생 간격</label>
+                <div className="flex gap-2">
+                  {[10, 20, 30].map(interval => (
+                    <Button
+                      key={interval}
+                      size="sm"
+                      variant={autoPlayInterval === interval ? 'default' : 'outline'}
+                      className="h-8 text-sm flex-1"
+                      onClick={() => changeInterval(interval)}
+                    >
+                      {interval}초
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end mt-6">
+              <Button
+                onClick={() => setShowSettingsModal(false)}
+                className="px-4"
+              >
+                완료
+              </Button>
             </div>
           </div>
         </div>

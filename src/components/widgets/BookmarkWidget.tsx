@@ -170,7 +170,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
     
     lastBookmarkCountRef.current = bookmarkCount;
     
-    let newSize = '1x1'; // 기본 1x1
+    let newSize = '1x2'; // 기본 1x2로 변경
 
     // 북마크 개수에 따른 크기 결정
     if (bookmarkCount >= 8) {
@@ -178,9 +178,9 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
     } else if (bookmarkCount >= 7) {
       newSize = '1x3'; // 7개: 1x3
     } else if (bookmarkCount >= 4) {
-      newSize = '1x2'; // 4-6개: 1x2
+      newSize = '1x3'; // 4-6개: 1x3 (4개 추가될 때 자동 확장)
     } else {
-      newSize = '1x1'; // 1-3개: 1x1
+      newSize = '1x2'; // 1-3개: 1x2 (기본 크기)
     }
 
     // 크기가 변경되었을 때만 업데이트
@@ -475,7 +475,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
           >
             <button
               onClick={() => openBookmark(bookmark.url)}
-              className="w-full p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-1.5"
+              className="w-full p-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
               aria-label={`${bookmark.name} 열기`}
             >
               {/* 로고 */}
@@ -585,18 +585,18 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       {isEditMode && state.bookmarks.length < 100 && (
         <div className="mt-2 flex-shrink-0 px-2.5 pb-2">
           <button 
-            className="w-full p-2 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-full p-2 bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-500 hover:border-blue-300 dark:hover:border-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 flex items-center justify-center transition-colors cursor-pointer"
             onClick={() => setState(prev => ({ ...prev, showAddForm: true }))}
           >
-            <Plus className="w-4 h-4 mr-1 text-gray-400" />
-            <div className="text-gray-400 text-xs">사이트 추가</div>
+            <Plus className="w-4 h-4 mr-1 text-gray-400 dark:text-gray-500" />
+            <div className="text-gray-400 dark:text-gray-500 text-xs">사이트 추가</div>
           </button>
         </div>
       )}
 
       {/* 북마크 추가 폼 (고정 위치) */}
       {isEditMode && state.showAddForm && (
-        <div className="mt-2 flex-shrink-0 space-y-2 p-2 bg-gray-50 rounded mx-2.5 mb-2">
+        <div className="mt-2 flex-shrink-0 space-y-2 p-2 bg-gray-50 dark:bg-gray-700 rounded mx-2.5 mb-2">
           <input
             type="text"
             value={state.newBookmark.name}
@@ -605,7 +605,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
               newBookmark: { ...prev.newBookmark, name: e.target.value } 
             }))}
             placeholder="사이트 이름"
-            className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+            className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded"
             aria-label="사이트 이름 입력"
           />
           <input
@@ -616,7 +616,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
               newBookmark: { ...prev.newBookmark, url: e.target.value } 
             }))}
             placeholder="https://example.com"
-            className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+            className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded"
             aria-label="URL 입력"
           />
           {/* 폴더 선택 제거: 현재 활성 폴더로 자동 추가 */}
@@ -635,7 +635,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
             <Button
               size="sm"
               variant="outline"
-              className="h-6 text-xs"
+              className="h-6 text-xs border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
               onClick={() => setState(prev => ({ 
                 ...prev, 
                 showAddForm: false, 

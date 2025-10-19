@@ -17,6 +17,7 @@ import { templateService } from './services/templateService';
 import DraggableDashboardGrid from './components/DraggableDashboardGrid';
 import { renderWidget } from './utils/widgetRenderer';
 import { colToX, rowToY, gridWToPx, gridHToPx } from './utils/layoutConfig';
+import { allWidgets } from './constants/widgetCategories';
 // import { PageWithTabs } from './pages/PageWithTabs';
 // import { ColumnsBoard } from './components/ColumnsBoard/ColumnsBoard';
 // Firebase는 config.ts에서 초기화됩니다
@@ -44,16 +45,16 @@ function PublicPageViewer() {
           const docData = snapshot.docs[0].data();
           setPageData({ id: snapshot.docs[0].id, ...docData });
           
-          // 조회수 증가: 규칙상 작성자만 쓸 수 있으므로, 본인으로 로그인한 경우에만 시도
+          // 조회수 증가: 권한이 있는 경우에만 시도
           try {
-            const { getAuth } = await import('firebase/auth');
-            const auth = getAuth();
-            if (auth.currentUser?.uid && auth.currentUser.uid === (docData as any).authorId) {
-              const docRef = doc(db, 'userPages', snapshot.docs[0].id);
-              await updateDoc(docRef, { views: increment(1) });
-            }
+            const docRef = doc(db, 'userPages', snapshot.docs[0].id);
+            await updateDoc(docRef, { views: increment(1) });
+            // 페이지 데이터에도 조회수 업데이트
+            docData.views = (docData.views || 0) + 1;
+            console.log('조회수 증가 성공');
           } catch (e) {
-            // 무시: 권한/인증 부재 시 증가 스킵
+            console.warn('조회수 증가 실패 (권한 없음):', e.message);
+            // 조회수 증가 실패해도 페이지는 정상 표시
           }
         } else {
           setError('페이지를 찾을 수 없습니다.');
@@ -110,7 +111,24 @@ function PublicPageViewer() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
               <span>👁️ {pageData.views?.toLocaleString() || 0}회</span>
-              <span>👍 {pageData.likes || 0}개</span>
+              <button 
+                onClick={async () => {
+                  try {
+                    const { doc, updateDoc, increment } = await import('firebase/firestore');
+                    const { db } = await import('./firebase/config');
+                    const docRef = doc(db, 'userPages', pageData.id);
+                    await updateDoc(docRef, { likes: increment(1) });
+                    // 페이지 데이터 업데이트
+                    setPageData(prev => ({ ...prev, likes: (prev.likes || 0) + 1 }));
+                  } catch (error) {
+                    console.error('좋아요 실패:', error);
+                  }
+                }}
+                className="flex items-center gap-1 hover:text-red-500 transition-colors"
+              >
+                <span>👍</span>
+                <span>{pageData.likes || 0}개</span>
+              </button>
             </div>
             <button 
               onClick={() => navigate('/')}
@@ -126,9 +144,9 @@ function PublicPageViewer() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
           <p className="text-gray-600 dark:text-gray-400 mb-6">{pageData.description}</p>
           
-          {/* 공개보기: 저장된 좌표/크기 그대로 실제 위젯 렌더링 */}
+          {/* 공개보기: 그리드 레이아웃으로 위젯 렌더링 */}
           {Array.isArray(pageData.widgets) && pageData.widgets.length > 0 ? (
-            <div className="relative min-h-[600px]">
+            <div className="grid grid-cols-8 gap-3">
               {(pageData.widgets || []).map((w: any) => {
                 // 저장된 위젯 데이터를 픽셀 좌표로 변환
                 const parseSizeFromString = (s: any) => {
@@ -156,24 +174,14 @@ function PublicPageViewer() {
                   }
                 }
 
-                // 그리드 좌표를 픽셀로 변환
-                // w.x, w.y는 이미 그리드 단위로 저장되어 있음
-                const x = colToX(w.x || 0);
-                const y = rowToY(w.y || 0);
-                const width = gridWToPx(gridW);
-                const height = gridHToPx(gridH);
-                
-                
-                
-
                 const widgetForRender = {
                   id: w.id,
                   type: w.type,
                   title: w.title,
                   content: w.content,
                   variant: w.variant,
-                  x: 0, // 절대 위치이므로 0
-                  y: 0, // 절대 위치이므로 0
+                  x: 0,
+                  y: 0,
                   width: gridW,
                   height: gridH,
                 } as any;
@@ -181,16 +189,25 @@ function PublicPageViewer() {
                 return (
                   <div
                     key={w.id}
-                    className="absolute"
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-lg border border-gray-300 dark:border-gray-600 overflow-hidden flex flex-col"
                     style={{
-                      left: x,
-                      top: y,
-                      width: width,
-                      height: height,
-                      zIndex: w.zIndex || 10, // 기본 zIndex를 10으로 설정
+                      gridColumn: `span ${gridW}`,
+                      gridRow: `span ${gridH}`,
                     }}
                   >
-                    {renderWidget(widgetForRender)}
+                    {/* 위젯 헤더 - 나만의 페이지와 동일한 스타일 */}
+                    <div className="px-2 py-1 border-b border-gray-100 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex items-center justify-between flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                          {w.title || allWidgets.find(widget => widget.type === w.type)?.name || '위젯'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* 위젯 콘텐츠 */}
+                    <div className="flex-1 p-3 overflow-hidden">
+                      {renderWidget(widgetForRender)}
+                    </div>
                   </div>
                 );
               })}

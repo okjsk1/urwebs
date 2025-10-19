@@ -46,7 +46,7 @@ export function useRoles(): UseRolesResult {
     return () => unsubscribe();
   }, []);
 
-  const isEmailAdmin = auth.currentUser?.email === 'okjsk1@gmail.com';
+  const isEmailAdmin = auth.currentUser?.email === 'okjsk1@gmail.com' || auth.currentUser?.email === 'okjsk2@gmail.com';
   
   // 디버깅: 관리자 상태 확인
   console.log('관리자 상태 확인:');

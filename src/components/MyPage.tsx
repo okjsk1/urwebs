@@ -1252,6 +1252,13 @@ export function MyPage() {
         const userIdPart = (currentUser?.email?.split('@')[0] || 'user');
         const userPageIndex = updatedPages.findIndex(p => p.id === targetPageId) + 1;
         const urlId = customUrl || `${userIdPart}_${userPageIndex}`;
+        
+        console.log('🔍 URL ID 생성 정보:', {
+          userIdPart,
+          userPageIndex,
+          customUrl,
+          finalUrlId: urlId
+        });
 
         // undefined 값을 제거하는 헬퍼 함수
         const removeUndefined = (obj: any): any => {
@@ -1357,6 +1364,8 @@ export function MyPage() {
         
         // 공유 URL 생성 (위에서 이미 생성된 urlId 사용)
         const shareUrl = `${window.location.origin}/${urlId}`;
+        
+        console.log('🎉 공유 URL 생성됨:', shareUrl);
         
         // 성공 메시지 with 공유 URL
         setToast({ type: 'success', msg: `저장 완료! 공유 URL: ${shareUrl}` }); // 5초로 연장
@@ -2072,11 +2081,11 @@ export function MyPage() {
       if (widget.type === 'google_search' || widget.type === 'naver_search') {
         gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 기본
       } else if (widget.type === 'bookmark') {
-        gridSize = { w: 1, h: 1 }; // 북마크는 1x1 고정
+        gridSize = { w: 1, h: 2 }; // 북마크는 1x2 기본
       } else if (widget.type === 'calendar') {
         gridSize = { w: 2, h: 2 }; // 캘린더는 2x2
       } else if (widget.type === 'crypto') {
-        gridSize = { w: 3, h: 1 }; // 크립토 위젯은 3x1
+        gridSize = { w: 1, h: 2 }; // 크립토 위젯은 1x2 기본
       } else if (widget.type === 'frequent_sites') {
         gridSize = { w: 1, h: 1 }; // 자주가는사이트 위젯은 1x1 고정
       } else if (widget.type === 'todo') {
@@ -2114,7 +2123,14 @@ export function MyPage() {
   const renderWidget = (widget: any) => {
     // GridWidget에서 원본 Widget 찾기
     const originalWidget = widgets.find(w => w.id === widget.id);
-    if (!originalWidget) return null;
+    if (!originalWidget) {
+      console.warn('위젯을 찾을 수 없습니다:', widget.id);
+      return (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+          <p className="text-red-600 dark:text-red-400 text-sm">위젯 데이터를 찾을 수 없습니다</p>
+        </div>
+      );
+    }
     
     const WidgetIcon = allWidgets.find(w => w.type === originalWidget.type)?.icon || Grid;
     const isSelected = selectedWidget === originalWidget.id;
@@ -2122,7 +2138,7 @@ export function MyPage() {
 
     return (
       <div
-        className={`relative h-full overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col ${
+        className={`relative h-full overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-lg border border-gray-300 dark:border-gray-600 flex flex-col ${
           isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
         } ${isDragging ? 'opacity-75' : ''} ${
           dragOverWidget === originalWidget.id && draggedWidget !== originalWidget.id ? 'ring-2 ring-green-500 bg-green-50' : ''
@@ -2151,7 +2167,7 @@ export function MyPage() {
         <div 
           data-drag-handle="true"
           data-widget-id={originalWidget.id}
-          className="px-2 py-0.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-move group flex-shrink-0"
+          className="px-2 py-1 border-b border-gray-100 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex items-center justify-between cursor-move group flex-shrink-0"
           onMouseDown={(e) => {
             // 버튼이나 입력창을 클릭한 경우 드래그 방지
             const target = e.target as HTMLElement;
@@ -2173,7 +2189,13 @@ export function MyPage() {
           }}
         >
           <div className="flex items-center gap-2 flex-1">
-            <span className="text-xs font-medium text-gray-800">{originalWidget.title}</span>
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              {(() => {
+                const widgetName = originalWidget.title || allWidgets.find(w => w.type === originalWidget.type)?.name || '위젯';
+                console.log(`위젯 타이틀 디버그 - ID: ${originalWidget.id}, Type: ${originalWidget.type}, Title: ${originalWidget.title}, WidgetName: ${widgetName}`);
+                return widgetName;
+              })()}
+            </span>
           </div>
           
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2260,7 +2282,8 @@ export function MyPage() {
 
   // 위젯 콘텐츠 렌더링
   const renderWidgetContent = (widget: Widget) => {
-    switch (widget.type) {
+    try {
+      switch (widget.type) {
       case 'bookmark':
         return <BookmarkWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} onBookmarkCountChange={(count) => {
           // 북마크 개수에 따른 크기 자동 조정은 BookmarkWidget 내부에서 처리됨
@@ -2419,17 +2442,17 @@ export function MyPage() {
               while (days.length % 7 !== 0) days.push(null);
               return (
                 <>
-                  <div className="flex items-center justify-between mb-2 pb-1 border-b border-gray-200">
-                    <div className="text-sm font-semibold">
+                  <div className="flex items-center justify-between mb-2 pb-1 border-b border-gray-200 dark:border-gray-600">
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {year}년 {month + 1}월
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       오늘 {today.getDate()}일
                     </div>
                   </div>
-                  <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-1">
+                  <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 dark:text-gray-400 mb-1">
                     {['일','월','화','수','목','금','토'].map((d,i) => (
-                      <div key={d} className={`text-center font-semibold ${i===0?'text-red-600':i===6?'text-blue-600':''}`}>{d}</div>
+                      <div key={d} className={`text-center font-semibold ${i===0?'text-red-600 dark:text-red-400':i===6?'text-blue-600 dark:text-blue-400':''}`}>{d}</div>
                     ))}
                   </div>
                   <div className="grid grid-cols-7 gap-1 text-xs flex-1">
@@ -2437,7 +2460,7 @@ export function MyPage() {
                       const isToday = d===today.getDate();
                       const col = idx % 7;
                       return (
-                        <div key={idx} className={`h-8 border rounded flex items-center justify-center ${d? 'bg-white':'bg-gray-50'} ${isToday? 'bg-blue-50 border-blue-300 font-semibold':''} ${!isToday&&d&&col===0?'text-red-600':''} ${!isToday&&d&&col===6?'text-blue-600':''}`}>
+                        <div key={idx} className={`h-8 border rounded flex items-center justify-center ${d? 'bg-white dark:bg-gray-800':'bg-gray-50 dark:bg-gray-700'} ${isToday? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600 font-semibold':''} ${!isToday&&d&&col===0?'text-red-600 dark:text-red-400':''} ${!isToday&&d&&col===6?'text-blue-600 dark:text-blue-400':''} ${d?'text-gray-900 dark:text-gray-100':''}`}>
                           {d ?? ''}
                         </div>
                       );
@@ -3008,6 +3031,15 @@ export function MyPage() {
             <div className="text-xs">위젯 내용</div>
           </div>
         );
+    }
+    } catch (error) {
+      console.error('위젯 렌더링 오류:', error, '위젯:', widget);
+      return (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+          <p className="text-red-600 dark:text-red-400 text-sm">위젯 렌더링 오류</p>
+          <p className="text-red-500 dark:text-red-500 text-xs mt-1">{widget.type}</p>
+        </div>
+      );
     }
   };
 

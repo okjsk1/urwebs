@@ -28,7 +28,7 @@ export async function requireRole(allowedRoles: string[]): Promise<AuthResult> {
     const roles: string[] = token.claims.roles || [];
     
     // 이메일 기반 관리자 확인 추가
-    const isEmailAdmin = user.email === 'okjsk1@gmail.com';
+    const isEmailAdmin = user.email === 'okjsk1@gmail.com' || user.email === 'okjsk2@gmail.com';
     
     // 역할 기반 권한 확인
     const hasRolePermission = roles.length > 0 && allowedRoles.some(role => roles.includes(role));
@@ -86,7 +86,7 @@ export async function checkUserRoles(): Promise<RoleCheckResult> {
     const roles: string[] = token.claims.roles || [];
     
     // 이메일 기반 관리자 확인 추가
-    const isEmailAdmin = user.email === 'okjsk1@gmail.com';
+    const isEmailAdmin = user.email === 'okjsk1@gmail.com' || user.email === 'okjsk2@gmail.com';
     const finalRoles = isEmailAdmin ? ['admin', ...roles] : roles;
     
     return { 
