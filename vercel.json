@@ -1,14 +1,13 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
   "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs22.x"
-    },
-    "api/**/*.js": {
+    "api/forex.js": {
       "runtime": "nodejs22.x"
     }
   },
-  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/(.*)",
