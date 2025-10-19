@@ -1,24 +1,4 @@
 {
   "version": 2,
-  "outputDirectory": "dist",
-  "functions": {
-    "api/forex.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cross-Origin-Opener-Policy",
-          "value": "same-origin-allow-popups"
-        },
-        {
-          "key": "Cross-Origin-Embedder-Policy", 
-          "value": "unsafe-none"
-        }
-      ]
-    }
-  ]
+  "outputDirectory": "dist"
 }
