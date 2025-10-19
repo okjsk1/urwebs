@@ -254,6 +254,15 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
   if (widgetHeight === 1) {
     return (
       <div className={`p-1 h-full flex flex-col justify-center ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100'}`}>
+<<<<<<< HEAD
+=======
+        {/* 시뮬레이션 모드 배너 */}
+        {(import.meta as any).env.VITE_OPENWEATHER_API_KEY === 'demo' && (
+          <div className="mb-1 px-1 py-0.5 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded text-[10px] text-amber-800 dark:text-amber-200 text-center">
+            🧪 시뮬레이션
+          </div>
+        )}
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
         {state.loading ? (
           <div className="text-center">
             <div className="animate-pulse h-4 bg-gray-300 rounded mb-1"></div>
@@ -360,6 +369,15 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
   if (widgetHeight === 2) {
     return (
       <div className={`p-2 h-full flex flex-col ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100'}`}>
+<<<<<<< HEAD
+=======
+        {/* 시뮬레이션 모드 배너 */}
+        {(import.meta as any).env.VITE_OPENWEATHER_API_KEY === 'demo' && (
+          <div className="mb-1 px-1 py-0.5 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded text-[10px] text-amber-800 dark:text-amber-200 text-center">
+            🧪 시뮬레이션 모드
+          </div>
+        )}
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
         <div className="flex items-center justify-between mb-2 shrink-0">
           <div className="flex items-center gap-1">
             <MapPin className="w-3 h-3" />
@@ -497,6 +515,15 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
   // 1x3: 오늘 날씨 + 시간별 + 일별 예보
   return (
     <div className={`p-3 h-full flex flex-col ${currentWeather ? getBackgroundColor(currentWeather.condition) : 'bg-gray-100'}`}>
+<<<<<<< HEAD
+=======
+      {/* 시뮬레이션 모드 배너 */}
+      {import.meta.env.VITE_OPENWEATHER_API_KEY === 'demo' && (
+        <div className="mb-2 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded text-xs text-amber-800 dark:text-amber-200 text-center">
+          🧪 시뮬레이션 모드 (개발 환경)
+        </div>
+      )}
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
       <div className="flex items-center justify-between mb-3 shrink-0">
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4" />

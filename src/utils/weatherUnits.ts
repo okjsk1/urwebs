@@ -71,3 +71,8 @@ export const formatPressure = (hPa: number, units: WeatherUnits): string => {
   const pressure = convertPressure(hPa, units);
   return `${pressure} ${units === 'imperial' ? 'inHg' : 'hPa'}`;
 };
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6

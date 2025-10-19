@@ -322,3 +322,8 @@ export const getSymbolInfo = (symbol: Symbol) => {
   
   return info[symbol] || { name: symbol, icon: symbol };
 };
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6

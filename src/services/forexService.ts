@@ -103,11 +103,19 @@ async function fetchRates(options: {
   
   // JSON 파싱 전에 텍스트 검증
   if (!text || text.trim().startsWith('//') || text.trim().startsWith('<!DOCTYPE')) {
+<<<<<<< HEAD
     console.warn('Invalid response format from forex API:', text.substring(0, 100));
     // 개발 환경에서는 더미 데이터 반환
     if (import.meta.env.MODE === 'development') {
       return generateDummyRates(base, symbols);
     }
+=======
+    // 개발 환경에서는 조용히 더미 데이터 반환 (콘솔 경고 제거)
+    if (import.meta.env.MODE === 'development') {
+      return generateDummyRates(base, symbols);
+    }
+    console.warn('Invalid response format from forex API:', text.substring(0, 100));
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
     throw new Error('Invalid JSON response from forex API');
   }
   
@@ -115,6 +123,7 @@ async function fetchRates(options: {
   try {
     data = JSON.parse(text);
   } catch (parseError) {
+<<<<<<< HEAD
     console.error('JSON parse error:', parseError);
     console.error('Response text:', text.substring(0, 200));
     
@@ -123,11 +132,20 @@ async function fetchRates(options: {
       console.warn('Using dummy forex data in development mode');
       return generateDummyRates(base, symbols);
     }
+=======
+    // 개발 환경에서는 조용히 더미 데이터 반환
+    if (import.meta.env.MODE === 'development') {
+      return generateDummyRates(base, symbols);
+    }
+    console.error('JSON parse error:', parseError);
+    console.error('Response text:', text.substring(0, 200));
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
     throw new Error('Failed to parse forex API response');
   }
   
   // 서버 응답을 표준화된 형태로 변환
   if (!data || !Array.isArray(data.rates)) {
+<<<<<<< HEAD
     console.warn('Invalid forex API response format:', data);
     
     // 개발 환경에서는 더미 데이터 반환
@@ -135,6 +153,13 @@ async function fetchRates(options: {
       console.warn('Using dummy forex data due to invalid response format');
       return generateDummyRates(base, symbols);
     }
+=======
+    // 개발 환경에서는 조용히 더미 데이터 반환
+    if (import.meta.env.MODE === 'development') {
+      return generateDummyRates(base, symbols);
+    }
+    console.warn('Invalid forex API response format:', data);
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
     throw new Error('Invalid forex API response format');
   }
   

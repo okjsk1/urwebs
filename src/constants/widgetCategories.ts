@@ -1,6 +1,10 @@
 import {
   CheckSquare, Target, Repeat, Clock, Bell, FileText, Calendar, Mail,
+<<<<<<< HEAD
   TrendingUp, DollarSign, BarChart3, Github, Calculator, Lock, QrCode,
+=======
+  TrendingUp, DollarSign, BarChart3, Github, Lock, QrCode,
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
   Globe, Cloud, Search, Rss, Quote, Palette, Link, BookOpen, Users
 } from 'lucide-react';
 import { WidgetCategory } from '../types/mypage.types';

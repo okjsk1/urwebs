@@ -139,3 +139,8 @@ export function logAccessGranted(
   // 실제 운영 환경에서는 Analytics나 Audit 서비스로 전송
   // analytics.track('access_granted', logData);
 }
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6

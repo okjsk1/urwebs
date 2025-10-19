@@ -201,7 +201,12 @@ class OpenWeatherProvider implements WeatherProvider {
 
   async getCurrent(location: WeatherLocation): Promise<CurrentWeather> {
     if (this.apiKey === 'demo') {
+<<<<<<< HEAD
       throw new Error('Demo API key - using simulation');
+=======
+      // 개발 환경에서는 시뮬레이션 데이터 사용 (오류 대신 조용히 처리)
+      return this.generateSimulationData(location);
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
     }
 
     const url = `${this.baseUrl}/weather?lat=${location.lat}&lon=${location.lon}&appid=${this.apiKey}&units=metric&lang=kr`;
@@ -228,7 +233,12 @@ class OpenWeatherProvider implements WeatherProvider {
 
   async getHourly(location: WeatherLocation): Promise<HourlyForecast[]> {
     if (this.apiKey === 'demo') {
+<<<<<<< HEAD
       throw new Error('Demo API key - using simulation');
+=======
+      // 개발 환경에서는 시뮬레이션 데이터 사용
+      return this.generateHourlySimulation(location);
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
     }
 
     const url = `${this.baseUrl}/forecast?lat=${location.lat}&lon=${location.lon}&appid=${this.apiKey}&units=metric&lang=kr`;
@@ -251,7 +261,12 @@ class OpenWeatherProvider implements WeatherProvider {
 
   async getDaily(location: WeatherLocation): Promise<DailyForecast[]> {
     if (this.apiKey === 'demo') {
+<<<<<<< HEAD
       throw new Error('Demo API key - using simulation');
+=======
+      // 개발 환경에서는 시뮬레이션 데이터 사용
+      return this.generateDailySimulation(location);
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
     }
 
     const url = `${this.baseUrl}/forecast?lat=${location.lat}&lon=${location.lon}&appid=${this.apiKey}&units=metric&lang=kr`;
@@ -435,6 +450,110 @@ export class WeatherService {
     return results;
   }
 
+<<<<<<< HEAD
+=======
+  // 시뮬레이션 데이터 생성 메서드들
+  private generateSimulationData(location: WeatherLocation): CurrentWeather {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // 시간대별 온도 시뮬레이션
+    const baseTemp = 20 + Math.sin((hour - 6) * Math.PI / 12) * 8;
+    const temp = Math.round(baseTemp + (Math.random() - 0.5) * 4);
+    
+    const conditions = ['Clear', 'Clouds', 'Rain', 'Snow'];
+    const condition = conditions[Math.floor(Math.random() * conditions.length)];
+    
+    return {
+      location,
+      temperature: temp,
+      feelsLike: temp + Math.round((Math.random() - 0.5) * 3),
+      condition,
+      description: this.getConditionDescription(condition),
+      humidity: Math.round(40 + Math.random() * 40),
+      windSpeed: Math.round(Math.random() * 10),
+      windDirection: Math.round(Math.random() * 360),
+      visibility: Math.round(8000 + Math.random() * 2000),
+      pressure: Math.round(1010 + Math.random() * 20),
+      uvIndex: Math.round(Math.random() * 10),
+      sunrise: this.getSunriseTime(now),
+      sunset: this.getSunsetTime(now),
+    };
+  }
+
+  private generateHourlySimulation(location: WeatherLocation): HourlyForecast[] {
+    const forecasts: HourlyForecast[] = [];
+    const now = new Date();
+    
+    for (let i = 0; i < 24; i++) {
+      const time = new Date(now.getTime() + i * 60 * 60 * 1000);
+      const hour = time.getHours();
+      const baseTemp = 20 + Math.sin((hour - 6) * Math.PI / 12) * 8;
+      const temp = Math.round(baseTemp + (Math.random() - 0.5) * 4);
+      
+      forecasts.push({
+        time: time.getTime(),
+        temperature: temp,
+        condition: ['Clear', 'Clouds', 'Rain'][Math.floor(Math.random() * 3)],
+        description: this.getConditionDescription(['Clear', 'Clouds', 'Rain'][Math.floor(Math.random() * 3)]),
+        precipitationProbability: Math.round(Math.random() * 30),
+        icon: this.getWeatherIcon('01d'),
+      });
+    }
+    
+    return forecasts;
+  }
+
+  private generateDailySimulation(location: WeatherLocation): DailyForecast[] {
+    const forecasts: DailyForecast[] = [];
+    const now = new Date();
+    
+    for (let i = 0; i < 5; i++) {
+      const date = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
+      const baseTemp = 20 + Math.sin(i * Math.PI / 5) * 5;
+      const maxTemp = Math.round(baseTemp + Math.random() * 5);
+      const minTemp = Math.round(maxTemp - 8 - Math.random() * 5);
+      
+      forecasts.push({
+        date: date.getTime(),
+        maxTemperature: maxTemp,
+        minTemperature: minTemp,
+        condition: ['Clear', 'Clouds', 'Rain', 'Snow'][Math.floor(Math.random() * 4)],
+        description: this.getConditionDescription(['Clear', 'Clouds', 'Rain', 'Snow'][Math.floor(Math.random() * 4)]),
+        precipitationProbability: Math.round(Math.random() * 40),
+        icon: this.getWeatherIcon('01d'),
+      });
+    }
+    
+    return forecasts;
+  }
+
+  private getConditionDescription(condition: string): string {
+    const descriptions: Record<string, string> = {
+      'Clear': '맑음',
+      'Clouds': '구름 많음',
+      'Rain': '비',
+      'Snow': '눈',
+      'Thunderstorm': '뇌우',
+      'Drizzle': '이슬비',
+      'Mist': '안개',
+    };
+    return descriptions[condition] || condition;
+  }
+
+  private getSunriseTime(date: Date): number {
+    const sunrise = new Date(date);
+    sunrise.setHours(6, 30 + Math.floor(Math.random() * 30), 0, 0);
+    return sunrise.getTime();
+  }
+
+  private getSunsetTime(date: Date): number {
+    const sunset = new Date(date);
+    sunset.setHours(18, 30 + Math.floor(Math.random() * 60), 0, 0);
+    return sunset.getTime();
+  }
+
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
   // 현재 위치 감지
   async getCurrentLocation(): Promise<WeatherLocation> {
     return new Promise((resolve, reject) => {

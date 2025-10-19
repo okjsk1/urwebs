@@ -42,3 +42,8 @@ export function MemoWidget() {
 
 
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> f18eacae9db3a659b475638dca7b7d0b0ae30bd6
