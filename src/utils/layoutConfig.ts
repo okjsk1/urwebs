@@ -22,3 +22,4 @@ export const snapColIndex = (px: number) => Math.max(0, Math.min(Math.round(px /
 export const snapX = (px: number) => colToX(snapColIndex(px));
 export const snapY = (py: number) => Math.max(0, Math.round(py / GRID_H) * GRID_H);
 
+

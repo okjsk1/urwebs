@@ -40,3 +40,4 @@ export function isAppCheckEnabled(): boolean {
          !!import.meta.env.VITE_FIREBASE_APPCHECK_KEY;
 }
 
+

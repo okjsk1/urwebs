@@ -204,6 +204,8 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
         return;
       }
       
+      console.log('로그인된 상태 - Firebase 데이터 가져오기');
+      
       console.log('Firebase에서 페이지 데이터 가져오기 시작...');
       
       // 사용자 페이지 컬렉션에서 공개된 페이지들 가져오기
