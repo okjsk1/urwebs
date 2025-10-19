@@ -1,4 +1,6 @@
 {
+  "version": 2,
+  "outputDirectory": "build",
   "headers": [
     {
       "source": "/(.*)",
@@ -15,8 +17,10 @@
     }
   ],
   "functions": {
-    "api/forex.js": {
-      "runtime": "nodejs18.x"
+    "api/**/*.js": {
+      "runtime": "nodejs22.x"
     }
-  }
+  },
+  "buildCommand": "npm run build",
+  "installCommand": "npm install"
 }
