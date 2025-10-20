@@ -53,6 +53,12 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       editingId: undefined,
       editDraft: { name: '', url: '' }
     });
+    
+    // widget.content에서 북마크 데이터가 있으면 사용 (공개페이지용)
+    if (widget.content?.bookmarks && Array.isArray(widget.content.bookmarks)) {
+      saved.bookmarks = widget.content.bookmarks;
+    }
+    
     return saved;
   });
 

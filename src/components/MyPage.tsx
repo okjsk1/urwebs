@@ -1291,7 +1291,7 @@ export function MyPage() {
 
         const pageData = removeUndefined({
           title: pageTitle || '제목 없음',
-          description: `${widgets.length}개의 위젯으로 구성된 페이지`,
+          description: '',
           authorId: currentUser.id || '',
           authorName: currentUser.name || '익명',
           authorEmail: currentUser.email || '',

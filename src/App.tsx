@@ -138,9 +138,11 @@ function PublicPageViewer() {
         </div>
       </header>
       
-      <main className="w-full p-4 sm:p-6 lg:p-8">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          <p className="text-gray-600 dark:text-gray-400 mb-6">{pageData.description}</p>
+      <main className="w-full p-2 sm:p-3 lg:p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-3">
+          {pageData.description && !pageData.description.includes('위젯으로 구성된 페이지') && (
+            <p className="text-gray-600 dark:text-gray-400 mb-6">{pageData.description}</p>
+          )}
           
           {/* 공개보기: 절대 위치 레이아웃 */}
           {Array.isArray(pageData.widgets) && pageData.widgets.length > 0 ? (
