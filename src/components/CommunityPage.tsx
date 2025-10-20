@@ -111,6 +111,10 @@ export function CommunityPage() {
         // 권한 오류인 경우 사용자 친화적 메시지 표시
         if (error?.code === 'permission-denied') {
           console.warn('게시글 읽기 권한이 없습니다. Firebase 보안 규칙을 확인해주세요.');
+        } else if (error?.code === 'unavailable') {
+          console.warn('서비스가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        } else {
+          console.warn('게시글을 불러오는 중 오류가 발생했습니다.');
         }
         
         // 로드 실패 시 빈 배열로 설정

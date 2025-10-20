@@ -55,7 +55,9 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
               popupError?.message?.includes('Cross-Origin-Opener-Policy') ||
               popupError?.message?.includes('COOP')) {
             setUseRedirect(true);
-            console.log('리다이렉트 방식으로 전환합니다...');
+            console.log('팝업이 차단되었습니다. 리다이렉트 방식으로 전환합니다...');
+            // 사용자에게 알림
+            alert('팝업이 차단되었습니다. 새 페이지로 이동하여 로그인을 완료해주세요.');
             await signInWithRedirect(auth, googleProvider);
             return;
           }

@@ -75,6 +75,9 @@ export function NoticePage() {
           console.warn('공지사항 읽기 권한이 없습니다. Firebase 보안 규칙을 확인해주세요.');
           // 빈 배열로 설정하여 "데이터 없음" 상태 표시
           setNotices([]);
+        } else {
+          // 다른 오류의 경우도 빈 배열로 설정
+          setNotices([]);
         }
       }
     };

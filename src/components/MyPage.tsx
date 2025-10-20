@@ -3919,7 +3919,7 @@ export function MyPage() {
                 delete (window as any).__addWidgetWithColumn;
               };
             }}
-            showAddButton={isEditMode}
+            showAddButton={true}
             userId={currentUser?.uid || 'guest'}
             collisionStrategy="push"
             responsiveCells={responsiveCellHeights}

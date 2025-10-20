@@ -360,7 +360,7 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
       {/* 상단 히어로 섹션 */}
       <div className="relative bg-gray-50 dark:bg-gray-800">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white py-32">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white py-16 sm:py-24 md:py-32">
             나만의{' '}
             <span className="text-blue-600 dark:text-blue-400">시작페이지</span>를{' '}
             <span className="text-purple-600 dark:text-purple-400">만들어보세요</span>
@@ -370,7 +370,7 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
 
       {/* 최신 업데이트 & 전체 페이지 & 인기 시작페이지 섹션 */}
       <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* 최신 업데이트 목록 */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-3 md:p-4">
             <div className="flex items-center justify-between mb-4">
@@ -387,9 +387,13 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
             
             <div className="space-y-1.5">
               {loading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                  <p className="text-xs text-gray-500">로딩 중...</p>
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
                 </div>
               ) : latestPages.length === 0 ? (
                 <div className="text-center py-4">
@@ -448,9 +452,13 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
             
             <div className="space-y-1.5">
               {loading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mx-auto mb-2"></div>
-                  <p className="text-xs text-gray-500">로딩 중...</p>
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
                 </div>
               ) : allPagesList.length === 0 ? (
                 <div className="text-center py-4">
@@ -516,9 +524,13 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
             
             <div className="space-y-1.5">
               {loading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto mb-2"></div>
-                  <p className="text-xs text-gray-500">로딩 중...</p>
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
                 </div>
               ) : popularPagesList.length === 0 ? (
                 <div className="text-center py-4">

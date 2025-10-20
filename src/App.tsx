@@ -18,8 +18,7 @@ import DraggableDashboardGrid from './components/DraggableDashboardGrid';
 import { renderWidget } from './utils/widgetRenderer';
 import { colToX, rowToY, gridWToPx, gridHToPx } from './utils/layoutConfig';
 import { allWidgets } from './constants/widgetCategories';
-// import { PageWithTabs } from './pages/PageWithTabs';
-// import { ColumnsBoard } from './components/ColumnsBoard/ColumnsBoard';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 // Firebase는 config.ts에서 초기화됩니다
 
 // 공개 페이지 뷰어 컴포넌트
@@ -276,6 +275,9 @@ function AppContent() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState(() => '');
   const [selectedSubCategory, setSelectedSubCategory] = useState(() => '');
+  
+  // 키보드 단축키 활성화
+  useKeyboardShortcuts();
 
   const handleCategorySelect = (categoryId: string, subCategory?: string) => {
     setSelectedCategory(categoryId);

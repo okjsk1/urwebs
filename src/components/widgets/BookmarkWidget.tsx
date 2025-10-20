@@ -1,7 +1,7 @@
 // 북마크 위젯 - 파비콘 자동, URL 정규화, 인라인 추가 폼, 재정렬 기능
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '../ui/button';
-import { Plus, Trash2, ArrowUp, ArrowDown, ExternalLink, Edit, Check, X as XIcon } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, ExternalLink, Edit, Check, X as XIcon, SortAsc, SortDesc } from 'lucide-react';
 import { 
   WidgetProps, 
   persistOrLocal, 
@@ -33,6 +33,8 @@ interface BookmarkState {
   };
   editingId?: string;
   editDraft?: { name: string; url: string };
+  sortBy: 'name' | 'date' | 'category';
+  sortOrder: 'asc' | 'desc';
   // 전송 기능 제거
 }
 
@@ -51,7 +53,9 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       showAddForm: false,
       newBookmark: { name: '', url: '', categoryId: 'default' },
       editingId: undefined,
-      editDraft: { name: '', url: '' }
+      editDraft: { name: '', url: '' },
+      sortBy: 'name' as const,
+      sortOrder: 'asc' as const
     });
     
     // widget.content에서 북마크 데이터가 있으면 사용 (공개페이지용)
@@ -220,6 +224,34 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       return '🔗';
     }
   }, []);
+
+  // 정렬된 북마크 반환
+  const sortedBookmarks = useMemo(() => {
+    const filtered = state.activeCategoryId 
+      ? state.bookmarks.filter(bm => bm.categoryId === state.activeCategoryId)
+      : state.bookmarks;
+
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (state.sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'category':
+          const categoryA = state.categories.find(c => c.id === a.categoryId)?.name || '';
+          const categoryB = state.categories.find(c => c.id === b.categoryId)?.name || '';
+          comparison = categoryA.localeCompare(categoryB);
+          break;
+        case 'date':
+          // 날짜는 추가 순서로 정렬 (id 기준)
+          comparison = a.id.localeCompare(b.id);
+          break;
+      }
+      
+      return state.sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [state.bookmarks, state.activeCategoryId, state.sortBy, state.sortOrder, state.categories]);
 
   const addBookmark = useCallback(() => {
     const { name, url } = state.newBookmark;
@@ -452,12 +484,52 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       }}
       onDrop={handleExternalDrop}
     >
-      {/* 내부 헤더 제거: 페이지 상단 타이틀만 사용 */}
-      {/* 카테고리 선택/추가 UI 제거: 상단에는 이름 수정만 표시 */}
+      {/* 정렬 버튼 */}
+      {isEditMode && (
+        <div className="flex items-center justify-between px-2.5 pt-2 pb-1">
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0"
+              onClick={() => setState(prev => ({ 
+                ...prev, 
+                sortBy: 'name',
+                sortOrder: prev.sortBy === 'name' && prev.sortOrder === 'asc' ? 'desc' : 'asc'
+              }))}
+              title="이름순 정렬"
+            >
+              {state.sortBy === 'name' ? (
+                state.sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />
+              ) : (
+                <SortAsc className="w-3 h-3 opacity-50" />
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0"
+              onClick={() => setState(prev => ({ 
+                ...prev, 
+                sortBy: 'category',
+                sortOrder: prev.sortBy === 'category' && prev.sortOrder === 'asc' ? 'desc' : 'asc'
+              }))}
+              title="카테고리순 정렬"
+            >
+              {state.sortBy === 'category' ? (
+                state.sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />
+              ) : (
+                <SortAsc className="w-3 h-3 opacity-50" />
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {/* 북마크 리스트 (세로 배치) */}
       <div className="space-y-2 mb-3 flex-1 overflow-y-auto px-2.5 pt-2">
         {/* 붙여넣기 기능 제거 */}
-        {filteredBookmarks.map((bookmark, index) => (
+        {sortedBookmarks.map((bookmark, index) => (
           <div 
             key={bookmark.id}
             className={`relative group ${dragOverId === bookmark.id ? 'ring-2 ring-blue-300 rounded' : ''}`}
