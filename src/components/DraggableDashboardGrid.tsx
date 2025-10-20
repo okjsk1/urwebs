@@ -84,6 +84,8 @@ function DraggableWidget({
         gridColumn: `${(widget.x || 0) + 1} / span ${widget.size.w}`,
         gridRow: `${(widget.y || 0) + 1} / span ${widget.size.h}`,
         transition: isDragging ? 'opacity 0.2s, transform 0.2s' : 'all 0.2s ease',
+        position: 'relative',
+        zIndex: isDragging ? 10 : 1,
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={onWidgetLeave}
@@ -529,6 +531,9 @@ export default function DraggableDashboardGrid({
           ...generateResponsiveStyles(),
           userSelect: activeId ? 'none' : 'auto',
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          gridAutoRows: 'minmax(160px, auto)',
+          position: 'relative',
+          display: 'grid',
         }}
         onMouseLeave={() => setShowAddButtonState({})}
       >

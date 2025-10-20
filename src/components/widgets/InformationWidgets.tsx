@@ -510,7 +510,7 @@ export const LawSearchWidget = ({ widget, isEditMode, updateWidget }: any) => {
       </div>
       
       <form onSubmit={handleSearch} className="flex-1 flex flex-col justify-center">
-        <div className="relative">
+        <div className="relative z-10">
           {/* 통합 검색바 */}
           <div className="flex items-center bg-white border-2 border-blue-500 shadow-md hover:shadow-lg transition-shadow">
             {/* 왼쪽 드롭다운 */}
