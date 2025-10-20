@@ -30,13 +30,16 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
           </Button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {Object.entries(widgetCategories).map(([categoryKey, category]) => (
-            <div key={categoryKey}>
-              <h4 className="font-semibold text-gray-800 mb-2">
-                {category.name}
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            <div key={categoryKey} className="border-b border-gray-100 pb-4 last:border-b-0">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="text-lg">{getCategoryIcon(categoryKey)}</div>
+                <h4 className="font-semibold text-gray-800 text-base">
+                  {category.name}
+                </h4>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {category.widgets.map((widget) => {
                   const Icon = widget.icon;
                   return (
@@ -51,10 +54,21 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                         }
                         onClose();
                       }}
-                      className="p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-all text-left group"
+                      className="p-4 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-400 rounded-xl transition-all text-left group shadow-sm hover:shadow-md"
                     >
-                      <div className="text-sm font-medium text-gray-800 truncate mb-1">{widget.name}</div>
-                      <div className="text-xs text-gray-500 truncate">{widget.description}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl text-gray-600 group-hover:text-blue-600 transition-colors">
+                          {typeof Icon === 'string' ? Icon : <Icon className="w-6 h-6" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-800 truncate group-hover:text-blue-700">
+                            {widget.name}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate mt-1">
+                            {widget.description}
+                          </div>
+                        </div>
+                      </div>
                     </button>
                   );
                 })}

@@ -254,10 +254,11 @@ export function HomePageNew({ onCategorySelect }: HomePageProps) {
       // 사용자 페이지 컬렉션에서 공개된 페이지들 가져오기
       const pagesRef = collection(db, 'userPages');
       
-      // 간단한 쿼리로 시작 - 복합 쿼리 대신 기본 쿼리 사용
+      // 공개되고 삭제되지 않은 페이지만 가져오기
       const simpleQuery = query(
         pagesRef,
         where('isPublic', '==', true),
+        where('isDeleted', '==', false),
         limit(20)
       );
 

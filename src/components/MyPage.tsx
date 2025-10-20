@@ -605,8 +605,19 @@ export function MyPage() {
   };
 
   const createNewPage = () => {
-    setShowTemplateModal(true);
-    loadTemplates(); // 템플릿 모달이 열릴 때 최신 템플릿 로드
+    // 첫 이용자인지 확인 (저장된 페이지가 없는 경우)
+    const hasExistingPages = widgets.length > 0 || (savedPages && savedPages.length > 0);
+    
+    if (!hasExistingPages) {
+      // 첫 이용자: 템플릿 선택 모달 표시
+      setShowTemplateModal(true);
+      loadTemplates();
+    } else {
+      // 기존 사용자: 빈 캔버스로 바로 시작
+      setWidgets([]);
+      setPageTitle('새 페이지');
+      setShowTemplateModal(false);
+    }
   };
 
   // MyPage 첫 로드 시 템플릿 미리 불러오기
@@ -2522,6 +2533,15 @@ export function MyPage() {
 
 
       case 'quicknote':
+        const currentGridSize = widget.gridSize || { w: 1, h: 1 };
+        // 위젯 크기에 따라 rows 설정
+        const getRows = () => {
+          if (currentGridSize.h === 1) return 4; // 1x1: 4줄
+          if (currentGridSize.h === 2) return 10; // 1x2: 10줄
+          if (currentGridSize.h === 3) return 16; // 1x3: 16줄
+          return 4;
+        };
+        
         return (
           <div className="h-full flex flex-col p-1">
             <textarea
@@ -2551,6 +2571,7 @@ export function MyPage() {
               placeholder="메모를 작성하세요..."
               className="flex-1 w-full p-1 text-sm border-0 resize-none focus:outline-none bg-transparent"
               style={{ textAlign: 'left', verticalAlign: 'top' }}
+              rows={getRows()}
             />
           </div>
         );

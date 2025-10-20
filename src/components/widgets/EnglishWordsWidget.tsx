@@ -224,8 +224,7 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
       )}
 
       {/* 상단 표시줄 */}
-      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-        <div>{currentIndex + 1} / {words.length}</div>
+      <div className="flex items-center justify-end text-xs text-gray-500 mb-2">
         {isEditMode && (
           <Button
             size="sm"

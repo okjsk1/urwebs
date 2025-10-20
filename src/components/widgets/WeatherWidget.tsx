@@ -236,12 +236,8 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
   }, []);
 
   const getBackgroundColor = useCallback((condition: string | undefined) => {
-    if (!condition) return 'bg-gradient-to-br from-gray-100 to-gray-200';
-    if (condition.includes('맑음')) return 'bg-gradient-to-br from-yellow-100 to-orange-100';
-    if (condition.includes('구름')) return 'bg-gradient-to-br from-gray-100 to-gray-200';
-    if (condition.includes('비')) return 'bg-gradient-to-br from-blue-100 to-blue-200';
-    if (condition.includes('눈')) return 'bg-gradient-to-br from-blue-50 to-blue-100';
-    return 'bg-gradient-to-br from-gray-100 to-gray-200';
+    // 배경색 제거 - 기본 흰색 배경 사용
+    return 'bg-white';
   }, []);
 
   // 현재 날씨 데이터

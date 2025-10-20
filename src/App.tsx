@@ -100,7 +100,7 @@ function PublicPageViewer() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-50 shadow-sm">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2 sticky top-0 z-50 shadow-sm">
         <div className="w-full flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">{pageData.title}</h1>
@@ -147,8 +147,8 @@ function PublicPageViewer() {
             <div 
               className="relative min-h-[800px] w-full"
               style={{
-                width: '1284px', // 8칸 * 150px + 7간격 * 12px = 1284px (나만의 페이지와 동일)
-                height: '800px',
+                width: '1819px', // 8칸 * 210px + 7간격 * 17px = 1819px
+                height: '1120px', // 높이도 1.4배로 조정
                 margin: '0 auto', // 중앙 정렬
               }}
             >
@@ -171,29 +171,23 @@ function PublicPageViewer() {
                   memo: { w: 1, h: 1 },
                 };
                 
-                // 위젯 크기 강제 설정 (기존 데이터 무시)
-                const widgetSize = sizePresets[w.type] || { w: 1, h: 1 };
+                // 절대 위치 계산 (MyPage와 동일하게)
+                // 위젯 크기를 1.4배로 조정 (MyPage와 완전 일치)
+                const cellWidth = 210; // 150 * 1.4
+                const cellHeight = 196; // 140 * 1.4
+                const gap = 17; // 12 * 1.4
                 
-                // 나만의 페이지와 정확히 동일한 위치 배치
-                const positions = [
-                  { x: 0, y: 0 }, // 구글 검색 (2x1)
-                  { x: 2, y: 0 }, // 네이버 검색 (1x1)
-                  { x: 3, y: 0 }, // 법제처 검색 (1x1)
-                  { x: 4, y: 0 }, // 영어 단어 (1x2)
-                  { x: 6, y: 0 }, // 날씨 (2x3)
-                  { x: 0, y: 1 }, // 새 폴더(5) (1x4)
-                  { x: 1, y: 1 }, // 북마크 (1x4)
-                  { x: 2, y: 1 }, // 지도 (1x4)
-                  { x: 3, y: 2 }, // 새 폴더(6) (1x2)
-                  { x: 4, y: 2 }, // 새 폴더(3) (1x2)
-                  { x: 5, y: 2 }, // 새 폴더(4) (1x2)
-                  { x: 4, y: 4 }, // 빠른 메모 (1x1) - y=4로 수정
-                  { x: 6, y: 3 }, // 캘린더 (2x3)
-                  { x: 5, y: 4 }, // To Do List (1x1)
-                ];
+                // 실제 위젯 데이터의 크기 사용 (MyPage와 동일하게)
+                const widgetSize = w.gridSize || { w: 1, h: 1 };
                 
-                // 참고 이미지와 동일한 위치 사용 (기존 좌표 무시)
-                const pos = positions[index] || { x: index % 8, y: Math.floor(index / 8) };
+                // 위젯 데이터의 실제 좌표 확인 및 변환
+                console.log(`위젯 ${w.type} 원본 좌표: x=${w.x}, y=${w.y}, gridSize=${JSON.stringify(w.gridSize)}`);
+                
+                // MyPage에서 저장된 그리드 인덱스를 픽셀로 변환
+                const pos = {
+                  x: w.x !== undefined ? w.x * (cellWidth + gap) : index * (cellWidth + gap),
+                  y: w.y !== undefined ? w.y * (cellHeight + gap) : Math.floor(index / 8) * (cellHeight + gap)
+                };
                 
                 const widgetForRender = {
                   id: w.id,
@@ -208,13 +202,8 @@ function PublicPageViewer() {
                   // 원본 위젯 데이터도 포함
                   ...w
                 } as any;
-
-                // 절대 위치 계산 (나만의 페이지와 동일하게)
-                const cellWidth = 150;
-                const cellHeight = 160;
-                const gap = 12;
-                const left = pos.x * (cellWidth + gap);
-                const top = pos.y * (cellHeight + gap);
+                const left = pos.x;  // 이미 픽셀 단위
+                const top = pos.y;   // 이미 픽셀 단위
                 const width = widgetSize.w * cellWidth + (widgetSize.w - 1) * gap;
                 const height = widgetSize.h * cellHeight + (widgetSize.h - 1) * gap;
                 
@@ -223,7 +212,7 @@ function PublicPageViewer() {
                 return (
                   <div
                     key={w.id}
-                    className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 absolute"
+                    className="bg-white rounded-lg shadow-md overflow-hidden border-2 border-gray-200 absolute"
                     style={{
                       left: `${left}px`,
                       top: `${top}px`,
@@ -231,7 +220,11 @@ function PublicPageViewer() {
                       height: `${height}px`,
                     }}
                   >
-                    <div className="h-full relative">
+                    {/* 위젯 타이틀 추가 */}
+                    <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">
+                      {widgetForRender.title}
+                    </div>
+                    <div className="h-full relative" style={{ height: 'calc(100% - 40px)' }}>
                       {(() => {
                         try {
                           const result = renderWidget(widgetForRender);

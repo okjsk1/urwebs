@@ -63,6 +63,17 @@ export function renderWidget(widget: Widget): React.ReactNode {
         return <NewsWidget {...commonProps} />;
       case 'calendar':
         return <CalendarWidget />;
+      case 'quicknote':
+        // 빠른메모 위젯 - 간단한 텍스트 표시
+        return (
+          <div className="h-full flex flex-col p-3">
+            <div className="flex-1">
+              <div className="text-sm text-gray-600 whitespace-pre-wrap">
+                {widget.content?.text || '메모를 작성하세요...'}
+              </div>
+            </div>
+          </div>
+        );
       default:
         return (
           <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">
