@@ -266,6 +266,22 @@ function PublicPageViewer() {
           )}
         </div>
       </main>
+
+      {/* 나도 나만의 페이지 만들어보기 버튼 */}
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-[10001] pointer-events-auto">
+        <button
+          onClick={() => navigate('/mypage')}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-8 py-4 rounded-xl shadow-2xl hover:shadow-3xl transition-all transform hover:scale-105 flex items-center gap-2 text-base animate-pulse hover:animate-none"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          </svg>
+          나도 나만의 페이지 만들어보기
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }

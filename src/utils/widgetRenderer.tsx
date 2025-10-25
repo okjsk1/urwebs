@@ -14,7 +14,9 @@ import {
   ExchangeWidget,
   GoogleAdWidget,
   FrequentSitesWidget,
-  NewsWidget
+  NewsWidget,
+  QRCodeWidget,
+  UnifiedSearchWidget
 } from '../components/widgets';
 import { CalendarWidget } from '../components/ColumnsBoard/widgets/CalendarWidget';
 
@@ -63,6 +65,10 @@ export function renderWidget(widget: Widget): React.ReactNode {
         return <NewsWidget {...commonProps} />;
       case 'calendar':
         return <CalendarWidget />;
+      case 'qr_code':
+        return <QRCodeWidget {...commonProps} />;
+      case 'unified_search':
+        return <UnifiedSearchWidget {...commonProps} />;
       case 'quicknote':
         // 빠른메모 위젯 - 간단한 텍스트 표시
         return (

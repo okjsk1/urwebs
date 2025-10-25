@@ -566,20 +566,24 @@ export default function DraggableDashboardGrid({
           />
         ))}
 
-        {/* 드롭 예상 위치 플레이스홀더 */}
+        {/* 드롭 예상 위치 플레이스홀더 - 개선된 시각적 피드백 */}
         {activeWidget && previewPos && activeId && (
           <div
-            className="pointer-events-none rounded-lg border-2 border-dashed border-indigo-400/70 bg-indigo-50/40 animate-pulse"
+            className="pointer-events-none rounded-lg border-4 border-indigo-500 border-dashed bg-indigo-100/60 dark:bg-indigo-900/30 animate-pulse transition-all duration-200"
             style={{
               gridColumn: `${previewPos.x + 1} / span ${activeWidget.size.w}`,
               gridRow: `${previewPos.y + 1} / span ${activeWidget.size.h}`,
-              zIndex: 1,
+              zIndex: 5,
+              boxShadow: '0 0 0 2px rgba(99, 102, 241, 0.3)',
             }}
             aria-hidden="true"
           >
             <div className="h-full flex items-center justify-center">
-              <div className="text-indigo-500 text-sm font-medium opacity-70">
-                여기에 드롭
+              <div className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold opacity-90 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+                여기에 놓기
               </div>
             </div>
           </div>

@@ -187,22 +187,24 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       newSize = '1x4'; // 8개 이상: 1x4
     } else if (bookmarkCount >= 7) {
       newSize = '1x3'; // 7개: 1x3
-    } else if (bookmarkCount >= 4) {
-      newSize = '1x3'; // 4-6개: 1x3 (4개 추가될 때 자동 확장)
+    } else if (bookmarkCount >= 5) {
+      newSize = '1x3'; // 5-6개: 1x3 (5개일 때 확장)
+    } else if (bookmarkCount >= 3) {
+      newSize = '1x2'; // 3-4개: 1x2
     } else {
-      newSize = '1x2'; // 1-3개: 1x2 (기본 크기)
+      newSize = '1x2'; // 1-2개: 1x2 (기본 크기)
     }
 
     // 크기가 변경되었을 때만 업데이트
     if (widget.size !== newSize && updateWidget) {
       console.log('북마크 위젯 크기 변경:', widget.size, '->', newSize);
-      updateWidget({ size: newSize });
+      updateWidget(widget.id, { size: newSize });
     }
 
     // 부모 컴포넌트에게 북마크 개수 변경 알림
     onBookmarkCountChange?.(bookmarkCount);
 
-  }, [state.bookmarks.length, widget.size, onBookmarkCountChange]);
+  }, [state.bookmarks.length, widget.size, widget.id, updateWidget, onBookmarkCountChange]);
 
   const getDomainIcon = useCallback((url: string): string => {
     try {

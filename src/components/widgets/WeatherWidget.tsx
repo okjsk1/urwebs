@@ -330,18 +330,18 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
           </div>
         ) : currentWeather ? (
           <div className="text-center">
-            <div className="text-lg mb-1">{currentWeather.icon}</div>
-            <div className="text-sm font-semibold">{formatTemperature(currentWeather.temperature, state.units)}</div>
-            <div className="text-xs text-gray-600">{currentWeather.condition}</div>
-            <div className="text-xs text-gray-500">{currentWeather.location?.name || state.location?.name || '위치 없음'}</div>
+            <div className="text-base mb-0.5">{currentWeather.icon}</div>
+            <div className="text-xs font-semibold text-gray-900 dark:text-gray-100">{formatTemperature(currentWeather.temperature, state.units)}</div>
+            <div className="text-[10px] text-gray-600 dark:text-gray-400">{currentWeather.condition}</div>
+            <div className="text-[10px] text-gray-500 dark:text-gray-500">{currentWeather.location?.name || state.location?.name || '위치 없음'}</div>
             {!state.isOnline && (
-              <div className="text-xs text-amber-600 mt-1">오프라인</div>
+              <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">오프라인</div>
             )}
             {isEditMode && (
               <Button
                 size="sm"
                 variant="ghost"
-                className="w-full text-xs h-4 mt-1"
+                className="w-full text-[10px] h-3 mt-0.5"
                 onClick={() => setState(prev => ({ ...prev, showSettings: true }))}
               >
                 <Settings className="w-2 h-2" />
@@ -350,8 +350,8 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
           </div>
         ) : (
           <div className="text-center">
-            <div className="text-xs text-gray-500">날씨 정보 없음</div>
-            <div className="text-xs text-gray-400">{state.location?.name || '위치 없음'}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">날씨 정보 없음</div>
+            <div className="text-xs text-gray-400 dark:text-gray-500">{state.location?.name || '위치 없음'}</div>
           </div>
         )}
       </div>

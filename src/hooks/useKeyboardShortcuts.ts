@@ -1,7 +1,16 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export const useKeyboardShortcuts = () => {
+interface KeyboardShortcutsConfig {
+  onDuplicate?: () => void;
+  onDelete?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onSave?: () => void;
+  onSelectAll?: () => void;
+}
+
+export const useKeyboardShortcuts = (config?: KeyboardShortcutsConfig) => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,6 +27,47 @@ export const useKeyboardShortcuts = () => {
         event.preventDefault();
         // 도움말 모달 열기
         console.log('도움말 단축키');
+      }
+
+      // Ctrl/Cmd + D: 복제
+      if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+        event.preventDefault();
+        config?.onDuplicate?.();
+      }
+
+      // Ctrl/Cmd + Delete: 삭제
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Delete') {
+        event.preventDefault();
+        config?.onDelete?.();
+      }
+
+      // Ctrl/Cmd + Z: 실행취소
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        config?.onUndo?.();
+      }
+
+      // Ctrl/Cmd + Shift + Z 또는 Ctrl/Cmd + Y: 재실행
+      if ((event.ctrlKey || event.metaKey) && (event.shiftKey && event.key === 'z' || event.key === 'y')) {
+        event.preventDefault();
+        config?.onRedo?.();
+      }
+
+      // Ctrl/Cmd + S: 저장
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        config?.onSave?.();
+      }
+
+      // Ctrl/Cmd + A: 전체 선택
+      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+        // 입력 필드에 포커스가 있으면 기본 동작 허용
+        const target = event.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+          return;
+        }
+        event.preventDefault();
+        config?.onSelectAll?.();
       }
 
       // Escape: 모달 닫기
@@ -61,5 +111,6 @@ export const useKeyboardShortcuts = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
+  }, [navigate, config]);
 };
+

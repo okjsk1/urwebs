@@ -35,6 +35,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
     widgets: [
       { type: 'news', name: '뉴스 피드', icon: Globe, description: '최신 뉴스 및 관심사' },
       { type: 'weather', name: '날씨 정보', icon: Cloud, description: '실시간 날씨 정보' },
+      { type: 'unified_search', name: '통합검색', icon: Search, description: '여러 검색 엔진 통합 검색' },
       { type: 'google_search', name: '구글 검색', icon: Search, description: '구글 검색 바로가기' },
       { type: 'naver_search', name: '네이버 검색', icon: Search, description: '네이버 검색 바로가기' },
       { type: 'law_search', name: '법제처 검색', icon: Search, description: '법령 검색 도구' },
@@ -47,6 +48,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
     widgets: [
       { type: 'bookmark', name: '즐겨찾기', icon: Link, description: '자주 사용하는 링크' },
       { type: 'frequent_sites', name: '자주가는 사이트', icon: TrendingUp, description: '방문 횟수 기반 추천' },
+      { type: 'qr_code', name: 'QR접속', icon: QrCode, description: '현재 페이지 URL을 QR 코드로 생성' },
     ]
   },
 

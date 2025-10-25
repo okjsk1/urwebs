@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
@@ -21,6 +21,7 @@ import {
 import { templates, getDefaultWidgets } from '../constants/pageTemplates';
 import { templateService } from '../services/templateService';
 import { WidgetPanel } from './MyPage/WidgetPanel';
+import { WidgetContentRenderer } from './MyPage/WidgetContentRenderer';
 import DashboardGrid, { SizePicker } from './DashboardGrid';
 import DraggableDashboardGrid from './DraggableDashboardGrid';
 
@@ -39,7 +40,9 @@ import {
   FrequentSitesWidget,
   CryptoWidget,
   EconomicCalendarWidget,
-  QuoteWidget
+  QuoteWidget,
+  QRCodeWidget,
+  UnifiedSearchWidget
 } from './widgets';
 
 // 인터페이스들은 이제 types에서 import
@@ -66,9 +69,9 @@ export function MyPage() {
   const mainColumnWidth = COL_INNER;
   const cellWidth = COL_INNER;
   
-  // 위젯 상태 관리
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [weatherData, setWeatherData] = useState({
+  // 위젯 상태 관리 - 지연 초기화로 성능 개선
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [weatherData] = useState({
     temperature: 22,
     condition: '맑음',
     humidity: 60,
@@ -87,7 +90,7 @@ export function MyPage() {
       { time: '17:00', temp: 21, icon: '🌧️' }
     ]
   });
-  const [englishWordsSettings, setEnglishWordsSettings] = useState({
+  const [englishWordsSettings] = useState({
     interval: 5000, // 5초 기본값
     isAutoPlay: false
   });
@@ -363,95 +366,94 @@ export function MyPage() {
   const [showBackgroundModal, setShowBackgroundModal] = useState(false);
   const [showFontModal, setShowFontModal] = useState(false);
 
-  // 저장된 페이지 불러오기
+  // 저장된 페이지 불러오기 - setTimeout으로 우선순위 조정하여 초기 렌더링 최적화
   useEffect(() => {
-    // 로그인 사용자의 페이지 불러오기
-    if (currentUser) {
-      const savedPagesData = localStorage.getItem(`myPages_${currentUser.id}`);
-      const savedShareSettings = localStorage.getItem(`shareSettings_${currentUser.id}`);
-      
-      // 공개 설정 복원
-      if (savedShareSettings) {
-        try {
-          const settings = JSON.parse(savedShareSettings);
-          setShareSettings(settings);
-          console.log('공개 설정 복원됨:', settings);
-        } catch (e) {
-          console.error('공개 설정 복원 실패:', e);
+    // localStorage 작업을 다음 프레임으로 지연하여 초기 렌더링 방해 최소화
+    const timer = setTimeout(() => {
+      // 로그인 사용자의 페이지 불러오기
+      if (currentUser) {
+        const savedPagesData = localStorage.getItem(`myPages_${currentUser.id}`);
+        const savedShareSettings = localStorage.getItem(`shareSettings_${currentUser.id}`);
+        
+        // 공개 설정 복원
+        if (savedShareSettings) {
+          try {
+            const settings = JSON.parse(savedShareSettings);
+            setShareSettings(settings);
+          } catch (e) {
+            console.error('공개 설정 복원 실패:', e);
+          }
         }
-      }
-      
-      if (savedPagesData) {
-        try {
-          const loadedPages = JSON.parse(savedPagesData);
-          console.log('저장된 페이지 불러오기 (로그인 사용자):', loadedPages);
-          setPages(loadedPages);
-          
-          // URL에서 페이지 찾기 (okjsk1_2 형식)
-          let targetPage = loadedPages[0];
-          if (pageId) {
-            const pageIndex = parseInt(pageId.split('_')[1]) - 1;
-            if (pageIndex >= 0 && pageIndex < loadedPages.length) {
-              targetPage = loadedPages[pageIndex];
+        
+        if (savedPagesData) {
+          try {
+            const loadedPages = JSON.parse(savedPagesData);
+            setPages(loadedPages);
+            
+            // URL에서 페이지 찾기 (okjsk1_2 형식)
+            let targetPage = loadedPages[0];
+            if (pageId) {
+              const pageIndex = parseInt(pageId.split('_')[1]) - 1;
+              if (pageIndex >= 0 && pageIndex < loadedPages.length) {
+                targetPage = loadedPages[pageIndex];
+              }
+            } else {
+              // URL 파라미터가 없으면 활성 페이지 찾기
+              targetPage = loadedPages.find((p: any) => p.isActive) || loadedPages[0];
             }
-          } else {
-            // URL 파라미터가 없으면 활성 페이지 찾기
-            targetPage = loadedPages.find((p: any) => p.isActive) || loadedPages[0];
-          }
-          
-          if (targetPage) {
-            setCurrentPageId(targetPage.id);
-            setPageTitle(targetPage.title);
             
-            setWidgets(targetPage.widgets || []);
-            
-            // URL 업데이트 (URL이 없거나 다른 경우)
-            const pageIndex = loadedPages.findIndex((p: any) => p.id === targetPage.id);
-            const userPrefix = currentUser.email?.split('@')[0] || 'user';
-            const expectedUrl = `${userPrefix}_${pageIndex + 1}`;
-            if (!pageId || pageId !== expectedUrl) {
-              navigate(`/mypage/${expectedUrl}`, { replace: true });
+            if (targetPage) {
+              setCurrentPageId(targetPage.id);
+              setPageTitle(targetPage.title);
+              setWidgets(targetPage.widgets || []);
+              
+              // URL 업데이트 (URL이 없거나 다른 경우)
+              const pageIndex = loadedPages.findIndex((p: any) => p.id === targetPage.id);
+              const userPrefix = currentUser.email?.split('@')[0] || 'user';
+              const expectedUrl = `${userPrefix}_${pageIndex + 1}`;
+              if (!pageId || pageId !== expectedUrl) {
+                navigate(`/mypage/${expectedUrl}`, { replace: true });
+              }
             }
+          } catch (error) {
+            console.error('페이지 로드 실패:', error);
           }
-        } catch (error) {
-          console.error('페이지 로드 실패:', error);
         }
-      }
-    } else {
-      // 비로그인 사용자의 페이지 불러오기
-      const guestPagesData = localStorage.getItem('myPages');
-      const savedShareSettings = localStorage.getItem('shareSettings_guest');
-      
-      // 공개 설정 복원 (게스트)
-      if (savedShareSettings) {
-        try {
-          const settings = JSON.parse(savedShareSettings);
-          setShareSettings(settings);
-          console.log('공개 설정 복원됨 (게스트):', settings);
-        } catch (e) {
-          console.error('공개 설정 복원 실패 (게스트):', e);
+      } else {
+        // 비로그인 사용자의 페이지 불러오기
+        const guestPagesData = localStorage.getItem('myPages');
+        const savedShareSettings = localStorage.getItem('shareSettings_guest');
+        
+        // 공개 설정 복원 (게스트)
+        if (savedShareSettings) {
+          try {
+            const settings = JSON.parse(savedShareSettings);
+            setShareSettings(settings);
+          } catch (e) {
+            console.error('공개 설정 복원 실패 (게스트):', e);
+          }
         }
-      }
-      
-      if (guestPagesData) {
-        try {
-          const loadedPages = JSON.parse(guestPagesData);
-          console.log('저장된 페이지 불러오기 (게스트):', loadedPages);
-          setPages(loadedPages);
-          
-          // 활성 페이지 찾기
-          const activePage = loadedPages.find((p: any) => p.isActive) || loadedPages[0];
-          if (activePage) {
-            setCurrentPageId(activePage.id);
-            setPageTitle(activePage.title);
+        
+        if (guestPagesData) {
+          try {
+            const loadedPages = JSON.parse(guestPagesData);
+            setPages(loadedPages);
             
-            setWidgets(activePage.widgets || []);
+            // 활성 페이지 찾기
+            const activePage = loadedPages.find((p: any) => p.isActive) || loadedPages[0];
+            if (activePage) {
+              setCurrentPageId(activePage.id);
+              setPageTitle(activePage.title);
+              setWidgets(activePage.widgets || []);
+            }
+          } catch (error) {
+            console.error('페이지 로드 실패:', error);
           }
-        } catch (error) {
-          console.error('페이지 로드 실패:', error);
         }
       }
-    }
+    }, 0);
+    
+    return () => clearTimeout(timer);
   }, [currentUser, pageId, navigate]);
 
 
@@ -463,8 +465,11 @@ export function MyPage() {
   // 셀 크기 변경 시 기존 위젯들 크기 업데이트
   // 셀 크기 고정: 창 크기와 무관하게 위젯 위치/크기 유지
 
-  // 현재 페이지의 위젯들 가져오기
-  const currentPage = pages.find(page => page.id === currentPageId);
+  // 현재 페이지의 위젯들 가져오기 (useMemo로 최적화)
+  const currentPage = useMemo(() => 
+    pages.find(page => page.id === currentPageId),
+    [pages, currentPageId]
+  );
   const [widgets, setWidgets] = useState<Widget[]>([]);
   
   // 실행취소/재실행 히스토리 (최대 20회)
@@ -1053,6 +1058,11 @@ export function MyPage() {
   const addWidget = useCallback((type: string, size: WidgetSize = '1x1', targetColumn?: number) => {
     console.log('addWidget 호출됨:', type, 'size:', size, 'targetColumn:', targetColumn);
     
+    // 최근 사용한 위젯 기록
+    const recentWidgets = JSON.parse(localStorage.getItem('recentWidgets') || '[]');
+    const updated = [type, ...recentWidgets.filter((t: string) => t !== type)].slice(0, 5);
+    localStorage.setItem('recentWidgets', JSON.stringify(updated));
+    
     // 특정 위젯 타입에 따라 자동 크기 설정
     let widgetSize = size;
     let width, height;
@@ -1062,6 +1072,12 @@ export function MyPage() {
       widgetSize = '2x1';
       width = 312; // 2 * 150 + 1 * 12 = 312px (강제 설정)
       height = 160; // 1 * 160 + 0 * 12 = 160px
+    } else if (type === 'unified_search') {
+      // 통합검색 위젯은 1x1 또는 2x1 크기 가능
+      widgetSize = size || '1x1';
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
       
       // 디버깅을 위한 로그 추가
       console.log('🔍 검색 위젯 생성:', { type, width, height, widgetSize });
@@ -1076,17 +1092,22 @@ export function MyPage() {
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'todo') {
-      widgetSize = '1x2'; // 할일 위젯은 1칸 너비, 2칸 높이
+      widgetSize = '2x2'; // 할일 위젯은 2칸 너비, 2칸 높이
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'crypto') {
-      widgetSize = '3x1'; // 크립토 위젯은 3칸 너비, 1칸 높이
+      widgetSize = '1x2'; // 크립토 위젯은 1칸 너비, 2칸 높이
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'frequent_sites') {
       widgetSize = '1x1'; // 자주가는사이트 위젯은 1칸 너비, 1칸 높이 고정
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'bookmark') {
+      widgetSize = '1x2'; // 북마크 위젯은 기본 1x2 크기 (북마크 개수에 따라 자동 조정됨)
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -1107,6 +1128,11 @@ export function MyPage() {
       height = dimensions.height;
     } else if (type === 'economic_calendar') {
       widgetSize = '2x2'; // 경제캘린더 위젯은 2칸 너비, 2칸 높이
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'qr_code') {
+      widgetSize = '1x1'; // QR 접속 위젯은 1칸 너비, 1칸 높이 고정
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -1307,7 +1333,7 @@ export function MyPage() {
               }
               return null;
             };
-      // 구글/네이버 검색 위젯은 강제로 2칸 너비로 설정
+      // 구글/네이버 위젯은 강제로 2칸 너비로 설정
       let gridSize;
       if (w.type === 'google_search' || w.type === 'naver_search') {
         gridSize = { w: 2, h: 1 }; // 강제로 2x1 그리드 크기
@@ -2099,6 +2125,8 @@ export function MyPage() {
     if (!widget.gridSize) {
       if (widget.type === 'google_search' || widget.type === 'naver_search') {
         gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 기본
+      } else if (widget.type === 'unified_search') {
+        gridSize = { w: 1, h: 1 }; // 통합검색 위젯은 1x1 기본
       } else if (widget.type === 'bookmark') {
         gridSize = { w: 1, h: 2 }; // 북마크는 1x2 기본
       } else if (widget.type === 'calendar') {
@@ -2299,29 +2327,31 @@ export function MyPage() {
     );
   };
 
-  // 위젯 콘텐츠 렌더링
+  // 위젯 콘텐츠 렌더링 - 최적화: 공통 위젯들은 WidgetContentRenderer로 위임
   const renderWidgetContent = (widget: Widget) => {
+    // WidgetContentRenderer로 렌더링 가능한 위젯들
+    const commonWidgets = [
+      'bookmark', 'weather', 'todo', 'crypto', 'stock_alert', 'economic_calendar',
+      'english_words', 'exchange', 'news', 'google_search', 'naver_search',
+      'law_search', 'unified_search', 'qr_code', 'frequent_sites', 'google_ad',
+      'quote', 'contact', 'quicknote'
+    ];
+    
+    if (commonWidgets.includes(widget.type)) {
+      return (
+        <WidgetContentRenderer
+          widget={widget}
+          isEditMode={isEditMode}
+          updateWidget={updateWidget}
+          widgets={widgets}
+          setWidgets={setWidgets}
+        />
+      );
+    }
+    
+    // 기존 코드는 유지하되 점진적으로 이동 예정
     try {
       switch (widget.type) {
-      case 'bookmark':
-        return <BookmarkWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} onBookmarkCountChange={(count) => {
-          // 북마크 개수에 따른 크기 자동 조정은 BookmarkWidget 내부에서 처리됨
-        }} />;
-
-      case 'weather':
-        return <WeatherWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
-
-      case 'todo':
-        return <TodoWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
-
-      case 'crypto':
-        return <CryptoWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
-      
-      case 'stock_alert':
-        return null; // 제거됨
-      
-      case 'economic_calendar':
-        return <EconomicCalendarWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
       
       case 'expense':
         // 가계부 위젯은 더 이상 지원하지 않습니다. 안전하게 숨김 처리
@@ -2995,6 +3025,9 @@ export function MyPage() {
           </div>
         );
 
+      case 'unified_search':
+        return <UnifiedSearchWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+
       case 'google_search':
         return <GoogleSearchWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
@@ -3052,6 +3085,8 @@ export function MyPage() {
       case 'quote':
         return <QuoteWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
+      case 'qr_code':
+        return <QRCodeWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
       default:
         return (
@@ -3224,6 +3259,18 @@ export function MyPage() {
             </div>
 
             <div className="flex items-center gap-2">
+
+              {/* 위젯 추가 버튼 */}
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setShowWidgetModal(true)}
+                className="bg-green-500 hover:bg-green-600 text-white font-semibold"
+                title="위젯 추가"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                위젯 추가
+              </Button>
 
               {/* 페이지 관리 버튼 */}
               <Button
@@ -3850,15 +3897,15 @@ export function MyPage() {
         )}
 
       {!showTemplateModal && (
-      <div className="w-full px-2 py-0 pb-16">
+      <div className="w-full px-2 py-0 pb-32">
 
 
 
-        {/* 위젯 캔버스 - 전체 너비 사용 */}
-        <div className="w-full pt-3 pb-0">
+        {/* 위젯 캔버스 - 중앙 정렬 */}
+        <div className="w-full pt-3 pb-0 flex justify-center">
           <div 
             ref={canvasRef}
-            className={`relative w-full min-h-[calc(100vh-200px)] transition-all duration-200 ${
+            className={`relative max-w-[1400px] w-full min-h-[calc(100vh-200px)] transition-all duration-200 ${
               isEditMode 
                 ? '' 
                 : ''
@@ -4611,6 +4658,18 @@ export function MyPage() {
           {toast.msg}
         </div>
       )}
+
+      {/* 나도 나만의 페이지 만들어보기 버튼 */}
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-[10001] pointer-events-auto">
+        <button
+          onClick={() => navigate('/mypage')}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-8 py-4 rounded-xl shadow-2xl hover:shadow-3xl transition-all transform hover:scale-105 flex items-center gap-2 text-base animate-pulse hover:animate-none"
+        >
+          <Sparkles className="w-5 h-5" />
+          나도 나만의 페이지 만들어보기
+          <ArrowRight className="w-5 h-5" />
+        </button>
+      </div>
 
     </div>
   );

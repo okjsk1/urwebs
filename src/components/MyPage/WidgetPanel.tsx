@@ -1,6 +1,7 @@
-import { X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Star, Clock } from 'lucide-react';
 import { Button } from '../ui/button';
-import { widgetCategories, getCategoryIcon } from '../../constants/widgetCategories';
+import { widgetCategories, getCategoryIcon, allWidgets } from '../../constants/widgetCategories';
 import { WidgetType } from '../../types/mypage.types';
 
 interface WidgetPanelProps {
@@ -10,6 +11,34 @@ interface WidgetPanelProps {
 }
 
 export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) {
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    const saved = localStorage.getItem('widget_favorites');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('widget_favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  const toggleFavorite = (widgetType: string) => {
+    setFavorites(prev => 
+      prev.includes(widgetType) 
+        ? prev.filter(t => t !== widgetType)
+        : [...prev, widgetType]
+    );
+  };
+
+  // 최근 사용한 위젯 가져오기
+  const recentWidgets = useMemo(() => {
+    const stored = localStorage.getItem('recentWidgets');
+    if (!stored) return [];
+    const types = JSON.parse(stored);
+    return allWidgets.filter(w => types.includes(w.type));
+  }, []);
+
+  const favoriteWidgets = allWidgets.filter(w => favorites.includes(w.type));
+  const otherWidgets = allWidgets.filter(w => !favorites.includes(w.type));
+
   if (!isOpen) return null;
 
   return (
@@ -31,16 +60,15 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
         </div>
 
         <div className="space-y-6">
-          {Object.entries(widgetCategories).map(([categoryKey, category]) => (
-            <div key={categoryKey} className="border-b border-gray-100 pb-4 last:border-b-0">
+          {/* 최근 사용한 위젯 섹션 */}
+          {recentWidgets.length > 0 && (
+            <div className="border-b border-gray-100 pb-4">
               <div className="flex items-center gap-2 mb-3">
-                <div className="text-lg">{getCategoryIcon(categoryKey)}</div>
-                <h4 className="font-semibold text-gray-800 text-base">
-                  {category.name}
-                </h4>
+                <Clock className="w-5 h-5 text-gray-500" />
+                <h4 className="font-semibold text-gray-800 text-base">최근 사용</h4>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {category.widgets.map((widget) => {
+                {recentWidgets.map((widget) => {
                   const Icon = widget.icon;
                   return (
                     <button
@@ -54,8 +82,126 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                         }
                         onClose();
                       }}
-                      className="p-4 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-400 rounded-xl transition-all text-left group shadow-sm hover:shadow-md"
+                      className="p-4 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-400 rounded-xl transition-all text-left group shadow-sm hover:shadow-md relative"
                     >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(widget.type);
+                        }}
+                        className={`absolute top-2 right-2 p-1 hover:bg-gray-100 rounded transition-colors ${favorites.includes(widget.type) ? 'text-yellow-500' : 'text-gray-300'}`}
+                      >
+                        <Star className={`w-4 h-4 ${favorites.includes(widget.type) ? 'fill-yellow-500' : ''}`} />
+                      </button>
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl text-gray-600 group-hover:text-blue-600 transition-colors">
+                          {typeof Icon === 'string' ? Icon : <Icon className="w-6 h-6" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-800 truncate group-hover:text-blue-700">
+                            {widget.name}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate mt-1">
+                            {widget.description}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 즐겨찾기 위젯 섹션 */}
+          {favoriteWidgets.length > 0 && (
+            <div className="border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                <h4 className="font-semibold text-gray-800 text-base">즐겨찾기</h4>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {favoriteWidgets.map((widget) => {
+                  const Icon = widget.icon;
+                  return (
+                    <button
+                      key={widget.type}
+                      onClick={() => {
+                        const addWithColumn = (window as any).__addWidgetWithColumn;
+                        if (addWithColumn) {
+                          addWithColumn(widget.type, '1x1');
+                        } else {
+                          onAddWidget(widget.type);
+                        }
+                        onClose();
+                      }}
+                      className="p-4 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-400 rounded-xl transition-all text-left group shadow-sm hover:shadow-md relative"
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(widget.type);
+                        }}
+                        className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded"
+                      >
+                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      </button>
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl text-gray-600 group-hover:text-blue-600 transition-colors">
+                          {typeof Icon === 'string' ? Icon : <Icon className="w-6 h-6" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-800 truncate group-hover:text-blue-700">
+                            {widget.name}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate mt-1">
+                            {widget.description}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 전체 위젯 섹션 */}
+          {Object.entries(widgetCategories).map(([categoryKey, category]) => (
+            <div key={categoryKey} className="border-b border-gray-100 pb-4 last:border-b-0">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="text-lg">{getCategoryIcon(categoryKey)}</div>
+                <h4 className="font-semibold text-gray-800 text-base">
+                  {category.name}
+                </h4>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {category.widgets.map((widget) => {
+                  const Icon = widget.icon;
+                  const isFavorite = favorites.includes(widget.type);
+                  return (
+                    <button
+                      key={widget.type}
+                      onClick={() => {
+                        const addWithColumn = (window as any).__addWidgetWithColumn;
+                        if (addWithColumn) {
+                          addWithColumn(widget.type, '1x1');
+                        } else {
+                          onAddWidget(widget.type);
+                        }
+                        onClose();
+                      }}
+                      className="p-4 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-400 rounded-xl transition-all text-left group shadow-sm hover:shadow-md relative"
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(widget.type);
+                        }}
+                        className={`absolute top-2 right-2 p-1 hover:bg-gray-100 rounded transition-colors ${isFavorite ? 'text-yellow-500' : 'text-gray-300'}`}
+                      >
+                        <Star className={`w-4 h-4 ${isFavorite ? 'fill-yellow-500' : ''}`} />
+                      </button>
                       <div className="flex items-center gap-3">
                         <div className="text-2xl text-gray-600 group-hover:text-blue-600 transition-colors">
                           {typeof Icon === 'string' ? Icon : <Icon className="w-6 h-6" />}

@@ -8,6 +8,8 @@ export { GoogleAdWidget } from './GoogleAdWidget';
 export { FrequentSitesWidget } from './FrequentSitesWidget';
 export { CryptoWidget } from './CryptoWidget';
 export { EconomicCalendarWidget } from './EconomicCalendarWidget';
+export { QRCodeWidget } from './QRCodeWidget';
+export { UnifiedSearchWidget } from './UnifiedSearchWidget';
 
 // InformationWidgets에서 export
 export * from './InformationWidgets';
