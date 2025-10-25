@@ -11,17 +11,26 @@ validateEnvAtRuntime();
 // 개발 환경에서 에뮬레이터 연결
 connectEmulatorsIfDev();
 
-// Service Worker 등록 (오프라인 지원)
+// Service Worker 제거 (캐시 문제 해결)
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('SW registered: ', registration);
-      })
-      .catch((registrationError) => {
-        console.log('SW registration failed: ', registrationError);
-      });
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const registration of registrations) {
+      registration.unregister();
+      console.log('Service Worker unregistered');
+    }
   });
+  
+  // 모든 캐시 삭제
+  if ('caches' in window) {
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          console.log('Deleting cache:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    });
+  }
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
