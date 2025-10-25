@@ -169,7 +169,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
     }
   }, [state.newBookmark.url]);
 
-  // 북마크 개수에 따라 위젯 크기 자동 조절
+  // 북마크 개수 추적 (크기 자동 조절 비활성화 - 사용자가 직접 조절 가능)
   useEffect(() => {
     const bookmarkCount = state.bookmarks.length;
     
@@ -179,32 +179,11 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
     }
     
     lastBookmarkCountRef.current = bookmarkCount;
-    
-    let newSize = '1x2'; // 기본 1x2로 변경
-
-    // 북마크 개수에 따른 크기 결정
-    if (bookmarkCount >= 8) {
-      newSize = '1x4'; // 8개 이상: 1x4
-    } else if (bookmarkCount >= 7) {
-      newSize = '1x3'; // 7개: 1x3
-    } else if (bookmarkCount >= 5) {
-      newSize = '1x3'; // 5-6개: 1x3 (5개일 때 확장)
-    } else if (bookmarkCount >= 3) {
-      newSize = '1x2'; // 3-4개: 1x2
-    } else {
-      newSize = '1x2'; // 1-2개: 1x2 (기본 크기)
-    }
-
-    // 크기가 변경되었을 때만 업데이트
-    if (widget.size !== newSize && updateWidget) {
-      console.log('북마크 위젯 크기 변경:', widget.size, '->', newSize);
-      updateWidget(widget.id, { size: newSize });
-    }
 
     // 부모 컴포넌트에게 북마크 개수 변경 알림
     onBookmarkCountChange?.(bookmarkCount);
 
-  }, [state.bookmarks.length, widget.size, widget.id, updateWidget, onBookmarkCountChange]);
+  }, [state.bookmarks.length, onBookmarkCountChange]);
 
   const getDomainIcon = useCallback((url: string): string => {
     try {

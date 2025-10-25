@@ -354,7 +354,6 @@ export const FrequentSitesWidget = ({ widget, isEditMode, updateWidget }: Widget
         <div className="flex items-center justify-between mb-2 shrink-0">
           <div className="flex items-center gap-1">
             <TrendingUp className="w-4 h-4 text-blue-600" />
-            <h4 className="font-semibold text-sm text-gray-800">자주가는 사이트</h4>
           </div>
           <div className="flex items-center gap-1">
             <button

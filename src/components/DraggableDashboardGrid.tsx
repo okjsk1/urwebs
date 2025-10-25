@@ -76,7 +76,6 @@ function DraggableWidget({
   return (
     <div
       data-widget-id={widget.id}
-      data-drag-handle={isEditMode ? 'true' : 'false'}
       className={`bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 transition-all ${
         isDragging ? 'opacity-60 scale-[0.98]' : ''
       } ${isEditMode ? 'hover:shadow-xl hover:border-blue-300' : ''}`}
@@ -124,6 +123,7 @@ export default function DraggableDashboardGrid({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [currentPos, setCurrentPos] = useState({ x: 0, y: 0 });
   const [previewPos, setPreviewPos] = useState<{ x: number; y: number } | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [currentBreakpoint, setCurrentBreakpoint] = useState('md');
   const [showAddButtonState, setShowAddButtonState] = useState<{ [column: number]: boolean }>({});
   const hideButtonTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -252,6 +252,17 @@ export default function DraggableDashboardGrid({
     const widget = widgets.find(w => w.id === widgetId);
     if (widget) {
       setPreviewPos({ x: widget.x || 0, y: widget.y || 0 });
+      
+      // 드래그 오프셋 계산: 위젯 내에서 클릭한 위치
+      if (gridRef.current) {
+        const widgetElement = gridRef.current.querySelector(`[data-widget-id="${widgetId}"]`) as HTMLElement;
+        if (widgetElement) {
+          const rect = widgetElement.getBoundingClientRect();
+          const offsetX = clientX - rect.left;
+          const offsetY = clientY - rect.top;
+          setDragOffset({ x: offsetX, y: offsetY });
+        }
+      }
     }
   }, [isEditMode, widgets]);
 
@@ -329,6 +340,7 @@ export default function DraggableDashboardGrid({
       if (!widget) {
         setActiveId(null);
         setPreviewPos(null);
+        setDragOffset({ x: 0, y: 0 });
         return;
       }
 
@@ -375,6 +387,7 @@ export default function DraggableDashboardGrid({
         if (hasCollision) {
           setActiveId(null);
           setPreviewPos(null);
+          setDragOffset({ x: 0, y: 0 });
           return;
         }
         
@@ -410,6 +423,7 @@ export default function DraggableDashboardGrid({
 
       setActiveId(null);
       setPreviewPos(null);
+      setDragOffset({ x: 0, y: 0 });
     };
 
     document.addEventListener('mousemove', handleMove);
@@ -627,9 +641,8 @@ export default function DraggableDashboardGrid({
         <div
           className="fixed pointer-events-none z-[9999]"
           style={{
-            left: currentPos.x,
-            top: currentPos.y,
-            transform: 'translate(-50%, -50%)',
+            left: currentPos.x - dragOffset.x,
+            top: currentPos.y - dragOffset.y,
           }}
         >
           <div className="rounded-lg shadow-2xl border-2 border-indigo-400 bg-white opacity-90 scale-95">

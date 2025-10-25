@@ -2210,30 +2210,11 @@ export function MyPage() {
           }
         }}
       >
-        {/* 위젯 헤더 - 고정 */}
+        {/* 위젯 헤더 - 고정 - 타이틀 영역만 드래그 가능 */}
         <div 
           data-drag-handle="true"
           data-widget-id={originalWidget.id}
           className="px-2 py-1 border-b border-gray-100 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex items-center justify-between cursor-move group flex-shrink-0"
-          onMouseDown={(e) => {
-            // 버튼이나 입력창을 클릭한 경우 드래그 방지
-            const target = e.target as HTMLElement;
-            if (target.tagName === 'BUTTON' || 
-                target.tagName === 'INPUT' || 
-                target.tagName === 'TEXTAREA' ||
-                target.tagName === 'SELECT' ||
-                target.closest('button') ||
-                target.closest('input') ||
-                target.closest('textarea') ||
-                target.closest('select')) {
-              return;
-            }
-            
-            // 드래그 핸들에서만 드래그 시작
-            e.preventDefault();
-            e.stopPropagation();
-            handleMouseDown(e, originalWidget.id);
-          }}
         >
           <div className="flex items-center gap-2 flex-1">
             <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
@@ -2247,7 +2228,7 @@ export function MyPage() {
           
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {/* 사이즈 선택기 - 특정 위젯들은 제한된 크기만 허용 */}
-            {originalWidget.type !== 'english_words' && originalWidget.type !== 'bookmark' && (
+            {originalWidget.type !== 'english_words' && (
               <SizePicker
                 value={originalWidget.gridSize || { w: 1, h: 1 }}
                 onChange={(newSize) => {
@@ -3901,11 +3882,11 @@ export function MyPage() {
 
 
 
-        {/* 위젯 캔버스 - 중앙 정렬 */}
-        <div className="w-full pt-3 pb-0 flex justify-center">
+        {/* 위젯 캔버스 - 전체 너비 사용 */}
+        <div className="w-full pt-3 pb-0">
           <div 
             ref={canvasRef}
-            className={`relative max-w-[1400px] w-full min-h-[calc(100vh-200px)] transition-all duration-200 ${
+            className={`relative w-full min-h-[calc(100vh-200px)] transition-all duration-200 ${
               isEditMode 
                 ? '' 
                 : ''
