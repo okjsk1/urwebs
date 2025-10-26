@@ -296,3 +296,31 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
 }
+
+/* 데스크탑 전용 고정 레이아웃 */
+html, body {
+  min-width: 1280px;
+  overflow-x: auto;
+}
+
+/* 전역 컨테이너 */
+.desktop-container {
+  min-width: 1280px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* AutoRail 애니메이션 */
+@keyframes rail {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.rail-animation {
+  animation: rail 30s linear infinite;
+}
+
+.rail-animation:hover {
+  animation-play-state: paused;
+}
