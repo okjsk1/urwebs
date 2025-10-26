@@ -1,6 +1,60 @@
 import React, { useMemo, useCallback, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+// 한국 공휴일 데이터 (2024-2025)
+const HOLIDAYS = {
+  "2024": {
+    "1": [1], // 신정
+    "2": [9, 10, 11, 12], // 설날 연휴
+    "3": [1], // 삼일절
+    "4": [10], // 국회의원선거일
+    "5": [6], // 어린이날
+    "6": [6], // 현충일
+    "8": [15], // 광복절
+    "9": [16, 17, 18], // 추석 연휴
+    "10": [3], // 개천절
+    "12": [25] // 성탄절
+  },
+  "2025": {
+    "1": [1], // 신정
+    "2": [28, 29, 30], // 설날 연휴
+    "3": [1], // 삼일절
+    "5": [5], // 어린이날
+    "6": [6], // 현충일
+    "8": [15], // 광복절
+    "9": [5, 6, 7, 8], // 추석 연휴
+    "10": [3], // 개천절
+    "12": [25] // 성탄절
+  }
+};
+
+// 공휴일 이름 매핑
+const HOLIDAY_NAMES: Record<string, string> = {
+  "1-1": "신정",
+  "2-9": "설날",
+  "2-10": "설날",
+  "2-11": "설날",
+  "2-12": "설날",
+  "2-28": "설날",
+  "2-29": "설날", 
+  "2-30": "설날",
+  "3-1": "삼일절",
+  "4-10": "국회의원선거일",
+  "5-5": "어린이날",
+  "5-6": "어린이날",
+  "6-6": "현충일",
+  "8-15": "광복절",
+  "9-5": "추석",
+  "9-6": "추석",
+  "9-7": "추석",
+  "9-8": "추석",
+  "9-16": "추석",
+  "9-17": "추석",
+  "9-18": "추석",
+  "10-3": "개천절",
+  "12-25": "성탄절"
+};
+
 type CalendarWidgetProps = {
   value?: Date | null;                 // 선택된 날짜(옵션)
   onSelectDate?: (date: Date) => void; // 날짜 클릭 콜백
@@ -24,6 +78,28 @@ function isSameDay(a: Date, b: Date) {
 }
 function isSameMonth(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
+// 공휴일 확인 함수
+function isHoliday(date: Date): boolean {
+  const year = date.getFullYear().toString();
+  const month = (date.getMonth() + 1).toString();
+  const day = date.getDate();
+  
+  return HOLIDAYS[year]?.[month]?.includes(day) || false;
+}
+
+// 공휴일 이름 가져오기
+function getHolidayName(date: Date): string | null {
+  const month = (date.getMonth() + 1).toString();
+  const day = date.getDate().toString();
+  return HOLIDAY_NAMES[`${month}-${day}`] || null;
+}
+
+// 주말 확인 함수 (토요일, 일요일)
+function isWeekend(date: Date): boolean {
+  const day = date.getDay();
+  return day === 0 || day === 6; // 일요일(0) 또는 토요일(6)
 }
 
 export function CalendarWidget({
@@ -148,7 +224,9 @@ export function CalendarWidget({
           <div
             key={label}
             className={`text-center text-xs font-bold py-1 ${
-              (startOfWeek === 0 ? i === 0 : i === 6) ? "text-red-600" : i === 5 ? "text-blue-600" : "text-gray-700 dark:text-gray-300"
+              (startOfWeek === 0 ? i === 0 : i === 6) ? "text-red-600 dark:text-red-400" : 
+              i === 5 ? "text-blue-600 dark:text-blue-400" : 
+              "text-gray-700 dark:text-gray-300"
             }`}
             role="columnheader"
             aria-label={label}
@@ -164,6 +242,9 @@ export function CalendarWidget({
           const weekendIndex = (idx % 7); // 0~6
           const isTodayCell = isSameDay(date, today);
           const isSelected = value ? isSameDay(date, value) : false;
+          const isHolidayDate = isHoliday(date);
+          const isWeekendDate = isWeekend(date);
+          const holidayName = getHolidayName(date);
 
           return (
             <button
@@ -173,20 +254,29 @@ export function CalendarWidget({
               aria-selected={isSelected}
               tabIndex={idx === focusTargetIndex ? 0 : -1}
               onClick={() => handleSelect(date)}
-              title={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}
+              title={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일${holidayName ? ` (${holidayName})` : ''}`}
               className={[
-                "flex flex-col items-center justify-center text-xs rounded min-h-[28px] border transition-colors",
+                "flex flex-col items-center justify-center text-xs rounded min-h-[28px] border transition-colors relative",
                 "border-gray-200 dark:border-gray-700",
                 inCurrentMonth
                   ? "bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer"
                   : "bg-gray-50 dark:bg-gray-800/40 text-gray-400 dark:text-gray-500",
-                weekendIndex === 0 && inCurrentMonth && !isTodayCell ? "text-red-600 font-semibold" : "",
-                weekendIndex === 6 && inCurrentMonth && !isTodayCell ? "text-blue-600 font-semibold" : "",
+                // 공휴일 스타일 (빨간색)
+                isHolidayDate && inCurrentMonth && !isTodayCell ? "text-red-600 font-bold bg-red-50 dark:bg-red-900/20" : "",
+                // 주말 스타일 (일요일은 빨간색, 토요일은 파란색)
+                weekendIndex === 0 && inCurrentMonth && !isTodayCell && !isHolidayDate ? "text-red-500 font-semibold" : "",
+                weekendIndex === 6 && inCurrentMonth && !isTodayCell && !isHolidayDate ? "text-blue-500 font-semibold" : "",
+                // 오늘 스타일
                 isTodayCell ? "bg-blue-500 text-white font-bold ring-2 ring-blue-300" : "",
+                // 선택된 날짜 스타일
                 isSelected && !isTodayCell ? "outline outline-1 outline-blue-400" : "",
               ].join(" ")}
             >
               <span>{date.getDate()}</span>
+              {/* 공휴일 표시 */}
+              {isHolidayDate && inCurrentMonth && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+              )}
             </button>
           );
         })}
@@ -196,6 +286,22 @@ export function CalendarWidget({
       <div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-800">
         오늘: {today.getFullYear()}년 {today.getMonth() + 1}월 {today.getDate()}일 (
         {weekdayFormatter.format(today)}요일)
+      </div>
+
+      {/* 범례 */}
+      <div className="flex items-center justify-center gap-3 mt-2 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+          <span>공휴일</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+          <span>일요일</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+          <span>토요일</span>
+        </div>
       </div>
     </div>
   );
