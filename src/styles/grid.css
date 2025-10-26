@@ -1,0 +1,125 @@
+/* 그리드 규격화 CSS - CSS 변수 기반 고정 단위 */
+:root {
+  --grid-col: 120px;
+  --grid-row: 120px;
+  --grid-gap: 12px;
+}
+
+/* 기본 그리드 컨테이너 */
+.grid {
+  display: grid;
+  grid-auto-rows: var(--grid-row);
+  gap: var(--grid-gap);
+}
+
+/* 위젯 컨테이너 기본 스타일 */
+.widget {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: white;
+  padding: 0.75rem;
+  overflow: hidden;
+}
+
+.widget > .body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 위젯 내부 이미지 최적화 */
+.widget img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* 다크모드 지원 */
+.dark .widget {
+  background: #1a1a1c;
+  border-color: #2a2a2c;
+}
+
+/* 반응형 그리드 설정 */
+@media (min-width: 640px) {
+  :root {
+    --grid-col: 130px;
+    --grid-row: 130px;
+    --grid-gap: 14px;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --grid-col: 140px;
+    --grid-row: 140px;
+    --grid-gap: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --grid-col: 150px;
+    --grid-row: 150px;
+    --grid-gap: 18px;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --grid-col: 160px;
+    --grid-row: 160px;
+    --grid-gap: 20px;
+  }
+}
+
+/* 편집 모드 스타일 */
+.widget.edit-mode {
+  cursor: move;
+  transition: all 0.2s ease;
+}
+
+.widget.edit-mode:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
+}
+
+.widget.edit-mode.dragging {
+  opacity: 0.6;
+  transform: scale(0.98);
+  z-index: 10;
+}
+
+/* 읽기 전용 모드 스타일 */
+.widget.read-only {
+  cursor: default;
+}
+
+/* 드래그 플레이스홀더 */
+.widget-placeholder {
+  border: 2px dashed #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+/* 접근성 개선 */
+.widget:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* 애니메이션 최적화 */
+@media (prefers-reduced-motion: reduce) {
+  .widget {
+    transition: none !important;
+  }
+  
+  .widget.edit-mode {
+    transition: none !important;
+  }
+}

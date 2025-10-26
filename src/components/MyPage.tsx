@@ -2185,7 +2185,7 @@ export function MyPage() {
 
     return (
       <div
-        className={`relative h-full overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-lg border border-gray-300 dark:border-gray-600 flex flex-col ${
+        className={`relative h-full overflow-hidden uw-card flex flex-col ${
           isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
         } ${isDragging ? 'opacity-75' : ''} ${
           dragOverWidget === originalWidget.id && draggedWidget !== originalWidget.id ? 'ring-2 ring-green-500 bg-green-50' : ''
@@ -3878,7 +3878,7 @@ export function MyPage() {
         )}
 
       {!showTemplateModal && (
-      <div className="w-full px-2 py-0 pb-32">
+      <div className="uw-container py-0 pb-32">
 
 
 
