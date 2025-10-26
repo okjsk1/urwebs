@@ -13,7 +13,10 @@ import {
   ExchangeWidget,
   GoogleAdWidget,
   FrequentSitesWidget,
-  NewsWidget
+  NewsWidget,
+  GoogleSearchWidget,
+  NaverSearchWidget,
+  LawSearchWidget
 } from '../widgets';
 
 interface TemplateEditorPageProps {
@@ -108,6 +111,8 @@ export function TemplateEditorPage({ onBack, onSave, onDelete, templateId, initi
         return <GoogleSearchWidget {...commonProps} />;
       case 'naver_search':
         return <NaverSearchWidget {...commonProps} />;
+      case 'law_search':
+        return <LawSearchWidget {...commonProps} />;
       case 'english_words':
         return <EnglishWordsWidget {...commonProps} />;
       default:

@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { RefreshCw, MoreHorizontal, Trash2, Maximize2, Minimize2, Pin } from 'lucide-react';
 
-export type WidgetSize = 's' | 'm' | 'l';
+export type WidgetSize = 's' | 'm' | 'l' | 'xl';
 
 export interface WidgetProps {
   id: string;
@@ -33,7 +33,8 @@ export interface WidgetShellProps {
 const sizeClasses = {
   s: 'h-28',
   m: 'h-32',
-  l: 'h-48'
+  l: 'h-48',
+  xl: 'h-64'
 };
 
 export function WidgetShell({
@@ -138,6 +139,17 @@ export function WidgetShell({
                             }}
                             className={`px-2 py-1 text-xs rounded ${
                               size === 'l' ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100'
+                            }`}
+                          >
+                            <Maximize2 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              onResize('xl');
+                              setShowMenu(false);
+                            }}
+                            className={`px-2 py-1 text-xs rounded ${
+                              size === 'xl' ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100'
                             }`}
                           >
                             <Maximize2 className="w-3 h-3" />

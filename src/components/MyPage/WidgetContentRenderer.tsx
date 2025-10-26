@@ -22,6 +22,7 @@ import {
   QuoteWidget,
   QuickNoteWidget
 } from '../widgets';
+import { CalendarWidget } from '../ColumnsBoard/widgets/CalendarWidget';
 import { ContactIcon } from 'lucide-react';
 
 interface WidgetContentRendererProps {
@@ -61,6 +62,16 @@ export function WidgetContentRenderer({
       
       case 'stock_alert':
         return null;
+      
+      case 'calendar':
+        return <CalendarWidget 
+          value={widget.content?.selectedDate ? new Date(widget.content.selectedDate) : null}
+          onSelectDate={(date) => updateWidget(widget.id, { 
+            content: { ...widget.content, selectedDate: date.toISOString() }
+          })}
+          className="h-full"
+          size={widget.size as '1x1' | '1x2' | '2x2'}
+        />;
       
       case 'economic_calendar':
         return <EconomicCalendarWidget {...commonProps} />;

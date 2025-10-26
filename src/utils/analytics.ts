@@ -67,5 +67,6 @@ export const ANALYTICS_EVENTS = {
   PAGE_VIEW: 'page_view',
   WIDGET_ADDED: 'widget_added',
   WIDGET_REMOVED: 'widget_removed',
-  LAYOUT_CHANGED: 'layout_changed'
+  LAYOUT_CHANGED: 'layout_changed',
+  TEMPLATE_SELECTED: 'template_selected'
 } as const;

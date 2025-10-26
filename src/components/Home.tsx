@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { QuickStart } from './home/QuickStart';
@@ -6,19 +6,75 @@ import { AutoRail } from './home/AutoRail';
 import { TemplateChipsSearch } from './home/TemplateChipsSearch';
 import { PopularTemplatesGrid } from './home/PopularTemplatesGrid';
 import { SocialProof } from './home/SocialProof';
+import { TemplateSelectModal } from './modals/TemplateSelectModal';
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics';
 
 export function Home() {
   const navigate = useNavigate();
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   const handleStartNow = () => {
     trackEvent(ANALYTICS_EVENTS.CTA_CLICK, { button: 'start_now' });
+    setShowTemplateModal(true);
+  };
+
+  const handleSelectTemplate = (templateId: string) => {
+    trackEvent(ANALYTICS_EVENTS.TEMPLATE_SELECTED, { template_id: templateId });
+    
+    // 템플릿에 따른 기본 위젯 설정
+    const templateConfigs = {
+      default: {
+        widgets: [
+          { type: 'bookmark', size: '1x1', x: 0, y: 0 },
+          { type: 'todo', size: '2x2', x: 1, y: 0 },
+          { type: 'weather', size: '1x2', x: 3, y: 0 },
+          { type: 'calendar', size: '1x1', x: 0, y: 1 }
+        ]
+      },
+      business: {
+        widgets: [
+          { type: 'bookmark', size: '1x1', x: 0, y: 0 },
+          { type: 'todo', size: '2x2', x: 1, y: 0 },
+          { type: 'exchange', size: '1x2', x: 3, y: 0 },
+          { type: 'news', size: '2x2', x: 0, y: 1 }
+        ]
+      },
+      student: {
+        widgets: [
+          { type: 'bookmark', size: '1x1', x: 0, y: 0 },
+          { type: 'todo', size: '2x2', x: 1, y: 0 },
+          { type: 'calendar', size: '1x2', x: 3, y: 0 },
+          { type: 'english_words', size: '1x1', x: 0, y: 1 }
+        ]
+      },
+      creative: {
+        widgets: [
+          { type: 'bookmark', size: '1x1', x: 0, y: 0 },
+          { type: 'todo', size: '2x2', x: 1, y: 0 },
+          { type: 'weather', size: '1x2', x: 3, y: 0 },
+          { type: 'quote', size: '1x1', x: 0, y: 1 }
+        ]
+      }
+    };
+
+    const config = templateConfigs[templateId as keyof typeof templateConfigs] || templateConfigs.default;
+    
+    // localStorage에 템플릿 설정 저장
+    const templateData = {
+      templateId,
+      widgets: config.widgets,
+      createdAt: Date.now()
+    };
+    
+    localStorage.setItem('selectedTemplate', JSON.stringify(templateData));
+    
+    // MyPage로 이동
     navigate('/mypage');
   };
 
   const handleBrowseTemplates = () => {
-    trackEvent(ANALYTICS_EVENTS.CTA_CLICK, { button: 'browse_templates' });
-    navigate('/templates');
+    trackEvent(ANALYTICS_EVENTS.CTA_CLICK, { button: 'browse_popular_pages' });
+    navigate('/community');
   };
 
   return (
@@ -53,7 +109,7 @@ export function Home() {
                 onClick={handleBrowseTemplates}
                 className="h-12 px-5 rounded-xl font-semibold focus:ring-2 focus:ring-indigo-200 bg-white border hover:bg-slate-50 text-gray-700 flex items-center gap-2"
               >
-                템플릿 둘러보기
+                인기 페이지 둘러보기
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -85,11 +141,18 @@ export function Home() {
       </section>
 
 
-      {/* 배경 그라디언트 블롭 */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-blue-200/20 to-cyan-200/20 rounded-full blur-3xl"></div>
-      </div>
-    </main>
-  );
-}
+             {/* 배경 그라디언트 블롭 */}
+             <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10">
+               <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl"></div>
+               <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-blue-200/20 to-cyan-200/20 rounded-full blur-3xl"></div>
+             </div>
+
+             {/* 템플릿 선택 모달 */}
+             <TemplateSelectModal
+               isOpen={showTemplateModal}
+               onClose={() => setShowTemplateModal(false)}
+               onSelectTemplate={handleSelectTemplate}
+             />
+           </main>
+         );
+       }

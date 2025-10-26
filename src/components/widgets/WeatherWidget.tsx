@@ -1,23 +1,38 @@
-// 날씨 위젯 - 개선된 데이터 소스, 단위 변환, 위치 감지
+// 날씨 위젯 - 간단한 정적 데이터 버전
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { MapPin, RefreshCw, Settings, Thermometer, Droplets, Wind, Eye, Sunrise, Sunset, AlertCircle, Wifi, WifiOff, Navigation } from 'lucide-react';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
-import { weatherService, WeatherLocation, CurrentWeather, HourlyForecast, DailyForecast } from '../../services/weatherService';
-import { WeatherUnits, formatTemperature, formatWindSpeed, formatDistance, formatHumidity, formatPressure } from '../../utils/weatherUnits';
+
+interface WeatherLocation {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+interface CurrentWeather {
+  temperature: number;
+  description: string;
+  humidity: number;
+  windSpeed: number;
+  visibility: number;
+  pressure: number;
+  sunrise: string;
+  sunset: string;
+}
 
 interface WeatherState {
   location: WeatherLocation;
   currentWeather: CurrentWeather | null;
-  hourlyForecast: HourlyForecast[];
-  dailyForecast: DailyForecast[];
+  hourlyForecast: any[];
+  dailyForecast: any[];
   showHourly: boolean;
   showDaily: boolean;
   showSettings: boolean;
   customLocation: string;
   autoRefresh: boolean;
-  refreshInterval: number; // minutes
-  units: WeatherUnits;
+  refreshInterval: number;
+  units: string;
   loading: boolean;
   error: string | null;
   lastUpdated: number;
@@ -28,7 +43,38 @@ const DEFAULT_LOCATION: WeatherLocation = {
   name: '서울',
   lat: 37.5665,
   lon: 126.9780,
-  timezone: 'Asia/Seoul'
+};
+
+const DEFAULT_WEATHER: CurrentWeather = {
+  temperature: 22,
+  description: '맑음',
+  humidity: 60,
+  windSpeed: 3.2,
+  visibility: 10,
+  pressure: 1013,
+  sunrise: '06:30',
+  sunset: '18:45'
+};
+
+// 간단한 포맷팅 함수들
+const formatTemperature = (temp: number, units: string): string => {
+  return `${Math.round(temp)}°${units === 'metric' ? 'C' : 'F'}`;
+};
+
+const formatWindSpeed = (speed: number, units: string): string => {
+  return `${speed.toFixed(1)} ${units === 'metric' ? 'm/s' : 'mph'}`;
+};
+
+const formatDistance = (distance: number, units: string): string => {
+  return `${distance} ${units === 'metric' ? 'km' : 'mi'}`;
+};
+
+const formatHumidity = (humidity: number): string => {
+  return `${humidity}%`;
+};
+
+const formatPressure = (pressure: number, units: string): string => {
+  return `${pressure} ${units === 'metric' ? 'hPa' : 'inHg'}`;
 };
 
 export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {

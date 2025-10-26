@@ -1,25 +1,13 @@
-// 환율 정보 위젯 - 실시간 환율, 다국가 지원, 알림 기능
+// 환율 정보 위젯 - 간단한 정적 데이터 버전
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { TrendingUp, TrendingDown, Globe, Bell, Plus, Settings, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
-import { 
-  subscribeRates, 
-  formatFxRate, 
-  formatChangePct, 
-  getCurrencyInfo,
-  convertRate,
-  requestNotificationPermission,
-  showNotification,
-  type FxSymbol, 
-  type FxTick,
-  type FxStatus 
-} from '../../services/forexService';
 
 interface ExchangeRate {
   id: string;
-  fromCurrency: FxSymbol;
-  toCurrency: FxSymbol;
+  fromCurrency: string;
+  toCurrency: string;
   rate: number;
   change?: number;
   changePercent?: number;
@@ -27,7 +15,7 @@ interface ExchangeRate {
   isWatched: boolean;
   alertEnabled: boolean;
   targetRate?: number;
-  lastAlertTime?: number; // 알림 쿨다운용
+  lastAlertTime?: number;
 }
 
 interface ExchangeState {
@@ -40,8 +28,8 @@ interface ExchangeState {
   showOnlyWatched: boolean;
   refreshInterval: number;
   lastRefresh: number;
-  baseCurrency: FxSymbol;
-  status: FxStatus;
+  baseCurrency: string;
+  status: 'idle' | 'loading' | 'live' | 'stale' | 'error';
   notificationPermission: boolean;
 }
 
@@ -78,30 +66,21 @@ const DEFAULT_RATES: ExchangeRate[] = [
     lastUpdate: Date.now(),
     isWatched: false,
     alertEnabled: false
-  },
-  {
-    id: '4',
-    fromCurrency: 'GBP',
-    toCurrency: 'KRW',
-    rate: 1650.20,
-    change: -12.30,
-    changePercent: -0.74,
-    lastUpdate: Date.now(),
-    isWatched: false,
-    alertEnabled: false
-  },
-  {
-    id: '5',
-    fromCurrency: 'CNY',
-    toCurrency: 'KRW',
-    rate: 185.40,
-    change: 2.10,
-    changePercent: 1.15,
-    lastUpdate: Date.now(),
-    isWatched: false,
-    alertEnabled: false
   }
 ];
+
+// 간단한 포맷팅 함수들
+const formatFxRate = (rate: number, from: string, to: string): string => {
+  return rate.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+
+const formatChangePct = (changePct: number): string => {
+  const sign = changePct >= 0 ? '+' : '';
+  return `${sign}${changePct.toFixed(2)}%`;
+};
 
 export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
   const [state, setState] = useState(() => {
@@ -113,104 +92,19 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
       sortBy: 'change',
       sortOrder: 'desc',
       showOnlyWatched: false,
-      refreshInterval: 60000, // 1분
+      refreshInterval: 60000,
       lastRefresh: Date.now(),
-      baseCurrency: 'KRW' as FxSymbol,
-      status: 'idle' as FxStatus,
+      baseCurrency: 'KRW',
+      status: 'live',
       notificationPermission: false
     });
     return saved;
   });
 
-  // 상태 저장 (의존성 수정)
+  // 상태 저장
   useEffect(() => {
     persistOrLocal(widget.id, state, updateWidget);
   }, [widget.id, state, updateWidget]);
-
-  // 환율 구독 (새로운 서비스 사용)
-  useEffect(() => {
-    if (state.rates.length === 0) return;
-    
-    const symbols = Array.from(new Set(state.rates.map(r => r.fromCurrency))) as FxSymbol[];
-    const subscription = subscribeRates(
-      {
-        base: state.baseCurrency,
-        symbols,
-        intervalMs: state.refreshInterval
-      },
-      (ticks: FxTick[]) => {
-        setState(prev => ({
-          ...prev,
-          rates: prev.rates.map(rate => {
-            const tick = ticks.find(t => t.base === state.baseCurrency && t.quote === rate.fromCurrency);
-            if (tick) {
-              return {
-                ...rate,
-                rate: tick.rate,
-                change: tick.change,
-                changePercent: tick.changePct,
-                lastUpdate: tick.timestamp
-              };
-            }
-            return rate;
-          }),
-          lastRefresh: Date.now()
-        }));
-      },
-      (status: FxStatus) => {
-        setState(prev => ({ ...prev, status }));
-      }
-    );
-    
-    return () => subscription.stop();
-  }, [state.baseCurrency, state.refreshInterval, state.rates.map(r => r.fromCurrency).join(',')]);
-
-  // 알림 권한 요청
-  useEffect(() => {
-    const requestPermission = async () => {
-      const hasPermission = await requestNotificationPermission();
-      setState(prev => ({ ...prev, notificationPermission: hasPermission }));
-    };
-    requestPermission();
-  }, []);
-
-  // 목표가 도달 감지 및 알림
-  useEffect(() => {
-    const now = Date.now();
-    const COOLDOWN_PERIOD = 10 * 60 * 1000; // 10분 쿨다운
-
-    state.rates.forEach(rate => {
-      if (!rate.alertEnabled || !rate.targetRate || !rate.changePercent) return;
-      
-      // 쿨다운 체크
-      if (rate.lastAlertTime && (now - rate.lastAlertTime) < COOLDOWN_PERIOD) return;
-      
-      const isTargetReached = rate.changePercent >= 0 
-        ? rate.rate >= rate.targetRate 
-        : rate.rate <= rate.targetRate;
-      
-      if (isTargetReached) {
-        const title = `${rate.fromCurrency}/${rate.toCurrency} 목표가 도달`;
-        const body = `현재: ${formatFxRate(rate.rate, rate.fromCurrency, rate.toCurrency)} (목표: ${rate.targetRate})`;
-        
-        // 브라우저 알림 시도
-        const notificationSent = showNotification(title, body);
-        
-        // 알림 실패 시 토스트 표시
-        if (!notificationSent) {
-          showToast(title, 'success');
-        }
-        
-        // 쿨다운 시간 업데이트
-        setState(prev => ({
-          ...prev,
-          rates: prev.rates.map(r => 
-            r.id === rate.id ? { ...r, lastAlertTime: now } : r
-          )
-        }));
-      }
-    });
-  }, [state.rates]);
 
   const addExchangeRate = useCallback(() => {
     const { fromCurrency, toCurrency, rate } = state.newRate;
@@ -328,7 +222,7 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
     };
   }, [state.rates]);
 
-  const availableCurrencies: FxSymbol[] = ['USD', 'EUR', 'JPY', 'GBP', 'CNY', 'AUD', 'CAD', 'CHF', 'SGD'];
+  const availableCurrencies: string[] = ['USD', 'EUR', 'JPY', 'GBP', 'CNY', 'AUD', 'CAD', 'CHF', 'SGD'];
 
   return (
     <div className="p-2 h-full flex flex-col">

@@ -1,97 +1,69 @@
-// 암호화폐 위젯 - 실시간 시세, 스파크라인, 편집 가능
+// 암호화폐 위젯 - 간단한 정적 데이터 버전
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Grid as GridIcon, List, Wifi, WifiOff } from 'lucide-react';
 import { Sparkline } from '../ui/Sparkline';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
-import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
-import { 
-  subscribePrices, 
-  formatPrice, 
-  formatChangePct, 
-  formatChange, 
-  getSymbolInfo,
-  type Symbol, 
-  type Quote, 
-  type Exchange,
-  type PriceTick,
-  type Status 
-} from '../../services/cryptoService';
 
 interface CryptoState {
-  symbols: Symbol[];
-  quotes: Record<Symbol, PriceTick>;
-  history: Record<Symbol, number[]>; // 심볼별 가격 이력 (스파크라인용)
-  currency: Quote;
-  exchange: Exchange;
+  symbols: string[];
+  quotes: Record<string, any>;
+  history: Record<string, number[]>;
+  currency: string;
+  exchange: string;
   view: 'list' | 'grid';
   showAddForm: boolean;
   newSymbol: string;
-  status: Status;
+  status: 'idle' | 'loading' | 'live' | 'stale' | 'error';
   lastUpdate: number;
   intervalMs: number;
 }
 
-const DEFAULT_SYMBOLS: Symbol[] = ['BTC', 'ETH', 'SOL'];
+const DEFAULT_SYMBOLS: string[] = ['BTC', 'ETH', 'SOL'];
+
+// 간단한 포맷팅 함수들
+const formatPrice = (price: number, currency: string): string => {
+  return price.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  });
+};
+
+const formatChangePct = (changePct: number): string => {
+  const sign = changePct >= 0 ? '+' : '';
+  return `${sign}${changePct.toFixed(2)}%`;
+};
+
+const formatChange = (change: number): string => {
+  const sign = change >= 0 ? '+' : '';
+  return `${sign}${change.toFixed(0)}`;
+};
 
 export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
   const [state, setState] = useState(() => {
     const saved = readLocal(widget.id, {
       symbols: DEFAULT_SYMBOLS,
-      quotes: {} as Record<Symbol, PriceTick>,
-      history: {} as Record<Symbol, number[]>,
-      currency: 'KRW' as Quote,
-      exchange: 'upbit' as Exchange,
+      quotes: {} as Record<string, any>,
+      history: {} as Record<string, number[]>,
+      currency: 'KRW',
+      exchange: 'upbit',
       view: 'list' as const,
       showAddForm: false,
       newSymbol: '',
-      status: 'idle' as Status,
+      status: 'live',
       lastUpdate: Date.now(),
       intervalMs: 5000
     });
     return saved;
   });
 
-  // 상태 저장 (디바운스)
-  useDebouncedEffect(() => {
-    persistOrLocal(widget.id, state, updateWidget);
-  }, [widget.id, state], 300);
-
-  // 실시간 가격 구독
+  // 상태 저장
   useEffect(() => {
-    if (state.symbols.length === 0) return;
-    
-    const subscription = subscribePrices(
-      {
-        symbols: state.symbols,
-        quote: state.currency,
-        exchange: state.exchange,
-        intervalMs: state.intervalMs
-      },
-      (tick: PriceTick) => {
-        setState(prev => {
-          const newHistory = { ...prev.history };
-          const hist = newHistory[tick.symbol] || [];
-          newHistory[tick.symbol] = [...hist, tick.price].slice(-60);
-          
-          return {
-            ...prev,
-            quotes: { ...prev.quotes, [tick.symbol]: tick },
-            history: newHistory,
-            lastUpdate: tick.timestamp
-          };
-        });
-      },
-      (status: Status) => {
-        setState(prev => ({ ...prev, status }));
-      }
-    );
-    
-    return () => subscription.unsubscribe();
-  }, [state.symbols, state.currency, state.exchange, state.intervalMs]);
+    persistOrLocal(widget.id, state, updateWidget);
+  }, [widget.id, state, updateWidget]);
 
   const addSymbol = useCallback(() => {
-    const symbol = state.newSymbol.trim().toUpperCase() as Symbol;
+    const symbol = state.newSymbol.trim().toUpperCase();
     
     if (!symbol) {
       showToast('심볼을 입력하세요', 'error');

@@ -59,7 +59,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget }: Widget
   }, [widget.id, state, updateWidget]);
 
   return (
-    <div className="p-1 h-full flex flex-col">
+    <div className="p-3 h-full flex flex-col">
       <form onSubmit={handleSearch} className="flex-1 flex flex-col justify-center">
         <div className="relative">
           {/* 통합 검색바 */}
@@ -69,16 +69,19 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget }: Widget
               <button
                 type="button"
                 onClick={() => setShowEngineList(!showEngineList)}
-                className="flex items-center gap-0.5 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-l-full transition-colors"
+                className="flex items-center gap-1 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-l-full transition-colors"
                 style={{ borderRight: '1px solid #e5e7eb' }}
               >
                 <span 
-                  className="text-[10px] font-semibold"
+                  className="text-sm font-semibold"
                   style={{ color: selectedEngineData.color }}
                 >
                   {selectedEngineData.icon}
                 </span>
-                <ChevronDown className="w-2.5 h-2.5 text-gray-500" />
+                <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
+                  {selectedEngineData.name}
+                </span>
+                <ChevronDown className="w-3 h-3 text-gray-500" />
               </button>
 
               {/* 검색 엔진 목록 드롭다운 */}
@@ -88,7 +91,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget }: Widget
                     className="fixed inset-0 z-10" 
                     onClick={() => setShowEngineList(false)}
                   />
-                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-20 min-w-[120px]">
+                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-20 min-w-[140px]">
                     {SEARCH_ENGINES.map(engine => (
                       <button
                         key={engine.id}
@@ -99,12 +102,12 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget }: Widget
                         }`}
                       >
                         <span 
-                          className="text-xs font-semibold"
+                          className="text-sm font-semibold"
                           style={{ color: engine.color }}
                         >
                           {engine.icon}
                         </span>
-                        <span className="text-xs text-gray-700 dark:text-gray-300">{engine.name}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{engine.name}</span>
                       </button>
                     ))}
                   </div>
@@ -118,16 +121,16 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget }: Widget
               value={state.searchQuery}
               onChange={(e) => setState(prev => ({ ...prev, searchQuery: e.target.value }))}
               placeholder={`${selectedEngineData.name} 검색`}
-              className="flex-1 px-1 py-1 text-[10px] border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
+              className="flex-1 px-3 py-2 text-sm border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
             />
             
             {/* 검색 버튼 */}
             <button
               type="submit"
-              className="p-1 rounded-r-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-r-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               title="검색"
             >
-              <SearchIcon className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+              <SearchIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
           </div>
         </div>

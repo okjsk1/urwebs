@@ -26,20 +26,23 @@ import DashboardGrid, { SizePicker } from './DashboardGrid';
 import DraggableDashboardGrid from './DraggableDashboardGrid';
 
 // 위젯 컴포넌트들 import
-import {
-  TodoWidget,
-  ExchangeWidget,
-  NewsWidget,
-  WeatherWidget,
-  BookmarkWidget,
-  EnglishWordsWidget,
-  GoogleAdWidget,
-  FrequentSitesWidget,
-  CryptoWidget,
-  EconomicCalendarWidget,
-  QRCodeWidget,
-  UnifiedSearchWidget
-} from './widgets';
+import { TodoWidget } from './widgets/TodoWidget';
+import { ExchangeWidget } from './widgets/ExchangeWidget';
+import { NewsWidget } from './widgets/NewsWidget';
+import { WeatherWidget } from './widgets/WeatherWidget';
+import { BookmarkWidget } from './widgets/BookmarkWidget';
+import { EnglishWordsWidget } from './widgets/EnglishWordsWidget';
+import { GoogleAdWidget } from './widgets/GoogleAdWidget';
+import { FrequentSitesWidget } from './widgets/FrequentSitesWidget';
+import { CryptoWidget } from './widgets/CryptoWidget';
+import { EconomicCalendarWidget } from './widgets/EconomicCalendarWidget';
+import { QRCodeWidget } from './widgets/QRCodeWidget';
+import { UnifiedSearchWidget } from './widgets/UnifiedSearchWidget';
+import { GoogleSearchWidget } from './widgets/GoogleSearchWidget';
+import { NaverSearchWidget } from './widgets/NaverSearchWidget';
+import { LawSearchWidget } from './widgets/LawSearchWidget';
+import { QuoteWidget } from './widgets/QuoteWidget';
+import { QuickNoteWidget } from './widgets/QuickNoteWidget';
 
 // 인터페이스들은 이제 types에서 import
 
@@ -263,6 +266,46 @@ export function MyPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showPageManager]);
+
+  // 템플릿 적용 및 위젯 초기화
+  useEffect(() => {
+    const selectedTemplate = localStorage.getItem('selectedTemplate');
+    
+    if (selectedTemplate && widgets.length === 0) {
+      try {
+        const templateData = JSON.parse(selectedTemplate);
+        console.log('템플릿 데이터 적용:', templateData);
+        
+        // 템플릿 위젯들을 실제 위젯 객체로 변환
+        const templateWidgets: Widget[] = templateData.widgets.map((widgetConfig: any, index: number) => {
+          const dimensions = getWidgetDimensions(widgetConfig.type, widgetConfig.size, widgetConfig.x, widgetConfig.y);
+          const categoryInfo = getCategoryIcon(widgetConfig.type);
+          
+          return {
+            id: `widget-${Date.now()}-${index}`,
+            type: widgetConfig.type,
+            x: widgetConfig.x,
+            y: widgetConfig.y,
+            width: dimensions.width,
+            height: dimensions.height,
+            title: typeof categoryInfo === 'string' ? categoryInfo : categoryInfo?.label || widgetConfig.type,
+            size: widgetConfig.size,
+            content: {}
+          };
+        });
+        
+        setWidgets(templateWidgets);
+        
+        // 템플릿 적용 후 localStorage에서 제거
+        localStorage.removeItem('selectedTemplate');
+        
+        console.log('템플릿 위젯 적용 완료:', templateWidgets);
+      } catch (error) {
+        console.error('템플릿 적용 중 오류:', error);
+        localStorage.removeItem('selectedTemplate');
+      }
+    }
+  }, []);
 
   // 처음 방문 시 소개 모달 또는 템플릿 선택 모달 자동으로 표시
   useEffect(() => {
@@ -607,7 +650,7 @@ export function MyPage() {
 
   const createNewPage = () => {
     // 첫 이용자인지 확인 (저장된 페이지가 없는 경우)
-    const hasExistingPages = widgets.length > 0 || (savedPages && savedPages.length > 0);
+    const hasExistingPages = widgets.length > 0 || (currentUser && localStorage.getItem(`myPages_${currentUser.id}`));
     
     if (!hasExistingPages) {
       // 첫 이용자: 템플릿 선택 모달 표시
@@ -3084,26 +3127,38 @@ export function MyPage() {
     }
   };
 
-  // 배경 스타일 생성
+  // 배경 스타일 생성 함수
   const getBackgroundStyle = () => {
-    if (backgroundSettings.type === 'gradient') {
-      return {
-        background: `linear-gradient(${backgroundSettings.gradient.direction}, ${backgroundSettings.gradient.from}, ${backgroundSettings.gradient.to})`,
-        opacity: backgroundSettings.opacity
-      };
-    } else if (backgroundSettings.type === 'solid') {
-      return {
-        backgroundColor: backgroundSettings.color,
-        opacity: backgroundSettings.opacity
-      };
+    switch (backgroundSettings.type) {
+      case 'solid':
+        return {
+          backgroundColor: backgroundSettings.color,
+          opacity: backgroundSettings.opacity
+        };
+      case 'gradient':
+        return {
+          background: `linear-gradient(${backgroundSettings.gradient.direction}, ${backgroundSettings.gradient.from}, ${backgroundSettings.gradient.to})`,
+          opacity: backgroundSettings.opacity
+        };
+      case 'image':
+        return {
+          backgroundImage: `url(${backgroundSettings.image})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: backgroundSettings.opacity
+        };
+      default:
+        return {};
     }
-    return {};
   };
-
 
   // 기존 그리드 뷰만 사용
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
+    <div 
+      className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
+      style={backgroundSettings.type !== 'solid' && backgroundSettings.type !== 'gradient' && backgroundSettings.type !== 'image' ? {} : getBackgroundStyle()}
+    >
       {/* 상단 툴바 */}
       <div className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
         <div className="w-full px-2 py-3">
@@ -3991,6 +4046,7 @@ export function MyPage() {
                   >
                     <option value="solid">단색</option>
                     <option value="gradient">그라데이션</option>
+                    <option value="image">이미지</option>
                   </select>
                 </div>
                 
@@ -4031,6 +4087,66 @@ export function MyPage() {
                         })}
                         className="w-full h-10 border rounded"
                       />
+                    </div>
+                  </div>
+                )}
+                
+                {backgroundSettings.type === 'image' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">이미지 업로드</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              const imageUrl = event.target?.result as string;
+                              setBackgroundSettings({
+                                ...backgroundSettings,
+                                image: imageUrl,
+                                opacity: backgroundSettings.opacity
+                              });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full p-2 border rounded"
+                      />
+                    </div>
+                    
+                    {backgroundSettings.image && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">미리보기</label>
+                        <div className="w-full h-32 border rounded overflow-hidden">
+                          <img 
+                            src={backgroundSettings.image} 
+                            alt="배경 이미지 미리보기"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">투명도</label>
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="1"
+                        step="0.1"
+                        value={backgroundSettings.opacity}
+                        onChange={(e) => setBackgroundSettings({
+                          ...backgroundSettings,
+                          opacity: parseFloat(e.target.value)
+                        })}
+                        className="w-full"
+                      />
+                      <div className="text-xs text-gray-500 mt-1">
+                        투명도: {Math.round(backgroundSettings.opacity * 100)}%
+                      </div>
                     </div>
                   </div>
                 )}

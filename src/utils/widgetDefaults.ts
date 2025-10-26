@@ -5,13 +5,13 @@ import { WidgetSize } from '../types/mypage.types';
 export const WIDGET_DEFAULT_SIZES: Record<string, WidgetSize> = {
   'google_search': '2x1',
   'naver_search': '2x1',
-  'unified_search': '1x1',
+  'unified_search': '2x1',
   'weather_small': '4x1',
   'weather_medium': '4x2',
   'todo': '2x2',
   'crypto': '1x2',
   'frequent_sites': '1x1',
-  'calendar': '2x2',
+  'calendar': '1x1',
   'weather': '1x3',
   'english_words': '1x2',
   'economic_calendar': '2x2',
@@ -42,6 +42,7 @@ export const WIDGET_ROW_LIMITS: Record<string, number[]> = {
   'law_search': [1],
   'google_search': [1],
   'naver_search': [1],
+  'calendar': [1, 2, 4], // 1x1, 1x2, 2x2, 4x4 지원
 };
 
 // 위젯 기본 콘텐츠
