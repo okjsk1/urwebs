@@ -5,18 +5,22 @@ import {
   ExchangeWidget,
   NewsWidget,
   WeatherWidget,
-  GoogleSearchWidget,
-  NaverSearchWidget,
-  LawSearchWidget,
   BookmarkWidget,
   EnglishWordsWidget,
   GoogleAdWidget,
   FrequentSitesWidget,
   CryptoWidget,
   EconomicCalendarWidget,
-  QuoteWidget,
   QRCodeWidget,
-  UnifiedSearchWidget
+  UnifiedSearchWidget,
+  TimerWidget,
+  NewsWidget as NewsSummaryWidget,
+  DdayWidget,
+  GoogleSearchWidget,
+  NaverSearchWidget,
+  LawSearchWidget,
+  QuoteWidget,
+  QuickNoteWidget
 } from '../widgets';
 import { ContactIcon } from 'lucide-react';
 
@@ -78,13 +82,34 @@ export function WidgetContentRenderer({
         return <NewsWidget {...commonProps} />;
 
       case 'google_search':
-        return <GoogleSearchWidget {...commonProps} />;
+        return <GoogleSearchWidget
+          id={widget.id}
+          title={widget.title || '구글 검색'}
+          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          onRemove={() => {}}
+          onResize={() => {}}
+          onPin={() => {}}
+        />;
 
       case 'naver_search':
-        return <NaverSearchWidget {...commonProps} />;
+        return <NaverSearchWidget
+          id={widget.id}
+          title={widget.title || '네이버 검색'}
+          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          onRemove={() => {}}
+          onResize={() => {}}
+          onPin={() => {}}
+        />;
 
       case 'law_search':
-        return <LawSearchWidget {...commonProps} />;
+        return <LawSearchWidget
+          id={widget.id}
+          title={widget.title || '법제처 검색'}
+          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          onRemove={() => {}}
+          onResize={() => {}}
+          onPin={() => {}}
+        />;
 
       case 'unified_search':
         return <UnifiedSearchWidget {...commonProps} />;
@@ -98,8 +123,15 @@ export function WidgetContentRenderer({
       case 'google_ad':
         return <GoogleAdWidget {...commonProps} />;
 
-      case 'quote':
-        return <QuoteWidget {...commonProps} />;
+             case 'quote':
+               return <QuoteWidget
+                 id={widget.id}
+                 title={widget.title || '영감 명언'}
+                 size={'s'} // 1x1 고정
+                 onRemove={() => {}}
+                 onResize={() => {}}
+                 onPin={() => {}}
+               />;
 
       case 'contact':
         return (
@@ -138,33 +170,44 @@ export function WidgetContentRenderer({
         );
 
       case 'quicknote':
-        const currentGridSize = widget.size || { w: 1, h: 1 };
-        const getRows = () => {
-          if (currentGridSize.h === 1) return 4;
-          if (currentGridSize.h === 2) return 10;
-          if (currentGridSize.h === 3) return 16;
-          return 4;
-        };
-        
-        return (
-          <div className="h-full flex flex-col p-1">
-            <textarea
-              value={widget.content?.text || ''}
-              onChange={(e) => {
-                const updatedWidgets = widgets.map(w => 
-                  w.id === widget.id 
-                    ? { ...w, content: { ...(w.content || {}), text: e.target.value } }
-                    : w
-                );
-                setWidgets(updatedWidgets);
-              }}
-              placeholder="메모를 작성하세요..."
-              className="flex-1 w-full p-1 text-sm border-0 resize-none focus:outline-none bg-transparent"
-              style={{ textAlign: 'left', verticalAlign: 'top' }}
-              rows={getRows()}
-            />
-          </div>
-        );
+        return <QuickNoteWidget
+          id={widget.id}
+          title={widget.title || '빠른 메모'}
+          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'} // 1x1, 1x2 지원
+          onRemove={() => {}}
+          onResize={() => {}}
+          onPin={() => {}}
+        />;
+
+      case 'timer':
+        return <TimerWidget 
+          id={widget.id}
+          title={widget.title || '타이머'}
+          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          onRemove={() => {}}
+          onResize={() => {}}
+          onPin={() => {}}
+        />;
+
+      case 'news_summary':
+        return <NewsSummaryWidget 
+          id={widget.id}
+          title={widget.title || '뉴스 요약'}
+          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          onRemove={() => {}}
+          onResize={() => {}}
+          onPin={() => {}}
+        />;
+
+      case 'dday':
+        return <DdayWidget 
+          id={widget.id}
+          title={widget.title || 'D-Day'}
+          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          onRemove={() => {}}
+          onResize={() => {}}
+          onPin={() => {}}
+        />;
 
       default:
         return (

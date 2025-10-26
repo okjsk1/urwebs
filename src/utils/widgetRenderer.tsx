@@ -4,9 +4,6 @@ import { isWidgetEditable } from '../components/widgets/utils/widget-helpers';
 import {
   TodoWidget,
   BookmarkWidget,
-  GoogleSearchWidget,
-  NaverSearchWidget,
-  LawSearchWidget,
   EnglishWordsWidget,
   WeatherWidget,
   CryptoWidget,
@@ -16,7 +13,12 @@ import {
   FrequentSitesWidget,
   NewsWidget,
   QRCodeWidget,
-  UnifiedSearchWidget
+  UnifiedSearchWidget,
+  GoogleSearchWidget,
+  NaverSearchWidget,
+  LawSearchWidget,
+  QuoteWidget,
+  QuickNoteWidget
 } from '../components/widgets';
 import { CalendarWidget } from '../components/ColumnsBoard/widgets/CalendarWidget';
 
@@ -69,17 +71,10 @@ export function renderWidget(widget: Widget): React.ReactNode {
         return <QRCodeWidget {...commonProps} />;
       case 'unified_search':
         return <UnifiedSearchWidget {...commonProps} />;
+      case 'quote':
+        return <QuoteWidget {...commonProps} />;
       case 'quicknote':
-        // 빠른메모 위젯 - 간단한 텍스트 표시
-        return (
-          <div className="h-full flex flex-col p-3">
-            <div className="flex-1">
-              <div className="text-sm text-gray-600 whitespace-pre-wrap">
-                {widget.content?.text || '메모를 작성하세요...'}
-              </div>
-            </div>
-          </div>
-        );
+        return <QuickNoteWidget {...commonProps} />;
       default:
         return (
           <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">

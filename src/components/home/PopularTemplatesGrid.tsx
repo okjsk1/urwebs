@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Copy, Star, Users } from 'lucide-react';
+import { Eye, Copy, Star, Users, ExternalLink } from 'lucide-react';
 import { trackEvent, ANALYTICS_EVENTS } from '../../utils/analytics';
 
 interface Template {
@@ -107,16 +107,9 @@ export function PopularTemplatesGrid() {
 
   const templates = activeTab === 'popular' ? popularTemplates : latestTemplates;
 
-  const handlePreview = (templateId: string) => {
+  const handleGoToTemplate = (templateId: string) => {
     trackEvent(ANALYTICS_EVENTS.TEMPLATE_PREVIEW, { template_id: templateId });
     navigate(`/template/${templateId}`);
-  };
-
-  const handleClone = (templateId: string) => {
-    trackEvent(ANALYTICS_EVENTS.CLONE_TEMPLATE, { template_id: templateId });
-    // TODO: 로그인 체크 후 복제 로직
-    console.log('Clone template:', templateId);
-    navigate('/mypage');
   };
 
   return (
@@ -196,19 +189,13 @@ export function PopularTemplatesGrid() {
             </div>
 
             {/* 액션 버튼 */}
-            <div className="flex gap-2 mt-4">
+            <div className="mt-4">
               <button
-                onClick={() => handlePreview(template.id)}
-                className="flex-1 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                onClick={() => handleGoToTemplate(template.id)}
+                className="w-full px-3 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-1"
               >
-                미리보기
-              </button>
-              <button
-                onClick={() => handleClone(template.id)}
-                className="flex-1 px-3 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-1"
-              >
-                <Copy className="w-3 h-3" />
-                1클릭 복제
+                <ExternalLink className="w-3 h-3" />
+                바로가기
               </button>
             </div>
           </div>

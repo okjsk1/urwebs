@@ -5,16 +5,10 @@ import { ArrowLeft, Save, Plus, Settings, Grid, Trash2 } from 'lucide-react';
 import { Widget, WidgetType } from '../types/mypage.types';
 import { widgetCategories } from '../constants/widgetCategories';
 import {
-  CalendarWidget,
   TodoWidget,
   NewsWidget,
   BookmarkWidget,
-  ContactWidget,
   QRCodeWidget,
-  GitHubWidget,
-  GoogleSearchWidget,
-  NaverSearchWidget,
-  LawSearchWidget,
   EnglishWordsWidget
 } from './widgets';
 import { getNextAvailablePosition, getWidgetDimensions } from '../utils/widgetHelpers';

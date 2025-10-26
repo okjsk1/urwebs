@@ -1,8 +1,9 @@
-// 위젯 컴포넌트 export 파일
-export { BookmarkWidget } from './BookmarkWidget';
-export { WeatherWidget } from './WeatherWidget';
+// 기존 위젯들 (MyPage에서 사용)
 export { TodoWidget } from './TodoWidget';
 export { ExchangeWidget } from './ExchangeWidget';
+export { NewsWidget } from './NewsWidget';
+export { WeatherWidget } from './WeatherWidget';
+export { BookmarkWidget } from './BookmarkWidget';
 export { EnglishWordsWidget } from './EnglishWordsWidget';
 export { GoogleAdWidget } from './GoogleAdWidget';
 export { FrequentSitesWidget } from './FrequentSitesWidget';
@@ -11,8 +12,24 @@ export { EconomicCalendarWidget } from './EconomicCalendarWidget';
 export { QRCodeWidget } from './QRCodeWidget';
 export { UnifiedSearchWidget } from './UnifiedSearchWidget';
 
-// InformationWidgets에서 export
-export * from './InformationWidgets';
+// 새로운 위젯들
+export { TimerWidget } from './TimerWidget';
+export { DdayWidget } from './DdayWidget';
+export { QuoteWidget } from './QuoteWidget';
+export { QuickNoteWidget } from './QuickNoteWidget';
 
-// 유틸리티 함수들
-export * from './utils/widget-helpers';
+// 검색 위젯들
+export { GoogleSearchWidget } from './GoogleSearchWidget';
+export { NaverSearchWidget } from './NaverSearchWidget';
+export { LawSearchWidget } from './LawSearchWidget';
+
+// 공통 컴포넌트들
+export { WidgetShell } from './WidgetShell';
+export { 
+  LazyWidget, 
+  WidgetContainer, 
+  WidgetGrid, 
+  WidgetLoader, 
+  WidgetErrorBoundary, 
+  WidgetWrapper 
+} from './LazyWidget';

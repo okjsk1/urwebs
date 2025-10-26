@@ -6,9 +6,6 @@ import { widgetCategories, allWidgets } from '../../constants/widgetCategories';
 import {
   TodoWidget,
   BookmarkWidget,
-  GoogleSearchWidget,
-  NaverSearchWidget,
-  LawSearchWidget,
   EnglishWordsWidget,
   WeatherWidget,
   CryptoWidget,

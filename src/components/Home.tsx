@@ -84,6 +84,7 @@ export function Home() {
         <SocialProof />
       </section>
 
+
       {/* 배경 그라디언트 블롭 */}
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl"></div>

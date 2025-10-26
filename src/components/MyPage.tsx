@@ -31,16 +31,12 @@ import {
   ExchangeWidget,
   NewsWidget,
   WeatherWidget,
-  GoogleSearchWidget,
-  NaverSearchWidget,
-  LawSearchWidget,
   BookmarkWidget,
   EnglishWordsWidget,
   GoogleAdWidget,
   FrequentSitesWidget,
   CryptoWidget,
   EconomicCalendarWidget,
-  QuoteWidget,
   QRCodeWidget,
   UnifiedSearchWidget
 } from './widgets';

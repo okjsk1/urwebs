@@ -60,5 +60,12 @@ export const ANALYTICS_EVENTS = {
   SEARCH_QUERY: 'search_query',
   CATEGORY_CLICK: 'category_click',
   TEMPLATE_PREVIEW: 'template_preview',
-  SOCIAL_PROOF_CLICK: 'social_proof_click'
+  SOCIAL_PROOF_CLICK: 'social_proof_click',
+  TEMPLATE_SAVED: 'template_saved',
+  SEARCH_SUBMIT: 'search_submit',
+  TAG_CLICK: 'tag_click',
+  PAGE_VIEW: 'page_view',
+  WIDGET_ADDED: 'widget_added',
+  WIDGET_REMOVED: 'widget_removed',
+  LAYOUT_CHANGED: 'layout_changed'
 } as const;

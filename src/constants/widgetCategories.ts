@@ -1,7 +1,8 @@
 import {
   CheckSquare, Target, Repeat, Clock, Bell, FileText, Calendar, Mail,
   TrendingUp, DollarSign, BarChart3, Github, Lock, QrCode,
-  Globe, Cloud, Search, Rss, Quote, Palette, Link, BookOpen, Users
+  Globe, Cloud, Search, Rss, Quote, Palette, Link, BookOpen, Users,
+  Timer, Newspaper, CalendarDays
 } from 'lucide-react';
 import { WidgetCategory } from '../types/mypage.types';
 
@@ -15,6 +16,8 @@ export const widgetCategories: Record<string, WidgetCategory> = {
       { type: 'calendar', name: '캘린더', icon: Calendar, description: '일정 관리 및 계획' },
       { type: 'quote', name: '영감 명언', icon: Quote, description: '영감을 주는 명언' },
       { type: 'english_words', name: '영어 단어 학습', icon: BookOpen, description: '영어 단어 학습 도구' },
+      { type: 'timer', name: '타이머', icon: Timer, description: '카운트다운/스톱워치/포모도로' },
+      { type: 'dday', name: 'D-Day', icon: CalendarDays, description: '기념일/마감일 관리' },
     ]
   },
 
@@ -34,6 +37,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
     name: '정보 & 뉴스',
     widgets: [
       { type: 'news', name: '뉴스 피드', icon: Globe, description: '최신 뉴스 및 관심사' },
+      { type: 'news_summary', name: '뉴스 요약', icon: Newspaper, description: 'RSS 피드 요약 및 필터링' },
       { type: 'weather', name: '날씨 정보', icon: Cloud, description: '실시간 날씨 정보' },
       { type: 'unified_search', name: '통합검색', icon: Search, description: '여러 검색 엔진 통합 검색' },
       { type: 'google_search', name: '구글 검색', icon: Search, description: '구글 검색 바로가기' },
