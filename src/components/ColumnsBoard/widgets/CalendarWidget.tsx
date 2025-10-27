@@ -248,14 +248,14 @@ export function CalendarWidget({
         return {
           container: "p-3",
           header: "mb-2 pb-2",
-          monthText: "text-base font-bold",
+          monthText: "text-xl font-bold",
           navButton: "p-1",
-          navIcon: "w-4 h-4",
-          todayButton: "px-2 py-1 text-xs",
-          weekdayHeader: "text-xs py-1",
-          dateCell: "min-h-[28px] text-xs",
-          todayText: "text-xs",
-          legend: "text-xs gap-3 mt-2"
+          navIcon: "w-5 h-5",
+          todayButton: "px-2 py-1 text-sm",
+          weekdayHeader: "text-base py-1",
+          dateCell: "min-h-[36px] text-base",
+          todayText: "text-sm",
+          legend: "text-sm gap-3 mt-2"
         };
       case '4x4':
         return {

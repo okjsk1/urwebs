@@ -240,13 +240,13 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
 
       {/* 단어 카드 */}
       <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
-        <div className="text-2xl font-bold text-gray-800">{currentWord.english}</div>
-        <div className="text-sm text-gray-500">
+        <div className="text-3xl font-bold text-gray-800">{currentWord.english}</div>
+        <div className="text-base text-gray-500">
           {currentWord.level === 'beginner' && '🟢 초급'}
           {currentWord.level === 'intermediate' && '🟡 중급'}
           {currentWord.level === 'advanced' && '🔴 고급'}
         </div>
-        <div className="text-lg text-blue-600 font-medium">{currentWord.korean}</div>
+        <div className="text-xl text-blue-600 font-medium">{currentWord.korean}</div>
       </div>
 
       {/* 좌/우 네비게이션 */}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '../firebase/config';
 import { collection, getDocs, query, orderBy, where, limit } from 'firebase/firestore';
-import { Clock, Star, Globe, ArrowLeft, Eye, ThumbsUp, User } from 'lucide-react';
+import { Clock, Star, Globe, ArrowLeft, Eye, ThumbsUp, User, Heart } from 'lucide-react';
 
 interface PageItem {
   id: string;

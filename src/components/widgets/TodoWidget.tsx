@@ -310,7 +310,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
                 </button>
                 
                 <div className="flex-1 min-w-0">
-                  <div className={`text-sm ${item.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                  <div className={`text-base ${item.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
                     {state.editingItem === item.id ? (
                       <input
                         type="text"
@@ -325,7 +325,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
                             updateTodo(item.id, { text: (e.target as HTMLInputElement).value.trim() });
                           }
                         }}
-                        className="w-full text-xs px-1 py-0.5 border border-gray-300 rounded"
+                        className="w-full text-sm px-2 py-1 border border-gray-300 rounded"
                         autoFocus
                       />
                     ) : (

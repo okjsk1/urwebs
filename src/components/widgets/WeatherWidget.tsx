@@ -615,16 +615,16 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
             <Button
               size="sm"
               variant="outline"
-              className="text-xs h-6 flex-1"
+              className="text-sm h-8 flex-1"
               onClick={detectCurrentLocation}
             >
-              <Navigation className="w-3 h-3 mr-1" />
+              <Navigation className="w-4 h-4 mr-1" />
               현재위치
             </Button>
             <Button
               size="sm"
               variant={state.units === 'metric' ? 'default' : 'outline'}
-              className="text-xs h-6 flex-1"
+              className="text-sm h-8 flex-1"
               onClick={toggleUnits}
             >
               {state.units === 'metric' ? '°C' : '°F'}
@@ -633,7 +633,7 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
           <Button
             size="sm"
             variant="outline"
-            className="w-full text-xs h-6"
+            className="w-full text-sm h-8"
             onClick={() => setState(prev => ({ ...prev, showSettings: false }))}
           >
             닫기

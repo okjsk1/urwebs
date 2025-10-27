@@ -106,27 +106,35 @@ function PublicPageViewer() {
             <p className="text-xs text-gray-600 dark:text-gray-400">by {pageData.authorName}</p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-              <span>👁️ {pageData.views?.toLocaleString() || 0}회</span>
-              <button 
-                onClick={async () => {
-                  try {
-                    const { doc, updateDoc, increment } = await import('firebase/firestore');
-                    const { db } = await import('./firebase/config');
-                    const docRef = doc(db, 'userPages', pageData.id);
-                    await updateDoc(docRef, { likes: increment(1) });
-                    // 페이지 데이터 업데이트
-                    setPageData(prev => ({ ...prev, likes: (prev.likes || 0) + 1 }));
-                  } catch (error) {
-                    console.error('좋아요 실패:', error);
-                  }
-                }}
-                className="flex items-center gap-1 hover:text-red-500 transition-colors"
-              >
-                <span>👍</span>
-                <span>{pageData.likes || 0}개</span>
-              </button>
+            {/* 조회수 - 인스타그램 스타일 */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full border border-blue-200/50 dark:border-blue-700/50">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                👁️ {pageData.views?.toLocaleString() || 0}
+              </span>
             </div>
+            
+            {/* 좋아요 버튼 - 인스타그램 스타일 */}
+            <button 
+              onClick={async () => {
+                try {
+                  const { doc, updateDoc, increment } = await import('firebase/firestore');
+                  const { db } = await import('./firebase/config');
+                  const docRef = doc(db, 'userPages', pageData.id);
+                  await updateDoc(docRef, { likes: increment(1) });
+                  // 페이지 데이터 업데이트
+                  setPageData(prev => ({ ...prev, likes: (prev.likes || 0) + 1 }));
+                } catch (error) {
+                  console.error('좋아요 실패:', error);
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-full border border-pink-200/50 dark:border-pink-700/50 hover:from-pink-100 hover:to-rose-100 dark:hover:from-pink-900/30 dark:hover:to-rose-900/30 transition-all duration-200 group"
+            >
+              <div className="w-2 h-2 bg-pink-500 rounded-full group-hover:scale-110 transition-transform duration-200"></div>
+              <span className="text-sm font-semibold text-pink-700 dark:text-pink-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-200">
+                ❤️ {pageData.likes || 0}
+              </span>
+            </button>
             <button 
               onClick={() => navigate('/')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
