@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Grid as GridIcon, List, Wifi, WifiOff } from 'lucide-react';
 import { Sparkline } from '../ui/Sparkline';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
+import { getSymbolInfo } from '../../services/cryptoService';
 
 interface CryptoState {
   symbols: string[];

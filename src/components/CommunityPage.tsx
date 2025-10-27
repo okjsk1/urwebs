@@ -16,6 +16,7 @@ import {
   MessageSquare,
   ThumbsUp,
   ThumbsDown,
+  Heart,
   ChevronLeft,
   ChevronRight,
   Filter,
@@ -281,14 +282,23 @@ export function CommunityPage() {
           </div>
 
           <div className="flex items-center gap-4 pt-4 border-t">
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <ThumbsUp className="w-4 h-4" />
-              좋아요 {selectedPost.likes}
-            </Button>
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <ThumbsDown className="w-4 h-4" />
-              {selectedPost.dislikes}
-            </Button>
+            {/* 좋아요 버튼 - 인스타그램 스타일 */}
+            <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-full border border-pink-200/50 dark:border-pink-700/50 hover:from-pink-100 hover:to-rose-100 dark:hover:from-pink-900/30 dark:hover:to-rose-900/30 transition-all duration-200 group">
+              <div className="w-2 h-2 bg-pink-500 rounded-full group-hover:scale-110 transition-transform duration-200"></div>
+              <Heart className="w-4 h-4 text-pink-600 dark:text-pink-400 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors duration-200" />
+              <span className="font-semibold text-pink-700 dark:text-pink-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-200">
+                좋아요 {selectedPost.likes}
+              </span>
+            </button>
+            
+            {/* 싫어요 버튼 - 인스타그램 스타일 */}
+            <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800/20 dark:to-slate-800/20 rounded-full border border-gray-200/50 dark:border-gray-700/50 hover:from-gray-100 hover:to-slate-100 dark:hover:from-gray-800/30 dark:hover:to-slate-800/30 transition-all duration-200 group">
+              <div className="w-2 h-2 bg-gray-500 rounded-full group-hover:scale-110 transition-transform duration-200"></div>
+              <ThumbsDown className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200" />
+              <span className="font-semibold text-gray-700 dark:text-gray-300 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200">
+                {selectedPost.dislikes}
+              </span>
+            </button>
           </div>
         </Card>
 

@@ -74,7 +74,7 @@ export function Home() {
 
   const handleBrowseTemplates = () => {
     trackEvent(ANALYTICS_EVENTS.CTA_CLICK, { button: 'browse_popular_pages' });
-    navigate('/community');
+    navigate('/pages?type=popular');
   };
 
   return (
@@ -84,13 +84,13 @@ export function Home() {
         <div className="flex flex-nowrap items-start gap-8">
           {/* 좌측: 헤드라인 + CTA */}
           <div className="flex-1">
-            <h1 className="text-4xl font-bold text-gray-900 mb-6 leading-tight">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
               나만의 시작페이지를<br />
-              <span className="text-indigo-600">드래그 한 번으로.</span><br />
-              <span className="text-purple-600">링크 하나로 공유.</span>
+              <span className="text-indigo-600 dark:text-indigo-400">드래그 한 번으로.</span><br />
+              <span className="text-purple-600 dark:text-purple-400">링크 하나로 공유.</span>
             </h1>
             
-            <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+            <p className="text-lg text-gray-600 dark:text-gray-200 mb-8 leading-relaxed">
               즐겨찾기·위젯·메모를 배치해<br />
               대시보드를 1분 만에 완성.
             </p>
@@ -107,7 +107,7 @@ export function Home() {
               
               <button
                 onClick={handleBrowseTemplates}
-                className="h-12 px-5 rounded-xl font-semibold focus:ring-2 focus:ring-indigo-200 bg-white border hover:bg-slate-50 text-gray-700 flex items-center gap-2"
+                className="h-12 px-5 rounded-xl font-semibold focus:ring-2 focus:ring-indigo-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-2"
               >
                 인기 페이지 둘러보기
                 <ArrowRight className="w-4 h-4" />
@@ -143,8 +143,8 @@ export function Home() {
 
              {/* 배경 그라디언트 블롭 */}
              <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10">
-               <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl"></div>
-               <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-blue-200/20 to-cyan-200/20 rounded-full blur-3xl"></div>
+               <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-200/20 to-sky-200/20 rounded-full blur-3xl"></div>
+               <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-cyan-200/20 to-teal-200/20 rounded-full blur-3xl"></div>
              </div>
 
              {/* 템플릿 선택 모달 */}

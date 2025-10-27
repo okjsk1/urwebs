@@ -306,7 +306,7 @@ function AppContent() {
         <Routes>
         {/* 메인 페이지 */}
         <Route path="/" element={
-          <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 dark:from-gray-950 dark:to-gray-900">
             <Header 
               currentPage="home"
               onNavigateHome={() => navigate('/')}

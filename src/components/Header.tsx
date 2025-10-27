@@ -31,7 +31,7 @@ export function Header({
   const { user, loading: authLoading, authChecked } = useAuth();
   const { roles, isAdmin, loading: rolesLoading } = useRoles();
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 md:px-6 py-3 sticky top-0 z-50 shadow-sm">
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 md:px-6 py-2 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div 
           className="flex items-center gap-4 md:gap-6 cursor-pointer hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 rounded"
@@ -70,7 +70,7 @@ export function Header({
             onClick={onNavigateNotice}
             aria-current={currentPage === 'notice' ? 'page' : undefined}
             aria-label={t('header.nav.notice')}
-            className={`text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-1 border-b-2 border-transparent hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+            className={`text-sm font-bold text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 px-1 border-b-2 border-transparent hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
               currentPage === 'notice' ? 'text-blue-600 dark:text-blue-400 border-blue-600' : ''
             }`}
           >
@@ -80,7 +80,7 @@ export function Header({
             onClick={onNavigateCommunity}
             aria-current={currentPage === 'community' ? 'page' : undefined}
             aria-label={t('header.nav.community')}
-            className={`text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-1 border-b-2 border-transparent hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+            className={`text-sm font-bold text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 px-1 border-b-2 border-transparent hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
               currentPage === 'community' ? 'text-blue-600 dark:text-blue-400 border-blue-600' : ''
             }`}
           >
@@ -90,7 +90,7 @@ export function Header({
             onClick={onNavigateContact}
             aria-current={currentPage === 'contact' ? 'page' : undefined}
             aria-label={t('header.nav.contact')}
-            className={`text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-1 border-b-2 border-transparent hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+            className={`text-sm font-bold text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 px-1 border-b-2 border-transparent hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
               currentPage === 'contact' ? 'text-blue-600 dark:text-blue-400 border-blue-600' : ''
             }`}
           >
@@ -100,7 +100,7 @@ export function Header({
             onClick={onNavigateMyPage}
             aria-current={currentPage === 'mypage' ? 'page' : undefined}
             aria-label={t('header.nav.mypage')}
-            className={`text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-1 border-b-2 border-transparent hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+            className={`text-sm font-bold text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 px-1 border-b-2 border-transparent hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
               currentPage === 'mypage' ? 'text-blue-600 dark:text-blue-400 border-blue-600' : ''
             }`}
           >
@@ -115,7 +115,7 @@ export function Header({
               onClick={onNavigateAdminInquiries}
               aria-current={currentPage === 'admin-inquiries' ? 'page' : undefined}
               aria-label={t('header.nav.admin')}
-              className={`text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors py-2 px-1 border-b-2 border-transparent hover:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+              className={`text-sm font-bold text-gray-700 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors py-1 px-1 border-b-2 border-transparent hover:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
                 currentPage === 'admin-inquiries' ? 'text-purple-600 dark:text-purple-400 border-purple-600' : ''
               }`}
             >

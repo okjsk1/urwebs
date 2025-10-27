@@ -247,14 +247,23 @@ export function AllPagesListPage() {
                 
                 {/* 통계 및 태그 */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
-                    <div className="flex items-center">
-                      <Eye className="w-4 h-4 mr-1" />
-                      {page.views.toLocaleString()}
+                  <div className="flex items-center gap-4 text-sm">
+                    {/* 조회수 - 인스타그램 스타일 */}
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full border border-blue-200/50 dark:border-blue-700/50">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="font-semibold text-blue-700 dark:text-blue-300">
+                        {page.views.toLocaleString()}
+                      </span>
                     </div>
-                    <div className="flex items-center">
-                      <ThumbsUp className="w-4 h-4 mr-1" />
-                      {page.likes}
+                    
+                    {/* 좋아요 - 인스타그램 스타일 */}
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-full border border-pink-200/50 dark:border-pink-700/50 hover:from-pink-100 hover:to-rose-100 dark:hover:from-pink-900/30 dark:hover:to-rose-900/30 transition-all duration-200 cursor-pointer group">
+                      <div className="w-2 h-2 bg-pink-500 rounded-full group-hover:scale-110 transition-transform duration-200"></div>
+                      <Heart className="w-4 h-4 text-pink-600 dark:text-pink-400 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors duration-200" />
+                      <span className="font-semibold text-pink-700 dark:text-pink-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-200">
+                        {page.likes}
+                      </span>
                     </div>
                   </div>
                   
