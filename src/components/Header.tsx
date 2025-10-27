@@ -1,5 +1,5 @@
-import React from 'react';
-import { Settings, Bell, MessageSquare, HelpCircle, Home, Sun, Moon, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { Settings, Bell, MessageSquare, HelpCircle, Home, Sun, Moon, Shield, Menu, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { GoogleAuth } from './auth/GoogleAuth';
 import { useTheme } from '../contexts/ThemeContext';
@@ -30,11 +30,12 @@ export function Header({
   const { t } = useTranslation();
   const { user, loading: authLoading, authChecked } = useAuth();
   const { roles, isAdmin, loading: rolesLoading } = useRoles();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 md:px-6 py-2 sticky top-0 z-50 shadow-sm">
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 md:px-6 py-2 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div 
-          className="flex items-center gap-4 md:gap-6 cursor-pointer hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 rounded"
+          className="flex items-center gap-2 sm:gap-4 md:gap-6 cursor-pointer hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 rounded"
           onClick={onNavigateHome}
           role="button"
           tabIndex={0}
@@ -47,7 +48,7 @@ export function Header({
           }}
         >
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">
               URWEBS
             </h1>
           </div>
@@ -56,12 +57,15 @@ export function Header({
         {/* 모바일 메뉴 버튼 */}
         <div className="md:hidden">
           <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
             aria-label="메뉴 열기"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
           </button>
         </div>
         
@@ -150,6 +154,90 @@ export function Header({
           </button>
         </div>
       </div>
+      
+      {/* 모바일 메뉴 */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 py-4 space-y-2">
+            <button 
+              onClick={() => {
+                onNavigateNotice();
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                currentPage === 'notice' 
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              {t('header.notice')}
+            </button>
+            <button 
+              onClick={() => {
+                onNavigateCommunity();
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                currentPage === 'community' 
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              {t('header.community')}
+            </button>
+            <button 
+              onClick={() => {
+                onNavigateContact();
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                currentPage === 'contact' 
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              {t('header.contact')}
+            </button>
+            <button 
+              onClick={() => {
+                onNavigateMyPage();
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                currentPage === 'mypage' 
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              {t('header.mypage')}
+            </button>
+            
+            {/* 관리자 메뉴 */}
+            {(!authChecked || authLoading || rolesLoading) ? (
+              <div className="w-full h-10 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+            ) : isAdmin && (
+              <button 
+                onClick={() => {
+                  onNavigateAdminInquiries();
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  currentPage === 'admin-inquiries' 
+                    ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                {t('header.admin')}
+              </button>
+            )}
+            
+            {/* 모바일용 구글 로그인 */}
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <GoogleAuth />
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

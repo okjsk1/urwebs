@@ -7,15 +7,28 @@ import { TemplateChipsSearch } from './home/TemplateChipsSearch';
 import { PopularTemplatesGrid } from './home/PopularTemplatesGrid';
 import { SocialProof } from './home/SocialProof';
 import { TemplateSelectModal } from './modals/TemplateSelectModal';
+import { Onboarding } from './Onboarding';
+import { HelpTooltip } from './HelpTooltip';
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics';
 
 export function Home() {
   const navigate = useNavigate();
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const handleStartNow = () => {
     trackEvent(ANALYTICS_EVENTS.CTA_CLICK, { button: 'start_now' });
     setShowTemplateModal(true);
+  };
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('urwebs-onboarding-seen', 'true');
+    setShowOnboarding(false);
+    trackEvent(ANALYTICS_EVENTS.CTA_CLICK, { button: 'onboarding_completed' });
+  };
+
+  const handleShowOnboarding = () => {
+    setShowOnboarding(true);
   };
 
   const handleSelectTemplate = (templateId: string) => {
@@ -88,6 +101,11 @@ export function Home() {
               나만의 시작페이지를<br />
               <span className="text-indigo-600 dark:text-indigo-400">드래그 한 번으로.</span><br />
               <span className="text-purple-600 dark:text-purple-400">링크 하나로 공유.</span>
+              <HelpTooltip 
+                content="URWEBS는 드래그 앤 드롭으로 쉽게 개인화된 웹 페이지를 만들 수 있는 플랫폼입니다. 처음 사용하시나요? 가이드를 확인해보세요!"
+                position="top"
+                className="ml-2"
+              />
             </h1>
             
             <p className="text-lg text-gray-600 dark:text-gray-200 mb-8 leading-relaxed">
@@ -111,6 +129,14 @@ export function Home() {
               >
                 인기 페이지 둘러보기
                 <ArrowRight className="w-4 h-4" />
+              </button>
+              
+              <button
+                onClick={handleShowOnboarding}
+                className="h-12 px-4 rounded-xl font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-300 dark:border-gray-600"
+                title="사용 가이드 보기"
+              >
+                가이드
               </button>
             </div>
           </div>
@@ -152,6 +178,13 @@ export function Home() {
                isOpen={showTemplateModal}
                onClose={() => setShowTemplateModal(false)}
                onSelectTemplate={handleSelectTemplate}
+             />
+
+             {/* 온보딩 모달 */}
+             <Onboarding
+               isOpen={showOnboarding}
+               onClose={() => setShowOnboarding(false)}
+               onComplete={handleOnboardingComplete}
              />
            </main>
          );

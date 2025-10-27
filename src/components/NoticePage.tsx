@@ -109,11 +109,11 @@ export function NoticePage() {
 
   const getCategoryColor = (category: Notice['category']) => {
     switch (category) {
-      case '공지': return 'bg-red-100 text-red-800 border-red-200';
-      case '업데이트': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case '이벤트': return 'bg-green-100 text-green-800 border-green-200';
-      case '안내': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case '공지': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700';
+      case '업데이트': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700';
+      case '이벤트': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
+      case '안내': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600';
     }
   };
 
@@ -138,20 +138,20 @@ export function NoticePage() {
           </Button>
         </div>
 
-        <Card className="p-8">
-          <div className="border-b border-gray-200 pb-6 mb-6">
+        <Card className="p-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <div className="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
             <div className="flex items-center gap-2 mb-3">
               {selectedNotice.isPinned && (
-                <Pin className="w-4 h-4 text-red-500" />
+                <Pin className="w-4 h-4 text-red-500 dark:text-red-400" />
               )}
               <Badge className={getCategoryColor(selectedNotice.category)}>
                 {selectedNotice.category}
               </Badge>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               {selectedNotice.title}
             </h1>
-            <div className="flex items-center gap-6 text-sm text-gray-600">
+            <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
                 {selectedNotice.author}
@@ -168,7 +168,7 @@ export function NoticePage() {
           </div>
           
           <div className="prose max-w-none">
-            <p className="text-gray-800 leading-relaxed whitespace-pre-line">
+            <p className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-line">
               {selectedNotice.content}
             </p>
           </div>
@@ -191,18 +191,18 @@ export function NoticePage() {
           </Button>
         </div>
 
-        <Card className="p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">공지사항 작성</h1>
+        <Card className="p-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">공지사항 작성</h1>
           
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 카테고리
               </label>
               <select
                 value={newNotice.category}
                 onChange={(e) => setNewNotice({ ...newNotice, category: e.target.value as Notice['category'] })}
-                className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="공지">공지</option>
                 <option value="업데이트">업데이트</option>
@@ -212,7 +212,7 @@ export function NoticePage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 제목
               </label>
               <Input
@@ -224,7 +224,7 @@ export function NoticePage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 내용
               </label>
               <Textarea
@@ -252,8 +252,8 @@ export function NoticePage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-3">공지사항</h1>
-        <p className="text-gray-600">서비스 관련 중요한 공지사항을 확인하세요</p>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">공지사항</h1>
+        <p className="text-gray-600 dark:text-gray-400">서비스 관련 중요한 공지사항을 확인하세요</p>
         <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto rounded mt-4"></div>
       </div>
 
@@ -261,7 +261,7 @@ export function NoticePage() {
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -273,11 +273,11 @@ export function NoticePage() {
         
         <div className="flex gap-2">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
+            <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               {categories.map(category => (
                 <option key={category} value={category}>{category}</option>
@@ -288,52 +288,52 @@ export function NoticePage() {
       </div>
 
       {/* 공지사항 목록 */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   제목
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   작성자
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   작성일
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   조회수
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedNotices.map((notice) => (
                 <tr
                   key={notice.id}
-                  className="hover:bg-gray-50 cursor-pointer"
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                   onClick={() => setSelectedNotice(notice)}
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       {notice.isPinned && (
-                        <Pin className="w-4 h-4 text-red-500 flex-shrink-0" />
+                        <Pin className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
                       )}
                       <Badge className={`${getCategoryColor(notice.category)} flex-shrink-0`}>
                         {notice.category}
                       </Badge>
-                      <span className="font-medium text-gray-900 hover:text-blue-600">
+                      <span className="font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
                         {notice.title}
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {notice.author}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {notice.date}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {notice.views.toLocaleString()}
                   </td>
                 </tr>

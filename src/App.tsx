@@ -73,8 +73,16 @@ function PublicPageViewer() {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">페이지를 불러오는 중...</p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 dark:border-gray-700 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 dark:border-blue-400 border-t-transparent absolute top-0 left-1/2 transform -translate-x-1/2"></div>
+          </div>
+          <p className="text-gray-600 dark:text-gray-400 text-lg">페이지를 불러오는 중...</p>
+          <div className="mt-4 flex justify-center space-x-1">
+            <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+            <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+          </div>
         </div>
       </div>
     );
@@ -310,7 +318,7 @@ function AppContent() {
 
   return (
     <AuthProvider>
-      <ThemeProvider>
+      <ThemeProvider children={
         <Routes>
         {/* 메인 페이지 */}
         <Route path="/" element={
@@ -534,7 +542,7 @@ function AppContent() {
         {/* 공개 페이지 뷰어 - userId_pageNumber 형식 */}
         <Route path="/:pageId" element={<PublicPageViewer />} />
         </Routes>
-      </ThemeProvider>
+      } />
     </AuthProvider>
   );
 }

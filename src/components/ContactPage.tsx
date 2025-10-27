@@ -72,14 +72,14 @@ export function ContactPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center">
-          <Card className="p-12 bg-green-50 border-green-200">
-            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">문의가 접수되었습니다!</h2>
-            <p className="text-gray-600 mb-4">
+          <Card className="p-12 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700">
+            <CheckCircle className="w-16 h-16 text-green-600 dark:text-green-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">문의가 접수되었습니다!</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               빠른 시일 내에 답변 드리겠습니다.<br />
               보통 1-2 영업일 내에 이메일로 회신해드립니다.
             </p>
-            <Badge className="bg-blue-100 text-blue-800">
+            <Badge className="bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300">
               문의번호: INQ-{Date.now().toString().slice(-6)}
             </Badge>
           </Card>
@@ -99,7 +99,7 @@ export function ContactPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* 문의 폼 */}
         <div className="lg:col-span-2">
-          <Card className="p-8">
+          <Card className="p-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">문의 작성</h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
