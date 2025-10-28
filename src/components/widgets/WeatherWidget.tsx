@@ -3,8 +3,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { MapPin, RefreshCw, Settings, Thermometer, Droplets, Wind, Eye, Sunrise, Sunset, AlertCircle, Wifi, WifiOff, Navigation } from 'lucide-react';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
-import { weatherService } from '../../services/weatherService';
-import type { WeatherUnits } from '../../utils/weatherUnits';
 
 interface WeatherLocation {
   name: string;
