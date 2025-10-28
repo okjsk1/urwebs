@@ -160,3 +160,4 @@ export function Onboarding({ isOpen, onClose, onComplete }: OnboardingProps) {
     </div>
   );
 }
+
