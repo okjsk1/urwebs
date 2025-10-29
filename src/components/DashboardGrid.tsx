@@ -143,8 +143,8 @@ export function SizePicker({
           { label: '1x1', w: 1, h: 1 },
           { label: '2x1', w: 2, h: 1 }
         ];
-      case 'unified_search': // 통합검색 위젯 - 1x1만 허용
-        return [{ label: '1x1', w: 1, h: 1 }];
+      case 'unified_search': // 통합검색 위젯 - 2x1 허용
+        return [{ label: '2x1', w: 2, h: 1 }];
       case 'exchange': // 환율 위젯 - 1칸 너비만 허용
         return [
           { label: '1x1', w: 1, h: 1 },

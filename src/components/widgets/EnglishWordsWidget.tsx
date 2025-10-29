@@ -195,7 +195,7 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
   }
 
   return (
-    <div className="p-3 h-full flex flex-col">
+    <div className={`h-full flex flex-col ${((widget as any)?.size === '1x1') ? 'p-2' : 'p-3'}`}>
       {/* 설정 패널 (편집 모드에서만) */}
       {isEditMode && showSettings && (
         <div className="mb-3 p-2 bg-gray-50 rounded-lg space-y-2 shrink-0">
@@ -239,24 +239,24 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
       </div>
 
       {/* 단어 카드 */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
-        <div className="text-3xl font-bold text-gray-800">{currentWord.english}</div>
-        <div className="text-base text-gray-500">
+      <div className="flex-1 flex flex-col items-center justify-center text-center space-y-2">
+        <div className={`${((widget as any)?.size === '1x1') ? 'text-xl' : 'text-3xl'} font-bold text-gray-800`}>{currentWord.english}</div>
+        <div className={`${((widget as any)?.size === '1x1') ? 'text-[11px]' : 'text-base'} text-gray-500`}>
           {currentWord.level === 'beginner' && '🟢 초급'}
           {currentWord.level === 'intermediate' && '🟡 중급'}
           {currentWord.level === 'advanced' && '🔴 고급'}
         </div>
-        <div className="text-xl text-blue-600 font-medium">{currentWord.korean}</div>
+        <div className={`${((widget as any)?.size === '1x1') ? 'text-sm' : 'text-xl'} text-blue-600 font-medium`}>{currentWord.korean}</div>
       </div>
 
       {/* 좌/우 네비게이션 */}
       <div className="flex items-center justify-between shrink-0">
-        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={prev}>
-          <ChevronLeft className="w-4 h-4" />
+        <Button size="sm" variant="outline" className={`${((widget as any)?.size === '1x1') ? 'h-6 w-6' : 'h-8 w-8'} p-0`} onClick={prev}>
+          <ChevronLeft className={`${((widget as any)?.size === '1x1') ? 'w-3 h-3' : 'w-4 h-4'}`} />
         </Button>
-        <div className="text-xs text-gray-500">10초마다 자동 전환</div>
-        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={next}>
-          <ChevronRight className="w-4 h-4" />
+        <div className={`${((widget as any)?.size === '1x1') ? 'text-[10px]' : 'text-xs'} text-gray-500`}>10초마다 자동 전환</div>
+        <Button size="sm" variant="outline" className={`${((widget as any)?.size === '1x1') ? 'h-6 w-6' : 'h-8 w-8'} p-0`} onClick={next}>
+          <ChevronRight className={`${((widget as any)?.size === '1x1') ? 'w-3 h-3' : 'w-4 h-4'}`} />
         </Button>
       </div>
     </div>

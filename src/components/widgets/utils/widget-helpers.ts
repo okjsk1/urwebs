@@ -23,7 +23,6 @@ export const EDITABLE_WIDGET_TYPES = [
   'quicknote',         // 빠른 메모 위젯 - 메모 편집
   'links',             // 링크 위젯 - 링크 관리
   'news',              // 뉴스 위젯 - 카테고리 설정
-  'social',            // 소셜 링크 위젯 - 링크 관리
   'music',             // 음악 위젯 - 플레이리스트 설정
   'github',            // GitHub 위젯 - 저장소 설정
   'qr',                // QR 코드 위젯 - 텍스트 설정

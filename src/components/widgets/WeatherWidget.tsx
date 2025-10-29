@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { MapPin, RefreshCw, Settings, Thermometer, Droplets, Wind, Eye, Sunrise, Sunset, AlertCircle, Wifi, WifiOff, Navigation } from 'lucide-react';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
+import { WeatherUnits } from '../../utils/weatherUnits';
+import { weatherService } from '../../services/weatherService';
 
 interface WeatherLocation {
   name: string;
@@ -11,14 +13,19 @@ interface WeatherLocation {
 }
 
 interface CurrentWeather {
+  location: WeatherLocation;
   temperature: number;
+  feelsLike: number;
+  condition: string;
   description: string;
   humidity: number;
   windSpeed: number;
   visibility: number;
   pressure: number;
-  sunrise: string;
-  sunset: string;
+  icon: string;
+  timestamp: number;
+  sunrise?: number;
+  sunset?: number;
 }
 
 interface WeatherState {
@@ -32,7 +39,7 @@ interface WeatherState {
   customLocation: string;
   autoRefresh: boolean;
   refreshInterval: number;
-  units: string;
+  units: WeatherUnits;
   loading: boolean;
   error: string | null;
   lastUpdated: number;
@@ -45,18 +52,7 @@ const DEFAULT_LOCATION: WeatherLocation = {
   lon: 126.9780,
 };
 
-const DEFAULT_WEATHER: CurrentWeather = {
-  temperature: 22,
-  description: '맑음',
-  humidity: 60,
-  windSpeed: 3.2,
-  visibility: 10,
-  pressure: 1013,
-  sunrise: '06:30',
-  sunset: '18:45'
-};
-
-// 간단한 포맷팅 함수들
+// 간단한 포맷팅 함수들 - weatherUnits에서 import하지 않고 로컬 정의 유지 (기존 코드 호환)
 const formatTemperature = (temp: number, units: string): string => {
   return `${Math.round(temp)}°${units === 'metric' ? 'C' : 'F'}`;
 };
@@ -103,8 +99,7 @@ export const WeatherWidget = ({ widget, isEditMode, updateWidget }: WidgetProps)
         saved.location = {
           name: saved.location,
           lat: DEFAULT_LOCATION.lat,
-          lon: DEFAULT_LOCATION.lon,
-          timezone: DEFAULT_LOCATION.timezone
+          lon: DEFAULT_LOCATION.lon
         };
       } else if (!saved.location || typeof saved.location.lat !== 'number' || typeof saved.location.lon !== 'number') {
         saved.location = DEFAULT_LOCATION;

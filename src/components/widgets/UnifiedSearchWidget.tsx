@@ -69,7 +69,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget }: Widget
               <button
                 type="button"
                 onClick={() => setShowEngineList(!showEngineList)}
-                className="flex items-center gap-1 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-l-full transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-l-full transition-colors"
                 style={{ borderRight: '1px solid #e5e7eb' }}
               >
                 <span 
@@ -121,13 +121,13 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget }: Widget
               value={state.searchQuery}
               onChange={(e) => setState(prev => ({ ...prev, searchQuery: e.target.value }))}
               placeholder={`${selectedEngineData.name} 검색`}
-              className="flex-1 px-3 py-2 text-sm border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
+              className="flex-1 px-2.5 py-1.5 text-sm border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
             />
             
             {/* 검색 버튼 */}
             <button
               type="submit"
-              className="p-2 rounded-r-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-1.5 rounded-r-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               title="검색"
             >
               <SearchIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />

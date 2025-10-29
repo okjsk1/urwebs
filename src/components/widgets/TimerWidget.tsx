@@ -232,7 +232,7 @@ export function TimerWidget({
   // 현재 표시할 시간 계산
   const getDisplayTime = (): { time: string; color: string } => {
     let remainingMs = 0;
-    let color = 'text-gray-900';
+    let color = 'text-gray-900 dark:text-gray-100';
 
     if (state.mode === 'countdown' && state.targetMs) {
       remainingMs = Math.max(0, state.targetMs - Date.now());
@@ -278,8 +278,8 @@ export function TimerWidget({
               onClick={() => changeMode(mode)}
               className={`px-2 py-1 text-xs rounded ${
                 state.mode === mode 
-                  ? 'bg-indigo-100 text-indigo-700' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' 
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {MODE_LABELS[mode]}
@@ -294,8 +294,16 @@ export function TimerWidget({
           </div>
           
           {state.mode === 'pomodoro' && (
-            <div className="text-sm text-gray-600 mb-2">
-              {state.pomo.phase === 'work' ? '작업' : '휴식'} • {state.pomo.rounds}라운드
+            <div className={`text-sm mb-2 ${
+              state.mode === 'pomodoro' 
+                ? 'text-gray-600 dark:text-gray-400' 
+                : ''
+            }`}>
+              {state.mode === 'pomodoro' && (
+                <>
+                  {state.pomo.phase === 'work' ? '작업' : '휴식'} • {state.pomo.rounds}라운드
+                </>
+              )}
             </div>
           )}
 
@@ -309,14 +317,14 @@ export function TimerWidget({
             </button>
             <button
               onClick={resetTimer}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:ring-2 focus:ring-gray-200"
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
             <button
               onClick={toggleSound}
-              className={`px-4 py-2 rounded-lg focus:ring-2 focus:ring-gray-200 ${
-                state.sound ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+              className={`px-4 py-2 rounded-lg focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 ${
+                state.sound ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
               }`}
             >
               {state.sound ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -326,14 +334,14 @@ export function TimerWidget({
 
         {/* 설정 */}
         {state.mode === 'countdown' && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="text-xs text-gray-600 mb-2">빠른 설정</div>
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">빠른 설정</div>
             <div className="flex gap-1">
               {[5, 10, 15, 30].map((min) => (
                 <button
                   key={min}
                   onClick={() => setCountdown(min)}
-                  className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                  className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
                 >
                   {min}분
                 </button>
@@ -343,39 +351,39 @@ export function TimerWidget({
         )}
 
         {state.mode === 'pomodoro' && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="text-xs text-gray-600 mb-2">포모도로 설정</div>
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">포모도로 설정</div>
             <div className="flex gap-2">
               <div className="flex items-center gap-1">
-                <label className="text-xs text-gray-600">작업:</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">작업:</label>
                 <input
                   type="number"
                   value={state.pomo.workMin}
                   onChange={(e) => setPomodoro(Number(e.target.value), state.pomo.restMin)}
-                  className="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded"
+                  className="w-12 px-1 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   min="1"
                   max="60"
                 />
-                <span className="text-xs text-gray-600">분</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">분</span>
               </div>
               <div className="flex items-center gap-1">
-                <label className="text-xs text-gray-600">휴식:</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">휴식:</label>
                 <input
                   type="number"
                   value={state.pomo.restMin}
                   onChange={(e) => setPomodoro(state.pomo.workMin, Number(e.target.value))}
-                  className="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded"
+                  className="w-12 px-1 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   min="1"
                   max="30"
                 />
-                <span className="text-xs text-gray-600">분</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">분</span>
               </div>
             </div>
           </div>
         )}
 
         {/* 단축키 안내 */}
-        <div className="mt-2 text-xs text-gray-400">
+        <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
           Space: 시작/정지 • R: 리셋 • 1/2/3: 모드
         </div>
       </div>

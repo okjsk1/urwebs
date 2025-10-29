@@ -362,41 +362,17 @@ export function MyPage() {
       return;
     }
     
-    // 로그인 상태: 저장된 페이지가 있는지 확인
+    // 로그인 상태: 모달 표시 로직만 처리 (페이지 로드는 아래 useEffect에서 처리)
     if (savedPages) {
-      try {
-        // 저장된 페이지가 있으면 모달 표시하지 않고 바로 해당 페이지 로드
-        const parsedPages = JSON.parse(savedPages);
-        console.log('→ 로그인 사용자 (저장된 페이지 있음): 페이지 바로 로드', parsedPages);
-        
-        if (parsedPages && parsedPages.length > 0) {
-          setPages(parsedPages);
-          setCurrentPageId(parsedPages[0].id);
-          setPageTitle(parsedPages[0].title);
-          setWidgets(parsedPages[0].widgets || []);
-          console.log('→ 첫 번째 페이지로 자동 이동:', parsedPages[0].title);
-        }
-        
-        localStorage.setItem(userVisitKey, 'true');
-      } catch (error) {
-        console.error('저장된 페이지 파싱 오류:', error);
-        // 파싱 오류 시 템플릿 모달 표시
+      // 저장된 페이지가 있으면 모달 표시하지 않음
+      localStorage.setItem(userVisitKey, 'true');
+    } else {
+      // 저장된 페이지가 없으면 템플릿 모달 표시
+      if (!hasVisitedMyPage) {
+        console.log('→ 로그인 사용자 (저장된 페이지 없음): 템플릿 모달 표시');
         setShowTemplateModal(true);
         localStorage.setItem(userVisitKey, 'true');
       }
-    } else {
-      // 저장된 페이지가 없으면 기본 페이지 생성
-      console.log('→ 로그인 사용자 (저장된 페이지 없음): 기본 페이지 생성');
-      const defaultPage = {
-        id: Date.now().toString(),
-        title: '나만의 페이지',
-        widgets: []
-      };
-      setPages([defaultPage]);
-      setCurrentPageId(defaultPage.id);
-      setPageTitle(defaultPage.title);
-      setWidgets([]);
-      localStorage.setItem(userVisitKey, 'true');
     }
   }, [currentUser]);
 
@@ -405,12 +381,122 @@ export function MyPage() {
   const [showBackgroundModal, setShowBackgroundModal] = useState(false);
   const [showFontModal, setShowFontModal] = useState(false);
 
-  // 저장된 페이지 불러오기 - setTimeout으로 우선순위 조정하여 초기 렌더링 최적화
+  // 저장된 페이지 불러오기 - Firebase 우선, 없으면 localStorage
   useEffect(() => {
-    // localStorage 작업을 다음 프레임으로 지연하여 초기 렌더링 방해 최소화
-    const timer = setTimeout(() => {
+    const loadPages = async () => {
       // 로그인 사용자의 페이지 불러오기
       if (currentUser) {
+        try {
+          // 1. Firebase에서 먼저 로드 시도
+          console.log('→ Firebase에서 페이지 데이터 로드 시도...');
+          const pagesRef = collection(db, 'userPages');
+          // Firebase에서 모든 페이지 가져오기 (isDeleted 필터 제거 - Firestore에서 != 연산자 제한)
+          const q = query(
+            pagesRef, 
+            where('authorId', '==', currentUser.id)
+          );
+          const snapshot = await getDocs(q);
+          
+          if (!snapshot.empty) {
+            console.log('→ Firebase에서', snapshot.docs.length, '개의 페이지 발견');
+            
+            // Firebase 데이터를 localStorage 형식으로 변환 (삭제되지 않은 페이지만)
+            const firebasePages = snapshot.docs
+              .filter(doc => {
+                const data = doc.data();
+                return !data.isDeleted; // 삭제되지 않은 페이지만 필터링
+              })
+              .map(doc => {
+                const data = doc.data();
+                // Firebase에서 가져온 데이터를 localStorage 형식으로 변환
+                const parseGridSize = (gs: any) => {
+                  if (gs && typeof gs === 'object' && gs.w && gs.h) {
+                    return gs;
+                  }
+                  return { w: 1, h: 1 };
+                };
+                
+                return {
+                  id: `page_${doc.id}`, // Firebase doc.id를 기반으로 한 안정적인 ID
+                  firebaseDocId: doc.id, // Firebase 문서 ID 저장
+                  title: data.title || '제목 없음',
+                  widgets: (data.widgets || []).map((w: any, idx: number) => ({
+                    id: w.id || `widget_${doc.id}_${idx}`,
+                    type: w.type,
+                    title: w.title || '',
+                    x: w.x || 0,
+                    y: w.y || 0,
+                    width: w.width || 1,
+                    height: w.height || 1,
+                    size: w.size || `${w.width || 1}x${w.height || 1}`,
+                    gridSize: parseGridSize(w.gridSize),
+                    content: w.content || {}
+                  })),
+                  createdAt: data.createdAt?.seconds ? data.createdAt.seconds * 1000 : Date.now(),
+                  isActive: !data.isDeleted,
+                  customUrl: data.urlId?.replace(currentUser.email?.split('@')[0] + '_', '') || undefined,
+                  urlId: data.urlId || undefined
+                };
+              })
+              .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); // 생성 시간순 정렬
+            
+            // 공개 설정도 Firebase에서 가져오기 (첫 번째 페이지의 공개 설정 사용)
+            if (firebasePages.length > 0) {
+              // 필터링된 페이지 중 첫 번째 것의 원본 데이터 찾기
+              const firstFirebasePage = firebasePages[0];
+              const firstDoc = snapshot.docs.find(doc => doc.id === firstFirebasePage.firebaseDocId);
+              if (firstDoc) {
+                const firstPageData = firstDoc.data();
+                setShareSettings({
+                  isPublic: firstPageData.isPublic || false
+                });
+                localStorage.setItem(`shareSettings_${currentUser.id}`, JSON.stringify({
+                  isPublic: firstPageData.isPublic || false
+                }));
+              }
+            }
+            
+            // localStorage에 동기화
+            localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(firebasePages));
+            
+            // 페이지 데이터 설정
+            setPages(firebasePages);
+            
+            // URL에서 페이지 찾기
+            let targetPage = firebasePages[0];
+            if (pageId) {
+              const pageIndex = parseInt(pageId.split('_')[1]) - 1;
+              if (pageIndex >= 0 && pageIndex < firebasePages.length) {
+                targetPage = firebasePages[pageIndex];
+              }
+            } else {
+              targetPage = firebasePages.find((p: any) => p.isActive) || firebasePages[0];
+            }
+            
+            if (targetPage) {
+              setCurrentPageId(targetPage.id);
+              setPageTitle(targetPage.title);
+              setWidgets(targetPage.widgets || []);
+              
+              // URL 업데이트
+              const pageIndex = firebasePages.findIndex((p: any) => p.id === targetPage.id);
+              const userPrefix = currentUser.email?.split('@')[0] || 'user';
+              const expectedUrl = `${userPrefix}_${pageIndex + 1}`;
+              if (!pageId || pageId !== expectedUrl) {
+                navigate(`/mypage/${expectedUrl}`, { replace: true });
+              }
+            }
+            
+            console.log('→ Firebase 데이터 로드 완료');
+            return; // Firebase 데이터가 있으면 여기서 종료
+          } else {
+            console.log('→ Firebase에 저장된 페이지 없음, localStorage 확인');
+          }
+        } catch (error) {
+          console.error('Firebase 로드 실패:', error);
+        }
+        
+        // 2. Firebase에 데이터가 없으면 localStorage에서 로드
         const savedPagesData = localStorage.getItem(`myPages_${currentUser.id}`);
         const savedShareSettings = localStorage.getItem(`shareSettings_${currentUser.id}`);
         
@@ -458,6 +544,24 @@ export function MyPage() {
             console.error('페이지 로드 실패:', error);
           }
         }
+        
+        // Firebase와 localStorage 모두에 데이터가 없으면 기본 페이지 생성
+        if (!savedPagesData || (savedPagesData && JSON.parse(savedPagesData).length === 0)) {
+          console.log('→ 저장된 페이지 없음: 기본 페이지 생성');
+          const defaultPage = {
+            id: `page_${Date.now()}`,
+            title: '나만의 페이지',
+            widgets: [],
+            createdAt: Date.now(),
+            isActive: true
+          };
+          const defaultPages = [defaultPage];
+          setPages(defaultPages);
+          setCurrentPageId(defaultPage.id);
+          setPageTitle(defaultPage.title);
+          setWidgets([]);
+          localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(defaultPages));
+        }
       } else {
         // 비로그인 사용자의 페이지 불러오기
         const guestPagesData = localStorage.getItem('myPages');
@@ -490,9 +594,9 @@ export function MyPage() {
           }
         }
       }
-    }, 0);
+    };
     
-    return () => clearTimeout(timer);
+    loadPages();
   }, [currentUser, pageId, navigate]);
 
 
@@ -1112,14 +1216,13 @@ export function MyPage() {
       width = 312; // 2 * 150 + 1 * 12 = 312px (강제 설정)
       height = 160; // 1 * 160 + 0 * 12 = 160px
     } else if (type === 'unified_search') {
-      // 통합검색 위젯은 1x1 또는 2x1 크기 가능
-      widgetSize = size || '1x1';
-      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
-      width = dimensions.width;
-      height = dimensions.height;
+      // 통합검색 위젯은 2x1 그리드 크기 - 강제로 2칸 너비 설정
+      widgetSize = '2x1';
+      width = 312; // 2 * 150 + 1 * 12 = 312px (강제 설정)
+      height = 160; // 1 * 160 + 0 * 12 = 160px
       
       // 디버깅을 위한 로그 추가
-      console.log('🔍 검색 위젯 생성:', { type, width, height, widgetSize });
+      console.log('🔍 통합검색 위젯 생성:', { type, width, height, widgetSize });
     } else if (type === 'weather_small') {
       widgetSize = '4x1'; // 메인 컬럼 전체 너비
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
@@ -1318,10 +1421,10 @@ export function MyPage() {
       console.log('공개 설정 저장됨 (게스트):', shareSettings);
     }
     
-    // Firebase에 저장 (로그인한 사용자만)
+    // Firebase에 저장 (로그인한 사용자면 항상 저장 - 공개/비공개 무관)
     console.log('Firebase 저장 조건 체크:', { currentUser: !!currentUser, isPublic: shareSettings.isPublic });
-    if (currentUser && shareSettings.isPublic) {
-      console.log('→ Firebase 저장 시작');
+    if (currentUser) {
+      console.log('→ Firebase 저장 시작 (공개/비공개 모두 저장)');
       try {
         const currentPage = updatedPages.find(p => p.id === targetPageId);
         if (!currentPage) return;
@@ -1372,9 +1475,9 @@ export function MyPage() {
               }
               return null;
             };
-      // 구글/네이버 위젯은 강제로 2칸 너비로 설정
+      // 구글/네이버/통합검색 위젯은 강제로 2칸 너비로 설정
       let gridSize;
-      if (w.type === 'google_search' || w.type === 'naver_search') {
+      if (w.type === 'google_search' || w.type === 'naver_search' || w.type === 'unified_search') {
         gridSize = { w: 2, h: 1 }; // 강제로 2x1 그리드 크기
       } else {
         gridSize = w.gridSize || parseSize(w.size) || {
@@ -2162,10 +2265,8 @@ export function MyPage() {
     
     // gridSize가 없는 경우에만 타입에 따라 자동 설정
     if (!widget.gridSize) {
-      if (widget.type === 'google_search' || widget.type === 'naver_search') {
+      if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'unified_search') {
         gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 기본
-      } else if (widget.type === 'unified_search') {
-        gridSize = { w: 1, h: 1 }; // 통합검색 위젯은 1x1 기본
       } else if (widget.type === 'bookmark') {
         gridSize = { w: 1, h: 2 }; // 북마크는 1x2 기본
       } else if (widget.type === 'calendar') {

@@ -95,9 +95,13 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
       refreshInterval: 60000,
       lastRefresh: Date.now(),
       baseCurrency: 'KRW',
-      status: 'live',
+      status: 'live' as const,
       notificationPermission: false
     });
+    // 저장된 데이터에 status가 없으면 기본값 설정
+    if (!saved.status) {
+      saved.status = 'live';
+    }
     return saved;
   });
 
@@ -250,7 +254,8 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
             }`}>
               {state.status === 'live' ? 'LIVE' : 
                state.status === 'error' ? 'ERROR' : 
-               state.status === 'stale' ? 'STALE' : state.status.toUpperCase()}
+               state.status === 'stale' ? 'STALE' : 
+               (state.status || 'idle').toUpperCase()}
             </span>
           </div>
         </div>

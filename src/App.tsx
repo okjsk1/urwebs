@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Header } from './components/Header';
 import { HomePageNew } from './components/HomePageNew';
 import { CategoryDetailPageColumns } from './components/CategoryDetailPageColumns';
@@ -25,15 +25,19 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 function PublicPageViewer() {
   const { pageId } = useParams<{ pageId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [pageData, setPageData] = useState(() => null as any);
   const [loading, setLoading] = useState(() => true);
   const [error, setError] = useState(() => null as string | null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likedBy, setLikedBy] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchPage = async () => {
       try {
         setLoading(true);
-        const { collection, query, where, getDocs, doc, updateDoc, increment } = await import('firebase/firestore');
+        // 페이지 데이터 즉시 로드 (조회수 증가는 백그라운드)
+        const { collection, query, where, getDocs, doc, updateDoc, increment, arrayUnion, arrayRemove } = await import('firebase/firestore');
         const { db } = await import('./firebase/config');
         
         const pagesRef = collection(db, 'userPages');
@@ -42,24 +46,35 @@ function PublicPageViewer() {
         
         if (!snapshot.empty) {
           const docData = snapshot.docs[0].data();
-          setPageData({ id: snapshot.docs[0].id, ...docData });
+          const pageId_doc = snapshot.docs[0].id;
+          setPageData({ id: pageId_doc, ...docData });
+          
+          // 좋아요 상태 확인
+          const likedUsers = docData.likedBy || [];
+          setLikedBy(likedUsers);
+          if (user && likedUsers.includes(user.uid)) {
+            setIsLiked(true);
+          }
           
           // 조회수 증가: 백그라운드에서 조용히 시도 (실패해도 무시)
-          try {
-            const docRef = doc(db, 'userPages', snapshot.docs[0].id);
-            await updateDoc(docRef, { views: increment(1) });
-            // 페이지 데이터에도 조회수 업데이트
-            docData.views = (docData.views || 0) + 1;
-          } catch (e) {
-            // 조회수 증가 실패는 조용히 무시 (페이지 표시에는 영향 없음)
-          }
+          setTimeout(async () => {
+            try {
+              const docRef = doc(db, 'userPages', pageId_doc);
+              await updateDoc(docRef, { views: increment(1) });
+              setPageData((prev: any) => ({ ...prev, views: (prev.views || 0) + 1 }));
+            } catch (e) {
+              // 조회수 증가 실패는 조용히 무시
+            }
+          }, 100);
+          
+          setLoading(false);
         } else {
           setError('페이지를 찾을 수 없습니다.');
+          setLoading(false);
         }
       } catch (err) {
         console.error('페이지 로드 실패:', err);
         setError('페이지를 불러오는데 실패했습니다.');
-      } finally {
         setLoading(false);
       }
     };
@@ -67,7 +82,7 @@ function PublicPageViewer() {
     if (pageId) {
       fetchPage();
     }
-  }, [pageId]);
+  }, [pageId, user]);
 
   if (loading) {
     return (
@@ -114,38 +129,89 @@ function PublicPageViewer() {
             <p className="text-xs text-gray-600 dark:text-gray-400">by {pageData.authorName}</p>
           </div>
           <div className="flex items-center gap-4">
-            {/* 조회수 - 인스타그램 스타일 */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full border border-blue-200/50 dark:border-blue-700/50">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                👁️ {pageData.views?.toLocaleString() || 0}
-              </span>
+            {/* 조회수 - 고급스러운 디자인 */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">조회수</span>
+                <span className="text-base font-bold text-slate-900 dark:text-slate-100">{pageData.views?.toLocaleString() || 0}</span>
+              </div>
             </div>
             
-            {/* 좋아요 버튼 - 인스타그램 스타일 */}
+            {/* 좋아요 버튼 - 유튜브 스타일 */}
             <button 
               onClick={async () => {
+                if (!user) {
+                  alert('로그인이 필요합니다.');
+                  return;
+                }
+                
                 try {
-                  const { doc, updateDoc, increment } = await import('firebase/firestore');
+                  const { doc, updateDoc, arrayUnion, arrayRemove, increment, decrement } = await import('firebase/firestore');
                   const { db } = await import('./firebase/config');
                   const docRef = doc(db, 'userPages', pageData.id);
-                  await updateDoc(docRef, { likes: increment(1) });
-                  // 페이지 데이터 업데이트
-                  setPageData(prev => ({ ...prev, likes: (prev.likes || 0) + 1 }));
+                  
+                  if (isLiked) {
+                    // 좋아요 취소
+                    await updateDoc(docRef, { 
+                      likedBy: arrayRemove(user.uid),
+                      likes: decrement(1)
+                    });
+                    setIsLiked(false);
+                    setLikedBy(prev => prev.filter(uid => uid !== user.uid));
+                    setPageData((prev: any) => ({ ...prev, likes: Math.max(0, (prev.likes || 0) - 1) }));
+                  } else {
+                    // 좋아요 추가
+                    await updateDoc(docRef, { 
+                      likedBy: arrayUnion(user.uid),
+                      likes: increment(1)
+                    });
+                    setIsLiked(true);
+                    setLikedBy(prev => [...prev, user.uid]);
+                    setPageData((prev: any) => ({ ...prev, likes: (prev.likes || 0) + 1 }));
+                  }
                 } catch (error) {
                   console.error('좋아요 실패:', error);
+                  alert('좋아요 처리에 실패했습니다.');
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-full border border-pink-200/50 dark:border-pink-700/50 hover:from-pink-100 hover:to-rose-100 dark:hover:from-pink-900/30 dark:hover:to-rose-900/30 transition-all duration-200 group"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-200 ${
+                isLiked 
+                  ? 'bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border-red-300 dark:border-red-700 shadow-md hover:shadow-lg' 
+                  : 'bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-800 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md'
+              }`}
             >
-              <div className="w-2 h-2 bg-pink-500 rounded-full group-hover:scale-110 transition-transform duration-200"></div>
-              <span className="text-sm font-semibold text-pink-700 dark:text-pink-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-200">
-                ❤️ {pageData.likes || 0}
-              </span>
+              <svg 
+                className={`w-6 h-6 transition-all duration-200 ${
+                  isLiked 
+                    ? 'text-red-600 dark:text-red-400 fill-red-600 dark:fill-red-400' 
+                    : 'text-gray-400 dark:text-gray-500'
+                }`}
+                fill={isLiked ? "currentColor" : "none"}
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">좋아요</span>
+                <span className={`text-base font-bold ${
+                  isLiked 
+                    ? 'text-red-600 dark:text-red-400' 
+                    : 'text-gray-900 dark:text-gray-100'
+                }`}>
+                  {pageData.likes || 0}
+                </span>
+              </div>
             </button>
             <button 
               onClick={() => navigate('/')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
             >
               메인으로
             </button>

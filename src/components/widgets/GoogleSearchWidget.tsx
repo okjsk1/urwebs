@@ -36,8 +36,8 @@ export function GoogleSearchWidget({ id, title, size = 'm', onRemove, onResize, 
       </div>
 
       <form onSubmit={handleSearch} className="w-full">
-        <div className="flex items-center gap-2 rounded-full border border-gray-300 bg-white/80 backdrop-blur px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500">
-          <Search className="w-5 h-5 text-gray-400" aria-hidden="true" />
+        <div className="flex items-center gap-1 rounded-full border border-gray-300 bg-white/80 backdrop-blur px-2 py-1.5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500">
+          <Search className="w-4 h-4 text-gray-400" aria-hidden="true" />
           <input
             type="text"
             placeholder="Google 검색 또는 URL 입력"
@@ -46,13 +46,13 @@ export function GoogleSearchWidget({ id, title, size = 'm', onRemove, onResize, 
             className="flex-1 bg-transparent outline-none text-sm"
           />
           <button type="button" aria-label="키보드" className="p-1 rounded-full hover:bg-gray-100">
-            <Keyboard className="w-5 h-5 text-gray-500" aria-hidden="true" />
+            <Keyboard className="w-4 h-4 text-gray-500" aria-hidden="true" />
           </button>
           <button type="button" aria-label="음성 검색" className="p-1 rounded-full hover:bg-gray-100">
-            <Mic className="w-5 h-5 text-gray-500" aria-hidden="true" />
+            <Mic className="w-4 h-4 text-gray-500" aria-hidden="true" />
           </button>
           <button type="button" aria-label="이미지 검색" className="p-1 rounded-full hover:bg-gray-100">
-            <Camera className="w-5 h-5 text-gray-500" aria-hidden="true" />
+            <Camera className="w-4 h-4 text-gray-500" aria-hidden="true" />
           </button>
         </div>
       </form>

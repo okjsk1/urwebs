@@ -118,15 +118,15 @@ export function DdayWidget({
     const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const isPast = diffMs < 0;
     
-    let color = 'text-gray-600';
+    let color = 'text-gray-600 dark:text-gray-400';
     if (isPast) {
-      color = 'text-gray-400';
+      color = 'text-gray-400 dark:text-gray-600';
     } else if (days === 0) {
-      color = 'text-red-600';
+      color = 'text-red-600 dark:text-red-400';
     } else if (days <= 3) {
-      color = 'text-orange-500';
+      color = 'text-orange-500 dark:text-orange-400';
     } else if (days <= 7) {
-      color = 'text-yellow-500';
+      color = 'text-yellow-500 dark:text-yellow-400';
     }
     
     return { days: Math.abs(days), hours: Math.abs(hours), isPast, color };
@@ -286,7 +286,7 @@ export function DdayWidget({
               value={quickInput}
               onChange={(e) => setQuickInput(e.target.value)}
               placeholder="2025-03-01 졸업식"
-              className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-200"
+              className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-green-200 dark:focus:ring-green-800 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
               onKeyPress={(e) => e.key === 'Enter' && handleQuickAdd()}
             />
             <button
@@ -300,12 +300,12 @@ export function DdayWidget({
 
         {/* 상세 추가 폼 */}
         {showAddForm && (
-          <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+          <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="space-y-2">
               <input
                 type="text"
                 placeholder="제목"
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     const target = e.target as HTMLInputElement;
@@ -317,14 +317,14 @@ export function DdayWidget({
               <div className="flex gap-2">
                 <input
                   type="date"
-                  className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                  className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   onChange={(e) => {
                     if (e.target.value) {
                       addItem({ at: new Date(e.target.value).toISOString() });
                     }
                   }}
                 />
-                <select className="px-2 py-1 text-sm border border-gray-300 rounded">
+                <select className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                   {CATEGORIES.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -341,8 +341,8 @@ export function DdayWidget({
               onClick={requestNotificationPermission}
               className={`p-1 rounded ${
                 notificationPermission === 'granted' 
-                  ? 'text-green-600' 
-                  : 'text-gray-400'
+                  ? 'text-green-600 dark:text-green-400' 
+                  : 'text-gray-400 dark:text-gray-500'
               }`}
             >
               {notificationPermission === 'granted' ? 
@@ -350,7 +350,7 @@ export function DdayWidget({
                 <BellOff className="w-4 h-4" />
               }
             </button>
-            <span className="text-xs text-gray-600">알림</span>
+            <span className="text-xs text-gray-600 dark:text-gray-400">알림</span>
           </div>
           
           <div className="flex gap-1">
@@ -360,8 +360,8 @@ export function DdayWidget({
                 onClick={() => toggleNotification(days)}
                 className={`px-2 py-1 text-xs rounded ${
                   state.notifyDays.includes(days)
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 {days}일
@@ -373,8 +373,8 @@ export function DdayWidget({
         {/* D-Day 목록 */}
         <div className="flex-1 overflow-y-auto space-y-2">
           {sortedItems.length === 0 ? (
-            <div className="text-center py-4 text-gray-500">
-              <Calendar className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+              <Calendar className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
               <div className="text-sm">D-Day를 추가해주세요</div>
             </div>
           ) : (
@@ -383,22 +383,22 @@ export function DdayWidget({
                 key={item.id}
                 className={`p-2 border rounded-lg ${
                   item.dday.isPast 
-                    ? 'border-gray-200 bg-gray-50' 
-                    : 'border-gray-200 hover:bg-gray-50'
+                    ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800' 
+                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="text-sm font-medium text-gray-900 mb-1">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
                       {item.title}
                     </h4>
                     
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                      <span className="px-1 py-0.5 bg-gray-100 rounded text-xs">
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <span className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">
                         {item.cat}
                       </span>
                       {item.repeat !== 'none' && (
-                        <span className="px-1 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                        <span className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs">
                           {REPEAT_LABELS[item.repeat]}
                         </span>
                       )}
@@ -418,13 +418,13 @@ export function DdayWidget({
                   <div className="flex gap-1">
                     <button
                       onClick={() => toggleItem(item.id)}
-                      className="p-1 text-gray-400 hover:text-green-600 focus:ring-2 focus:ring-green-200"
+                      className="p-1 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-800"
                     >
                       <CheckCircle className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="p-1 text-gray-400 hover:text-red-600 focus:ring-2 focus:ring-red-200"
+                      className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800"
                     >
                       ×
                     </button>
@@ -438,19 +438,19 @@ export function DdayWidget({
         {/* 완료된 항목 */}
         {completedItems.length > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="text-xs text-gray-500 mb-2">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
               완료됨 ({completedItems.length})
             </div>
             <div className="space-y-1">
               {completedItems.slice(0, 3).map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between text-xs text-gray-400"
+                  className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500"
                 >
                   <span className="line-through">{item.title}</span>
                   <button
                     onClick={() => toggleItem(item.id)}
-                    className="text-green-600 hover:text-green-700"
+                    className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
                   >
                     복원
                   </button>

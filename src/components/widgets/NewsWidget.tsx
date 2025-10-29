@@ -25,6 +25,7 @@ export interface NewsState {
   items: NewsItem[];
   lastFetched?: number;
   refreshInterval: number; // 분 단위
+  interests?: string[]; // 사용자 관심사 키워드
 }
 
 export interface NewsWidgetProps {
@@ -61,6 +62,7 @@ export function NewsWidget({
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [newFeedUrl, setNewFeedUrl] = useState('');
+  const INTEREST_OPTIONS = ['IT', '경제', '주식', '코인', '스포츠', '연예', '정치', '세계', '자동차'];
 
   // RSS 파싱 함수 (간단한 구현)
   const parseRSS = async (url: string): Promise<NewsItem[]> => {
@@ -336,6 +338,32 @@ export function NewsWidget({
                 ))}
               </div>
             </div>
+
+        {/* 관심사 선택 */}
+        <div className="mt-3">
+          <div className="text-sm font-medium text-gray-700 mb-2">관심사</div>
+          <div className="flex flex-wrap gap-2">
+            {INTEREST_OPTIONS.map(opt => {
+              const active = (state.interests || []).includes(opt);
+              return (
+                <button
+                  key={opt}
+                  onClick={() =>
+                    setState(prev => {
+                      const cur = prev.interests || [];
+                      const next = active ? cur.filter(x => x !== opt) : [...cur, opt];
+                      return { ...prev, interests: next };
+                    })
+                  }
+                  className={`px-2 py-1 text-xs rounded border ${active ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          <div className="text-[11px] text-gray-500 mt-1">관심사가 선택되면 제목/요약에 포함된 기사만 보여줘요</div>
+        </div>
           </div>
         )}
 
@@ -368,7 +396,13 @@ export function NewsWidget({
               <div className="text-sm">뉴스 피드를 추가해주세요</div>
             </div>
           ) : (
-            state.items.map((item) => (
+            (state.interests && state.interests.length > 0
+              ? state.items.filter(item => {
+                  const hay = (item.title + ' ' + (item.summary || '')).toLowerCase();
+                  return state.interests!.some(k => hay.includes(k.toLowerCase()));
+                })
+              : state.items
+            ).map((item) => (
               <div
                 key={item.id}
                 className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
