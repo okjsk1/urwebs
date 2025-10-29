@@ -386,6 +386,7 @@ export function MyPage() {
     const loadPages = async () => {
       // 로그인 사용자의 페이지 불러오기
       if (currentUser) {
+        let firebaseSnapshot: any = null;
         try {
           // 1. Firebase에서 먼저 로드 시도
           console.log('→ Firebase에서 페이지 데이터 로드 시도...');
@@ -395,13 +396,13 @@ export function MyPage() {
             pagesRef, 
             where('authorId', '==', currentUser.id)
           );
-          const snapshot = await getDocs(q);
+          firebaseSnapshot = await getDocs(q);
           
-          if (!snapshot.empty) {
-            console.log('→ Firebase에서', snapshot.docs.length, '개의 페이지 발견');
+          if (firebaseSnapshot && !firebaseSnapshot.empty) {
+            console.log('→ Firebase에서', firebaseSnapshot.docs.length, '개의 페이지 발견');
             
             // Firebase 데이터를 localStorage 형식으로 변환 (삭제되지 않은 페이지만)
-            const firebasePages = snapshot.docs
+            const firebasePages = firebaseSnapshot.docs
               .filter(doc => {
                 const data = doc.data();
                 return !data.isDeleted; // 삭제되지 않은 페이지만 필터링
@@ -420,18 +421,26 @@ export function MyPage() {
                   id: `page_${doc.id}`, // Firebase doc.id를 기반으로 한 안정적인 ID
                   firebaseDocId: doc.id, // Firebase 문서 ID 저장
                   title: data.title || '제목 없음',
-                  widgets: (data.widgets || []).map((w: any, idx: number) => ({
-                    id: w.id || `widget_${doc.id}_${idx}`,
-                    type: w.type,
-                    title: w.title || '',
-                    x: w.x || 0,
-                    y: w.y || 0,
-                    width: w.width || 1,
-                    height: w.height || 1,
-                    size: w.size || `${w.width || 1}x${w.height || 1}`,
-                    gridSize: parseGridSize(w.gridSize),
-                    content: w.content || {}
-                  })),
+                  widgets: (data.widgets || []).map((w: any, idx: number) => {
+                    // Firebase의 x, y는 그리드 좌표이므로 픽셀 좌표로 변환
+                    const gridX = w.x || 0;
+                    const gridY = w.y || 0;
+                    const pixelX = gridX * (subCellWidth + spacing);
+                    const pixelY = gridY * (cellHeight + spacing);
+                    
+                    return {
+                      id: w.id || `widget_${doc.id}_${idx}`,
+                      type: w.type,
+                      title: w.title || '',
+                      x: pixelX,
+                      y: pixelY,
+                      width: w.width || 1,
+                      height: w.height || 1,
+                      size: w.size || `${w.width || 1}x${w.height || 1}`,
+                      gridSize: parseGridSize(w.gridSize),
+                      content: w.content || {}
+                    };
+                  }),
                   createdAt: data.createdAt?.seconds ? data.createdAt.seconds * 1000 : Date.now(),
                   isActive: !data.isDeleted,
                   customUrl: data.urlId?.replace(currentUser.email?.split('@')[0] + '_', '') || undefined,
@@ -444,7 +453,7 @@ export function MyPage() {
             if (firebasePages.length > 0) {
               // 필터링된 페이지 중 첫 번째 것의 원본 데이터 찾기
               const firstFirebasePage = firebasePages[0];
-              const firstDoc = snapshot.docs.find(doc => doc.id === firstFirebasePage.firebaseDocId);
+              const firstDoc = firebaseSnapshot.docs.find(doc => doc.id === firstFirebasePage.firebaseDocId);
               if (firstDoc) {
                 const firstPageData = firstDoc.data();
                 setShareSettings({
@@ -492,9 +501,10 @@ export function MyPage() {
           } else {
             console.log('→ Firebase에 저장된 페이지 없음, localStorage 확인');
           }
-        } catch (error) {
-          console.error('Firebase 로드 실패:', error);
-        }
+          } catch (error) {
+            console.error('Firebase 로드 실패:', error);
+            firebaseSnapshot = null; // 에러 시 null로 설정
+          }
         
         // 2. Firebase에 데이터가 없으면 localStorage에서 로드
         const savedPagesData = localStorage.getItem(`myPages_${currentUser.id}`);
@@ -546,7 +556,9 @@ export function MyPage() {
         }
         
         // Firebase와 localStorage 모두에 데이터가 없으면 기본 페이지 생성
-        if (!savedPagesData || (savedPagesData && JSON.parse(savedPagesData).length === 0)) {
+        // Firebase에서 이미 로드했으면 기본 페이지 생성하지 않음
+        const hasFirebaseData = firebaseSnapshot && !firebaseSnapshot.empty;
+        if (!hasFirebaseData && (!savedPagesData || (savedPagesData && JSON.parse(savedPagesData).length === 0))) {
           console.log('→ 저장된 페이지 없음: 기본 페이지 생성');
           const defaultPage = {
             id: `page_${Date.now()}`,
@@ -971,23 +983,90 @@ export function MyPage() {
       setWidgets(firstPage.widgets);
     }
 
-    // Firestore에 soft delete 표시 (공개 목록에서 숨김)
+    // localStorage에 즉시 저장
+    if (currentUser) {
+      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(remainingPages));
+    } else {
+      localStorage.setItem('myPages', JSON.stringify(remainingPages));
+    }
+
+    // Firestore에 soft delete 표시 및 삭제된 페이지의 Firebase 문서 찾아서 업데이트
     try {
       if (currentUser) {
         const pageToDelete = pages.find(p => p.id === pageId);
         if (pageToDelete) {
-          const userIdPart = (currentUser?.email?.split('@')[0] || 'user');
-          const userPageIndex = pages.findIndex(p => p.id === pageId) + 1;
-          const urlId = pageToDelete.customUrl || `${userIdPart}_${userPageIndex}`;
-          
-          const pagesRef = collection(db, 'userPages');
-          const q = query(pagesRef, where('authorId', '==', currentUser.id), where('urlId', '==', urlId));
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty) {
-            const docId = snapshot.docs[0].id;
-            const docRef = doc(db, 'userPages', docId);
-            await updateDoc(docRef, { isDeleted: true, updatedAt: serverTimestamp() });
+          // firebaseDocId를 사용하여 직접 문서 업데이트
+          if (pageToDelete.firebaseDocId) {
+            const docRef = doc(db, 'userPages', pageToDelete.firebaseDocId);
+            await updateDoc(docRef, { 
+              isDeleted: true, 
+              updatedAt: serverTimestamp() 
+            });
+            console.log('→ Firebase에서 페이지 삭제 완료:', pageToDelete.firebaseDocId);
+          } else {
+            // firebaseDocId가 없으면 urlId로 찾기
+            const userIdPart = (currentUser?.email?.split('@')[0] || 'user');
+            const userPageIndex = pages.findIndex(p => p.id === pageId) + 1;
+            const urlId = pageToDelete.customUrl || pageToDelete.urlId || `${userIdPart}_${userPageIndex}`;
+            
+            const pagesRef = collection(db, 'userPages');
+            const q = query(pagesRef, where('authorId', '==', currentUser.id), where('urlId', '==', urlId));
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+              const docId = snapshot.docs[0].id;
+              const docRef = doc(db, 'userPages', docId);
+              await updateDoc(docRef, { 
+                isDeleted: true, 
+                updatedAt: serverTimestamp() 
+              });
+              console.log('→ Firebase에서 페이지 삭제 완료 (urlId로 찾음):', docId);
+            }
           }
+        }
+        
+        // 나머지 페이지들도 Firebase에 동기화 (urlId 업데이트)
+        // 페이지 삭제 후 인덱스가 변경되므로 urlId를 재계산하여 동기화
+        try {
+          const userIdPart = (currentUser?.email?.split('@')[0] || 'user');
+          
+          for (let i = 0; i < remainingPages.length; i++) {
+            const page = remainingPages[i];
+            const newUrlId = page.customUrl || `${userIdPart}_${i + 1}`;
+            
+            const pagesRef = collection(db, 'userPages');
+            let snapshot;
+            
+            // firebaseDocId가 있으면 직접 업데이트
+            if (page.firebaseDocId) {
+              const docRef = doc(db, 'userPages', page.firebaseDocId);
+              await updateDoc(docRef, {
+                urlId: newUrlId,
+                pageNumber: i + 1,
+                updatedAt: serverTimestamp()
+              });
+              continue;
+            }
+            
+            // 기존 urlId로 찾기
+            const oldUrlId = page.urlId || page.customUrl || `${userIdPart}_${pages.findIndex(p => p.id === page.id) + 1}`;
+            snapshot = await getDocs(
+              query(pagesRef, where('authorId', '==', currentUser.id), where('urlId', '==', oldUrlId))
+            );
+            
+            if (!snapshot.empty) {
+              const docId = snapshot.docs[0].id;
+              const docRef = doc(db, 'userPages', docId);
+              await updateDoc(docRef, {
+                urlId: newUrlId,
+                pageNumber: i + 1,
+                updatedAt: serverTimestamp()
+              });
+            }
+          }
+          
+          console.log('→ 나머지 페이지 Firebase 동기화 완료');
+        } catch (error) {
+          console.error('페이지 동기화 실패:', error);
         }
       }
     } catch (e) {
@@ -1354,6 +1433,77 @@ export function MyPage() {
     setWidgets(widgets.filter(w => w.id !== id));
     if (selectedWidget === id) {
       setSelectedWidget(null);
+    }
+  };
+
+  // 모든 페이지를 Firebase에 동기화하는 헬퍼 함수
+  const syncAllPagesToFirebase = async (pagesToSync: Page[]) => {
+    if (!currentUser || pagesToSync.length === 0) return;
+    
+    try {
+      const userIdPart = (currentUser?.email?.split('@')[0] || 'user');
+      
+      for (let i = 0; i < pagesToSync.length; i++) {
+        const page = pagesToSync[i];
+        const urlId = page.customUrl || page.urlId || `${userIdPart}_${i + 1}`;
+        
+        const pagesRef = collection(db, 'userPages');
+        const q = query(pagesRef, where('authorId', '==', currentUser.id), where('urlId', '==', urlId));
+        const snapshot = await getDocs(q);
+        
+        const pageData = {
+          title: page.title || '제목 없음',
+          description: '',
+          authorId: currentUser.id || '',
+          authorName: currentUser.name || '익명',
+          authorEmail: currentUser.email || '',
+          category: '일반',
+          isPublic: shareSettings.isPublic || false,
+          urlId: urlId,
+          pageNumber: i + 1,
+          widgets: page.widgets.map((w: any) => ({
+            id: w.id,
+            type: w.type,
+            title: w.title || '',
+            x: w.x || 0,
+            y: w.y || 0,
+            width: w.width || 1,
+            height: w.height || 1,
+            gridSize: w.gridSize || { w: w.width || 1, h: w.height || 1 },
+            size: w.size || `${w.width || 1}x${w.height || 1}`,
+            content: w.content || {}
+          })),
+          tags: [],
+          views: 0,
+          likes: 0,
+          updatedAt: serverTimestamp()
+        };
+        
+        if (!snapshot.empty) {
+          const docId = snapshot.docs[0].id;
+          const docRef = doc(db, 'userPages', docId);
+          await updateDoc(docRef, {
+            ...pageData,
+            isDeleted: false,
+            updatedAt: serverTimestamp()
+          });
+        } else {
+          // 새 페이지 생성
+          await addDoc(pagesRef, {
+            ...pageData,
+            isDeleted: false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            views: 0,
+            likes: 0,
+            copies: 0
+          });
+        }
+      }
+      
+      console.log('→ 모든 페이지 Firebase 동기화 완료');
+    } catch (error) {
+      console.error('Firebase 동기화 실패:', error);
     }
   };
 
@@ -2358,11 +2508,7 @@ export function MyPage() {
         >
           <div className="flex items-center gap-2 flex-1">
             <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-              {(() => {
-                const widgetName = originalWidget.title || allWidgets.find(w => w.type === originalWidget.type)?.name || '위젯';
-                console.log(`위젯 타이틀 디버그 - ID: ${originalWidget.id}, Type: ${originalWidget.type}, Title: ${originalWidget.title}, WidgetName: ${widgetName}`);
-                return widgetName;
-              })()}
+              {originalWidget.title || allWidgets.find(w => w.type === originalWidget.type)?.name || '위젯'}
             </span>
           </div>
           
@@ -3208,6 +3354,12 @@ export function MyPage() {
 
       case 'qr_code':
         return <QRCodeWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+
+      case 'timer':
+        return <WidgetContentRenderer widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} widgets={widgets} setWidgets={setWidgets} />;
+
+      case 'dday':
+        return <WidgetContentRenderer widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} widgets={widgets} setWidgets={setWidgets} />;
 
       default:
         return (

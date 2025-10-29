@@ -23,7 +23,7 @@ export function LawSearchWidget({ id, title, size = 'm', onRemove, onResize, onP
       onRemove={onRemove ? () => onRemove(id) : undefined}
       onResize={onResize ? (newSize) => onResize(id, newSize) : undefined}
       onPin={onPin ? () => onPin(id) : undefined}
-      contentClassName="w-full flex flex-col items-center justify-center"
+      contentClassName="w-full h-full flex flex-col items-center justify-center min-h-0"
     >
       {/* 로고는 헤더처럼 보이지 않게 간단히 */}
       <div className="mb-3 text-sm font-bold leading-none text-purple-600">

@@ -59,8 +59,8 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget }: Widget
   }, [widget.id, state, updateWidget]);
 
   return (
-    <div className="p-3 h-full flex flex-col">
-      <form onSubmit={handleSearch} className="flex-1 flex flex-col justify-center">
+    <div className="p-3 h-full flex flex-col items-center justify-center min-h-0">
+      <form onSubmit={handleSearch} className="w-full flex flex-col items-center justify-center flex-1">
         <div className="relative">
           {/* 통합 검색바 */}
           <div className="flex items-center bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full shadow-md hover:shadow-lg transition-shadow">

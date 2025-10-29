@@ -59,6 +59,9 @@ export interface Page {
   createdAt: number;
   updatedAt?: number;
   isActive?: boolean;
+  customUrl?: string; // 사용자 정의 URL
+  urlId?: string; // Firebase에서 사용하는 URL ID
+  firebaseDocId?: string; // Firebase 문서 ID
 }
 
 // 위젯 카테고리 정의

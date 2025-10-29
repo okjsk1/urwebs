@@ -67,7 +67,7 @@ export function WidgetShell({
     ? `rounded-2xl border bg-white shadow-sm overflow-hidden ${sizeClasses[size]} ${className}`
     : `bg-transparent shadow-none ring-0 ${className}`;
 
-  const bodyPad = variant === 'card' ? 'p-3 h-full overflow-hidden' : 'p-0';
+  const bodyPad = variant === 'card' ? 'p-3 h-full overflow-hidden flex flex-col' : 'p-0';
 
   return (
     <section 
