@@ -152,6 +152,11 @@ export function SizePicker({
           { label: '1x3', w: 1, h: 3 },
           { label: '1x4', w: 1, h: 4 }
         ];
+      case 'english_words': // 영어 단어 위젯 - 1x1, 1x2 허용
+        return [
+          { label: '1x1', w: 1, h: 1 },
+          { label: '1x2', w: 1, h: 2 }
+        ];
       case 'law_search': // 법제처 검색 위젯 - 2x1만 허용
         return [{ label: '2x1', w: 2, h: 1 }];
       case 'todo': // To Do 위젯 - 2칸 너비만 허용
@@ -176,9 +181,25 @@ export function SizePicker({
         ];
       case 'bookmark': // 북마크 위젯 - 1칸 너비만 허용
         return [
+          { label: '1x1', w: 1, h: 1 },
           { label: '1x2', w: 1, h: 2 },
           { label: '1x3', w: 1, h: 3 },
           { label: '1x4', w: 1, h: 4 }
+        ];
+      case 'dday': // D-Day 위젯 - 1x1, 1x2 허용
+        return [
+          { label: '1x1', w: 1, h: 1 },
+          { label: '1x2', w: 1, h: 2 }
+        ];
+      case 'quicknote': // 빠른메모 위젯 - 1x1, 1x2 허용
+        return [
+          { label: '1x1', w: 1, h: 1 },
+          { label: '1x2', w: 1, h: 2 }
+        ];
+      case 'calendar': // 캘린더 위젯 - 1x1, 1x2 허용
+        return [
+          { label: '1x1', w: 1, h: 1 },
+          { label: '1x2', w: 1, h: 2 }
         ];
       default: // 기본 위젯들 - 모든 크기 허용
         return [

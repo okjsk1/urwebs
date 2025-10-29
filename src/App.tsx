@@ -57,13 +57,25 @@ function PublicPageViewer() {
           }
           
           // 조회수 증가: 백그라운드에서 조용히 시도 (실패해도 무시)
+          // 본인이 자신의 페이지를 볼 때는 조회수 증가하지 않음
           setTimeout(async () => {
             try {
+              // 본인 페이지인지 확인
+              if (user && docData.authorId === user.uid) {
+                return; // 본인 페이지면 조회수 증가하지 않음
+              }
+              
+              // 삭제되지 않은 페이지만 조회수 증가
+              if (docData.isDeleted) {
+                return;
+              }
+              
               const docRef = doc(db, 'userPages', pageId_doc);
               await updateDoc(docRef, { views: increment(1) });
               setPageData((prev: any) => ({ ...prev, views: (prev.views || 0) + 1 }));
             } catch (e) {
               // 조회수 증가 실패는 조용히 무시
+              console.error('조회수 증가 실패:', e);
             }
           }, 100);
           
@@ -152,7 +164,7 @@ function PublicPageViewer() {
                 }
                 
                 try {
-                  const { doc, updateDoc, arrayUnion, arrayRemove, increment, decrement } = await import('firebase/firestore');
+                  const { doc, updateDoc, arrayUnion, arrayRemove, increment } = await import('firebase/firestore');
                   const { db } = await import('./firebase/config');
                   const docRef = doc(db, 'userPages', pageData.id);
                   
@@ -160,7 +172,7 @@ function PublicPageViewer() {
                     // 좋아요 취소
                     await updateDoc(docRef, { 
                       likedBy: arrayRemove(user.uid),
-                      likes: decrement(1)
+                      likes: increment(-1)
                     });
                     setIsLiked(false);
                     setLikedBy(prev => prev.filter(uid => uid !== user.uid));

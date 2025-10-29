@@ -131,8 +131,11 @@ export default function DraggableDashboardGrid({
   // 활성 위젯 찾기
   const activeWidget = activeId ? widgets.find(w => w.id === activeId) : null;
   
-  // 초기 로드 시 겹침 자동 해소
+  // 초기 로드 시 겹침 자동 해소 (한 번만 실행, 겹침이 있을 때만)
   useEffect(() => {
+    // 위젯이 없으면 스킵
+    if (widgets.length === 0) return;
+    
     const layouts: WidgetLayout[] = widgets.map(w => ({
       id: w.id,
       x: w.x || 0,
@@ -141,25 +144,41 @@ export default function DraggableDashboardGrid({
       h: w.size.h,
     }));
     
-    const normalized = normalizeLayout(layouts, cols);
-    
-    // 변경사항이 있으면 업데이트
-    const hasChanges = normalized.some((n, i) => {
-      const orig = layouts[i];
-      return n.x !== orig.x || n.y !== orig.y || n.w !== orig.w || n.h !== orig.h;
-    });
-    
-    if (hasChanges && onLayoutChange) {
-      const updatedWidgets = widgets.map(widget => {
-        const layout = normalized.find(l => l.id === widget.id);
-        if (layout) {
-          return { ...widget, x: layout.x, y: layout.y, size: { w: layout.w, h: layout.h } };
+    // 겹침이 있는지 확인
+    let hasOverlap = false;
+    for (let i = 0; i < layouts.length; i++) {
+      for (let j = i + 1; j < layouts.length; j++) {
+        if (isOverlapping(layouts[i], layouts[j])) {
+          hasOverlap = true;
+          break;
         }
-        return widget;
-      });
-      onLayoutChange(updatedWidgets);
+      }
+      if (hasOverlap) break;
     }
-  }, [cols]); // cols가 변경될 때마다 실행
+    
+    // 겹침이 있을 때만 정규화
+    if (hasOverlap && onLayoutChange) {
+      const normalized = normalizeLayout(layouts, cols);
+      
+      // 변경사항이 있으면 업데이트 (크기는 변경하지 않음)
+      const hasChanges = normalized.some((n, i) => {
+        const orig = layouts[i];
+        return n.x !== orig.x || n.y !== orig.y;
+      });
+      
+      if (hasChanges) {
+        const updatedWidgets = widgets.map(widget => {
+          const layout = normalized.find(l => l.id === widget.id);
+          if (layout) {
+            // 크기는 유지하고 위치만 변경
+            return { ...widget, x: layout.x, y: layout.y };
+          }
+          return widget;
+        });
+        onLayoutChange(updatedWidgets);
+      }
+    }
+  }, []); // 빈 배열 - 마운트 시 한 번만 실행
 
   // 각 컬럼별 최하단 위젯 찾기
   const getColumnBottomWidget = useCallback((columnIndex: number) => {
@@ -372,12 +391,22 @@ export default function DraggableDashboardGrid({
       
       if (collisionStrategy === 'push') {
         // 충돌 해결 (푸시 전략)
-        newLayouts = layouts.map(w =>
+        const tempLayouts = layouts.map(w =>
           w.id === updatedWidget.id ? updatedWidget : w
         );
-        // normalizeLayout으로 겹침 자동 해소
-        // 경계 밖으로 밀리는 현상 방지: 먼저 범위 보정 후 컴팩트
-        newLayouts = normalizeLayout(newLayouts, cols);
+        
+        // 이동한 위젯과 충돌하는 다른 위젯이 있는지 확인
+        const hasCollision = tempLayouts.some(
+          w => w.id !== updatedWidget.id && isOverlapping(w, updatedWidget)
+        );
+        
+        if (hasCollision) {
+          // 충돌이 있을 때만 normalizeLayout 호출
+          newLayouts = normalizeLayout(tempLayouts, cols);
+        } else {
+          // 충돌이 없으면 그대로 사용
+          newLayouts = tempLayouts;
+        }
       } else if (collisionStrategy === 'prevent') {
         // 충돌 시 이동 취소
         const hasCollision = layouts.some(
@@ -391,24 +420,22 @@ export default function DraggableDashboardGrid({
           return;
         }
         
+        // 충돌이 없으면 그대로 사용
         newLayouts = layouts.map(w =>
           w.id === updatedWidget.id ? updatedWidget : w
         );
-        // 안전을 위해 normalizeLayout 적용
-        newLayouts = normalizeLayout(newLayouts, cols);
       } else {
         // swap 전략 (간단 구현)
         newLayouts = layouts.map(w =>
           w.id === updatedWidget.id ? updatedWidget : w
         );
-        // 안전을 위해 normalizeLayout 적용
-        newLayouts = normalizeLayout(newLayouts, cols);
       }
 
-      // 위젯 업데이트
+      // 위젯 업데이트 (크기는 변경하지 않음)
       const updatedWidgets = widgets.map(w => {
         const layout = newLayouts.find(l => l.id === w.id);
         if (layout) {
+          // 크기는 유지하고 위치만 변경
           return { ...w, x: layout.x, y: layout.y };
         }
         return w;
@@ -545,7 +572,7 @@ export default function DraggableDashboardGrid({
           ...generateResponsiveStyles(),
           userSelect: activeId ? 'none' : 'auto',
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gridAutoRows: 'minmax(160px, auto)',
+          gridAutoRows: `${responsiveCells.default}px`, // 고정 높이로 변경 (auto 제거)
           position: 'relative',
           display: 'grid',
         }}

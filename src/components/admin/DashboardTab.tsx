@@ -57,7 +57,7 @@ export function DashboardTab() {
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        // userPages 컬렉션에서 통계 수집
+        // userPages 컬렉션에서 통계 수집 (삭제되지 않은 페이지만)
         const pagesRef = collection(db, 'userPages');
         const pagesSnapshot = await getDocs(pagesRef);
         
@@ -67,6 +67,10 @@ export function DashboardTab() {
         
         pagesSnapshot.docs.forEach(doc => {
           const data = doc.data();
+          // 삭제되지 않은 페이지만 카운트
+          if (data.isDeleted) {
+            return;
+          }
           totalPages++;
           totalWidgets += data.widgets?.length || 0;
           if (data.authorId || data.authorEmail) {
@@ -80,6 +84,25 @@ export function DashboardTab() {
         const totalInquiries = inquiriesSnapshot.size;
         const pendingInquiries = inquiriesSnapshot.docs.filter(doc => doc.data().status === 'pending').length;
         
+        // 템플릿 데이터
+        let totalTemplates = 0;
+        try {
+          const templatesRef = collection(db, 'templates');
+          const templatesSnapshot = await getDocs(templatesRef);
+          totalTemplates = templatesSnapshot.docs.filter(doc => {
+            const data = doc.data();
+            return !data.isDeleted; // 삭제되지 않은 템플릿만 카운트
+          }).length;
+          
+          // 템플릿이 없으면 로컬 템플릿 수 사용 (기본값)
+          if (totalTemplates === 0) {
+            totalTemplates = 1; // 기본 템플릿 1개
+          }
+        } catch (templatesError) {
+          console.error('템플릿 개수 조회 실패:', templatesError);
+          totalTemplates = 1; // 기본값
+        }
+        
         setStats({
           totalUsers: uniqueUsers.size,
           activeUsers: uniqueUsers.size,
@@ -87,14 +110,15 @@ export function DashboardTab() {
           pendingInquiries,
           totalPages,
           totalWidgets,
-          totalTemplates: 6,
+          totalTemplates,
           todayVisitors: totalPages,
           weeklyGrowth: 0,
           monthlyGrowth: 0
         });
         
-        // 최근 활동 (최근 페이지 생성)
+        // 최근 활동 (최근 페이지 생성 - 삭제되지 않은 페이지만)
         const recentPages = pagesSnapshot.docs
+          .filter(doc => !doc.data().isDeleted) // 삭제되지 않은 페이지만
           .map(doc => ({
             data: doc.data(),
             id: doc.id

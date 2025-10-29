@@ -225,9 +225,19 @@ export function CommunityPage() {
         // 새로고침 실패해도 등록은 성공했으므로 페이지 새로고침 안내
         alert('게시글이 등록되었습니다. 목록을 보려면 페이지를 새로고침해주세요.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('게시글 등록 실패:', error);
-      alert('게시글 등록에 실패했습니다. 다시 시도해주세요.');
+      let errorMessage = '게시글 등록에 실패했습니다. 다시 시도해주세요.';
+      
+      if (error?.code === 'permission-denied') {
+        errorMessage = '게시글 등록 권한이 없습니다. 로그인 상태를 확인해주세요.';
+      } else if (error?.code === 'unavailable') {
+        errorMessage = '서비스가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.';
+      } else if (error?.message) {
+        errorMessage = `게시글 등록 실패: ${error.message}`;
+      }
+      
+      alert(errorMessage);
     }
   };
 

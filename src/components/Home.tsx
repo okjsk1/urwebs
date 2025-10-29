@@ -98,14 +98,9 @@ export function Home() {
           {/* 좌측: 헤드라인 + CTA */}
           <div className="flex-1">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
-              나만의 시작페이지를<br />
-              <span className="text-indigo-600 dark:text-indigo-400">드래그 한 번으로.</span><br />
-              <span className="text-purple-600 dark:text-purple-400">링크 하나로 공유.</span>
-              <HelpTooltip 
-                content="URWEBS는 드래그 앤 드롭으로 쉽게 개인화된 웹 페이지를 만들 수 있는 플랫폼입니다. 처음 사용하시나요? 가이드를 확인해보세요!"
-                position="top"
-                className="ml-2"
-              />
+              구글,네이버가 아닌<br />
+              <span className="text-indigo-600 dark:text-indigo-400">`나만의` 시작페이지를</span><br />
+              <span className="text-purple-600 dark:text-purple-400">만들어보세요 :)</span>
             </h1>
             
             <p className="text-lg text-gray-600 dark:text-gray-200 mb-8 leading-relaxed">

@@ -421,26 +421,19 @@ export function MyPage() {
                   id: `page_${doc.id}`, // Firebase doc.id를 기반으로 한 안정적인 ID
                   firebaseDocId: doc.id, // Firebase 문서 ID 저장
                   title: data.title || '제목 없음',
-                  widgets: (data.widgets || []).map((w: any, idx: number) => {
-                    // Firebase의 x, y는 그리드 좌표이므로 픽셀 좌표로 변환
-                    const gridX = w.x || 0;
-                    const gridY = w.y || 0;
-                    const pixelX = gridX * (subCellWidth + spacing);
-                    const pixelY = gridY * (cellHeight + spacing);
-                    
-                    return {
-                      id: w.id || `widget_${doc.id}_${idx}`,
-                      type: w.type,
-                      title: w.title || '',
-                      x: pixelX,
-                      y: pixelY,
-                      width: w.width || 1,
-                      height: w.height || 1,
-                      size: w.size || `${w.width || 1}x${w.height || 1}`,
-                      gridSize: parseGridSize(w.gridSize),
-                      content: w.content || {}
-                    };
-                  }),
+                  widgets: (data.widgets || []).map((w: any, idx: number) => ({
+                    id: w.id || `widget_${doc.id}_${idx}`,
+                    type: w.type,
+                    title: w.title || '',
+                    // x, y는 "그리드 좌표"로 일관 유지
+                    x: w.x || 0,
+                    y: w.y || 0,
+                    width: w.width || 1,
+                    height: w.height || 1,
+                    size: w.size || `${w.width || 1}x${w.height || 1}`,
+                    gridSize: parseGridSize(w.gridSize),
+                    content: w.content || {}
+                  })),
                   createdAt: data.createdAt?.seconds ? data.createdAt.seconds * 1000 : Date.now(),
                   isActive: !data.isDeleted,
                   customUrl: data.urlId?.replace(currentUser.email?.split('@')[0] + '_', '') || undefined,
@@ -1328,12 +1321,20 @@ export function MyPage() {
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'bookmark') {
-      widgetSize = '1x2'; // 북마크 위젯은 기본 1x2 크기 (북마크 개수에 따라 자동 조정됨)
+      // 북마크 위젯은 1x1, 1x2, 1x3, 1x4 크기 가능
+      widgetSize = (size === '1x1' || size === '1x2' || size === '1x3' || size === '1x4') ? size : '1x1';
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'quicknote') {
+      // 빠른메모 위젯은 1x1, 1x2 크기 가능
+      widgetSize = (size === '1x1' || size === '1x2') ? size : '1x1';
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'calendar') {
-      widgetSize = '2x2'; // 캘린더 위젯은 2칸 너비, 2칸 높이
+      // 캘린더 위젯은 1x1, 1x2 허용 (기본 1x1)
+      widgetSize = (size === '1x2') ? '1x2' : '1x1';
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -1343,7 +1344,14 @@ export function MyPage() {
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'english_words') {
-      widgetSize = '1x2'; // 영어단어 위젯은 1칸 너비, 2칸 높이 (고정)
+      // 영어단어 위젯은 1x1, 1x2 허용
+      widgetSize = (size === '1x1' || size === '1x2') ? size : '1x1';
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'dday') {
+      // D-Day 위젯은 1x1, 1x2 허용
+      widgetSize = (size === '1x2') ? '1x2' : '1x1';
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -1639,8 +1647,8 @@ export function MyPage() {
               id: w.id,
               type: w.type,
               title: w.title || '',
-              x: toGridX(w.x),
-              y: toGridY(w.y),
+              x: w.x || 0, // 이미 그리드 좌표이므로 그대로 사용
+              y: w.y || 0, // 이미 그리드 좌표이므로 그대로 사용
               width: gridSize.w,
               height: gridSize.h,
               gridSize,
@@ -1681,6 +1689,17 @@ export function MyPage() {
             updatedAt: serverTimestamp()
           });
           console.log('✅ Firebase 페이지 업데이트 완료! (docId:', docId, ')');
+        } else if ((currentPage as any)?.firebaseDocId) {
+          // urlId로는 못 찾았지만 로컬에 firebaseDocId가 있으면 해당 문서 업데이트
+          const fallbackId = (currentPage as any).firebaseDocId as string;
+          console.log('📝 fallback: firebaseDocId로 업데이트 시도 (docId:', fallbackId, ')');
+          const docRef = doc(db, 'userPages', fallbackId);
+          await updateDoc(docRef, {
+            ...pageData,
+            isDeleted: false,
+            updatedAt: serverTimestamp()
+          });
+          console.log('✅ Firebase 페이지 업데이트 완료! (fallback docId:', fallbackId, ')');
         } else {
           // 새 페이지 생성 (처음 저장할 때만)
           console.log('🆕 새 페이지 생성 중...');
@@ -2408,7 +2427,7 @@ export function MyPage() {
     };
   }, [draggedWidget, dragOffset, COL_TRACK, cellHeight]);
 
-  // 위젯을 그리드 형식으로 변환
+  // 위젯을 그리드 형식으로 변환 (좌표는 그리드 단위로 일관 유지)
   const convertToGridWidget = (widget: Widget) => {
     // 기존 gridSize가 있으면 우선 사용
     let gridSize = widget.gridSize || { w: 1, h: 1 };
@@ -2418,9 +2437,9 @@ export function MyPage() {
       if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'unified_search') {
         gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 기본
       } else if (widget.type === 'bookmark') {
-        gridSize = { w: 1, h: 2 }; // 북마크는 1x2 기본
+        gridSize = { w: 1, h: 1 }; // 북마크는 기본 1x1 (1x1, 1x2, 1x3, 1x4 가능)
       } else if (widget.type === 'calendar') {
-        gridSize = { w: 2, h: 2 }; // 캘린더는 2x2
+        gridSize = { w: 1, h: 1 }; // 캘린더 기본 1x1 (1x1, 1x2 허용)
       } else if (widget.type === 'crypto') {
         gridSize = { w: 1, h: 2 }; // 크립토 위젯은 1x2 기본
       } else if (widget.type === 'frequent_sites') {
@@ -2430,13 +2449,17 @@ export function MyPage() {
       } else if (widget.type === 'weather') {
         gridSize = { w: 1, h: 3 }; // 날씨 위젯은 1x3
       } else if (widget.type === 'english_words') {
-        gridSize = { w: 1, h: 2 }; // 영어단어 위젯은 1x2
+        gridSize = { w: 1, h: 1 }; // 영어단어 위젯 기본 1x1 (1x1, 1x2 허용)
+      } else if (widget.type === 'dday') {
+        gridSize = { w: 1, h: 1 }; // D-Day 위젯 기본 1x1 (1x1, 1x2 허용)
       } else if (widget.type === 'quote') {
         gridSize = { w: 2, h: 1 }; // 영감명언 위젯은 2x1 고정 (고정)
       } else if (widget.type === 'economic_calendar') {
         gridSize = { w: 2, h: 2 }; // 경제캘린더 위젯은 2x2
       } else if (widget.type === 'exchange') {
         gridSize = { w: 1, h: 2 }; // 환율 위젯은 1x2 (1칸 너비만)
+      } else if (widget.type === 'quicknote') {
+        gridSize = { w: 1, h: 1 }; // 빠른메모는 기본 1x1 (1x1, 1x2 가능)
       } else if (widget.type === 'law_search') {
         gridSize = { w: 2, h: 1 }; // 법제처 검색 위젯은 2x1 고정
       } else {
@@ -2444,15 +2467,12 @@ export function MyPage() {
       }
     }
     
-    // 픽셀 좌표를 그리드 좌표로 변환
-    const gridX = Math.round(widget.x / (subCellWidth + spacing));
-    const gridY = Math.round(widget.y / (cellHeight + spacing));
-    
     return {
       ...widget,
       size: gridSize,
-      x: gridX,
-      y: gridY
+      // 이미 그리드 좌표라고 가정하고 사용
+      x: widget.x ?? 0,
+      y: widget.y ?? 0
     };
   };
 
@@ -4220,15 +4240,13 @@ export function MyPage() {
             renderWidget={(w) => renderWidget(w)}
             onLayoutChange={(updatedWidgets) => {
               // 변경 전 스냅샷을 히스토리에 저장 (현재 prevWidgets를 이용)
-              // 위젯 위치 업데이트 (그리드 좌표를 픽셀 좌표로 변환)
+              // 위젯 위치 업데이트 (그리드 좌표를 그대로 사용)
               setWidgets(prevWidgets => 
                 (pushLayoutHistory(prevWidgets),
                 prevWidgets.map(widget => {
                   const updated = updatedWidgets.find(w => w.id === widget.id);
                   if (updated && updated.x !== undefined && updated.y !== undefined) {
-                    const pixelX = updated.x * (subCellWidth + spacing);
-                    const pixelY = updated.y * (cellHeight + spacing);
-                    return { ...widget, x: pixelX, y: pixelY };
+                    return { ...widget, x: updated.x, y: updated.y };
                   }
                   return widget;
                 }))

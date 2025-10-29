@@ -81,6 +81,7 @@ export function TimerWidget({
   onPin,
   isPinned = false
 }: TimerWidgetProps) {
+  const isCompact = size === 's';
   const [core, setCore] = usePersist<TimerCore>({
     key: `timer_${id}`,
     initialValue: {
@@ -195,68 +196,6 @@ export function TimerWidget({
     return { remainingMs, elapsedMs, isExpired, formatted };
   }, [core]);
 
-  // 타이머 틱 업데이트
-  const updateTimer = useCallback(() => {
-    if (!core.running || !isVisible || !isPageVisible) return;
-
-    const displayTime = calculateDisplayTime();
-    
-    // UI 강제 갱신을 위한 더미 상태 업데이트
-    setTick(prev => prev + 1);
-
-    // 카운트다운 종료 처리
-    if (core.mode === 'countdown' && displayTime.isExpired && !finishedNotifiedRef.current) {
-      finishedNotifiedRef.current = true;
-      setCore(prev => ({ ...prev, running: false }));
-      
-      // 알림 및 사운드
-      triggerFinishNotification('countdown');
-      
-      trackEvent('timer_finish', {
-        mode: 'countdown',
-        durationMs: core.targetMs ? Math.abs(core.targetMs - Date.now()) : 0
-      });
-    }
-    
-    // 포모도로 페이즈 종료 처리
-    if (core.mode === 'pomodoro' && displayTime.isExpired && !finishedNotifiedRef.current) {
-      finishedNotifiedRef.current = true;
-      
-      const nextPhase = core.pomoPhase === 'work' ? 'rest' : 'work';
-      const newRounds = nextPhase === 'work' ? core.pomoRounds + 1 : core.pomoRounds;
-      
-      setCore(prev => ({
-        ...prev,
-        pomoPhase: nextPhase,
-        pomoRounds: newRounds,
-        startEpoch: Date.now(),
-        accumulatedMs: 0
-      }));
-      
-      // 알림 및 사운드
-      triggerFinishNotification('pomodoro');
-      
-      trackEvent('timer_phase_change', {
-        from: core.pomoPhase,
-        to: nextPhase,
-        rounds: newRounds
-      });
-      
-      trackEvent('timer_finish', {
-        mode: 'pomodoro',
-        durationMs: core.pomoPhase === 'work' 
-          ? core.pomoWorkMin * 60 * 1000 
-          : core.pomoRestMin * 60 * 1000,
-        rounds: newRounds
-      });
-      
-      // 다음 페이즈 시작
-      setTimeout(() => {
-        finishedNotifiedRef.current = false;
-      }, 1000);
-    }
-  }, [core, isVisible, isPageVisible, calculateDisplayTime, setCore]);
-
   // 알림 및 사운드 트리거
   const triggerFinishNotification = useCallback(async (mode: 'countdown' | 'pomodoro') => {
     // 사운드 재생
@@ -315,6 +254,71 @@ export function TimerWidget({
       }, 500);
     }
   }, [core.sound, core.notifyEnabled, core.pomoPhase, id, title]);
+
+  // 타이머 틱 업데이트
+  const updateTimer = useCallback(() => {
+    // running이 false면 즉시 리턴 (일시정지 상태)
+    if (!core.running) return;
+    
+    if (!isVisible || !isPageVisible) return;
+
+    const displayTime = calculateDisplayTime();
+    
+    // UI 강제 갱신을 위한 더미 상태 업데이트
+    setTick(prev => prev + 1);
+
+    // 카운트다운 종료 처리
+    if (core.mode === 'countdown' && displayTime.isExpired && !finishedNotifiedRef.current) {
+      finishedNotifiedRef.current = true;
+      setCore(prev => ({ ...prev, running: false }));
+      
+      // 알림 및 사운드
+      triggerFinishNotification('countdown');
+      
+      trackEvent('timer_finish', {
+        mode: 'countdown',
+        durationMs: core.targetMs ? Math.abs(core.targetMs - Date.now()) : 0
+      });
+    }
+    
+    // 포모도로 페이즈 종료 처리
+    if (core.mode === 'pomodoro' && displayTime.isExpired && !finishedNotifiedRef.current) {
+      finishedNotifiedRef.current = true;
+      
+      const nextPhase = core.pomoPhase === 'work' ? 'rest' : 'work';
+      const newRounds = nextPhase === 'work' ? core.pomoRounds + 1 : core.pomoRounds;
+      
+      setCore(prev => ({
+        ...prev,
+        pomoPhase: nextPhase,
+        pomoRounds: newRounds,
+        startEpoch: Date.now(),
+        accumulatedMs: 0
+      }));
+      
+      // 알림 및 사운드
+      triggerFinishNotification('pomodoro');
+      
+      trackEvent('timer_phase_change', {
+        from: core.pomoPhase,
+        to: nextPhase,
+        rounds: newRounds
+      });
+      
+      trackEvent('timer_finish', {
+        mode: 'pomodoro',
+        durationMs: core.pomoPhase === 'work' 
+          ? core.pomoWorkMin * 60 * 1000 
+          : core.pomoRestMin * 60 * 1000,
+        rounds: newRounds
+      });
+      
+      // 다음 페이즈 시작
+      setTimeout(() => {
+        finishedNotifiedRef.current = false;
+      }, 1000);
+    }
+  }, [core, isVisible, isPageVisible, calculateDisplayTime, setCore, triggerFinishNotification]);
 
   // 타이머 시작/정지
   const toggleTimer = useCallback(() => {
@@ -408,9 +412,10 @@ export function TimerWidget({
       ...prev,
       targetMs,
       mode: 'countdown',
-      // 실행 중이면 즉시 적용 (재시작 없이)
-      startEpoch: prev.running ? Date.now() : null,
-      accumulatedMs: prev.running ? 0 : prev.accumulatedMs
+      // 빠른설정을 눌러도 자동으로 시작하지 않음 (사용자가 시작 버튼을 눌러야 함)
+      running: false,
+      startEpoch: null,
+      accumulatedMs: 0
     }));
     
     trackEvent('timer_preset_apply', {
@@ -433,9 +438,12 @@ export function TimerWidget({
       pomoWorkMin: workMin,
       pomoRestMin: restMin,
       mode: 'pomodoro',
-      // 실행 중이면 다음 페이즈부터 적용
-      startEpoch: prev.running ? Date.now() : null,
-      accumulatedMs: prev.running ? 0 : prev.accumulatedMs
+      // 빠른설정을 눌러도 자동으로 시작하지 않음 (사용자가 시작 버튼을 눌러야 함)
+      running: false,
+      startEpoch: null,
+      accumulatedMs: 0,
+      pomoPhase: 'work',
+      pomoRounds: 0
     }));
     
     trackEvent('timer_preset_apply', {
@@ -453,7 +461,12 @@ export function TimerWidget({
 
   // 틱 인터벌 설정
   useEffect(() => {
-    if (!core.running || !isVisible || !isPageVisible) {
+    // running이 false면 인터벌을 설정하지 않음
+    if (!core.running) {
+      return;
+    }
+    
+    if (!isVisible || !isPageVisible) {
       return;
     }
 
@@ -477,24 +490,12 @@ export function TimerWidget({
           e.preventDefault();
           resetTimer();
           break;
-        case 'Digit1':
-          e.preventDefault();
-          changeMode('countdown');
-          break;
-        case 'Digit2':
-          e.preventDefault();
-          changeMode('stopwatch');
-          break;
-        case 'Digit3':
-          e.preventDefault();
-          changeMode('pomodoro');
-          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [toggleTimer, resetTimer, changeMode]);
+  }, [toggleTimer, resetTimer]);
 
   // 시간 포맷팅 및 표시
   const displayTime = calculateDisplayTime();
@@ -553,45 +554,45 @@ export function TimerWidget({
         </div>
 
         {/* 메인 타이머 */}
-        <div className="flex-1 flex flex-col items-center justify-center">
+        <div className={`flex-1 flex flex-col items-center justify-center ${isCompact ? 'gap-1' : ''}`}>
           <div 
-            className={`text-5xl font-mono font-bold ${color} mb-2 transition-colors duration-200`}
+            className={`${isCompact ? 'text-3xl mb-1' : 'text-5xl mb-2'} font-mono font-bold ${color} transition-colors duration-200`}
             aria-label={core.mode === 'stopwatch' ? '경과 시간' : '남은 시간'}
           >
             {displayTime.formatted}
           </div>
           
           {/* 세컨드라인 정보 */}
-          {core.mode === 'pomodoro' && (
+          {core.mode === 'pomodoro' && !isCompact && (
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
               {core.pomoPhase === 'work' ? '작업' : '휴식'} • {core.pomoRounds}라운드
             </div>
           )}
-          {core.mode === 'countdown' && displayTime.remainingMs > 0 && (
+          {core.mode === 'countdown' && displayTime.remainingMs > 0 && !isCompact && (
             <div className="text-xs text-gray-500 dark:text-gray-500 mb-1">
               {Math.floor(displayTime.remainingMs / 60000)}분 {Math.floor((displayTime.remainingMs % 60000) / 1000)}초 남음
             </div>
           )}
-          {core.mode === 'stopwatch' && (
+          {core.mode === 'stopwatch' && !isCompact && (
             <div className="text-xs text-gray-500 dark:text-gray-500 mb-1">
               {Math.floor(displayTime.elapsedMs / 60000)}분 {Math.floor((displayTime.elapsedMs % 60000) / 1000)}초 경과
             </div>
           )}
 
           {/* 컨트롤 버튼 */}
-          <div className="flex gap-2 mt-4">
+          <div className={`flex gap-2 ${isCompact ? 'mt-2' : 'mt-4'}`}>
             <button
               onClick={toggleTimer}
               aria-pressed={core.running}
               aria-label={core.running ? '일시정지' : '시작'}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 transition-colors"
+              className={`${isCompact ? 'px-3 py-1.5' : 'px-4 py-2'} bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 transition-colors`}
             >
               {core.running ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </button>
             <button
               onClick={resetTimer}
               aria-label="리셋"
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors"
+              className={`${isCompact ? 'px-3 py-1.5' : 'px-4 py-2'} bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors`}
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -599,7 +600,7 @@ export function TimerWidget({
               onClick={toggleSound}
               aria-pressed={core.sound}
               aria-label={core.sound ? '사운드 끄기' : '사운드 켜기'}
-              className={`px-4 py-2 rounded-lg focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors ${
+              className={`${isCompact ? 'px-2.5 py-1.5' : 'px-4 py-2'} rounded-lg focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors ${
                 core.sound ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
               }`}
             >
@@ -609,7 +610,7 @@ export function TimerWidget({
         </div>
 
         {/* 설정 */}
-        {core.mode === 'countdown' && (
+        {core.mode === 'countdown' && !isCompact && (
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
             <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">빠른 설정</div>
             <div className="flex gap-1 flex-wrap">
@@ -627,7 +628,7 @@ export function TimerWidget({
           </div>
         )}
 
-        {core.mode === 'pomodoro' && (
+        {core.mode === 'pomodoro' && !isCompact && (
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
             <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">포모도로 설정</div>
             <div className="flex gap-1 mb-2 flex-wrap">
@@ -680,9 +681,11 @@ export function TimerWidget({
         )}
 
         {/* 단축키 안내 */}
-        <div className="mt-2 text-xs text-gray-400 dark:text-gray-500" aria-label="키보드 단축키">
-          Space: 시작/정지 • R: 리셋 • 1/2/3: 모드
-        </div>
+        {!isCompact && (
+          <div className="mt-2 text-xs text-gray-400 dark:text-gray-500" aria-label="키보드 단축키">
+            Space: 시작/정지 • R: 리셋
+          </div>
+        )}
       </div>
     </WidgetShell>
   );

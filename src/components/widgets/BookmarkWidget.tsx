@@ -438,6 +438,40 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       }}
       onDrop={handleExternalDrop}
     >
+      {/* 위젯 타이틀 이름 편집 (펜 아이콘) */}
+      {isEditMode && (
+        <div className="px-2.5 pt-2 flex items-center justify-between">
+          {!isRenaming ? (
+            <div className="flex items-center gap-2 w-full">
+              <div className="text-sm font-semibold text-gray-800 truncate">
+                {(widget.title || '새 폴더')}
+              </div>
+              <button
+                onClick={startRename}
+                className="ml-auto p-1 rounded hover:bg-gray-100"
+                aria-label="폴더 이름 편집"
+                title="폴더 이름 편집"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-gray-600"><path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712z"/><path d="M19.513 8.199l-3.712-3.712-9.88 9.88a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.93.93l2.685-.8a5.25 5.25 0 002.214-1.32l9.88-9.88z"/></svg>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 w-full">
+              <input
+                autoFocus
+                type="text"
+                value={draftTitle}
+                onChange={(e) => setDraftTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setIsRenaming(false); }}
+                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                placeholder="폴더 이름"
+              />
+              <button className="px-2 py-1 text-xs bg-blue-600 text-white rounded" onClick={commitRename}>저장</button>
+              <button className="px-2 py-1 text-xs border rounded" onClick={() => setIsRenaming(false)}>취소</button>
+            </div>
+          )}
+        </div>
+      )}
       {/* 북마크 리스트 (세로 배치) */}
       <div className="space-y-2 mb-3 flex-1 overflow-y-auto px-2.5 pt-2">
         {/* 붙여넣기 기능 제거 */}
