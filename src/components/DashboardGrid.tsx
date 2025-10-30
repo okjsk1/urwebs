@@ -191,10 +191,11 @@ export function SizePicker({
           { label: '1x1', w: 1, h: 1 },
           { label: '1x2', w: 1, h: 2 }
         ];
-      case 'quicknote': // 빠른메모 위젯 - 1x1, 1x2 허용
+      case 'quicknote': // 빠른메모 위젯 - 1x1, 1x2, 1x3 허용
         return [
           { label: '1x1', w: 1, h: 1 },
-          { label: '1x2', w: 1, h: 2 }
+          { label: '1x2', w: 1, h: 2 },
+          { label: '1x3', w: 1, h: 3 }
         ];
       case 'calendar': // 캘린더 위젯 - 1x1, 1x2 허용
         return [

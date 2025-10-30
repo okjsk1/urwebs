@@ -96,7 +96,7 @@ export function WidgetContentRenderer({
         return <GoogleSearchWidget
           id={widget.id}
           title={widget.title || '구글 검색'}
-          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          size={widget.gridSize?.h === 1 ? 's' : widget.gridSize?.h === 2 ? 'm' : 'l'}
           onRemove={() => {}}
           onResize={() => {}}
           onPin={() => {}}
@@ -106,7 +106,7 @@ export function WidgetContentRenderer({
         return <NaverSearchWidget
           id={widget.id}
           title={widget.title || '네이버 검색'}
-          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          size={widget.gridSize?.h === 1 ? 's' : widget.gridSize?.h === 2 ? 'm' : 'l'}
           onRemove={() => {}}
           onResize={() => {}}
           onPin={() => {}}
@@ -116,7 +116,7 @@ export function WidgetContentRenderer({
         return <LawSearchWidget
           id={widget.id}
           title={widget.title || '법제처 검색'}
-          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          size={widget.gridSize?.h === 1 ? 's' : widget.gridSize?.h === 2 ? 'm' : 'l'}
           onRemove={() => {}}
           onResize={() => {}}
           onPin={() => {}}
@@ -184,7 +184,7 @@ export function WidgetContentRenderer({
         return <QuickNoteWidget
           id={widget.id}
           title={widget.title || '빠른 메모'}
-          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'} // 1x1, 1x2 지원
+          size={widget.gridSize?.h === 1 ? 's' : widget.gridSize?.h === 2 ? 'm' : widget.gridSize?.h === 3 ? 'l' : 's'} // 1x1, 1x2, 1x3 지원
           onRemove={() => {}}
           onResize={() => {}}
           onPin={() => {}}
@@ -194,7 +194,7 @@ export function WidgetContentRenderer({
         return <TimerWidget 
           id={widget.id}
           title={widget.title || '타이머'}
-          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          size={widget.gridSize?.h === 1 ? 's' : widget.gridSize?.h === 2 ? 'm' : 'l'}
           onRemove={() => {}}
           onResize={() => {}}
           onPin={() => {}}
@@ -204,7 +204,7 @@ export function WidgetContentRenderer({
         return <NewsSummaryWidget 
           id={widget.id}
           title={widget.title || '뉴스 요약'}
-          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          size={widget.gridSize?.h === 1 ? 's' : widget.gridSize?.h === 2 ? 'm' : 'l'}
           onRemove={() => {}}
           onResize={() => {}}
           onPin={() => {}}
@@ -214,7 +214,7 @@ export function WidgetContentRenderer({
         return <DdayWidget 
           id={widget.id}
           title={widget.title || 'D-Day'}
-          size={widget.size?.h === 1 ? 's' : widget.size?.h === 2 ? 'm' : 'l'}
+          size={widget.gridSize?.h === 1 ? 's' : widget.gridSize?.h === 2 ? 'm' : 'l'}
           onRemove={() => {}}
           onResize={() => {}}
           onPin={() => {}}

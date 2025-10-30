@@ -16,7 +16,7 @@ export interface WidgetProps {
 export interface WidgetShellProps {
   icon: ReactNode;
   title: string;
-  children: ReactNode;
+  children?: ReactNode;
   onRefresh?: () => void;
   onRemove?: () => void;
   onResize?: (size: WidgetSize) => void;
