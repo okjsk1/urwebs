@@ -315,15 +315,6 @@ export function MyPage() {
     console.log('currentUser:', currentUser);
     console.log('shouldShowTemplateAfterLogin:', shouldShowTemplateAfterLogin);
     
-    // 로그인 후 템플릿 선택 플래그가 있으면 템플릿 모달 표시
-    if (currentUser && shouldShowTemplateAfterLogin === 'true') {
-      console.log('→ 로그인 후 템플릿 모달 표시');
-      setShowTemplateModal(true);
-      localStorage.setItem(`hasVisitedMyPage_${currentUser.id}`, 'true');
-      localStorage.removeItem('shouldShowTemplateAfterLogin');
-      return;
-    }
-    
     // 사용자별 방문 기록 확인
     const userVisitKey = currentUser ? `hasVisitedMyPage_${currentUser.id}` : 'hasVisitedMyPage_guest';
     const hasVisitedMyPage = localStorage.getItem(userVisitKey);
@@ -362,17 +353,11 @@ export function MyPage() {
       return;
     }
     
-    // 로그인 상태: 모달 표시 로직만 처리 (페이지 로드는 아래 useEffect에서 처리)
-    if (savedPages) {
-      // 저장된 페이지가 있으면 모달 표시하지 않음
-      localStorage.setItem(userVisitKey, 'true');
-    } else {
-      // 저장된 페이지가 없으면 템플릿 모달 표시
-      if (!hasVisitedMyPage) {
-        console.log('→ 로그인 사용자 (저장된 페이지 없음): 템플릿 모달 표시');
-        setShowTemplateModal(true);
-        localStorage.setItem(userVisitKey, 'true');
-      }
+    // 로그인 상태: 로그인 사용자는 템플릿 선택 없이 빈 페이지로 시작 (551-569줄에서 처리)
+    localStorage.setItem(userVisitKey, 'true');
+    // shouldShowTemplateAfterLogin 플래그 제거 (더 이상 사용하지 않음)
+    if (shouldShowTemplateAfterLogin === 'true') {
+      localStorage.removeItem('shouldShowTemplateAfterLogin');
     }
   }, [currentUser]);
 
@@ -1362,6 +1347,12 @@ export function MyPage() {
       height = dimensions.height;
     } else if (type === 'qr_code') {
       widgetSize = '1x1'; // QR 접속 위젯은 1칸 너비, 1칸 높이 고정
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'law_search') {
+      // 법제처 검색 위젯은 1x1, 2x1 크기 가능 (기본 1x1)
+      widgetSize = (size === '1x1' || size === '2x1') ? size : '1x1';
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -2461,7 +2452,7 @@ export function MyPage() {
       } else if (widget.type === 'quicknote') {
         gridSize = { w: 1, h: 1 }; // 빠른메모는 기본 1x1 (1x1, 1x2, 1x3 가능)
       } else if (widget.type === 'law_search') {
-        gridSize = { w: 2, h: 1 }; // 법제처 검색 위젯은 2x1 고정
+        gridSize = { w: 1, h: 1 }; // 법제처 검색 위젯은 기본 1x1 (1x1, 2x1 가능)
       } else {
         gridSize = { w: 1, h: 1 }; // 기본적으로 1x1
       }

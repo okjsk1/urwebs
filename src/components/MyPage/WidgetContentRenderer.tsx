@@ -90,7 +90,14 @@ export function WidgetContentRenderer({
         return <ExchangeWidget {...commonProps} />;
 
       case 'news':
-        return <NewsWidget {...commonProps} />;
+        return <NewsWidget 
+          id={widget.id}
+          title={widget.title || '뉴스'}
+          size={widget.gridSize?.h === 1 ? 's' : widget.gridSize?.h === 2 ? 'm' : 'l'}
+          onRemove={() => {}}
+          onResize={() => {}}
+          onPin={() => {}}
+        />;
 
       case 'google_search':
         return <GoogleSearchWidget

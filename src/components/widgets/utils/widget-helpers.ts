@@ -3,6 +3,7 @@ export interface WidgetProps {
   widget: {
     id: string;
     type: string;
+    title?: string;
     content?: any;
   };
   isEditMode: boolean;

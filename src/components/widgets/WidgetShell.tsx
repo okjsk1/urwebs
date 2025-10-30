@@ -28,6 +28,8 @@ export interface WidgetShellProps {
   variant?: 'card' | 'bare';
   /** 내부 컨텐츠에 추가 클래스 */
   contentClassName?: string;
+  /** 헤더 표시 여부 */
+  headerVariant?: 'default' | 'compact' | 'none';
 }
 
 const sizeClasses = {
@@ -49,7 +51,8 @@ export function WidgetShell({
   size = 'm',
   className = '',
   variant = 'card',
-  contentClassName = ''
+  contentClassName = '',
+  headerVariant = 'default'
 }: WidgetShellProps) {
   const [showMenu, setShowMenu] = React.useState(false);
 
@@ -69,17 +72,23 @@ export function WidgetShell({
 
   const bodyPad = variant === 'card' ? 'p-3 h-full overflow-hidden flex flex-col' : 'p-0';
 
+  const showHeader = variant === 'card' && headerVariant !== 'none';
+
   return (
     <section 
       className={wrapperClass}
       onClick={handleOutsideClick}
     >
-      {/* 헤더 - card variant일 때만 표시 */}
-      {variant === 'card' && (
-        <header className="flex items-center justify-between h-10 px-3 border-b bg-white/80">
+      {/* 헤더 - card variant이고 headerVariant가 none이 아닐 때만 표시 */}
+      {showHeader && (
+        <header className={`flex items-center justify-between border-b bg-white/80 ${
+          headerVariant === 'compact' ? 'h-8 px-2' : 'h-10 px-3'
+        }`}>
           <div className="flex items-center gap-2">
             {icon}
-            <h3 className="text-sm font-semibold text-gray-900 truncate">{title}</h3>
+            <h3 className={`font-semibold text-gray-900 truncate ${
+              headerVariant === 'compact' ? 'text-xs' : 'text-sm'
+            }`}>{title}</h3>
           </div>
           
           {/* 편집/메뉴 버튼 제거 요청에 따라 우측 액션 제거 */}

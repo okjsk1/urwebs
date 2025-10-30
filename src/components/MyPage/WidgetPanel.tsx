@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Star, Clock, Link as LinkIcon, Search, Cloud, Sun, CloudRain } from 'lucide-react';
+import { X, Star, Clock, Link as LinkIcon, Search, Cloud, Sun, CloudRain, CheckSquare, BookOpen, Timer, Calendar, QrCode, DollarSign } from 'lucide-react';
 import { Button } from '../ui/button';
 import { widgetCategories, getCategoryIcon, allWidgets } from '../../constants/widgetCategories';
 import { WidgetType } from '../../types/mypage.types';
@@ -10,7 +10,7 @@ interface WidgetPanelProps {
   onAddWidget: (type: WidgetType, size?: any) => void;
 }
 
-function PreviewCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function PreviewCard({ icon, title, children }: { icon: React.ReactNode; title: string; children?: React.ReactNode }) {
   return (
     <div className="rounded-2xl border bg-white shadow-sm overflow-hidden h-28">
       <div className="flex items-center justify-between h-8 px-3 border-b bg-white/80">
@@ -164,6 +164,80 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
             <PreviewCard icon={shellIcon} title={def?.name || '위젯'}>
               <div className="text-[11px] text-gray-700 leading-4">
                 간단 메모 미리보기.
+              </div>
+            </PreviewCard>
+          </div>
+        );
+      case 'todo':
+        return (
+          <div className="mt-2">
+            <PreviewCard icon={<CheckSquare className="w-4 h-4 text-blue-600" />} title={def?.name || '할일'}>
+              <div className="space-y-1">
+                {[1,2].map(i => (
+                  <div key={i} className="flex items-center gap-2 bg-white border border-gray-200 rounded px-1.5 py-1">
+                    <div className="w-3 h-3 rounded border border-gray-300" />
+                    <div className="text-[10px] text-gray-800 truncate">할일 {i}</div>
+                  </div>
+                ))}
+              </div>
+            </PreviewCard>
+          </div>
+        );
+      case 'english_words':
+        return (
+          <div className="mt-2">
+            <PreviewCard icon={<BookOpen className="w-4 h-4 text-blue-600" />} title={def?.name || '영어단어'}>
+              <div className="bg-white border border-gray-200 rounded p-1.5">
+                <div className="text-[10px] font-semibold text-gray-900">word</div>
+                <div className="text-[10px] text-gray-600 mt-0.5">단어</div>
+              </div>
+            </PreviewCard>
+          </div>
+        );
+      case 'timer':
+        return (
+          <div className="mt-2">
+            <PreviewCard icon={<Timer className="w-4 h-4 text-blue-600" />} title={def?.name || '타이머'}>
+              <div className="flex items-center justify-center">
+                <div className="text-[16px] font-bold text-gray-900">00:00</div>
+              </div>
+            </PreviewCard>
+          </div>
+        );
+      case 'calendar':
+        return (
+          <div className="mt-2">
+            <PreviewCard icon={<Calendar className="w-4 h-4 text-blue-600" />} title={def?.name || '캘린더'}>
+              <div className="grid grid-cols-7 gap-0.5">
+                {['일','월','화','수','목','금','토'].map(d => (
+                  <div key={d} className="text-center">
+                    <div className="text-[9px] text-gray-500">{d}</div>
+                    <div className={`text-[8px] mt-0.5 ${d==='일' ? 'text-red-500' : d==='토' ? 'text-blue-500' : 'text-gray-900'}`}>1</div>
+                  </div>
+                ))}
+              </div>
+            </PreviewCard>
+          </div>
+        );
+      case 'qr_code':
+        return (
+          <div className="mt-2">
+            <PreviewCard icon={<QrCode className="w-4 h-4 text-blue-600" />} title={def?.name || 'QR코드'}>
+              <div className="flex items-center justify-center">
+                <div className="w-12 h-12 bg-white border-2 border-gray-300 rounded flex items-center justify-center">
+                  <QrCode className="w-6 h-6 text-gray-600" />
+                </div>
+              </div>
+            </PreviewCard>
+          </div>
+        );
+      case 'unified_search':
+        return (
+          <div className="mt-2">
+            <PreviewCard icon={<Search className="w-4 h-4 text-blue-600" />} title={def?.name || '통합검색'}>
+              <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-1.5 py-1">
+                <Search className="w-3.5 h-3.5 text-gray-500" />
+                <div className="text-[10px] text-gray-400">통합 검색...</div>
               </div>
             </PreviewCard>
           </div>

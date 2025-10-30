@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Plus, Trash2, ArrowUp, ArrowDown, ExternalLink, Edit, Check, X as XIcon } from 'lucide-react';
+import { SiteAvatar } from '../common/SiteAvatar';
 import { 
   WidgetProps, 
   persistOrLocal, 
@@ -94,26 +95,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  // 파비콘 로드
-  useEffect(() => {
-    const loadFavicons = async () => {
-      const updatedBookmarks = await Promise.all(
-        state.bookmarks.map(async (bookmark) => {
-          if (!bookmark.favicon) {
-            const favicon = getFaviconUrl(bookmark.url);
-            return { ...bookmark, favicon };
-          }
-          return bookmark;
-        })
-      );
-      
-      if (updatedBookmarks.some((bm, i) => bm.favicon !== state.bookmarks[i]?.favicon)) {
-        setState(prev => ({ ...prev, bookmarks: updatedBookmarks }));
-      }
-    };
-
-    loadFavicons();
-  }, [state.bookmarks.length]); // 파비콘은 한 번만 로드
+  // 파비콘 로드 로직 제거 - SiteAvatar 컴포넌트에서 자동 처리
 
   // 상태 저장: state가 바뀔 때마다 즉시 반영 (사라짐 문제 방지)
   useEffect(() => {
@@ -504,18 +486,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
             >
               {/* 로고 */}
               <div className="flex-shrink-0">
-                {bookmark.favicon ? (
-                  <img 
-                    src={bookmark.favicon} 
-                    alt="" 
-                    className="w-5 h-5"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <span className="text-base">{bookmark.icon}</span>
-                )}
+                <SiteAvatar url={bookmark.url} name={bookmark.name} size={28} />
               </div>
               
               {/* 사이트 이름 (오른쪽) */}
