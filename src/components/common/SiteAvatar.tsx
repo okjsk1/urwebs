@@ -28,7 +28,7 @@ export const SiteAvatar = React.memo<SiteAvatarProps>(({
   const initials = getInitials(name, url);
   
   const sizeClass = `w-${size} h-${size}`;
-  const textSize = size <= 24 ? 'text-[9px]' : size <= 28 ? 'text-[10px]' : 'text-[12px]';
+  const textSize = size <= 20 ? 'text-[8px]' : size <= 24 ? 'text-[9px]' : size <= 28 ? 'text-[10px]' : 'text-[12px]';
   const roundedClass = rounded === 'full' ? 'rounded-full' : 'rounded-lg';
   
   // 품질 기반 파비콘 로드
@@ -56,7 +56,7 @@ export const SiteAvatar = React.memo<SiteAvatarProps>(({
     color: textColor,
     width: `${size}px`,
     height: `${size}px`,
-    fontSize: size <= 24 ? '9px' : size <= 28 ? '10px' : '12px'
+    fontSize: size <= 20 ? '8px' : size <= 24 ? '9px' : size <= 28 ? '10px' : '12px'
   };
   
   const handleFaviconError = () => {

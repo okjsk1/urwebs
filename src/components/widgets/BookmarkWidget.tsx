@@ -486,7 +486,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
             >
               {/* 로고 */}
               <div className="flex-shrink-0">
-                <SiteAvatar url={bookmark.url} name={bookmark.name} size={28} />
+                <SiteAvatar url={bookmark.url} name={bookmark.name} size={20} />
               </div>
               
               {/* 사이트 이름 (오른쪽) */}
