@@ -1,109 +1,125 @@
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase/config';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, UploadTask } from 'firebase/storage';
 
 /**
- * 이미지를 Firebase Storage에 업로드하고 다운로드 URL을 반환합니다.
- * @param file 업로드할 이미지 파일
- * @param userId 사용자 ID (경로에 사용)
- * @param folder 업로드할 폴더 경로 (예: 'backgrounds', 'avatars')
- * @returns 업로드된 이미지의 다운로드 URL
+ * 이미지 업로드 옵션
  */
+type UploadImageOpts = {
+  path: string;                 // 업로드 경로 (예: 'backgrounds/{uid}/{filename}')
+  file: File;                   // 파일
+  contentType?: string;         // MIME 타입
+  timeoutMs?: number;           // 타임아웃 (기본 15000ms)
+  maxRetries?: number;          // 최대 재시도 횟수 (기본 2회)
+  onProgress?: (pct: number) => void; // 진행률 콜백
+  logger?: (msg: string, ...args: any[]) => void; // 로거 함수
+};
+
 /**
- * 재시도 로직이 포함된 이미지 업로드
+ * 타임아웃 및 재시도 로직이 포함된 이미지 업로드 (uploadBytesResumable 기반)
  */
-async function uploadWithRetry(
-  storageRef: any,
-  file: Blob,
-  contentType: string,
-  maxRetries: number = 2, // 재시도 횟수 감소 (3 -> 2)
-  retryDelay: number = 3000 // 재시도 간격 증가 (2초 -> 3초)
-): Promise<any> {
-  let lastError: any;
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      // 로그는 첫 시도만 출력 (반복 로그 방지)
-      if (attempt === 0) {
-        console.log(`이미지 업로드 시작...`);
-      }
-      
-      // 타임아웃 설정 (15초로 단축)
-      const uploadPromise = uploadBytes(storageRef, file, { contentType });
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('업로드 타임아웃')), 15000);
-      });
-      
-      const snapshot = await Promise.race([uploadPromise, timeoutPromise]);
-      if (attempt === 0) {
-        console.log('업로드 성공!');
-      }
-      return snapshot;
-    } catch (error: any) {
-      lastError = error;
-      
-      // 마지막 시도가 아니면 재시도 (경고 로그는 한 번만)
-      if (attempt < maxRetries - 1) {
-        if (attempt === 0) {
-          console.warn(`업로드 재시도 중... (${attempt + 2}/${maxRetries})`);
+export async function uploadImage({
+  path,
+  file,
+  contentType = file.type || 'image/jpeg',
+  timeoutMs = 15000,
+  maxRetries = 2,
+  onProgress,
+  logger = console.debug,
+}: UploadImageOpts): Promise<string> {
+  const storageInstance = getStorage();
+  let attempt = 0;
+  let uploadTask: UploadTask | null = null;
+
+  while (true) {
+    attempt++;
+    const storageRef = ref(storageInstance, path);
+    uploadTask = uploadBytesResumable(storageRef, file, { contentType });
+
+    logger(`[upload] start attempt=${attempt}, path=${path}, size=${file.size}, type=${contentType}`);
+
+    const uploadPromise = new Promise<string>((resolve, reject) => {
+      uploadTask!.on(
+        'state_changed',
+        (snapshot) => {
+          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          onProgress?.(pct);
+        },
+        (err) => {
+          logger('[upload] error in state_changed', { code: err.code, message: err.message });
+          reject(err);
+        },
+        async () => {
+          try {
+            const url = await getDownloadURL(uploadTask!.snapshot.ref);
+            resolve(url);
+          } catch (e: any) {
+            logger('[upload] getDownloadURL error', e);
+            reject(e);
+          }
         }
-        await new Promise(resolve => setTimeout(resolve, retryDelay * (attempt + 1)));
-      } else {
-        // 최종 실패 시에만 에러 로그
-        console.error('이미지 업로드 최종 실패:', error.code || error.message);
+      );
+    });
+
+    // 타임아웃: race로 구현
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => {
+        try {
+          uploadTask?.cancel(); // 업로드 취소
+        } catch (e) {
+          logger('[upload] cancel error', e);
+        }
+        reject(new Error('timeout'));
+      }, timeoutMs)
+    );
+
+    try {
+      const url = await Promise.race([uploadPromise, timeoutPromise]);
+      logger('[upload] success', { attempt, url: url.substring(0, 50) + '...' });
+      return url;
+    } catch (err: any) {
+      logger('[upload] fail', { attempt, code: err?.code, message: err?.message });
+
+      // 재시도 불가 사유: 권한/취소/잘못된 인자 등
+      const hardErrors = new Set([
+        'storage/unauthorized',
+        'storage/canceled',
+        'storage/invalid-argument',
+      ]);
+      if (hardErrors.has(err?.code)) {
+        throw err;
       }
+
+      if (attempt >= maxRetries) {
+        throw err;
+      }
+      
+      // 백오프 (0.6s, 1.2s)
+      await new Promise((r) => setTimeout(r, 600 * attempt));
     }
   }
-  
-  throw lastError;
 }
 
-export async function uploadImage(
+/**
+ * 기존 인터페이스 호환성을 위한 래퍼 함수
+ * @deprecated 새로운 uploadImage를 직접 사용하세요
+ */
+export async function uploadImageLegacy(
   file: File,
   userId: string,
   folder: string = 'backgrounds'
 ): Promise<string> {
-  try {
-    // 1) 작은 파일(500KB 이하)은 리사이즈 생략
-    const shouldResize = file.size > 500 * 1024;
-    const processed = shouldResize 
-      ? await preprocessImage(file, { maxSize: 2560, quality: 0.85 })
-      : file;
+  // 파일명 생성
+  const safeName = file.name.replace(/[^\w.-]+/g, '_').slice(0, 80);
+  const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const fileName = `${Date.now()}_${safeName}`;
+  const path = `${folder}/${userId}/${fileName}`;
 
-    // 2) 파일명/경로
-    const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExtension}`;
-    const storageRef = ref(storage, `${folder}/${userId}/${fileName}`);
-
-    // 3) 재시도 로직이 포함된 업로드
-    const snapshot = await uploadWithRetry(
-      storageRef,
-      processed,
-      processed.type || 'image/jpeg'
-    );
-    
-    // 4) 다운로드 URL 가져오기
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    
-    return downloadURL;
-  } catch (error: any) {
-    console.error('이미지 업로드 최종 실패:', error);
-    
-    // Firebase Storage 업로드 실패 시 base64 fallback 제공
-    if (error.code === 'storage/retry-limit-exceeded' || error.code === 'storage/unauthorized') {
-      const reader = new FileReader();
-      return new Promise((resolve, reject) => {
-        reader.onload = () => {
-          const base64 = reader.result as string;
-          console.warn('Firebase Storage 업로드 실패, base64 사용:', base64.substring(0, 50) + '...');
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-    
-    throw new Error(`이미지 업로드 실패: ${error.message || '알 수 없는 오류'}`);
-  }
+  return uploadImage({
+    path,
+    file,
+    timeoutMs: 15000,
+    maxRetries: 2,
+    logger: console.debug,
+  });
 }
 
 /** 이미지 리사이즈/압축 (캔버스 이용) */

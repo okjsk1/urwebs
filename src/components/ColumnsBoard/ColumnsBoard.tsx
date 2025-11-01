@@ -8,7 +8,7 @@ import {
   closestCorners,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Edit, Save, Grid3x3, LayoutGrid } from 'lucide-react';
+import { Edit, Save, Grid3x3, LayoutGrid, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Column } from './Column';
 import { WidgetCard } from './WidgetCard';
@@ -33,13 +33,31 @@ export function ColumnsBoard() {
   const [activeWidget, setActiveWidget] = useState<Widget | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [targetColumn, setTargetColumn] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const sensors = useBoardSensors();
 
-  // 상태 변경 시 저장
+  // 상태 변경 시 저장 (디바운스)
   useEffect(() => {
-    saveBoardState(boardState);
-  }, [boardState]);
+    if (!isEditMode) return;
+    
+    setHasUnsavedChanges(true);
+    setSaveStatus('saving');
+    
+    const timer = setTimeout(() => {
+      saveBoardState(boardState);
+      setSaveStatus('saved');
+      setHasUnsavedChanges(false);
+      
+      // 1.5초 후 idle로 복귀
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 1500);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [boardState, isEditMode]);
 
   // 드래그 시작
   const handleDragStart = (event: DragStartEvent) => {
@@ -198,6 +216,25 @@ export function ColumnsBoard() {
     });
   };
 
+  // 위젯 높이 조정
+  const handleWidgetResize = (widgetId: string, minHeight: number) => {
+    setBoardState((prev) => {
+      const widget = prev.widgets[widgetId];
+      if (!widget) return prev;
+
+      return {
+        ...prev,
+        widgets: {
+          ...prev.widgets,
+          [widgetId]: {
+            ...widget,
+            minHeight,
+          },
+        },
+      };
+    });
+  };
+
   // 위젯 타입별 제목
   const getWidgetTitle = (type: WidgetType): string => {
     const titles: Record<WidgetType, string> = {
@@ -255,61 +292,140 @@ export function ColumnsBoard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-[1000] bg-white/85 backdrop-blur-md border-b border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-[1000] bg-white/85 backdrop-blur-md border-b border-gray-200 shadow-sm transition-shadow">
         <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* 레이아웃 스위처 */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleLayoutMode}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                  boardState.layoutMode === 3
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-                aria-label="3열 레이아웃"
-              >
-                <Grid3x3 className="w-4 h-4" />
-                3열
-              </button>
-              <button
-                onClick={toggleLayoutMode}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                  boardState.layoutMode === 4
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-                aria-label="4열 레이아웃"
-              >
-                <LayoutGrid className="w-4 h-4" />
-                4열
-              </button>
+          <div className="flex items-center justify-between gap-4">
+            {/* 좌측: 타이틀 및 저장 상태 */}
+            <div className="flex items-center gap-3 min-w-0">
+              <h2 className="text-lg font-bold text-gray-800 truncate">대시보드</h2>
+              {isEditMode && (
+                <div 
+                  className="flex items-center gap-2 text-xs"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {saveStatus === 'saving' && (
+                    <span className="flex items-center gap-1 text-blue-600">
+                      <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                      저장 중…
+                    </span>
+                  )}
+                  {saveStatus === 'saved' && (
+                    <span className="flex items-center gap-1 text-green-600">
+                      <span className="w-3 h-3 text-green-600">✓</span>
+                      저장됨
+                    </span>
+                  )}
+                  {hasUnsavedChanges && saveStatus === 'idle' && (
+                    <span className="text-orange-600">저장되지 않음</span>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* 편집 모드 토글 */}
-            <Button
-              onClick={() => setIsEditMode(!isEditMode)}
-              variant={isEditMode ? 'default' : 'outline'}
-              size="sm"
-              className={`${
-                isEditMode
-                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                  : 'hover:bg-gray-100'
-              }`}
-              aria-label={isEditMode ? '편집 완료' : '편집 모드'}
-            >
-              {isEditMode ? (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  편집 완료
-                </>
-              ) : (
-                <>
-                  <Edit className="w-4 h-4 mr-2" />
-                  편집
-                </>
+            {/* 우측: 레이아웃 스위처 및 버튼 */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* 레이아웃 스위처 (Outline) */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleLayoutMode}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all h-10 border ${
+                    boardState.layoutMode === 3
+                      ? 'bg-blue-500 text-white shadow-md border-blue-600'
+                      : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-300'
+                  } focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1`}
+                  aria-label="3열 레이아웃"
+                >
+                  <Grid3x3 className="w-5 h-5" />
+                  3열
+                </button>
+                <button
+                  onClick={toggleLayoutMode}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all h-10 border ${
+                    boardState.layoutMode === 4
+                      ? 'bg-blue-500 text-white shadow-md border-blue-600'
+                      : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-300'
+                  } focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1`}
+                  aria-label="4열 레이아웃"
+                >
+                  <LayoutGrid className="w-5 h-5" />
+                  4열
+                </button>
+              </div>
+
+              {/* 위젯 추가 버튼 (Outline) */}
+              <Button
+                onClick={() => {
+                  setShowAddModal(true);
+                  setTargetColumn(boardState.columnsOrder[0] || null);
+                }}
+                variant="outline"
+                size="sm"
+                className="h-10 rounded-xl focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+                aria-label="위젯 추가"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                위젯 추가
+              </Button>
+
+              {/* 저장하기 버튼 (Primary) */}
+              {isEditMode && (
+                <Button
+                  onClick={() => {
+                    saveBoardState(boardState);
+                    setSaveStatus('saved');
+                    setHasUnsavedChanges(false);
+                    setTimeout(() => setSaveStatus('idle'), 1500);
+                  }}
+                  variant="default"
+                  size="sm"
+                  className="h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+                  disabled={saveStatus === 'saving'}
+                  aria-label={
+                    saveStatus === 'saving' ? '저장 중…' : 
+                    saveStatus === 'saved' ? '저장됨 ✓' : 
+                    '저장하기'
+                  }
+                  loading={saveStatus === 'saving'}
+                >
+                  {saveStatus === 'saving' ? (
+                    <>저장 중…</>
+                  ) : saveStatus === 'saved' ? (
+                    <>저장됨 ✓</>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5 mr-2" />
+                      저장하기
+                    </>
+                  )}
+                </Button>
               )}
-            </Button>
+
+              {/* 편집 모드 토글 (Outline) */}
+              <Button
+                onClick={() => setIsEditMode(!isEditMode)}
+                variant="outline"
+                size="sm"
+                className={`h-10 rounded-xl ${
+                  isEditMode
+                    ? 'bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100'
+                    : 'hover:bg-gray-50'
+                } focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-1`}
+                aria-label={isEditMode ? '편집 완료' : '편집 모드'}
+              >
+                {isEditMode ? (
+                  <>
+                    <Save className="w-5 h-5 mr-2" />
+                    편집 완료
+                  </>
+                ) : (
+                  <>
+                    <Edit className="w-5 h-5 mr-2" />
+                    편집
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -334,9 +450,9 @@ export function ColumnsBoard() {
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
-            {/* 컬럼 그리드 */}
+            {/* 컬럼 그리드 (gap 통일: 20px) */}
             <div
-              className="grid gap-6"
+              className="grid gap-5"
               style={{
                 gridTemplateColumns: `repeat(${boardState.layoutMode}, minmax(0, 1fr))`,
               }}
@@ -357,6 +473,7 @@ export function ColumnsBoard() {
                     isEditMode={isEditMode}
                     onAddWidget={handleAddWidget}
                     onDeleteWidget={deleteWidget}
+                    onWidgetResize={handleWidgetResize}
                   />
                 );
               })}

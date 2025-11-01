@@ -22,9 +22,10 @@ interface ColumnProps {
   isEditMode: boolean;
   onAddWidget?: (columnId: string) => void;
   onDeleteWidget?: (widgetId: string) => void;
+  onWidgetResize?: (widgetId: string, minHeight: number) => void;
 }
 
-export function Column({ column, widgets, isEditMode, onAddWidget, onDeleteWidget }: ColumnProps) {
+export function Column({ column, widgets, isEditMode, onAddWidget, onDeleteWidget, onWidgetResize }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   });
@@ -43,7 +44,7 @@ export function Column({ column, widgets, isEditMode, onAddWidget, onDeleteWidge
       case 'memo':
         return <MemoWidget />;
       case 'bookmarks':
-        return <BookmarksWidget />;
+        return <BookmarksWidget widget={widget} onResize={onWidgetResize} />;
       case 'calendar':
         return <CalendarWidget />;
       case 'exchange':
@@ -71,7 +72,7 @@ export function Column({ column, widgets, isEditMode, onAddWidget, onDeleteWidge
 
       {/* 드롭 영역 & 정렬 가능한 아이템들 */}
       <SortableContext items={column.items} strategy={verticalListSortingStrategy}>
-        <div className="space-y-4 flex-1">
+        <div className="space-y-5 flex-1">
           {widgets.map((widget) => (
             <WidgetCard
               key={widget.id}
@@ -86,7 +87,8 @@ export function Column({ column, widgets, isEditMode, onAddWidget, onDeleteWidge
           {/* 플레이스홀더 (빈 컬럼일 때) */}
           {widgets.length === 0 && !isEditMode && (
             <div className="text-center py-12 text-gray-400 text-sm">
-              위젯이 없습니다
+              <div className="text-4xl mb-2">📭</div>
+              <div>위젯이 없습니다</div>
             </div>
           )}
         </div>

@@ -10,6 +10,7 @@ import { collection, addDoc, updateDoc, doc, query, where, getDocs, serverTimest
 // 타입 및 상수 import
 import { Widget, WidgetSize, BackgroundSettings, ShareSettings, Page, Bookmark, FontSettings, LayoutSettings } from '../types/mypage.types';
 import { uploadImage, validateImageFile } from '../utils/imageUpload';
+import { getAuth } from 'firebase/auth';
 import { isWidgetEditable } from './widgets/utils/widget-helpers';
 import { widgetCategories, getCategoryIcon, fontOptions, allWidgets } from '../constants/widgetCategories';
 import { getWidgetDimensions, isWidgetOverlapping, getNextAvailablePosition, getColumnLastWidget as getColumnLastWidgetUtil, getColumnBottomY as getColumnBottomYUtil } from '../utils/widgetHelpers';
@@ -367,6 +368,7 @@ export function MyPage() {
   const [showBackgroundModal, setShowBackgroundModal] = useState(false);
   const [showFontModal, setShowFontModal] = useState(false);
   const [isUploadingBackground, setIsUploadingBackground] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // 저장된 페이지 불러오기 - Firebase 우선, 없으면 localStorage
   useEffect(() => {
@@ -4377,51 +4379,94 @@ export function MyPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">이미지 업로드</label>
                       <input
+                        ref={fileInputRef}
                         type="file"
                         accept="image/*"
                         disabled={isUploadingBackground}
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
-                          if (!file || !currentUser) return;
+                          
+                          // 같은 파일 재선택 대비 초기화는 finally에서
+                          if (!file) return;
 
-                          // 파일 유효성 검사
-                          const validation = validateImageFile(file, 10);
-                          if (!validation.valid) {
-                            alert(validation.error);
+                          // 디버그 로그
+                          console.debug('[bg] 선택됨', { name: file.name, size: file.size, type: file.type });
+
+                          // 로그인 검증
+                          const auth = getAuth();
+                          const uid = auth.currentUser?.uid;
+                          if (!uid) {
+                            setToast({ type: 'error', msg: '로그인 후 업로드할 수 있어요.' });
+                            console.warn('[bg] currentUser.uid 없음');
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                            return;
+                          }
+
+                          // 크기/타입 1차 체크
+                          const MAX = 10 * 1024 * 1024; // 10MB
+                          if (file.size > MAX) {
+                            setToast({ type: 'error', msg: '최대 10MB까지 업로드 가능합니다.' });
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                            return;
+                          }
+                          if (!file.type.startsWith('image/')) {
+                            setToast({ type: 'error', msg: '이미지 파일만 업로드할 수 있어요.' });
+                            if (fileInputRef.current) fileInputRef.current.value = '';
                             return;
                           }
 
                           setIsUploadingBackground(true);
                           
                           try {
-                            // Firebase Storage에 업로드 (실패 시 base64 fallback)
-                            const imageUrl = await uploadImage(file, currentUser.id, 'backgrounds');
-                            
-                            // 배경 설정 업데이트
+                            const safeName = file.name.replace(/[^\w.-]+/g, '_').slice(0, 80);
+                            const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+                            const fileName = `${Date.now()}_${safeName}`;
+                            const path = `backgrounds/${uid}/${fileName}`;
+
+                            console.debug('[bg] 업로드 시작', { path, size: file.size });
+
+                            const url = await uploadImage({
+                              path,
+                              file,
+                              timeoutMs: 15000,    // 요구된 15초
+                              maxRetries: 2,       // 요구된 2회 재시도
+                              onProgress: (pct) => console.debug('[bg] progress', pct),
+                              logger: (...args) => console.debug('[bg]', ...args),
+                            });
+
+                            // 상태 반영
                             setBackgroundSettings({
                               ...backgroundSettings,
-                              image: imageUrl,
+                              image: url,
                               opacity: backgroundSettings.opacity
                             });
+
+                            setToast({ type: 'success', msg: '배경 이미지가 업로드되었습니다.' });
+                            console.debug('[bg] 완료', { url: url.substring(0, 50) + '...' });
+                          } catch (err: any) {
+                            const code = err?.code || err?.message || String(err);
+                            console.error('[bg] 업로드 실패', { code, error: err });
                             
-                            // base64인 경우 경고 (일시적 저장)
-                            if (imageUrl.startsWith('data:')) {
-                              console.warn('base64로 저장됨 - Firebase Storage 연결 문제로 추정됩니다.');
+                            // 사용자 친화 메시지
+                            if (code === 'timeout' || err?.message === 'timeout') {
+                              setToast({ type: 'error', msg: '업로드가 지연되어 중단되었습니다. 네트워크 상태 확인 후 다시 시도해주세요.' });
+                            } else if (code === 'storage/unauthorized') {
+                              setToast({ type: 'error', msg: '권한이 없습니다. 관리자에게 문의하세요.' });
+                            } else if (code === 'storage/retry-limit-exceeded') {
+                              setToast({ type: 'error', msg: '재시도 한도를 초과했습니다. 잠시 후 다시 시도해주세요.' });
+                            } else {
+                              setToast({ type: 'error', msg: '업로드에 실패했습니다.' });
                             }
-                          } catch (error: any) {
-                            console.error('이미지 업로드 실패:', error);
-                            alert(`이미지 업로드에 실패했습니다.\n${error.message || '네트워크 연결을 확인해주세요.'}`);
                           } finally {
-                            setIsUploadingBackground(false);
+                            setIsUploadingBackground(false);        // ✅ 어떤 경우에도 false
+                            if (fileInputRef.current) fileInputRef.current.value = ''; // 같은 파일 재선택 가능
+                            console.debug('[bg] finally - isUploadingBackground = false');
                           }
                         }}
                         className="w-full p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       {isUploadingBackground && (
-                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>이미지 업로드 중...</span>
-                        </div>
+                        <p className="mt-1 text-xs text-gray-500">업로드 중… 잠시만 기다려주세요.</p>
                       )}
                     </div>
                     

@@ -533,7 +533,7 @@ export function TimerWidget({
           </span>
         </div>
 
-        {/* 모드 선택 */}
+        {/* 모드 선택 (h-10 rounded-xl 통일) */}
         <div className="flex gap-1 mb-3" role="tablist">
           {(['countdown', 'stopwatch', 'pomodoro'] as TimerMode[]).map((mode) => (
             <button
@@ -542,9 +542,9 @@ export function TimerWidget({
               role="tab"
               aria-pressed={core.mode === mode}
               aria-label={`${MODE_LABELS[mode]} 모드로 전환`}
-              className={`px-2 py-1 text-xs rounded ${
+              className={`h-10 px-4 text-sm rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
                 core.mode === mode 
-                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' 
+                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium' 
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
@@ -554,9 +554,9 @@ export function TimerWidget({
         </div>
 
         {/* 메인 타이머 */}
-        <div className={`flex-1 flex flex-col items-center justify-center ${isCompact ? 'gap-1' : ''}`}>
+        <div className={`flex-1 flex flex-col items-center justify-center ${isCompact ? 'gap-2' : 'gap-3'}`}>
           <div 
-            className={`${isCompact ? 'text-3xl mb-1' : 'text-5xl mb-2'} font-mono font-bold ${color} transition-colors duration-200`}
+            className={`${isCompact ? 'text-4xl mb-1' : 'text-6xl mb-2'} font-mono font-bold tabular-nums ${color} transition-colors duration-200`}
             aria-label={core.mode === 'stopwatch' ? '경과 시간' : '남은 시간'}
           >
             {displayTime.formatted}
@@ -564,17 +564,17 @@ export function TimerWidget({
           
           {/* 세컨드라인 정보 */}
           {core.mode === 'pomodoro' && !isCompact && (
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+            <div className="text-xs font-light text-gray-500 dark:text-gray-400">
               {core.pomoPhase === 'work' ? '작업' : '휴식'} • {core.pomoRounds}라운드
             </div>
           )}
           {core.mode === 'countdown' && displayTime.remainingMs > 0 && !isCompact && (
-            <div className="text-xs text-gray-500 dark:text-gray-500 mb-1">
+            <div className="text-xs font-light text-gray-500 dark:text-gray-500">
               {Math.floor(displayTime.remainingMs / 60000)}분 {Math.floor((displayTime.remainingMs % 60000) / 1000)}초 남음
             </div>
           )}
           {core.mode === 'stopwatch' && !isCompact && (
-            <div className="text-xs text-gray-500 dark:text-gray-500 mb-1">
+            <div className="text-xs font-light text-gray-500 dark:text-gray-500">
               {Math.floor(displayTime.elapsedMs / 60000)}분 {Math.floor((displayTime.elapsedMs % 60000) / 1000)}초 경과
             </div>
           )}

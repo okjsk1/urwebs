@@ -433,20 +433,21 @@ export function CalendarWidget({
               onClick={() => handleDateClick(date)}
               title={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일${holidayName ? ` (${holidayName})` : ''}`}
                  className={[
-                   `flex flex-col items-center justify-center rounded border transition-colors relative ${styles.dateCell}`,
-                   "border-gray-200 dark:border-gray-700",
+                   `flex flex-col items-center justify-center rounded transition-colors relative ${styles.dateCell}`,
+                   "border border-gray-200 dark:border-gray-700",
+                   "min-h-[36px] min-w-[36px]", // 터치 타겟 ≥ 36px
                    inCurrentMonth
-                     ? "bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer"
+                     ? "bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer hover:border-blue-300"
                      : "bg-gray-50 dark:bg-gray-800/40 text-gray-400 dark:text-gray-500",
                    // 공휴일 스타일 (빨간색)
                    isHolidayDate && inCurrentMonth && !isTodayCell ? "text-red-600 font-bold bg-red-50 dark:bg-red-900/20" : "",
-                   // 주말 스타일 (일요일은 빨간색, 토요일은 파란색)
-                   weekendIndex === 0 && inCurrentMonth && !isTodayCell && !isHolidayDate ? "text-red-500 font-semibold" : "",
-                   weekendIndex === 6 && inCurrentMonth && !isTodayCell && !isHolidayDate ? "text-blue-500 font-semibold" : "",
-                   // 오늘 스타일
-                   isTodayCell ? "bg-blue-500 text-white font-bold ring-2 ring-blue-300" : "",
-                   // 선택된 날짜 스타일
-                   isSelected && !isTodayCell ? "outline outline-1 outline-blue-400" : "",
+                   // 주말 스타일 (일요일은 빨간색, 토요일은 파란색 - 텍스트 색만)
+                   weekendIndex === 0 && inCurrentMonth && !isTodayCell && !isHolidayDate ? "text-red-600 dark:text-red-400" : "",
+                   weekendIndex === 6 && inCurrentMonth && !isTodayCell && !isHolidayDate ? "text-blue-600 dark:text-blue-400" : "",
+                  // 오늘 스타일 (가독성 강화)
+                  isTodayCell ? "bg-blue-600 text-white font-bold ring-2 ring-blue-400 ring-offset-1" : "",
+                  // 선택된 날짜 스타일 (가독성 강화)
+                  isSelected && !isTodayCell ? "bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-500 ring-1 ring-blue-300" : "",
                  ].join(" ")}
             >
               <span>{date.getDate()}</span>

@@ -3,6 +3,7 @@ export interface Widget {
   type: 'news' | 'links' | 'weather' | 'todo' | 'memo' | 'calendar' | 'bookmarks' | 'exchange' | 'stock';
   title: string;
   data?: any;
+  minHeight?: number; // 위젯의 최소 높이 (px)
 }
 
 export interface Column {
