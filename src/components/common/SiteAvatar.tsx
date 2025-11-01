@@ -51,13 +51,14 @@ export const SiteAvatar = React.memo<SiteAvatarProps>(({
     };
   }, [url]);
   
+  const showFavicon = !faviconError && !!faviconSrc;
   const style = {
-    backgroundColor: bgColor,
-    color: textColor,
+    backgroundColor: showFavicon ? 'rgba(255,255,255,0.9)' : bgColor,
+    color: showFavicon ? undefined : textColor,
     width: `${size}px`,
     height: `${size}px`,
     fontSize: size <= 20 ? '8px' : size <= 24 ? '9px' : size <= 28 ? '10px' : '12px'
-  };
+  } as React.CSSProperties;
   
   const handleFaviconError = () => {
     setFaviconError(true);
@@ -65,7 +66,7 @@ export const SiteAvatar = React.memo<SiteAvatarProps>(({
   
   return (
     <div
-      className={`flex items-center justify-center font-bold ring-1 ring-black/5 transition-all hover:ring-2 hover:ring-black/10 ${sizeClass} ${roundedClass} ${className}`}
+      className={`flex items-center justify-center font-bold overflow-hidden ring-1 ring-white/50 transition-colors hover:ring-white/60 ${sizeClass} ${roundedClass} ${className}`}
       style={style}
       aria-hidden="true"
       title={name}

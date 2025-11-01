@@ -29,9 +29,10 @@ export function useRoles(): UseRolesResult {
         setLoading(true);
         const tokenResult = await getIdTokenResult(user);
         const userRoles = (tokenResult.claims.roles as string[]) || [];
-        console.log('사용자 이메일:', user.email);
-        console.log('토큰 클레임:', tokenResult.claims);
-        console.log('사용자 역할:', userRoles);
+        // 개발 모드에서만 로그 출력 (반복 로그 방지)
+        if (import.meta.env.DEV) {
+          console.log('사용자 역할 확인:', { email: user.email, roles: userRoles });
+        }
         setRoles(userRoles);
         setError(null);
       } catch (err) {
@@ -48,11 +49,14 @@ export function useRoles(): UseRolesResult {
 
   const isEmailAdmin = auth.currentUser?.email === 'okjsk1@gmail.com' || auth.currentUser?.email === 'okjsk2@gmail.com';
   
-  // 디버깅: 관리자 상태 확인
-  console.log('관리자 상태 확인:');
-  console.log('- 이메일 기반 관리자:', isEmailAdmin);
-  console.log('- 역할 기반 관리자:', !!roles?.includes('admin'));
-  console.log('- 최종 관리자 여부:', !!roles?.includes('admin') || isEmailAdmin);
+  // 디버깅: 관리자 상태 확인 (개발 모드에서만)
+  if (import.meta.env.DEV && roles !== null) {
+    console.log('관리자 상태 확인:', {
+      emailBased: isEmailAdmin,
+      roleBased: !!roles?.includes('admin'),
+      final: !!roles?.includes('admin') || isEmailAdmin
+    });
+  }
 
   return {
     roles,

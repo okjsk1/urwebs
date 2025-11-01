@@ -107,6 +107,19 @@ export function AdminPage({ onNavigateTemplateEdit }: AdminPageProps) {
     setActiveTab(initialTab);
   }, [searchParams]);
 
+  // 대시보드에서 카드 클릭 시 탭 전환
+  useEffect(() => {
+    const handleSwitchTab = (event: CustomEvent) => {
+      const tabId = event.detail as TabType;
+      if (['users', 'inquiries', 'dashboard'].includes(tabId)) {
+        setActiveTab(tabId);
+      }
+    };
+    
+    window.addEventListener('switch-tab', handleSwitchTab as EventListener);
+    return () => window.removeEventListener('switch-tab', handleSwitchTab as EventListener);
+  }, []);
+
   // URL과 로컬 스토리지에 탭 상태 저장
   useEffect(() => {
     setSearchParams({ tab: activeTab });

@@ -8,6 +8,7 @@ import {
   browserLocalPersistence 
 } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 // App Check (선택적)
 // import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { initializeAppCheckIfEnabled } from './appCheck';
@@ -51,7 +52,8 @@ const firebaseConfig = {
   apiKey: "AIzaSyAyd8HeADxA__ZcmrWB_84ZACUS7O9lXJs",
   authDomain: "urwebs-3f562.firebaseapp.com",
   projectId: "urwebs-3f562",
-  storageBucket: "urwebs-3f562.firebasestorage.app",
+  // Firebase Storage 버킷 도메인은 *.appspot.com 형식을 사용해야 합니다.
+  storageBucket: "urwebs-3f562.appspot.com",
   messagingSenderId: "1017628927752",
   appId: "1:1017628927752:web:caf186d8ace8282810aebd",
 };
@@ -109,6 +111,10 @@ try {
 } catch (err) {
   console.warn('Firestore offline persistence setup failed:', err);
 }
+
+// ---- Storage
+export const storage = getStorage(app);
+console.log('Firebase Storage 인스턴스 생성됨:', storage.app.name);
 
 // ---- Google Provider
 export const googleProvider = new GoogleAuthProvider();

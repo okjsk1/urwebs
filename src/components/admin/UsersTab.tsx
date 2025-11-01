@@ -34,6 +34,7 @@ export function UsersTab() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest');
 
   // Firestore에서 사용자 데이터 조회
   useEffect(() => {
@@ -60,6 +61,7 @@ export function UsersTab() {
           
           const existing = userDataMap.get(userId);
           const widgetCount = data.widgets?.length || 0;
+          const createdAt = data.createdAt?.seconds ? new Date(data.createdAt.seconds * 1000) : new Date();
           const updatedAt = data.updatedAt?.seconds ? new Date(data.updatedAt.seconds * 1000) : new Date();
           
           if (existing) {
@@ -67,6 +69,7 @@ export function UsersTab() {
               ...existing,
               pageCount: existing.pageCount + 1,
               widgetCount: existing.widgetCount + widgetCount,
+              createdAt: createdAt < existing.createdAt ? createdAt : existing.createdAt, // 가장 오래된 페이지 생성일이 가입일
               lastUpdated: updatedAt > existing.lastUpdated ? updatedAt : existing.lastUpdated
             });
           } else {
@@ -75,6 +78,7 @@ export function UsersTab() {
               name: data.authorName || '익명',
               pageCount: 1,
               widgetCount,
+              createdAt, // 첫 페이지 생성일을 가입일로 간주
               lastUpdated: updatedAt
             });
           }
@@ -85,7 +89,7 @@ export function UsersTab() {
           id,
           email: data.email,
           displayName: data.name,
-          createdAt: data.lastUpdated, // 실제로는 가입일이지만 현재는 마지막 업데이트 사용
+          createdAt: data.createdAt, // 첫 페이지 생성일을 가입일로 사용
           lastLoginAt: data.lastUpdated,
           isActive: true,
           pageCount: data.pageCount,
@@ -103,18 +107,48 @@ export function UsersTab() {
     loadUsers();
   }, []);
 
-  // 필터링된 사용자 목록
-  const filteredUsers = users.filter(user => {
-    const matchesStatus = filterStatus === 'all' || 
-      (filterStatus === 'active' && user.isActive) ||
-      (filterStatus === 'inactive' && !user.isActive);
+  // 정렬 및 필터링된 사용자 목록
+  const filteredUsers = users
+    .filter(user => {
+      const matchesStatus = filterStatus === 'all' || 
+        (filterStatus === 'active' && user.isActive) ||
+        (filterStatus === 'inactive' && !user.isActive);
+      
+      const matchesSearch = 
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
+      
+      return matchesStatus && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'newest') {
+        // 최신 가입순
+        const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+        const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+        return bTime - aTime;
+      } else if (sortBy === 'oldest') {
+        // 오래된 가입순
+        const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+        const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+        return aTime - bTime;
+      } else if (sortBy === 'name') {
+        // 이름순
+        return (a.displayName || a.email).localeCompare(b.displayName || b.email);
+      }
+      return 0;
+    });
+
+  // 대시보드에서 "새로운 사용자" 클릭 시 최신순으로 정렬
+  useEffect(() => {
+    const handleSortUsers = (event: CustomEvent) => {
+      if (event.detail === 'newest') {
+        setSortBy('newest');
+      }
+    };
     
-    const matchesSearch = 
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
-    
-    return matchesStatus && matchesSearch;
-  });
+    window.addEventListener('sort-users', handleSortUsers as EventListener);
+    return () => window.removeEventListener('sort-users', handleSortUsers as EventListener);
+  }, []);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('ko-KR', {
@@ -225,6 +259,16 @@ export function UsersTab() {
             <option value="all">전체 사용자</option>
             <option value="active">활성 사용자</option>
             <option value="inactive">비활성 사용자</option>
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'name')}
+            className="px-3 py-2 border rounded-lg text-sm"
+          >
+            <option value="newest">최신 가입순</option>
+            <option value="oldest">오래된 가입순</option>
+            <option value="name">이름순</option>
           </select>
         </div>
       </Card>

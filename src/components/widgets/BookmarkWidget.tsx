@@ -291,7 +291,12 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+Z, Ctrl+Y 단축키는 나중에 구현
-      console.log('키보드 단축키:', e.key, e.ctrlKey);
+      // 디버그 모드에서만 로그 출력
+      if (import.meta.env.DEV && e.key === 'F12') {
+        // F12는 개발자 도구 단축키이므로 무시
+        return;
+      }
+      // 필요시 여기에 단축키 핸들러 추가
     };
 
     document.addEventListener('keydown', handleKeyDown);

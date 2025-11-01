@@ -46,6 +46,18 @@ export function InquiriesTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // 대시보드에서 "미처리 문의" 클릭 시 필터 적용
+  useEffect(() => {
+    const handleFilterInquiries = (event: CustomEvent) => {
+      if (event.detail === 'pending') {
+        setFilterStatus('pending');
+      }
+    };
+    
+    window.addEventListener('filter-inquiries', handleFilterInquiries as EventListener);
+    return () => window.removeEventListener('filter-inquiries', handleFilterInquiries as EventListener);
+  }, []);
+
   // Firestore에서 문의 내역 실시간 조회
   useEffect(() => {
     const q = query(

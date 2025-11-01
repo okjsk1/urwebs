@@ -206,7 +206,7 @@ export function DashboardTab() {
       </Card>
 
       {/* 주요 통계 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-stats-section>
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -348,7 +348,19 @@ export function DashboardTab() {
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">빠른 액션</h3>
           <div className="space-y-3">
-            <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <div 
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+              onClick={() => {
+                // InquiriesTab으로 전환하고 미처리 필터 적용
+                const event = new CustomEvent('switch-tab', { detail: 'inquiries' });
+                window.dispatchEvent(event);
+                // 미처리 문의 필터 적용
+                setTimeout(() => {
+                  const filterEvent = new CustomEvent('filter-inquiries', { detail: 'pending' });
+                  window.dispatchEvent(filterEvent);
+                }, 100);
+              }}
+            >
               <div className="flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 text-orange-500" />
                 <div>
@@ -357,7 +369,19 @@ export function DashboardTab() {
                 </div>
               </div>
             </div>
-            <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <div 
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+              onClick={() => {
+                // UsersTab으로 전환하고 최신순 정렬
+                const event = new CustomEvent('switch-tab', { detail: 'users' });
+                window.dispatchEvent(event);
+                // 사용자 탭에서 최신순으로 정렬하도록 알림
+                setTimeout(() => {
+                  const sortEvent = new CustomEvent('sort-users', { detail: 'newest' });
+                  window.dispatchEvent(sortEvent);
+                }, 100);
+              }}
+            >
               <div className="flex items-center gap-3">
                 <Users className="w-5 h-5 text-blue-500" />
                 <div>
@@ -366,7 +390,21 @@ export function DashboardTab() {
                 </div>
               </div>
             </div>
-            <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <div 
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+              onClick={() => {
+                // 대시보드 탭으로 전환 (이미 대시보드면 스크롤만)
+                const event = new CustomEvent('switch-tab', { detail: 'dashboard' });
+                window.dispatchEvent(event);
+                // 성장 통계 섹션으로 스크롤
+                setTimeout(() => {
+                  const statsSection = document.querySelector('[data-stats-section]');
+                  if (statsSection) {
+                    statsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 100);
+              }}
+            >
               <div className="flex items-center gap-3">
                 <TrendingUp className="w-5 h-5 text-green-500" />
                 <div>

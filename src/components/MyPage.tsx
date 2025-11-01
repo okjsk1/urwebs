@@ -1,6 +1,6 @@
 ﻿import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown, Sparkles, ArrowRight } from 'lucide-react';
+import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
 import { auth, googleProvider, db } from '../firebase/config';
@@ -9,6 +9,7 @@ import { collection, addDoc, updateDoc, doc, query, where, getDocs, serverTimest
 
 // 타입 및 상수 import
 import { Widget, WidgetSize, BackgroundSettings, ShareSettings, Page, Bookmark, FontSettings, LayoutSettings } from '../types/mypage.types';
+import { uploadImage, validateImageFile } from '../utils/imageUpload';
 import { isWidgetEditable } from './widgets/utils/widget-helpers';
 import { widgetCategories, getCategoryIcon, fontOptions, allWidgets } from '../constants/widgetCategories';
 import { getWidgetDimensions, isWidgetOverlapping, getNextAvailablePosition, getColumnLastWidget as getColumnLastWidgetUtil, getColumnBottomY as getColumnBottomYUtil } from '../utils/widgetHelpers';
@@ -96,11 +97,11 @@ export function MyPage() {
 
   // 설정들
   const [backgroundSettings, setBackgroundSettings] = useState<BackgroundSettings>({
-    type: 'gradient',
-    color: '#3B82F6',
+    type: 'solid',
+    color: '#f8fafc',
     gradient: {
-      from: '#3B82F6',
-      to: '#8B5CF6',
+      from: '#ffffff',
+      to: '#ffffff',
       direction: 'to-br'
     },
     opacity: 1
@@ -288,7 +289,7 @@ export function MyPage() {
             y: widgetConfig.y,
             width: dimensions.width,
             height: dimensions.height,
-            title: typeof categoryInfo === 'string' ? categoryInfo : categoryInfo?.label || widgetConfig.type,
+            title: (typeof categoryInfo === 'string' ? categoryInfo : (categoryInfo as any)?.label) || widgetConfig.type,
             size: widgetConfig.size,
             content: {}
           };
@@ -365,6 +366,7 @@ export function MyPage() {
   const [showWidgetModal, setShowWidgetModal] = useState(false);
   const [showBackgroundModal, setShowBackgroundModal] = useState(false);
   const [showFontModal, setShowFontModal] = useState(false);
+  const [isUploadingBackground, setIsUploadingBackground] = useState(false);
 
   // 저장된 페이지 불러오기 - Firebase 우선, 없으면 localStorage
   useEffect(() => {
@@ -427,7 +429,7 @@ export function MyPage() {
               })
               .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); // 생성 시간순 정렬
             
-            // 공개 설정도 Firebase에서 가져오기 (첫 번째 페이지의 공개 설정 사용)
+            // 공개 설정 및 배경 설정도 Firebase에서 가져오기 (첫 번째 페이지의 설정 사용)
             if (firebasePages.length > 0) {
               // 필터링된 페이지 중 첫 번째 것의 원본 데이터 찾기
               const firstFirebasePage = firebasePages[0];
@@ -440,6 +442,12 @@ export function MyPage() {
                 localStorage.setItem(`shareSettings_${currentUser.id}`, JSON.stringify({
                   isPublic: firstPageData.isPublic || false
                 }));
+                
+                // 배경 설정도 복원
+                if (firstPageData.backgroundSettings) {
+                  setBackgroundSettings(firstPageData.backgroundSettings);
+                  localStorage.setItem(`backgroundSettings_${currentUser.id}`, JSON.stringify(firstPageData.backgroundSettings));
+                }
               }
             }
             
@@ -465,6 +473,16 @@ export function MyPage() {
               setPageTitle(targetPage.title);
               setWidgets(targetPage.widgets || []);
               
+              // 선택된 페이지의 배경 설정 로드
+              const targetDoc = firebaseSnapshot.docs.find(doc => {
+                const data = doc.data();
+                return doc.id === targetPage.firebaseDocId;
+              });
+              if (targetDoc && targetDoc.data().backgroundSettings) {
+                setBackgroundSettings(targetDoc.data().backgroundSettings);
+                localStorage.setItem(`backgroundSettings_${currentUser.id}`, JSON.stringify(targetDoc.data().backgroundSettings));
+              }
+              
               // URL 업데이트
               const pageIndex = firebasePages.findIndex((p: any) => p.id === targetPage.id);
               const userPrefix = currentUser.email?.split('@')[0] || 'user';
@@ -487,6 +505,7 @@ export function MyPage() {
         // 2. Firebase에 데이터가 없으면 localStorage에서 로드
         const savedPagesData = localStorage.getItem(`myPages_${currentUser.id}`);
         const savedShareSettings = localStorage.getItem(`shareSettings_${currentUser.id}`);
+        const savedBackgroundSettings = localStorage.getItem(`backgroundSettings_${currentUser.id}`);
         
         // 공개 설정 복원
         if (savedShareSettings) {
@@ -495,6 +514,16 @@ export function MyPage() {
             setShareSettings(settings);
           } catch (e) {
             console.error('공개 설정 복원 실패:', e);
+          }
+        }
+        
+        // 배경 설정 복원
+        if (savedBackgroundSettings) {
+          try {
+            const bgSettings = JSON.parse(savedBackgroundSettings);
+            setBackgroundSettings(bgSettings);
+          } catch (e) {
+            console.error('배경 설정 복원 실패:', e);
           }
         }
         
@@ -1224,11 +1253,11 @@ export function MyPage() {
     setWidgets([]);
     setPageTitle("'김사용자'님의 페이지");
     setBackgroundSettings({
-      type: 'gradient',
-      color: '#3B82F6',
+      type: 'solid',
+      color: '#f8fafc',
       gradient: {
-        from: '#3B82F6',
-        to: '#8B5CF6',
+        from: '#ffffff',
+        to: '#ffffff',
         direction: 'to-br'
       },
       opacity: 1
@@ -1307,7 +1336,7 @@ export function MyPage() {
       height = dimensions.height;
     } else if (type === 'bookmark') {
       // 북마크 위젯은 1x1, 1x2, 1x3, 1x4 크기 가능
-      widgetSize = (size === '1x1' || size === '1x2' || size === '1x3' || size === '1x4') ? size : '1x1';
+      widgetSize = (size === '1x1' || size === '1x2' || size === '1x3') ? size : '1x1';
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -1555,19 +1584,25 @@ export function MyPage() {
       localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
       // 공개 설정도 함께 저장
       localStorage.setItem(`shareSettings_${currentUser.id}`, JSON.stringify(shareSettings));
+      // 배경 설정도 함께 저장
+      localStorage.setItem(`backgroundSettings_${currentUser.id}`, JSON.stringify(backgroundSettings));
       // 커스텀 URL도 저장
       if (customUrl) {
         localStorage.setItem(`customUrl_${currentUser.id}_${currentPageId}`, customUrl);
       }
       console.log('페이지 저장됨 (사용자:', currentUser.id, '):', updatedPages);
       console.log('공개 설정 저장됨:', shareSettings);
+      console.log('배경 설정 저장됨:', backgroundSettings);
       console.log('커스텀 URL:', customUrl);
     } else {
       localStorage.setItem('myPages', JSON.stringify(updatedPages));
       // 게스트도 공개 설정 저장
       localStorage.setItem('shareSettings_guest', JSON.stringify(shareSettings));
+      // 게스트도 배경 설정 저장
+      localStorage.setItem('backgroundSettings_guest', JSON.stringify(backgroundSettings));
       console.log('페이지 저장됨 (게스트):', updatedPages);
       console.log('공개 설정 저장됨 (게스트):', shareSettings);
+      console.log('배경 설정 저장됨 (게스트):', backgroundSettings);
     }
     
     // Firebase에 저장 (로그인한 사용자면 항상 저장 - 공개/비공개 무관)
@@ -1616,6 +1651,7 @@ export function MyPage() {
           isPublic: shareSettings.isPublic || false,
           urlId: urlId, // 공유 URL용 고유 ID
           pageNumber: userPageIndex, // 페이지 번호
+          backgroundSettings: backgroundSettings, // 배경 설정 저장
           widgets: widgets.map(w => {
             const parseSize = (s: any) => {
               if (typeof s === 'string' && /(\d+)x(\d+)/.test(s)) {
@@ -3307,10 +3343,10 @@ export function MyPage() {
         return <UnifiedSearchWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
       case 'google_search':
-        return <GoogleSearchWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+        return <GoogleSearchWidget {...({ widget, isEditMode, updateWidget } as any)} />;
 
       case 'naver_search':
-        return <NaverSearchWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+        return <NaverSearchWidget {...({ widget, isEditMode, updateWidget } as any)} />;
 
 
       case 'github_repo':
@@ -3361,7 +3397,7 @@ export function MyPage() {
         return <EnglishWordsWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
 
       case 'quote':
-        return <QuoteWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
+        return <QuoteWidget {...({ widget, isEditMode, updateWidget } as any)} />;
 
       case 'qr_code':
         return <QRCodeWidget widget={widget} isEditMode={isEditMode} updateWidget={updateWidget} />;
@@ -3399,11 +3435,6 @@ export function MyPage() {
           backgroundColor: backgroundSettings.color,
           opacity: backgroundSettings.opacity
         };
-      case 'gradient':
-        return {
-          background: `linear-gradient(${backgroundSettings.gradient.direction}, ${backgroundSettings.gradient.from}, ${backgroundSettings.gradient.to})`,
-          opacity: backgroundSettings.opacity
-        };
       case 'image':
         return {
           backgroundImage: `url(${backgroundSettings.image})`,
@@ -3413,7 +3444,11 @@ export function MyPage() {
           opacity: backgroundSettings.opacity
         };
       default:
-        return {};
+        // gradient 등 이전 타입이 남아있을 경우 단색으로 대체
+        return {
+          backgroundColor: backgroundSettings.color || '#f8fafc',
+          opacity: backgroundSettings.opacity
+        };
     }
   };
 
@@ -3555,6 +3590,18 @@ export function MyPage() {
             </div>
 
             <div className="flex items-center gap-2">
+
+              {/* 배경 설정 버튼 */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowBackgroundModal(true)}
+                className="text-gray-600 hover:text-purple-600 hover:bg-purple-50"
+                title="배경 설정"
+              >
+                <Palette className="w-4 h-4 mr-1" />
+                배경
+              </Button>
 
               {/* 위젯 추가 버튼 */}
               <Button
@@ -4307,7 +4354,6 @@ export function MyPage() {
                     className="w-full p-2 border rounded"
                   >
                     <option value="solid">단색</option>
-                    <option value="gradient">그라데이션</option>
                     <option value="image">이미지</option>
                   </select>
                 </div>
@@ -4324,34 +4370,7 @@ export function MyPage() {
                   </div>
                 )}
                 
-                {backgroundSettings.type === 'gradient' && (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">시작 색상</label>
-                      <input
-                        type="color"
-                        value={backgroundSettings.gradient.from}
-                        onChange={(e) => setBackgroundSettings({
-                          ...backgroundSettings, 
-                          gradient: {...backgroundSettings.gradient, from: e.target.value}
-                        })}
-                        className="w-full h-10 border rounded"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">끝 색상</label>
-                      <input
-                        type="color"
-                        value={backgroundSettings.gradient.to}
-                        onChange={(e) => setBackgroundSettings({
-                          ...backgroundSettings, 
-                          gradient: {...backgroundSettings.gradient, to: e.target.value}
-                        })}
-                        className="w-full h-10 border rounded"
-                      />
-                    </div>
-                  </div>
-                )}
+                {/* gradient 옵션 제거 */}
                 
                 {backgroundSettings.type === 'image' && (
                   <div className="space-y-3">
@@ -4360,23 +4379,50 @@ export function MyPage() {
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => {
+                        disabled={isUploadingBackground}
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                              const imageUrl = event.target?.result as string;
-                              setBackgroundSettings({
-                                ...backgroundSettings,
-                                image: imageUrl,
-                                opacity: backgroundSettings.opacity
-                              });
-                            };
-                            reader.readAsDataURL(file);
+                          if (!file || !currentUser) return;
+
+                          // 파일 유효성 검사
+                          const validation = validateImageFile(file, 10);
+                          if (!validation.valid) {
+                            alert(validation.error);
+                            return;
+                          }
+
+                          setIsUploadingBackground(true);
+                          
+                          try {
+                            // Firebase Storage에 업로드 (실패 시 base64 fallback)
+                            const imageUrl = await uploadImage(file, currentUser.id, 'backgrounds');
+                            
+                            // 배경 설정 업데이트
+                            setBackgroundSettings({
+                              ...backgroundSettings,
+                              image: imageUrl,
+                              opacity: backgroundSettings.opacity
+                            });
+                            
+                            // base64인 경우 경고 (일시적 저장)
+                            if (imageUrl.startsWith('data:')) {
+                              console.warn('base64로 저장됨 - Firebase Storage 연결 문제로 추정됩니다.');
+                            }
+                          } catch (error: any) {
+                            console.error('이미지 업로드 실패:', error);
+                            alert(`이미지 업로드에 실패했습니다.\n${error.message || '네트워크 연결을 확인해주세요.'}`);
+                          } finally {
+                            setIsUploadingBackground(false);
                           }
                         }}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
                       />
+                      {isUploadingBackground && (
+                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>이미지 업로드 중...</span>
+                        </div>
+                      )}
                     </div>
                     
                     {backgroundSettings.image && (
