@@ -499,15 +499,35 @@ export function TimerWidget({
 
   // 시간 포맷팅 및 표시
   const displayTime = calculateDisplayTime();
-  const color = displayTime.isExpired 
-    ? 'text-red-600 dark:text-red-400'
-    : displayTime.remainingMs <= 5000 && core.mode !== 'stopwatch'
-    ? 'text-red-600 dark:text-red-400'
-    : displayTime.remainingMs <= 15000 && core.mode !== 'stopwatch'
-    ? 'text-orange-500 dark:text-orange-400'
-    : displayTime.remainingMs <= 30000 && core.mode !== 'stopwatch'
-    ? 'text-yellow-500 dark:text-yellow-400'
-    : 'text-gray-900 dark:text-gray-100';
+  // Stealth 모드 감지
+  const isStealthMode = document.querySelector('[data-stealth-mode="true"]') !== null;
+  
+  const getColor = () => {
+    if (isStealthMode) {
+      // Stealth 모드: 다운톤 레드 #e24b4b
+      if (displayTime.isExpired || (displayTime.remainingMs <= 5000 && core.mode !== 'stopwatch')) {
+        return { className: '', style: { color: '#e24b4b' } };
+      }
+      if (displayTime.remainingMs <= 15000 && core.mode !== 'stopwatch') {
+        return { className: '', style: { color: '#7488a8' } };
+      }
+      return { className: 'text-gray-900 dark:text-gray-100', style: {} };
+    }
+    
+    // 기본 색상
+    const color = displayTime.isExpired 
+      ? 'text-red-600 dark:text-red-400'
+      : displayTime.remainingMs <= 5000 && core.mode !== 'stopwatch'
+      ? 'text-red-600 dark:text-red-400'
+      : displayTime.remainingMs <= 15000 && core.mode !== 'stopwatch'
+      ? 'text-orange-500 dark:text-orange-400'
+      : displayTime.remainingMs <= 30000 && core.mode !== 'stopwatch'
+      ? 'text-yellow-500 dark:text-yellow-400'
+      : 'text-gray-900 dark:text-gray-100';
+    return { className: color, style: {} };
+  };
+  
+  const timerColor = getColor();
 
   return (
     <WidgetShell
@@ -556,7 +576,8 @@ export function TimerWidget({
         {/* 메인 타이머 */}
         <div className={`flex-1 flex flex-col items-center justify-center ${isCompact ? 'gap-2' : 'gap-3'}`}>
           <div 
-            className={`${isCompact ? 'text-4xl mb-1' : 'text-6xl mb-2'} font-mono font-bold tabular-nums ${color} transition-colors duration-200`}
+            className={`${isCompact ? 'text-4xl mb-1' : 'text-6xl mb-2'} font-mono font-bold tabular-nums ${timerColor.className} transition-colors duration-200`}
+            style={timerColor.style}
             aria-label={core.mode === 'stopwatch' ? '경과 시간' : '남은 시간'}
           >
             {displayTime.formatted}

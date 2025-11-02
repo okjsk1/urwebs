@@ -1,8 +1,9 @@
 ﻿import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { auth, googleProvider, db } from '../firebase/config';
 import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 import { collection, addDoc, updateDoc, doc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
@@ -52,8 +53,42 @@ export function MyPage() {
   const { theme, toggleTheme } = useTheme();
   const { pageId } = useParams<{ pageId?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user, authChecked } = useAuth();
   
-  const [isEditMode, setIsEditMode] = useState(true); // 항상 편집 가능
+  // Public View 모드 계산: ?view=public 또는 로그인 미상태에서 읽기 전용
+  const viewMode = useMemo(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'public') {
+      return 'public' as const;
+    }
+    // 로그인 미상태일 때도 public으로 처리
+    if (authChecked && !user) {
+      return 'public' as const;
+    }
+    return 'edit' as const;
+  }, [searchParams, user, authChecked]);
+  
+  const isPublicView = viewMode === 'public';
+  
+  // Stealth Mode 감지: ?mode=stealth 또는 FEATURE_STEALTH 플래그
+  const isStealthMode = useMemo(() => {
+    const modeParam = searchParams.get('mode');
+    if (modeParam === 'stealth') {
+      return true;
+    }
+    // Feature Flag 확인 (환경 변수 우선)
+    try {
+      const { getFlag } = require('../flags/featureFlags');
+      return getFlag('STEALTH') || false;
+    } catch {
+      return false;
+    }
+  }, [searchParams]);
+  
+  // Public View일 때는 편집 모드 비활성화
+  const [isEditModeState, setIsEditModeState] = useState(true);
+  const isEditMode = isPublicView ? false : isEditModeState;
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null);
   const [draggedWidget, setDraggedWidget] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -2563,49 +2598,13 @@ export function MyPage() {
           
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {/* 사이즈 선택기 - 특정 위젯들은 제한된 크기만 허용 */}
-            {originalWidget.type !== 'english_words' && (
-              <SizePicker
-                value={originalWidget.gridSize || { w: 1, h: 1 }}
-                onChange={(newSize) => {
-                  updateWidget(originalWidget.id, { ...originalWidget, gridSize: newSize });
-                }}
-                widgetType={originalWidget.type}
-              />
-            )}
-            {isWidgetEditable(originalWidget.type) && (
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="h-6 w-6 p-0 hover:bg-blue-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  editWidget(originalWidget.id);
-                }}
-                title="위젯 편집"
-              >
-                <Edit className="w-3 h-3 text-blue-600" />
-              </Button>
-            )}
-            {originalWidget.type === 'english_words' && (
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="h-6 w-6 p-0 hover:bg-blue-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // 영어단어학습 위젯의 설정 토글
-                  const englishWidget = widgets.find(w => w.id === originalWidget.id);
-                  if (englishWidget) {
-                    // 설정 상태를 토글하는 로직을 여기에 추가할 수 있습니다
-                    // 현재는 단순히 알림만 표시
-                    console.log('영어단어학습 위젯 설정 토글');
-                  }
-                }}
-                title="영어단어학습 설정"
-              >
-                <Settings className="w-3 h-3 text-blue-600" />
-              </Button>
-            )}
+            <SizePicker
+              value={originalWidget.gridSize || { w: 1, h: 1 }}
+              onChange={(newSize) => {
+                updateWidget(originalWidget.id, { ...originalWidget, gridSize: newSize });
+              }}
+              widgetType={originalWidget.type}
+            />
             <Button 
               size="sm" 
               variant="ghost" 
@@ -3458,21 +3457,42 @@ export function MyPage() {
   return (
     <div 
       className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
-      style={backgroundSettings.type !== 'solid' && backgroundSettings.type !== 'gradient' && backgroundSettings.type !== 'image' ? {} : getBackgroundStyle()}
+      style={{
+        ...(backgroundSettings.type !== 'solid' && backgroundSettings.type !== 'gradient' && backgroundSettings.type !== 'image' ? {} : getBackgroundStyle()),
+        ...(isStealthMode ? {
+          backgroundColor: 'var(--stealth-bg)',
+        } : {}),
+      }}
+      data-stealth-mode={isStealthMode ? 'true' : undefined}
     >
-      {/* 상단 툴바 */}
-      <div className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
+      {/* 상단 툴바 - Stealth 모드 스타일 적용 */}
+      <div 
+        className={`sticky top-0 z-[60] backdrop-blur-md border-b shadow-sm transition-all ${
+          isStealthMode 
+            ? 'bg-white/95 border-gray-200/30' 
+            : 'bg-white/80 border-gray-200/50'
+        }`}
+        style={isStealthMode ? {
+          backgroundColor: 'var(--stealth-surface)',
+          borderColor: 'var(--stealth-border)',
+          boxShadow: 'var(--stealth-shadow)',
+        } : {}}
+      >
         <div className="w-full px-2 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {/* URWEBS 버튼 */}
+              {/* URWEBS 버튼 - Stealth 모드에서는 "urwebs workspace" */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => window.location.href = '/'}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold"
+                className={`font-medium transition-opacity ${
+                  isStealthMode 
+                    ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 opacity-80 hover:opacity-100' 
+                    : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold'
+                }`}
               >
-                URWEBS
+                {isStealthMode ? 'urwebs workspace' : 'URWEBS'}
               </Button>
               
               <div className="flex items-center gap-2">
@@ -3593,49 +3613,71 @@ export function MyPage() {
 
             <div className="flex items-center gap-2">
 
-              {/* 배경 설정 버튼 */}
+              {/* 배경 설정 버튼 - Stealth 모드에서는 outline */}
               <Button
-                variant="ghost"
+                variant={isStealthMode ? "outline" : "ghost"}
                 size="sm"
                 onClick={() => setShowBackgroundModal(true)}
-                className="text-gray-600 hover:text-purple-600 hover:bg-purple-50"
+                className={isStealthMode 
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 opacity-75 hover:opacity-100 transition-opacity"
+                  : "text-gray-600 hover:text-purple-600 hover:bg-purple-50"
+                }
                 title="배경 설정"
+                style={isStealthMode ? {
+                  borderColor: 'var(--stealth-button-border)',
+                  transition: 'all var(--stealth-transition-duration) var(--stealth-transition-easing)',
+                } : {}}
               >
-                <Palette className="w-4 h-4 mr-1" />
+                <Palette className={`w-4 h-4 mr-1 ${isStealthMode ? 'opacity-80' : ''}`} />
                 배경
               </Button>
 
-              {/* 위젯 추가 버튼 */}
+              {/* 위젯 추가 버튼 - Stealth 모드에서는 outline */}
               <Button
-                variant="default"
+                variant={isStealthMode ? "outline" : "default"}
                 size="sm"
                 onClick={() => setShowWidgetModal(true)}
-                className="bg-green-500 hover:bg-green-600 text-white font-semibold"
+                className={isStealthMode 
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 font-medium"
+                  : "bg-green-500 hover:bg-green-600 text-white font-semibold"
+                }
                 title="위젯 추가"
+                style={isStealthMode ? {
+                  borderColor: 'var(--stealth-button-border)',
+                  backgroundColor: 'transparent',
+                  transition: 'all var(--stealth-transition-duration) var(--stealth-transition-easing)',
+                } : {}}
               >
-                <Plus className="w-4 h-4 mr-1" />
+                <Plus className={`w-4 h-4 mr-1 ${isStealthMode ? 'opacity-80' : ''}`} />
                 위젯 추가
               </Button>
 
-              {/* 페이지 관리 버튼 */}
+              {/* 페이지 관리 버튼 - Stealth 모드에서는 outline */}
               <Button
-                variant="ghost"
+                variant={isStealthMode ? "outline" : "ghost"}
                 size="sm"
                 onClick={() => {
                   console.log('페이지 관리 버튼 클릭됨, 현재 상태:', showPageManager);
                   setShowPageManager(!showPageManager);
                   console.log('새로운 상태:', !showPageManager);
                 }}
-                className="text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                className={isStealthMode
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 opacity-75 hover:opacity-100 transition-opacity"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                }
                 title="페이지 관리"
+                style={isStealthMode ? {
+                  borderColor: 'var(--stealth-button-border)',
+                  transition: 'all var(--stealth-transition-duration) var(--stealth-transition-easing)',
+                } : {}}
               >
-                <FileText className="w-4 h-4 mr-1" />
+                <FileText className={`w-4 h-4 mr-1 ${isStealthMode ? 'opacity-80' : ''}`} />
                 페이지 ({pages.length})
               </Button>
             
-              {/* 저장하기 버튼 (로그인 상태에 따라 다르게 표시) */}
+              {/* 저장하기 버튼 - Stealth 모드에서는 outline */}
               <Button 
-                variant="default"
+                variant={isStealthMode ? "outline" : "default"}
                 size="sm"
                 onClick={currentUser ? savePage : async () => {
                   try {
@@ -3686,8 +3728,16 @@ export function MyPage() {
                     }
                   }
                 }}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold"
+                className={isStealthMode 
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 font-medium"
+                  : "bg-blue-500 hover:bg-blue-600 text-white font-semibold"
+                }
                 title={currentUser ? "페이지 저장하기" : "로그인하여 페이지를 저장하고 공유하세요"}
+                style={isStealthMode ? {
+                  borderColor: 'var(--stealth-button-border)',
+                  backgroundColor: 'transparent',
+                  transition: 'all var(--stealth-transition-duration) var(--stealth-transition-easing)',
+                } : {}}
               >
                 {currentUser ? (
                   <>
@@ -3703,12 +3753,18 @@ export function MyPage() {
               </Button>
 
               {/* 공개/비공개 토글 버튼 */}
-              <span className="text-sm text-gray-600 font-medium">공개 설정:</span>
+              <span className={`text-sm font-medium ${isStealthMode ? 'text-gray-600 opacity-80' : 'text-gray-600'}`}>공개 설정:</span>
               <Button 
                 variant="outline"
                 size="sm"
                 onClick={toggleShare}
-                className="font-semibold transition-all text-gray-700 hover:text-gray-900 border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50"
+                className={`transition-all text-gray-700 hover:text-gray-900 border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 ${
+                  isStealthMode ? 'font-medium opacity-75 hover:opacity-100' : 'font-semibold'
+                }`}
+                style={isStealthMode ? {
+                  borderColor: 'var(--stealth-button-border)',
+                  transition: 'all var(--stealth-transition-duration) var(--stealth-transition-easing)',
+                } : {}}
               >
                 {shareSettings.isPublic ? (
                   <>
@@ -3728,13 +3784,16 @@ export function MyPage() {
                 </span>
               )}
 
-              {/* 빠른 액션 버튼들 */}
+              {/* 빠른 액션 버튼들 - Stealth 모드에서는 opacity 조정 */}
               <Button 
                 variant="ghost"
                 size="sm"
                 onClick={toggleTheme}
-                className="h-8 w-8 p-0 hover:bg-gray-100"
+                className={`h-8 w-8 p-0 hover:bg-gray-100 ${isStealthMode ? 'opacity-70 hover:opacity-100' : ''}`}
                 title={theme === 'light' ? '다크모드' : '라이트모드'}
+                style={isStealthMode ? {
+                  transition: 'opacity var(--stealth-transition-duration) var(--stealth-transition-easing)',
+                } : {}}
               >
                 {theme === 'light' ? <Moon className="w-4 h-4" /> : <SunIcon className="w-4 h-4" />}
               </Button>
@@ -3743,8 +3802,11 @@ export function MyPage() {
                 variant="ghost"
                 size="sm"
                 onClick={resetToDefault}
-                className="h-8 w-8 p-0 hover:bg-gray-100 text-red-500 hover:text-red-700"
+                className={`h-8 w-8 p-0 hover:bg-gray-100 text-red-500 hover:text-red-700 ${isStealthMode ? 'opacity-70 hover:opacity-100' : ''}`}
                 title="초기화"
+                style={isStealthMode ? {
+                  transition: 'opacity var(--stealth-transition-duration) var(--stealth-transition-easing)',
+                } : {}}
               >
                 <RotateCcw className="w-4 h-4" />
               </Button>

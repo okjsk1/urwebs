@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, Heart } from 'lucide-react';
 import { QuickStart } from './home/QuickStart';
 import { AutoRail } from './home/AutoRail';
 import { TemplateChipsSearch } from './home/TemplateChipsSearch';
@@ -10,9 +10,11 @@ import { TemplateSelectModal } from './modals/TemplateSelectModal';
 import { Onboarding } from './Onboarding';
 import { HelpTooltip } from './HelpTooltip';
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Home() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -108,15 +110,35 @@ export function Home() {
               대시보드를 1분 만에 완성.
             </p>
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
               <button
-                onClick={handleStartNow}
+                onClick={() => navigate('/mypage')}
                 className="h-12 px-5 rounded-xl font-semibold focus:ring-2 focus:ring-indigo-200 bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2"
               >
                 <Sparkles className="w-5 h-5" />
-                지금 시작하기
+                내 페이지로 가기
                 <ArrowRight className="w-4 h-4" />
               </button>
+              
+              {user ? (
+                <button
+                  onClick={() => navigate('/favorites')}
+                  className="h-12 px-5 rounded-xl font-semibold focus:ring-2 focus:ring-indigo-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-2"
+                >
+                  <Heart className="w-5 h-5 fill-red-500 text-red-500" />
+                  내 관심 페이지 보기
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/mypage')}
+                  className="h-12 px-5 rounded-xl font-semibold focus:ring-2 focus:ring-indigo-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-2"
+                >
+                  <Heart className="w-5 h-5" />
+                  로그인하고 내 관심페이지 보기
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
               
               <button
                 onClick={handleBrowseTemplates}

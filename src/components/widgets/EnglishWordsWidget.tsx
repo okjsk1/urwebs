@@ -3,7 +3,7 @@
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Button } from '../ui/button';
-import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
 import { WidgetProps, persistOrLocal, readLocal } from './utils/widget-helpers';
 
 type Level = 'beginner' | 'intermediate' | 'advanced';
@@ -141,6 +141,21 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
   const [selectedTheme, setSelectedTheme] = useState<ThemeKey>('elementary');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  
+  // 위젯 크기 확인 (gridSize 또는 size 속성에서 가져오기)
+  const widgetSize = useMemo(() => {
+    const gridSize = (widget as any)?.gridSize || (widget as any)?.size;
+    if (typeof gridSize === 'object' && gridSize !== null) {
+      return gridSize;
+    }
+    if (typeof gridSize === 'string') {
+      const [w, h] = gridSize.split('x').map(Number);
+      return { w, h };
+    }
+    return { w: 1, h: 2 }; // 기본값
+  }, [(widget as any)?.gridSize, (widget as any)?.size]);
+  
+  const isCompact = widgetSize.w === 1 && widgetSize.h === 1;
 
   // 복원 (기존 'toiec' 저장값 호환)
   useEffect(() => {
@@ -195,70 +210,115 @@ export const EnglishWordsWidget = ({ widget, isEditMode, updateWidget }: WidgetP
   }
 
   return (
-    <div className={`h-full flex flex-col ${((widget as any)?.size === '1x1') ? 'p-2' : 'p-3'}`}>
-      {/* 설정 패널 (편집 모드에서만) */}
+    <div className={`h-full flex ${isCompact ? 'p-1.5' : 'p-3'} overflow-hidden relative`}>
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* 단어 카드 - 컴팩트 모드에서 더 조밀하게 */}
+        <div className={`flex-1 flex flex-col items-center justify-center text-center ${isCompact ? 'space-y-1' : 'space-y-2'} min-h-0`}>
+        <div className={`${isCompact ? 'text-lg leading-tight' : 'text-3xl'} font-bold text-gray-800 break-words`}>
+          {currentWord.english}
+        </div>
+        {!isCompact && (
+          <div className={`text-base text-gray-500`}>
+            {currentWord.level === 'beginner' && '🟢 초급'}
+            {currentWord.level === 'intermediate' && '🟡 중급'}
+            {currentWord.level === 'advanced' && '🔴 고급'}
+          </div>
+        )}
+        {isCompact && (
+          <div className={`text-[9px] text-gray-500 leading-tight`}>
+            {currentWord.level === 'beginner' && '🟢'}
+            {currentWord.level === 'intermediate' && '🟡'}
+            {currentWord.level === 'advanced' && '🔴'}
+          </div>
+        )}
+          <div className={`${isCompact ? 'text-xs leading-tight' : 'text-xl'} text-blue-600 font-medium break-words px-1`}>
+            {currentWord.korean}
+          </div>
+        </div>
+
+        {/* 좌/우 네비게이션 - 컴팩트 모드에서 최소화 */}
+        <div className={`flex items-center justify-between shrink-0 ${isCompact ? 'mt-0.5' : 'mt-2'}`}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className={`${isCompact ? 'h-5 w-5 p-0 border-gray-300' : 'h-8 w-8 p-0'}`} 
+            onClick={prev}
+            title="이전 단어"
+          >
+            <ChevronLeft className={isCompact ? 'w-2.5 h-2.5' : 'w-4 h-4'} />
+          </Button>
+          {!isCompact && (
+            <div className="text-xs text-gray-500">10초마다 자동 전환</div>
+          )}
+          {isCompact && (
+            <div className="text-[8px] text-gray-400">10초</div>
+          )}
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className={`${isCompact ? 'h-5 w-5 p-0 border-gray-300' : 'h-8 w-8 p-0'}`} 
+            onClick={next}
+            title="다음 단어"
+          >
+            <ChevronRight className={isCompact ? 'w-2.5 h-2.5' : 'w-4 h-4'} />
+          </Button>
+        </div>
+      </div>
+
+      {/* 설정 버튼 (편집 모드일 때만) - 오른쪽 상단 고정 */}
+      {isEditMode && (
+        <button
+          onClick={() => setShowSettings(s => !s)}
+          className={`absolute ${isCompact ? 'h-4 w-4 p-0' : 'h-6 w-6 p-0'} flex items-center justify-center rounded hover:bg-gray-100 transition-colors z-10`}
+          title="설정"
+          style={{
+            top: isCompact ? '6px' : '12px',
+            right: isCompact ? '6px' : '12px',
+          }}
+        >
+          <Settings className={isCompact ? 'w-2.5 h-2.5 text-gray-600' : 'w-3 h-3 text-gray-600'} />
+        </button>
+      )}
+
+      {/* 설정 패널 (편집 모드에서만) - 오른쪽 스크롤 영역 */}
       {isEditMode && showSettings && (
-        <div className="mb-3 p-2 bg-gray-50 rounded-lg space-y-2 shrink-0">
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">테마 선택</label>
-            <div className="grid grid-cols-2 gap-1">
-              {THEME_OPTIONS.map(theme => (
-                <Button
-                  key={theme.value}
-                  size="sm"
-                  variant={selectedTheme === theme.value ? 'default' : 'outline'}
-                  className="h-6 text-xs justify-start"
-                  onClick={() => { 
-                    setSelectedTheme(theme.value); 
-                    setCurrentIndex(0); 
-                    setShowSettings(false); 
-                  }}
-                >
-                  <span className="mr-1">{theme.emoji}</span>
-                  {theme.label}
-                </Button>
-              ))}
+        <div className={`absolute top-0 right-0 bottom-0 ${isCompact ? 'w-24' : 'w-48'} bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-lg z-20 flex flex-col`}>
+          <div className={`${isCompact ? 'p-1.5' : 'p-2'} border-b border-gray-200 dark:border-gray-700 flex items-center justify-between shrink-0`}>
+            <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-700 dark:text-gray-300`}>설정</span>
+            <button
+              onClick={() => setShowSettings(false)}
+              className={`${isCompact ? 'h-4 w-4 p-0' : 'h-5 w-5 p-0'} flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
+              title="닫기"
+            >
+              <X className={isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <div className={`${isCompact ? 'p-1.5' : 'p-2'} space-y-2`}>
+              <label className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-700 dark:text-gray-300 block`}>테마 선택</label>
+              <div className={`grid ${isCompact ? 'grid-cols-1' : 'grid-cols-1'} gap-1`}>
+                {THEME_OPTIONS.map(theme => (
+                  <Button
+                    key={theme.value}
+                    size="sm"
+                    variant={selectedTheme === theme.value ? 'default' : 'outline'}
+                    className={`${isCompact ? 'h-5 text-[10px] px-1' : 'h-6 text-xs'} justify-start w-full`}
+                    onClick={() => { 
+                      setSelectedTheme(theme.value); 
+                      setCurrentIndex(0); 
+                      setShowSettings(false); 
+                    }}
+                  >
+                    <span className="mr-1">{theme.emoji}</span>
+                    <span className="truncate">{theme.label}</span>
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* 상단 표시줄 */}
-      <div className="flex items-center justify-end text-xs text-gray-500 mb-2">
-        {isEditMode && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 w-6 p-0"
-            onClick={() => setShowSettings(s => !s)}
-            title="설정"
-          >
-            <Settings className="w-3 h-3" />
-          </Button>
-        )}
-      </div>
-
-      {/* 단어 카드 */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center space-y-2">
-        <div className={`${((widget as any)?.size === '1x1') ? 'text-xl' : 'text-3xl'} font-bold text-gray-800`}>{currentWord.english}</div>
-        <div className={`${((widget as any)?.size === '1x1') ? 'text-[11px]' : 'text-base'} text-gray-500`}>
-          {currentWord.level === 'beginner' && '🟢 초급'}
-          {currentWord.level === 'intermediate' && '🟡 중급'}
-          {currentWord.level === 'advanced' && '🔴 고급'}
-        </div>
-        <div className={`${((widget as any)?.size === '1x1') ? 'text-sm' : 'text-xl'} text-blue-600 font-medium`}>{currentWord.korean}</div>
-      </div>
-
-      {/* 좌/우 네비게이션 */}
-      <div className="flex items-center justify-between shrink-0">
-        <Button size="sm" variant="outline" className={`${((widget as any)?.size === '1x1') ? 'h-6 w-6' : 'h-8 w-8'} p-0`} onClick={prev}>
-          <ChevronLeft className={`${((widget as any)?.size === '1x1') ? 'w-3 h-3' : 'w-4 h-4'}`} />
-        </Button>
-        <div className={`${((widget as any)?.size === '1x1') ? 'text-[10px]' : 'text-xs'} text-gray-500`}>10초마다 자동 전환</div>
-        <Button size="sm" variant="outline" className={`${((widget as any)?.size === '1x1') ? 'h-6 w-6' : 'h-8 w-8'} p-0`} onClick={next}>
-          <ChevronRight className={`${((widget as any)?.size === '1x1') ? 'w-3 h-3' : 'w-4 h-4'}`} />
-        </Button>
-      </div>
     </div>
   );
 };

@@ -19,6 +19,10 @@ import { renderWidget } from './utils/widgetRenderer';
 import { colToX, rowToY, gridWToPx, gridHToPx } from './utils/layoutConfig';
 import { allWidgets } from './constants/widgetCategories';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useDocumentTitle } from './hooks/useDocumentTitle';
+import { FavoritesPage } from './pages/FavoritesPage';
+import { useFavorites } from './hooks/useFavorites';
+import { HomePageWithRedirect } from './components/HomePageWithRedirect';
 // Firebase는 config.ts에서 초기화됩니다
 
 // 공개 페이지 뷰어 컴포넌트
@@ -29,8 +33,7 @@ function PublicPageViewer() {
   const [pageData, setPageData] = useState(() => null as any);
   const [loading, setLoading] = useState(() => true);
   const [error, setError] = useState(() => null as string | null);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likedBy, setLikedBy] = useState<string[]>([]);
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites(user?.uid || null);
 
   useEffect(() => {
     const fetchPage = async () => {
@@ -49,12 +52,7 @@ function PublicPageViewer() {
           const pageId_doc = snapshot.docs[0].id;
           setPageData({ id: pageId_doc, ...docData });
           
-          // 좋아요 상태 확인
-          const likedUsers = docData.likedBy || [];
-          setLikedBy(likedUsers);
-          if (user && likedUsers.includes(user.uid)) {
-            setIsLiked(true);
-          }
+          // 관심 상태는 useFavorites 훅에서 관리
           
           // 조회수 증가: 백그라운드에서 조용히 시도 (실패해도 무시)
           // 본인이 자신의 페이지를 볼 때는 조회수 증가하지 않음
@@ -155,69 +153,86 @@ function PublicPageViewer() {
               </div>
             </div>
             
-            {/* 좋아요 버튼 - 유튜브 스타일 */}
+            {/* 관심 버튼 - useFavorites 훅 사용 */}
             <button 
-              onClick={async () => {
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 if (!user) {
                   alert('로그인이 필요합니다.');
                   return;
                 }
                 
+                if (!pageData?.id) {
+                  console.error('페이지 ID가 없습니다:', pageData);
+                  return;
+                }
+                
                 try {
-                  const { doc, updateDoc, arrayUnion, arrayRemove, increment } = await import('firebase/firestore');
-                  const { db } = await import('./firebase/config');
-                  const docRef = doc(db, 'userPages', pageData.id);
+                  const currentIsFavorite = isFavorite(pageData.id);
                   
-                  if (isLiked) {
-                    // 좋아요 취소
-                    await updateDoc(docRef, { 
-                      likedBy: arrayRemove(user.uid),
-                      likes: increment(-1)
-                    });
-                    setIsLiked(false);
-                    setLikedBy(prev => prev.filter(uid => uid !== user.uid));
-                    setPageData((prev: any) => ({ ...prev, likes: Math.max(0, (prev.likes || 0) - 1) }));
+                  if (currentIsFavorite) {
+                    // 관심 취소
+                    await removeFavorite(pageData.id);
+                    setPageData((prev: any) => ({ 
+                      ...prev, 
+                      likesCount: Math.max(0, (prev.likesCount || 0) - 1),
+                      likes: Math.max(0, (prev.likes || 0) - 1) 
+                    }));
                   } else {
-                    // 좋아요 추가
-                    await updateDoc(docRef, { 
-                      likedBy: arrayUnion(user.uid),
-                      likes: increment(1)
-                    });
-                    setIsLiked(true);
-                    setLikedBy(prev => [...prev, user.uid]);
-                    setPageData((prev: any) => ({ ...prev, likes: (prev.likes || 0) + 1 }));
+                    // 관심 추가
+                    const favoriteData: any = {
+                      pageId: pageData.id,
+                      pageOwnerId: pageData.authorId,
+                      pageTitle: pageData.title,
+                      pageUrl: `/${pageId}`,
+                    };
+                    
+                    // authorName이 있는 경우에만 추가
+                    if (pageData.authorName) {
+                      favoriteData.authorName = pageData.authorName;
+                    }
+                    
+                    await addFavorite(favoriteData);
+                    setPageData((prev: any) => ({ 
+                      ...prev, 
+                      likesCount: (prev.likesCount || 0) + 1,
+                      likes: (prev.likes || 0) + 1 
+                    }));
                   }
                 } catch (error) {
-                  console.error('좋아요 실패:', error);
-                  alert('좋아요 처리에 실패했습니다.');
+                  console.error('관심 추가/제거 실패:', error);
+                  alert('관심 처리에 실패했습니다.');
                 }
               }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-200 ${
-                isLiked 
-                  ? 'bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border-red-300 dark:border-red-700 shadow-md hover:shadow-lg' 
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-200 cursor-pointer ${
+                isFavorite(pageData?.id)
+                  ? 'bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-300 dark:border-blue-700 shadow-md hover:shadow-lg' 
                   : 'bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-800 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md'
               }`}
+              type="button"
             >
               <svg 
                 className={`w-6 h-6 transition-all duration-200 ${
-                  isLiked 
-                    ? 'text-red-600 dark:text-red-400 fill-red-600 dark:fill-red-400' 
+                  isFavorite(pageData?.id)
+                    ? 'text-blue-600 dark:text-blue-400 fill-blue-600 dark:fill-blue-400' 
                     : 'text-gray-400 dark:text-gray-500'
                 }`}
-                fill={isLiked ? "currentColor" : "none"}
+                fill={isFavorite(pageData?.id) ? "currentColor" : "none"}
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
               <div className="flex flex-col">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">좋아요</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">관심</span>
                 <span className={`text-base font-bold ${
-                  isLiked 
-                    ? 'text-red-600 dark:text-red-400' 
+                  isFavorite(pageData?.id)
+                    ? 'text-blue-600 dark:text-blue-400' 
                     : 'text-gray-900 dark:text-gray-100'
                 }`}>
-                  {pageData.likes || 0}
+                  {pageData?.likesCount || pageData?.likes || 0}
                 </span>
               </div>
             </button>
@@ -388,6 +403,15 @@ function AppContent() {
   
   // 키보드 단축키 활성화
   useKeyboardShortcuts();
+  
+  // document.title 업데이트
+  useDocumentTitle();
+
+  // 홈으로 이동하는 헬퍼 함수 (리디렉션 방지 플래그 설정)
+  const navigateHome = () => {
+    sessionStorage.setItem('homeVisited', 'true');
+    navigate('/');
+  };
 
   const handleCategorySelect = (categoryId: string, subCategory?: string) => {
     setSelectedCategory(categoryId);
@@ -398,30 +422,15 @@ function AppContent() {
     <AuthProvider>
       <ThemeProvider children={
         <Routes>
-        {/* 메인 페이지 */}
-        <Route path="/" element={
-          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 dark:from-gray-950 dark:to-gray-900">
-            <Header 
-              currentPage="home"
-              onNavigateHome={() => navigate('/')}
-              onNavigateNotice={() => navigate('/notice')}
-              onNavigateCommunity={() => navigate('/community')}
-              onNavigateContact={() => navigate('/contact')}
-              onNavigateMyPage={() => navigate('/mypage')}
-              onNavigateAdminInquiries={() => navigate('/admin')}
-            />
-            <main>
-              <HomePageNew onCategorySelect={handleCategorySelect} />
-            </main>
-          </div>
-        } />
+        {/* 메인 페이지 - 로그인 시 /favorites로 리디렉션 */}
+        <Route path="/" element={<HomePageWithRedirect onCategorySelect={handleCategorySelect} />} />
 
         {/* 공지사항 */}
         <Route path="/notice" element={
           <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <Header 
               currentPage="notice"
-              onNavigateHome={() => navigate('/')}
+              onNavigateHome={navigateHome}
               onNavigateNotice={() => navigate('/notice')}
               onNavigateCommunity={() => navigate('/community')}
               onNavigateContact={() => navigate('/contact')}
@@ -439,7 +448,7 @@ function AppContent() {
           <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <Header 
               currentPage="community"
-              onNavigateHome={() => navigate('/')}
+              onNavigateHome={navigateHome}
               onNavigateNotice={() => navigate('/notice')}
               onNavigateCommunity={() => navigate('/community')}
               onNavigateContact={() => navigate('/contact')}
@@ -457,7 +466,7 @@ function AppContent() {
           <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <Header 
               currentPage="contact"
-              onNavigateHome={() => navigate('/')}
+              onNavigateHome={navigateHome}
               onNavigateNotice={() => navigate('/notice')}
               onNavigateCommunity={() => navigate('/community')}
               onNavigateContact={() => navigate('/contact')}
@@ -493,7 +502,7 @@ function AppContent() {
           <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <Header 
               currentPage="admin-inquiries"
-              onNavigateHome={() => navigate('/')}
+              onNavigateHome={navigateHome}
               onNavigateNotice={() => navigate('/notice')}
               onNavigateCommunity={() => navigate('/community')}
               onNavigateContact={() => navigate('/contact')}
@@ -616,6 +625,24 @@ function AppContent() {
 
         {/* 전체 페이지 목록 */}
         <Route path="/pages" element={<AllPagesListPage />} />
+
+        {/* 내 관심 페이지 */}
+        <Route path="/favorites" element={
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 dark:from-gray-950 dark:to-gray-900">
+            <Header 
+              currentPage="favorites"
+              onNavigateHome={navigateHome}
+              onNavigateNotice={() => navigate('/notice')}
+              onNavigateCommunity={() => navigate('/community')}
+              onNavigateContact={() => navigate('/contact')}
+              onNavigateMyPage={() => navigate('/mypage')}
+              onNavigateAdminInquiries={() => navigate('/admin')}
+            />
+            <main>
+              <FavoritesPage />
+            </main>
+          </div>
+        } />
 
         {/* 공개 페이지 뷰어 - userId_pageNumber 형식 */}
         <Route path="/:pageId" element={<PublicPageViewer />} />

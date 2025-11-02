@@ -54,6 +54,30 @@
   --on-surface: var(--foreground);
   --on-surface-muted: color-mix(in oklab, var(--foreground), transparent 40%);
   --disabled-opacity: .5;
+  
+  /* Stealth Mode 테마 토큰 (라이트) */
+  --stealth-bg: #F5F6F7;
+  --stealth-surface: #F9FAFB;
+  --stealth-surface-muted: #F1F3F5;
+  --stealth-text-primary: #2F3437;
+  --stealth-text-secondary: #5B6166;
+  --stealth-border: rgba(0, 0, 0, 0.05);
+  --stealth-accent: #5B6EA6;
+  --stealth-accent-hover: rgba(91, 110, 166, 0.92);
+  --stealth-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --stealth-radius: 8px;
+  --stealth-button-border: #D3D6DB;
+  --stealth-radius-max: 12px;
+  --stealth-spacing-base: 8px;
+  --stealth-spacing-card: 16px;
+  --stealth-spacing-card-large: 24px;
+  --stealth-font-size: 14px;
+  --stealth-line-height: 1.55;
+  --stealth-font-weight: 400;
+  --stealth-font-weight-header: 500;
+  --stealth-font-family: 'Pretendard', 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --stealth-transition-duration: 120ms;
+  --stealth-transition-easing: ease-out;
 }
 
 :root[data-theme="dark"], .dark {
@@ -104,6 +128,29 @@
   --on-surface: var(--foreground);
   --on-surface-muted: color-mix(in oklab, var(--foreground), transparent 40%);
   --disabled-opacity: .5;
+  
+  /* Stealth Mode 테마 토큰 (다크) */
+  --stealth-bg: #0F1215;
+  --stealth-surface: #15191D;
+  --stealth-surface-muted: #101418;
+  --stealth-text-primary: #E7EAED;
+  --stealth-text-secondary: #A8B0B8;
+  --stealth-border: rgba(255, 255, 255, 0.08);
+  --stealth-accent: #7CA0D3;
+  --stealth-accent-hover: rgba(124, 160, 211, 0.88);
+  --stealth-shadow: none;
+  --stealth-radius: 10px;
+  --stealth-radius-max: 12px;
+  --stealth-spacing-base: 8px;
+  --stealth-spacing-card: 16px;
+  --stealth-spacing-card-large: 24px;
+  --stealth-font-size: 14px;
+  --stealth-line-height: 1.55;
+  --stealth-font-weight: 400;
+  --stealth-font-weight-header: 500;
+  --stealth-font-family: 'Pretendard', 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --stealth-transition-duration: 120ms;
+  --stealth-transition-easing: ease-out;
 }
 
 @theme inline {
@@ -222,6 +269,14 @@
   outline: 2px solid var(--ring);
   outline-offset: 2px;
   border-radius: 0.5rem;
+}
+
+/* Stealth Mode focus-visible 규칙 */
+[data-theme="stealth"] :where(button, a, input, textarea, select):focus-visible,
+.stealth-mode :where(button, a, input, textarea, select):focus-visible {
+  outline: 1px solid var(--stealth-accent);
+  outline-offset: 2px;
+  box-shadow: none; /* 내부 그림자 금지 */
 }
 
 /* prefers-reduced-motion 지원 */

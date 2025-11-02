@@ -20,12 +20,13 @@ interface ColumnProps {
   column: ColumnType;
   widgets: Widget[];
   isEditMode: boolean;
+  isPublic?: boolean; // Public View 모드
   onAddWidget?: (columnId: string) => void;
   onDeleteWidget?: (widgetId: string) => void;
   onWidgetResize?: (widgetId: string, minHeight: number) => void;
 }
 
-export function Column({ column, widgets, isEditMode, onAddWidget, onDeleteWidget, onWidgetResize }: ColumnProps) {
+export function Column({ column, widgets, isEditMode, isPublic = false, onAddWidget, onDeleteWidget, onWidgetResize }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   });
@@ -78,6 +79,7 @@ export function Column({ column, widgets, isEditMode, onAddWidget, onDeleteWidge
               key={widget.id}
               widget={widget}
               isEditMode={isEditMode}
+              isPublic={isPublic}
               onDelete={onDeleteWidget}
             >
               {renderWidgetContent(widget)}

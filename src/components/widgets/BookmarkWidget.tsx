@@ -147,22 +147,6 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
     }
   }, [state.newBookmark.url]);
 
-  // 북마크 개수 추적 (크기 자동 조절 비활성화 - 사용자가 직접 조절 가능)
-  useEffect(() => {
-    const bookmarkCount = state.bookmarks.length;
-    
-    // 북마크 개수가 변경되었을 때만 처리 (무한 루프 방지)
-    if (bookmarkCount === lastBookmarkCountRef.current) {
-      return;
-    }
-    
-    lastBookmarkCountRef.current = bookmarkCount;
-
-    // 부모 컴포넌트에게 북마크 개수 변경 알림
-    onBookmarkCountChange?.(bookmarkCount);
-
-  }, [state.bookmarks.length, onBookmarkCountChange]);
-
   const getDomainIcon = useCallback((url: string): string => {
     try {
       const domain = new URL(normalizeUrl(url)).hostname.toLowerCase();
@@ -192,6 +176,39 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
 
     return filtered;
   }, [state.bookmarks, state.activeCategoryId]);
+
+  // 북마크 개수에 따라 위젯 높이 자동 조절
+  useEffect(() => {
+    const bookmarkCount = filteredBookmarks.length;
+    
+    // 북마크 개수가 변경되었을 때만 처리 (무한 루프 방지)
+    if (bookmarkCount === lastBookmarkCountRef.current) {
+      return;
+    }
+    
+    lastBookmarkCountRef.current = bookmarkCount;
+
+    // 부모 컴포넌트에게 북마크 개수 변경 알림
+    onBookmarkCountChange?.(bookmarkCount);
+
+    // 북마크 개수에 따라 위젯 높이 자동 조절
+    // 북마크 2개마다 1칸씩 증가 (최소 1칸)
+    // 1-2개: 1칸, 3-4개: 2칸, 5-6개: 3칸, 7-8개: 4칸
+    const newHeight = Math.max(1, Math.ceil(bookmarkCount / 2));
+    
+    // 위젯의 현재 gridSize 가져오기
+    const currentGridSize = (widget as any).gridSize || (widget as any).size || { w: 1, h: 1 };
+    
+    // 높이가 변경된 경우에만 업데이트
+    if (newHeight !== currentGridSize.h && updateWidget) {
+      updateWidget(widget.id, {
+        ...widget,
+        gridSize: { ...currentGridSize, h: newHeight },
+        size: { ...currentGridSize, h: newHeight },
+      });
+    }
+
+  }, [filteredBookmarks.length, onBookmarkCountChange, updateWidget, widget]);
 
   const addBookmark = useCallback(() => {
     const { name, url } = state.newBookmark;
@@ -459,8 +476,8 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
           )}
         </div>
       )}
-      {/* 북마크 리스트 (세로 배치) */}
-      <div className="space-y-2 mb-3 flex-1 overflow-y-auto px-2.5 pt-2">
+      {/* 북마크 리스트 (세로 배치) - 스크롤 제거 */}
+      <div className="space-y-2 mb-3 flex-1 overflow-visible px-2.5 pt-2">
         {/* 붙여넣기 기능 제거 */}
         {filteredBookmarks.map((bookmark, index) => (
           <div 

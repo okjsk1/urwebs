@@ -67,10 +67,10 @@ service cloud.firestore {
       // 수정/삭제: 저장된 문서(authorId)가 본인
       allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
       
-      // 조회수/좋아요 증가: 공개 페이지의 경우 누구나 가능
-      // likedBy 배열도 업데이트 가능하도록 허용
+      // 조회수/좋아요 증가: 공개 페이지의 경우 누구나 가능 (로그인 불필요)
+      // 다른 필드는 변경하지 않고 views, likes, likesCount, likedBy만 변경 허용
       allow update: if resource.data.isPublic == true 
-        && request.resource.data.diff(resource.data).affectedKeys().hasAny(['views', 'likes', 'likedBy']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'likes', 'likesCount', 'likedBy']);
     }
 
     // 7) 공지사항: 모두 읽기 가능, 관리자만 생성/수정/삭제 가능
@@ -86,7 +86,13 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
     }
 
-    // 8) 관리자 페이지 접근을 위한 모든 데이터 읽기 권한
+    // 8) 사용자 좋아요(즐겨찾기) 목록: 본인만 읽기/쓰기
+    match /users/{userId}/favorites/{pageId} {
+      allow read: if isSignedIn() && userId == request.auth.uid;
+      allow write: if isSignedIn() && userId == request.auth.uid;
+    }
+
+    // 9) 관리자 페이지 접근을 위한 모든 데이터 읽기 권한
     match /{document=**} {
       allow read: if isAdmin();
     }

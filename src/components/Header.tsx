@@ -48,8 +48,8 @@ export function Header({
           }}
         >
           <div>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">
-              URWEBS
+            <h1 className="text-lg sm:text-xl md:text-2xl font-medium text-gray-700 dark:text-gray-300">
+              urwebs workspace
             </h1>
           </div>
         </div>
