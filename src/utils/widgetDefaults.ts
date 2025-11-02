@@ -22,11 +22,11 @@ export const WIDGET_DEFAULT_SIZES: Record<string, WidgetSize> = {
   'exchange': '1x1',
   'google_ad': '1x1',
   'law_search': '2x1',
+  'image': '1x1',
 };
 
 // 위젯 타입별 컬럼 제한 (1칸 너비만 허용하는 위젯들)
 export const SINGLE_COLUMN_WIDGETS = [
-  'weather',
   'english_words',
   'crypto',
   'exchange',
@@ -36,7 +36,6 @@ export const SINGLE_COLUMN_WIDGETS = [
 
 // 위젯 타입별 행 제한
 export const WIDGET_ROW_LIMITS: Record<string, number[]> = {
-  'weather': [1, 2, 3],
   'qr_code': [1],
   'unified_search': [1],
   'law_search': [1],

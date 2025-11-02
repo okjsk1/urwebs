@@ -10,9 +10,11 @@ interface WidgetCardProps {
   onDelete?: (id: string) => void;
   children: React.ReactNode;
   compact?: boolean; // 프리뷰 모드: 헤더/패딩 최소화 (기본값 false)
+  showHeader?: boolean; // 헤더 표시 여부 (프리뷰에서도 헤더 보이게 할 때 사용, 기본값은 !compact)
+  headerVariant?: 'default' | 'compact'; // 헤더 스타일 (기본값 'default')
 }
 
-export function WidgetCard({ widget, isEditMode, isPublic = false, onDelete, children, compact = false }: WidgetCardProps) {
+export function WidgetCard({ widget, isEditMode, isPublic = false, onDelete, children, compact = false, showHeader, headerVariant = 'default' }: WidgetCardProps) {
   // Public View에서는 모든 편집 기능 비활성화
   const canEdit = isEditMode && !isPublic;
   const {
@@ -79,9 +81,9 @@ export function WidgetCard({ widget, isEditMode, isPublic = false, onDelete, chi
       ref={setNodeRef}
       style={{
         ...cardStyle,
-        // Stealth 토큰 적용 (보더 톤 강화: border-gray-300)
+        // Stealth 토큰 적용 (보더 톤 강화: border-gray-300 / 다크모드: border-gray-700)
         boxShadow: isDragging ? '0 2px 4px rgba(0,0,0,0.08)' : 'var(--stealth-shadow)',
-        border: '1px solid rgb(209 213 219)', // border-gray-300
+        border: '1px solid var(--stealth-border)', // 라이트: rgb(209 213 219), 다크: #2f3842
         borderRadius: isPublic ? 'var(--stealth-radius)' : 'var(--stealth-radius)', // rounded-lg = 8px
         backgroundColor: 'var(--stealth-surface)',
         transition: `all var(--stealth-transition-duration) var(--stealth-transition-easing)`,
@@ -102,12 +104,12 @@ export function WidgetCard({ widget, isEditMode, isPublic = false, onDelete, chi
       }}
     >
       {/* 헤더 - Stealth 규격: 높이 36px, 타이틀 13.5~14px, 아이콘 14~16px */}
-      {!computedIsCompact && (
+      {(showHeader !== undefined ? showHeader : !computedIsCompact) && (
         <div
           style={{
-            height: '36px',
-            paddingLeft: 'var(--stealth-spacing-card)',
-            paddingRight: 'var(--stealth-spacing-card)',
+            height: headerVariant === 'compact' ? '28px' : '36px',
+            paddingLeft: headerVariant === 'compact' ? '8px' : 'var(--stealth-spacing-card)',
+            paddingRight: headerVariant === 'compact' ? '8px' : 'var(--stealth-spacing-card)',
             borderBottom: '1px solid var(--stealth-border)',
             backgroundColor: 'var(--stealth-surface-muted)',
             transition: `background-color var(--stealth-transition-duration) var(--stealth-transition-easing)`,
@@ -127,7 +129,7 @@ export function WidgetCard({ widget, isEditMode, isPublic = false, onDelete, chi
             <h3 
               className="truncate overflow-hidden text-ellipsis"
               style={{
-                fontSize: '13.5px',
+                fontSize: headerVariant === 'compact' ? '12px' : '13.5px',
                 lineHeight: '1.2',
                 fontWeight: 'var(--stealth-font-weight-header)',
                 color: 'var(--stealth-text-primary)',

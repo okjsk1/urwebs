@@ -51,7 +51,7 @@ function cacheIcon(host: string, src: string): void {
 function checkImageQuality(src: string, minSize: number): Promise<boolean> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // CORS 에러 방지: crossOrigin 제거, <img> 태그로만 로드
     
     const timeout = setTimeout(() => {
       resolve(false);

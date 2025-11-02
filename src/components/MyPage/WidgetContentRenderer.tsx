@@ -20,7 +20,8 @@ import {
   NaverSearchWidget,
   LawSearchWidget,
   QuoteWidget,
-  QuickNoteWidget
+  QuickNoteWidget,
+  ImageWidget
 } from '../widgets';
 import { CalendarWidget } from '../ColumnsBoard/widgets/CalendarWidget';
 import { ContactIcon } from 'lucide-react';
@@ -226,6 +227,9 @@ export function WidgetContentRenderer({
           onResize={() => {}}
           onPin={() => {}}
         />;
+
+      case 'image':
+        return <ImageWidget {...commonProps} />;
 
       default:
         return (

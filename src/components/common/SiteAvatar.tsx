@@ -31,16 +31,24 @@ export const SiteAvatar = React.memo<SiteAvatarProps>(({
   const textSize = size <= 20 ? 'text-[8px]' : size <= 24 ? 'text-[9px]' : size <= 28 ? 'text-[10px]' : 'text-[12px]';
   const roundedClass = rounded === 'full' ? 'rounded-full' : 'rounded-lg';
   
-  // 품질 기반 파비콘 로드
+  // 품질 기반 파비콘 로드 (silent fallback)
   useEffect(() => {
     const loadFavicon = async () => {
-      const candidates = buildFaviconCandidates(url);
-      const bestIcon = await pickBestIcon(candidates, 24);
-      
-      if (isAliveRef.current) {
-        if (bestIcon) {
-          setFaviconSrc(bestIcon);
+      try {
+        const candidates = buildFaviconCandidates(url);
+        const bestIcon = await pickBestIcon(candidates, 24);
+        
+        if (isAliveRef.current) {
+          if (bestIcon) {
+            setFaviconSrc(bestIcon);
+          }
         }
+      } catch (error) {
+        // 에러 발생 시 silent fallback (console.error 대신 debug)
+        if ((import.meta as any).env?.DEV) {
+          console.debug('[SiteAvatar] Favicon 로드 실패:', url, error);
+        }
+        // faviconError는 이미 기본값 false이므로 초기화 불필요
       }
     };
 
@@ -61,7 +69,12 @@ export const SiteAvatar = React.memo<SiteAvatarProps>(({
   } as React.CSSProperties;
   
   const handleFaviconError = () => {
+    // Silent fallback: 에러 로그 제거, 상태만 업데이트
     setFaviconError(true);
+    // console.error 제거, 필요 시 console.debug만 사용
+    if ((import.meta as any).env?.DEV) {
+      console.debug('[SiteAvatar] Favicon 이미지 로드 실패:', faviconSrc);
+    }
   };
   
   return (

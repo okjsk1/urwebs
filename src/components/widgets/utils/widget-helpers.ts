@@ -31,7 +31,8 @@ export const EDITABLE_WIDGET_TYPES = [
   'calendar',          // 캘린더 위젯 - 이벤트 관리
   'stock_alert',       // 주식 알림 위젯 - 알림 설정
   'economic_calendar', // 경제 캘린더 위젯 - 설정
-  'google_ad'          // Google 광고 위젯 - 설정
+  'google_ad',         // Google 광고 위젯 - 설정
+  'image'              // 이미지 위젯 - 사진 추가/편집/삭제
 ];
 
 // 위젯이 편집 가능한지 확인하는 함수
@@ -87,13 +88,14 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
   }
 };
 
-// 파비콘 URL 생성
+// 파비콘 URL 생성 (fallback 포함)
 export const getFaviconUrl = (url: string): string => {
   try {
     const domain = new URL(url).hostname;
     return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
   } catch {
-    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iI0Y3RjNGNiIvPgo8cGF0aCBkPSJNMTYgMTBMMTIgMThIMjBMMTYgMTBaIiBmaWxsPSIjNkI3MjgwIi8+Cjwvc3ZnPgo=';
+    // 로컬 fallback 파비콘 사용
+    return '/favicon.ico';
   }
 };
 

@@ -180,18 +180,7 @@ export function WeatherFull({ state, isEditMode, setState, updateLocation, detec
                   {formatWindSpeed(cw.windSpeed, state.units)}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-gray-500" />
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {formatDistance(cw.visibility, state.units)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Thermometer className="w-4 h-4 text-red-500" />
-                <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {formatPressure(cw.pressure, state.units)}
-                </span>
-              </div>
+              {/* 가시거리와 기압 정보 제거 (km, hPa 단위 제거 요청) */}
             </div>
 
             {/* 시간별 예보 */}
@@ -201,7 +190,7 @@ export function WeatherFull({ state, isEditMode, setState, updateLocation, detec
                 {state.hourlyForecast.slice(0, 8).map((hour, index) => (
                   <div key={index} className="text-center space-y-1">
                     <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                      {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit' })}
                     </div>
                     <div className="text-lg">{hour.icon}</div>
                     <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">

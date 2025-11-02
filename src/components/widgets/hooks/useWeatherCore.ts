@@ -35,7 +35,7 @@ export function useWeatherCore(widgetId: string, initialLocation: WeatherLocatio
       showSettings: false,
       customLocation: initialLocation.name,
       autoRefresh: true,
-      refreshInterval: 10,
+      refreshInterval: 5, // 5분 간격으로 자동 새로고침
       units: 'metric' as WeatherUnits,
       loading: false,
       error: null,

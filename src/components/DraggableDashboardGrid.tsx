@@ -76,7 +76,7 @@ function DraggableWidget({
   return (
     <div
       data-widget-id={widget.id}
-      className={`bg-white rounded-lg shadow-md overflow-hidden border border-gray-300 transition-all ${
+      className={`bg-white dark:bg-[var(--card)] rounded-lg shadow-md overflow-hidden border border-gray-300 dark:border-[var(--border)] transition-all ${
         isDragging ? 'opacity-60 scale-[0.98]' : ''
       } ${isEditMode ? 'hover:shadow-xl hover:border-blue-300' : ''}`}
       style={{
@@ -131,81 +131,122 @@ export default function DraggableDashboardGrid({
   // 활성 위젯 찾기
   const activeWidget = activeId ? widgets.find(w => w.id === activeId) : null;
   
-  // 초기 로드 시 겹침 자동 해소 (한 번만 실행, 겹침이 있을 때만)
+  // 위젯 추가/변경 시 자동 레이아웃 재정렬
   // 주의: 드래그 중에는 실행되지 않도록 activeId 확인
-  const isInitialMountRef = useRef(true);
+  const prevWidgetsCountRef = useRef(widgets.length);
+  const prevWidgetIdsRef = useRef<string>(widgets.map(w => w.id).sort().join(','));
+  const lastLayoutUpdateRef = useRef<number>(0);
+  
   useEffect(() => {
     // 위젯이 없으면 스킵
-    if (widgets.length === 0) return;
+    if (widgets.length === 0) {
+      prevWidgetsCountRef.current = 0;
+      prevWidgetIdsRef.current = '';
+      return;
+    }
     
     // 드래그 중이면 스킵 (레이아웃 변경 방지)
     if (activeId) return;
     
-    // 마운트 시에만 실행 (한 번만)
-    if (!isInitialMountRef.current) return;
-    isInitialMountRef.current = false;
+    // 위젯 개수 또는 ID 변화 감지
+    const currentWidgetIds = widgets.map(w => w.id).sort().join(',');
+    const prevCount = prevWidgetsCountRef.current;
+    const prevIds = prevWidgetIdsRef.current;
+    const widgetCountChanged = prevCount !== widgets.length;
+    const widgetIdsChanged = prevIds !== currentWidgetIds;
     
-    const layouts: WidgetLayout[] = widgets.map(w => ({
-      id: w.id,
-      x: w.x || 0,
-      y: w.y || 0,
-      w: w.size.w,
-      h: w.size.h,
-    }));
+    // 위젯이 추가되었을 때만 자동 재정렬
+    const isWidgetAdded = widgets.length > prevCount;
     
-    // 겹침이 있는지 확인
-    let hasOverlap = false;
-    for (let i = 0; i < layouts.length; i++) {
-      for (let j = i + 1; j < layouts.length; j++) {
-        if (isOverlapping(layouts[i], layouts[j])) {
-          hasOverlap = true;
-          break;
-        }
-      }
-      if (hasOverlap) break;
+    // ref 업데이트
+    prevWidgetsCountRef.current = widgets.length;
+    prevWidgetIdsRef.current = currentWidgetIds;
+    
+    // 위젯이 추가되지 않았거나, 개수/ID 변화가 없으면 스킵
+    if (!isWidgetAdded || (!widgetCountChanged && !widgetIdsChanged)) {
+      return;
     }
     
-    // 겹침이 있을 때만 정규화 (초기 로드 시에만)
-    if (hasOverlap && onLayoutChange) {
-      const normalized = normalizeLayout(layouts, cols);
+    // 마지막 레이아웃 업데이트로부터 최소 300ms 경과 확인 (무한 루프 방지)
+    const now = Date.now();
+    if (now - lastLayoutUpdateRef.current < 300) {
+      return;
+    }
+    
+    // requestAnimationFrame으로 DOM 업데이트 후 실행
+    const timeoutId = setTimeout(() => {
+      if (activeId) return; // 드래그 시작했으면 취소
       
-      // normalizeLayout이 모든 위젯을 보존했는지 확인
-      const normalizedIds = new Set(normalized.map(l => l.id));
-      const allPreserved = layouts.every(l => normalizedIds.has(l.id));
+      const layouts: WidgetLayout[] = widgets.map(w => ({
+        id: w.id,
+        x: w.x || 0,
+        y: w.y || 0,
+        w: w.size.w,
+        h: w.size.h,
+      }));
       
-      if (!allPreserved) {
-        console.warn('normalizeLayout이 일부 위젯을 누락했습니다. 레이아웃 정규화를 건너뜁니다.');
-        return;
+      // 겹침이 있는지 확인
+      let hasOverlap = false;
+      for (let i = 0; i < layouts.length; i++) {
+        for (let j = i + 1; j < layouts.length; j++) {
+          if (isOverlapping(layouts[i], layouts[j])) {
+            hasOverlap = true;
+            break;
+          }
+        }
+        if (hasOverlap) break;
       }
       
-      // 변경사항이 있으면 업데이트 (크기는 변경하지 않음)
-      const hasChanges = normalized.some((n, i) => {
-        const orig = layouts[i];
-        return n.x !== orig.x || n.y !== orig.y;
-      });
+      // 모든 위젯이 x=0으로 몰려있는지 확인 (초기 배치 문제)
+      const allAtLeft = layouts.every(l => l.x === 0);
       
-      if (hasChanges) {
-        const updatedWidgets = widgets.map(widget => {
-          const layout = normalized.find(l => l.id === widget.id);
-          if (layout) {
-            // 크기는 유지하고 위치만 변경
-            return { ...widget, x: layout.x, y: layout.y };
-          }
-          return widget;
+      // 겹침이 있거나 왼쪽으로 몰려있으면 정규화
+      if ((hasOverlap || allAtLeft) && onLayoutChange) {
+        const normalized = normalizeLayout(layouts, cols);
+        
+        // normalizeLayout이 모든 위젯을 보존했는지 확인
+        const normalizedIds = new Set(normalized.map(l => l.id));
+        const allPreserved = layouts.every(l => normalizedIds.has(l.id));
+        
+        if (!allPreserved) {
+          console.warn('normalizeLayout이 일부 위젯을 누락했습니다. 레이아웃 정규화를 건너뜁니다.');
+          return;
+        }
+        
+        // 변경사항이 있으면 업데이트 (크기는 변경하지 않음)
+        const hasChanges = normalized.some(n => {
+          const orig = layouts.find(l => l.id === n.id);
+          return orig && (n.x !== orig.x || n.y !== orig.y);
         });
         
-        // 모든 위젯이 포함되었는지 확인
-        if (updatedWidgets.length === widgets.length) {
-          onLayoutChange(updatedWidgets);
-        } else {
-          console.warn('위젯 수가 일치하지 않습니다. 레이아웃 업데이트를 건너뜁니다.', {
-            original: widgets.length,
-            updated: updatedWidgets.length
+        if (hasChanges) {
+          lastLayoutUpdateRef.current = Date.now();
+          
+          const updatedWidgets = widgets.map(widget => {
+            const layout = normalized.find(l => l.id === widget.id);
+            if (layout) {
+              // 크기는 유지하고 위치만 변경
+              return { ...widget, x: layout.x, y: layout.y };
+            }
+            return widget;
           });
+          
+          // 모든 위젯이 포함되었는지 확인
+          if (updatedWidgets.length === widgets.length) {
+            onLayoutChange(updatedWidgets);
+          } else {
+            console.warn('위젯 수가 일치하지 않습니다. 레이아웃 업데이트를 건너뜁니다.', {
+              original: widgets.length,
+              updated: updatedWidgets.length
+            });
+          }
         }
       }
-    }
-  }, [widgets.length]); // widgets.length 변경 시에만 체크 (초기 로드)
+    }, 100); // 100ms 디바운싱
+    
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [widgets.length, activeId, onLayoutChange, cols]); // 위젯 개수 변경 시 실행 (내부에서 ref로 이전 값과 비교)
 
   // 각 컬럼별 최하단 위젯 찾기
   const getColumnBottomWidget = useCallback((columnIndex: number) => {
@@ -705,7 +746,7 @@ export default function DraggableDashboardGrid({
           showAddButtonState[columnIndex] && (
             <div
               key={`add-button-${columnIndex}`}
-              className="bg-white dark:bg-white/70 rounded-lg shadow-md border-2 border-dashed border-gray-300 dark:border-gray-400/50 hover:border-blue-400 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-50/80 transition-all duration-200 cursor-pointer flex items-center justify-center animate-fade-in dark:backdrop-blur-sm"
+              className="bg-white dark:bg-[var(--card)] rounded-lg shadow-md border-2 border-dashed border-gray-300 dark:border-[var(--border)] hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-[var(--accent)] transition-all duration-200 cursor-pointer flex items-center justify-center animate-fade-in"
               style={{
                 gridColumn: `${columnIndex + 1} / span 1`,
                 gridRow: `${getColumnBottomY(columnIndex) + 1} / span 1`,
@@ -790,7 +831,7 @@ export function SizePicker({
   return (
     <div className="relative">
       <select
-        className="border border-gray-300 rounded px-2 py-1 text-xs bg-white hover:bg-gray-50 cursor-pointer appearance-none pr-6"
+        className="border border-gray-300 dark:border-[var(--border)] rounded px-2 py-1 text-xs bg-white dark:bg-[var(--input-background)] hover:bg-gray-50 dark:hover:bg-[var(--accent)] cursor-pointer appearance-none pr-6 text-gray-900 dark:text-[var(--foreground)]"
         value={currentSize}
         onChange={(e) => {
           const [w, h] = e.target.value.split('x').map(Number);

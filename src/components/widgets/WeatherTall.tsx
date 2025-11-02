@@ -172,7 +172,7 @@ export function WeatherTall({ state, isEditMode, setState, updateLocation, detec
                 {state.hourlyForecast.slice(0, 8).map((hour, index) => (
                   <div key={index} className="text-center">
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit' })}
                     </div>
                     <div className="text-sm">{hour.icon}</div>
                     <div className="text-xs font-semibold text-gray-900 dark:text-gray-100">

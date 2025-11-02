@@ -2,7 +2,7 @@ import {
   CheckSquare, Target, Repeat, Clock, Bell, FileText, Calendar, Mail,
   TrendingUp, DollarSign, BarChart3, Github, Lock, QrCode,
   Globe, Cloud, Search, Rss, Quote, Palette, Link, BookOpen, Users,
-  Timer, Newspaper, CalendarDays
+  Timer, Newspaper, CalendarDays, Image as ImageIcon
 } from 'lucide-react';
 import { WidgetCategory } from '../types/mypage.types';
 
@@ -53,6 +53,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
       { type: 'bookmark', name: '즐겨찾기', icon: Link, description: '자주 사용하는 링크' },
       { type: 'frequent_sites', name: '자주가는 사이트', icon: TrendingUp, description: '방문 횟수 기반 추천' },
       { type: 'qr_code', name: 'QR접속', icon: QrCode, description: '현재 페이지 URL을 QR 코드로 생성' },
+      { type: 'image', name: '사진 프레임', icon: ImageIcon, description: '개인 사진을 예쁘게 표시 (단일/슬라이드쇼)' },
     ]
   },
 

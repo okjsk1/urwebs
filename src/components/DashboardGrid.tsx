@@ -176,11 +176,17 @@ export function SizePicker({
         ];
       case 'qr_code': // QR 접속 위젯 - 1x1만 허용
         return [{ label: '1x1', w: 1, h: 1 }];
-      case 'weather': // 날씨 위젯 - 1칸 너비만 허용
+      case 'weather': // 날씨 위젯 - 다양한 크기 지원
         return [
           { label: '1x1', w: 1, h: 1 },
           { label: '1x2', w: 1, h: 2 },
-          { label: '1x3', w: 1, h: 3 }
+          { label: '1x3', w: 1, h: 3 },
+          { label: '2x1', w: 2, h: 1 },
+          { label: '2x2', w: 2, h: 2 },
+          { label: '2x3', w: 2, h: 3 },
+          { label: '3x1', w: 3, h: 1 },
+          { label: '3x2', w: 3, h: 2 },
+          { label: '3x3', w: 3, h: 3 }
         ];
       case 'bookmark': // 북마크 위젯 - 1칸 너비만 허용 (1x2~1x4)
         return [
@@ -193,6 +199,14 @@ export function SizePicker({
           { label: '2x1', w: 2, h: 1 },
           { label: '2x2', w: 2, h: 2 },
           { label: '2x3', w: 2, h: 3 }
+        ];
+      case 'image': // 이미지 위젯 - 1x1, 1x2, 2x1, 2x2, 3x2 허용
+        return [
+          { label: '1x1', w: 1, h: 1 },
+          { label: '1x2', w: 1, h: 2 },
+          { label: '2x1', w: 2, h: 1 },
+          { label: '2x2', w: 2, h: 2 },
+          { label: '3x2', w: 3, h: 2 }
         ];
       case 'dday': // D-Day 위젯 - 1x1, 1x2 허용
         return [

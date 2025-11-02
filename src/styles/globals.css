@@ -83,28 +83,28 @@
 :root[data-theme="dark"], .dark {
   color-scheme: dark;
   
-  /* OKLCH 폴백 제공 - fallback → modern 순서 */
-  --background: #0f0f11;               --background: oklch(0.09 0 0);
-  --foreground: #fafafa;               --foreground: oklch(0.98 0 0);
-  --card: #1f1f21;                     --card: oklch(0.14 0 0); /* 대비 +5%p */
-  --card-foreground: #fafafa;          --card-foreground: oklch(0.98 0 0);
-  --popover: #1a1a1c;                  --popover: oklch(0.12 0 0);
-  --popover-foreground: #fafafa;       --popover-foreground: oklch(0.98 0 0);
-  --primary: #cfd2ff;                  --primary: oklch(0.6 0.2 264);
-  --primary-foreground: #151516;       --primary-foreground: oklch(0.19 0 0);
-  --secondary: #2a2a2c;                --secondary: oklch(0.18 0 0);
-  --secondary-foreground: #fafafa;     --secondary-foreground: oklch(0.98 0 0);
-  --muted: #2a2a2c;                    --muted: oklch(0.18 0 0);
-  --muted-foreground: #a3a3a3;         --muted-foreground: oklch(0.65 0 0);
-  --accent: #2a2a2c;                   --accent: oklch(0.18 0 0);
-  --accent-foreground: #fafafa;        --accent-foreground: oklch(0.98 0 0);
-  --destructive: #ef4444;              --destructive: oklch(0.55 0.2 25);
-  --destructive-foreground: #fafafa;   --destructive-foreground: oklch(0.98 0 0);
-  --border: #2a2a2c;                   --border: oklch(0.25 0 0);
-  --input: #2a2a2c;                    --input: oklch(0.18 0 0);
-  --input-background: #2a2a2c;         --input-background: oklch(0.18 0 0);
-  --switch-background: #404040;        --switch-background: oklch(0.3 0 0);
-  --ring: #cfd2ff;                     --ring: oklch(0.6 0.2 264);
+  /* GitHub Dark 스타일 기반 색상 팔레트 - OKLCH 폴백 제공 */
+  --background: #0d1117;               --background: oklch(0.08 0.01 260); /* 사이트 전체 배경 */
+  --foreground: #e6e9ed;               --foreground: oklch(0.9 0.005 260); /* 텍스트 기본 */
+  --card: #1a1f24;                     --card: oklch(0.13 0.01 260); /* 카드 배경 - GitHub Dark */
+  --card-foreground: #e6e9ed;          --card-foreground: oklch(0.9 0.005 260);
+  --popover: #161b22;                  --popover: oklch(0.12 0.01 260);
+  --popover-foreground: #e6e9ed;       --popover-foreground: oklch(0.9 0.005 260);
+  --primary: #58a6ff;                  --primary: oklch(0.65 0.15 240); /* 아이콘 강조 - GitHub Blue */
+  --primary-foreground: #0d1117;       --primary-foreground: oklch(0.08 0.01 260);
+  --secondary: #20262d;                --secondary: oklch(0.15 0.01 260); /* 대체 표면 */
+  --secondary-foreground: #e6e9ed;     --secondary-foreground: oklch(0.9 0.005 260);
+  --muted: #21262d;                    --muted: oklch(0.16 0.01 260);
+  --muted-foreground: #a0a8b4;         --muted-foreground: oklch(0.68 0.005 260); /* 서브 텍스트 */
+  --accent: #303840;                   --accent: oklch(0.2 0.01 260); /* 포커스/hover 색상 */
+  --accent-foreground: #e6e9ed;        --accent-foreground: oklch(0.9 0.005 260);
+  --destructive: #f85149;              --destructive: oklch(0.65 0.2 25); /* GitHub Red */
+  --destructive-foreground: #e6e9ed;   --destructive-foreground: oklch(0.9 0.005 260);
+  --border: #2f3842;                   --border: oklch(0.23 0.01 260); /* 보더 - 명확한 구분 */
+  --input: #21262d;                    --input: oklch(0.16 0.01 260);
+  --input-background: #21262d;         --input-background: oklch(0.16 0.01 260);
+  --switch-background: #303840;        --switch-background: oklch(0.2 0.01 260);
+  --ring: #58a6ff;                     --ring: oklch(0.65 0.15 240); /* 포커스 링 - GitHub Blue */
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --chart-1: oklch(0.6 0.2 264);
@@ -112,32 +112,32 @@
   --chart-3: oklch(0.75 0.15 70);
   --chart-4: oklch(0.65 0.2 303);
   --chart-5: oklch(0.7 0.2 16);
-  --sidebar: #1a1a1c;                  --sidebar: oklch(0.1 0 0);
-  --sidebar-foreground: #fafafa;       --sidebar-foreground: oklch(0.98 0 0);
-  --sidebar-primary: #cfd2ff;          --sidebar-primary: oklch(0.6 0.2 264);
-  --sidebar-primary-foreground: #151516; --sidebar-primary-foreground: oklch(0.19 0 0);
-  --sidebar-accent: #2a2a2c;           --sidebar-accent: oklch(0.18 0 0);
-  --sidebar-accent-foreground: #fafafa; --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: #2a2a2c;           --sidebar-border: oklch(0.25 0 0);
-  --sidebar-ring: #cfd2ff;             --sidebar-ring: oklch(0.6 0.2 264);
+  --sidebar: #161b22;                  --sidebar: oklch(0.12 0.01 260);
+  --sidebar-foreground: #e6e9ed;       --sidebar-foreground: oklch(0.9 0.005 260);
+  --sidebar-primary: #58a6ff;          --sidebar-primary: oklch(0.65 0.15 240);
+  --sidebar-primary-foreground: #0d1117; --sidebar-primary-foreground: oklch(0.08 0.01 260);
+  --sidebar-accent: #303840;           --sidebar-accent: oklch(0.2 0.01 260);
+  --sidebar-accent-foreground: #e6e9ed; --sidebar-accent-foreground: oklch(0.9 0.005 260);
+  --sidebar-border: #2f3842;           --sidebar-border: oklch(0.23 0.01 260);
+  --sidebar-ring: #58a6ff;             --sidebar-ring: oklch(0.65 0.15 240);
   
-  /* 상태/표면 토큰 추가 */
-  --surface-1: var(--card);
-  --surface-2: color-mix(in oklab, var(--card), white 4%);
-  --surface-3: color-mix(in oklab, var(--card), white 8%);
-  --on-surface: var(--foreground);
-  --on-surface-muted: color-mix(in oklab, var(--foreground), transparent 40%);
+  /* 상태/표면 토큰 추가 - GitHub Dark 계층 구조 */
+  --surface-1: var(--card); /* #1a1f24 */
+  --surface-2: #21262d;     /* 내부 박스 - 대비 +3% */
+  --surface-3: #262b33;     /* 더 깊은 계층 - 대비 +5% */
+  --on-surface: var(--foreground); /* #e6e9ed */
+  --on-surface-muted: var(--muted-foreground); /* #a0a8b4 */
   --disabled-opacity: .5;
   
-  /* Stealth Mode 테마 토큰 (다크) */
-  --stealth-bg: #0F1215;
-  --stealth-surface: #15191D;
-  --stealth-surface-muted: #101418;
-  --stealth-text-primary: #E7EAED;
-  --stealth-text-secondary: #A8B0B8;
-  --stealth-border: rgba(255, 255, 255, 0.08);
-  --stealth-accent: #7CA0D3;
-  --stealth-accent-hover: rgba(124, 160, 211, 0.88);
+  /* Stealth Mode 테마 토큰 (다크) - GitHub Dark 기반 */
+  --stealth-bg: #0d1117;
+  --stealth-surface: #1a1f24;
+  --stealth-surface-muted: #161b22;
+  --stealth-text-primary: #e6e9ed;
+  --stealth-text-secondary: #a0a8b4;
+  --stealth-border: #2f3842;
+  --stealth-accent: #58a6ff;
+  --stealth-accent-hover: #6eb5ff;
   --stealth-shadow: none;
   --stealth-radius: 10px;
   --stealth-radius-max: 12px;

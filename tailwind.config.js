@@ -10,6 +10,16 @@ export default {
       colors: {
         gray: {
           750: '#374151', // 다크모드용 중간 회색
+        },
+        // 다크모드 GitHub Dark 색상 확장
+        dark: {
+          bg: '#0d1117',
+          card: '#1a1f24',
+          border: '#2f3842',
+          text: '#e6e9ed',
+          'text-muted': '#a0a8b4',
+          accent: '#58a6ff',
+          hover: '#303840',
         }
       },
       boxShadow: {

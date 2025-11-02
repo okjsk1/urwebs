@@ -23,6 +23,7 @@ import { LawSearchWidget } from '../widgets/LawSearchWidget';
 import { QRCodeWidget } from '../widgets/QRCodeWidget';
 import { DdayWidget } from '../widgets/DdayWidget';
 import { FrequentSitesWidget } from '../widgets/FrequentSitesWidget';
+import { ImageWidget } from '../widgets/ImageWidget';
 import clsx from 'clsx';
 
 interface RailItem {
@@ -59,7 +60,8 @@ export function AutoRail() {
     { id: '15', title: '법제처 검색', tag: '법령', icon: Search, color: 'bg-purple-100 text-purple-600', description: '법령 검색 도구', widgetType: 'law_search' },
     { id: '16', title: 'QR 코드', tag: '도구', icon: QrCode, color: 'bg-slate-100 text-slate-600', description: 'QR 코드 생성', widgetType: 'qrcode' },
     { id: '17', title: 'D-Day', tag: '일정', icon: Target, color: 'bg-rose-100 text-rose-600', description: '기념일/마감일 관리', widgetType: 'dday' },
-    { id: '18', title: '자주가는 사이트', tag: '추천', icon: Link, color: 'bg-amber-100 text-amber-600', description: '방문 횟수 기반 추천', widgetType: 'frequent_sites' }
+    { id: '18', title: '자주가는 사이트', tag: '추천', icon: Link, color: 'bg-amber-100 text-amber-600', description: '방문 횟수 기반 추천', widgetType: 'frequent_sites' },
+    { id: '19', title: '사진 프레임', tag: '사진', icon: Camera, color: 'bg-fuchsia-100 text-fuchsia-600', description: '개인 사진 표시', widgetType: 'image' }
   ];
 
   // 위젯 렌더링 함수 (작은 크기로 직접 렌더링)
@@ -109,6 +111,8 @@ export function AutoRail() {
         return <DdayWidget {...commonProps} />;
       case 'frequent_sites':
         return <FrequentSitesWidget {...commonProps} />;
+      case 'image':
+        return <ImageWidget {...commonProps} />;
       default:
         return null;
     }
@@ -214,54 +218,40 @@ export function AutoRail() {
               key={`${item.id}-${index}`}
               className="min-w-[220px] w-[220px] h-[200px] rounded-xl border bg-white shadow hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex flex-col"
               aria-label={`${item.title} 위젯 미리보기`}
+              style={{ pointerEvents: 'auto' }}
             >
-              {/* 프리뷰 프레임 - aspect-ratio 16:9 */}
-              <div 
-                className="relative overflow-hidden rounded-lg bg-neutral-50"
-                style={{ 
-                  aspectRatio: '16/9',
-                  pointerEvents: 'none',
-                  userSelect: 'none'
-                }}
-              >
-                {/* 프리뷰 컨텐츠 래퍼 - absolute inset-0 grid place-items-center */}
-                <div 
-                  className="absolute inset-0 grid place-items-center"
-                  style={{ 
-                    pointerEvents: 'none',
-                    userSelect: 'none'
-                  }}
+              {/* 위젯 미리보기 - 헤더 포함 전체 렌더링 */}
+              <div className="flex-1 flex flex-col relative overflow-hidden">
+                <WidgetCard
+                  widget={{
+                    ...widgetData,
+                    title: item.title // 헤더에 표시할 타이틀
+                  } as any}
+                  isEditMode={false}
+                  onDelete={() => {}}
+                  compact={true}
+                  showHeader={true}
+                  headerVariant="compact"
                 >
-                  {/* 위젯 미리보기 - 작은 크기로 직접 렌더링 (scale 제거) */}
+                  {/* 위젯 본문 영역 - 작은 크기로 렌더링 */}
                   <div 
-                    className="w-[200px] h-[120px] relative"
+                    className="flex-1 overflow-hidden relative"
                     style={{ 
                       pointerEvents: 'none',
-                      userSelect: 'none'
+                      userSelect: 'none',
+                      transform: 'scale(0.8)',
+                      transformOrigin: 'top center'
                     }}
                   >
-                    <WidgetCard
-                      widget={widgetData as any}
-                      isEditMode={false}
-                      onDelete={() => {}}
-                      compact={true}
-                    >
+                    <div className="w-[250px] h-[150px]">
                       {renderWidget(item.widgetType, widgetData)}
-                    </WidgetCard>
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              {/* 하단 캡션 - absolute 금지, flex-col 내부에 배치 */}
-              <div className="px-3 py-2 border-t border-gray-100 bg-white flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className={`w-5 h-5 rounded ${item.color} flex items-center justify-center flex-shrink-0`}>
-                    <Icon className="w-3 h-3" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-gray-900 text-xs truncate">{item.title}</h3>
-                    <span className="text-[10px] text-gray-500">#{item.tag}</span>
-                  </div>
+                </WidgetCard>
+                
+                {/* 헤더 아래 태그 메타 (1줄) */}
+                <div className="px-2 py-1 border-t border-gray-100 bg-white flex-shrink-0">
+                  <span className="text-[10px] text-gray-500">#{item.tag}</span>
                 </div>
               </div>
             </div>

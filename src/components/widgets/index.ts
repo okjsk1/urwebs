@@ -23,6 +23,9 @@ export { GoogleSearchWidget } from './GoogleSearchWidget';
 export { NaverSearchWidget } from './NaverSearchWidget';
 export { LawSearchWidget } from './LawSearchWidget';
 
+// 이미지 위젯
+export { ImageWidget } from './ImageWidget';
+
 // 공통 컴포넌트들
 export { WidgetShell } from './WidgetShell';
 export { 

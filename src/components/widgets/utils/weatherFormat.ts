@@ -10,7 +10,8 @@ export function formatWindSpeed(speed: number, units: WeatherUnits): string {
 }
 
 export function formatDistance(distance: number, units: WeatherUnits): string {
-  return `${distance} ${units === 'metric' ? 'km' : 'mi'}`;
+  // km 단위 제거
+  return `${Math.round(distance)}`;
 }
 
 export function formatHumidity(humidity: number): string {
@@ -18,6 +19,7 @@ export function formatHumidity(humidity: number): string {
 }
 
 export function formatPressure(pressure: number, units: WeatherUnits): string {
-  return `${pressure} ${units === 'metric' ? 'hPa' : 'inHg'}`;
+  // hPa 단위 제거
+  return `${Math.round(pressure)}`;
 }
 

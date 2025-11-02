@@ -998,6 +998,17 @@ export function MyPage() {
           y: row * (cellHeight + spacing)
         };
       }));
+      
+      // 배경 설정 복원 (페이지별 배경색 저장/복원)
+      if (targetPage.backgroundSettings) {
+        setBackgroundSettings(targetPage.backgroundSettings);
+        if (currentUser) {
+          localStorage.setItem(`backgroundSettings_${currentUser.id}`, JSON.stringify(targetPage.backgroundSettings));
+        } else {
+          localStorage.setItem('backgroundSettings_guest', JSON.stringify(targetPage.backgroundSettings));
+        }
+      }
+      
       setPages(prev => prev.map(page => ({ ...page, isActive: page.id === pageId })));
       
       // URL 업데이트
@@ -1394,7 +1405,13 @@ export function MyPage() {
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'weather') {
-      widgetSize = '1x3'; // 날씨 위젯은 1칸 너비, 3칸 높이
+      // 날씨 위젯은 다양한 크기 지원 (1x1, 1x2, 1x3, 2x1, 2x2, 2x3, 3x1, 3x2, 3x3)
+      const validWeatherSizes = ['1x1', '1x2', '1x3', '2x1', '2x2', '2x3', '3x1', '3x2', '3x3'];
+      if (size && validWeatherSizes.includes(size)) {
+        widgetSize = size;
+      } else {
+        widgetSize = '1x3'; // 기본값
+      }
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -1432,6 +1449,16 @@ export function MyPage() {
         widgetSize = size;
       } else {
         widgetSize = '2x2';
+      }
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'image') {
+      // 이미지 위젯은 1x1, 1x2, 2x1, 2x2, 3x2 허용 (기본 1x1)
+      if (size === '1x1' || size === '1x2' || size === '2x1' || size === '2x2' || size === '3x2') {
+        widgetSize = size;
+      } else {
+        widgetSize = '1x1';
       }
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
@@ -1477,6 +1504,14 @@ export function MyPage() {
       };
     }
     
+    // widgetSize를 gridSize로 변환 (예: '2x2' -> { w: 2, h: 2 })
+    const parseGridSize = (size: string): { w: number; h: number } => {
+      const [w, h] = size.split('x').map(Number);
+      return { w: w || 1, h: h || 1 };
+    };
+    
+    const gridSize = parseGridSize(widgetSize);
+    
     const newWidget: Widget = {
       id: Date.now().toString(),
       type: type as any,
@@ -1494,6 +1529,7 @@ export function MyPage() {
         : undefined,
       zIndex: 1, // 모든 새 위젯은 기본 Z-index로 설정
       size: widgetSize, // 위젯 사이즈 추가
+      gridSize: gridSize, // 그리드 크기 추가
       variant: (type === 'google_search' || type === 'naver_search') ? 'compact' : undefined // 검색 위젯은 컴팩트 모드
   };
       
@@ -1616,7 +1652,8 @@ export function MyPage() {
         title: pageTitle,
         widgets: widgets,
         createdAt: Date.now(),
-        isActive: true
+        isActive: true,
+        backgroundSettings: backgroundSettings // 새 페이지에도 배경 설정 포함
       };
       updatedPages = [...pages, newPage];
       targetPageId = newPageId;
@@ -1630,7 +1667,8 @@ export function MyPage() {
           return {
             ...page,
             title: pageTitle,
-            widgets: widgets
+            widgets: widgets,
+            backgroundSettings: backgroundSettings // 배경 설정도 페이지에 저장
           };
         }
         return page;
@@ -2569,7 +2607,14 @@ export function MyPage() {
       } else if (widget.type === 'todo') {
         gridSize = { w: 2, h: 2 }; // To Do 위젯은 2x2 (2칸 너비만)
       } else if (widget.type === 'weather') {
-        gridSize = { w: 1, h: 3 }; // 날씨 위젯은 1x3
+        // 날씨 위젯은 다양한 크기 지원, 기본값은 1x3
+        // size 문자열이 있으면 파싱해서 사용
+        if (widget.size && typeof widget.size === 'string') {
+          const [w, h] = widget.size.split('x').map(Number);
+          gridSize = { w: w || 1, h: h || 3 };
+        } else {
+          gridSize = { w: 1, h: 3 }; // 기본값
+        }
       } else if (widget.type === 'english_words') {
         gridSize = { w: 1, h: 1 }; // 영어단어 위젯 기본 1x1 (1x1, 1x2 허용)
       } else if (widget.type === 'dday') {
@@ -2586,6 +2631,8 @@ export function MyPage() {
         gridSize = { w: 1, h: 1 }; // 법제처 검색 위젯은 기본 1x1 (1x1, 2x1 가능)
       } else if (widget.type === 'news') {
         gridSize = { w: 2, h: 2 }; // 뉴스피드 위젯은 기본 2x2 (2x1, 2x2, 2x3 가능)
+      } else if (widget.type === 'image') {
+        gridSize = { w: 1, h: 1 }; // 이미지 위젯 기본 1x1 (1x1, 1x2, 2x1, 2x2, 3x2 가능)
       } else {
         gridSize = { w: 1, h: 1 }; // 기본적으로 1x1
       }
@@ -2709,7 +2756,7 @@ export function MyPage() {
       'bookmark', 'weather', 'todo', 'crypto', 'stock_alert', 'economic_calendar',
       'english_words', 'exchange', 'news', 'google_search', 'naver_search',
       'law_search', 'unified_search', 'qr_code', 'frequent_sites', 'google_ad',
-      'quote', 'contact', 'quicknote'
+      'quote', 'contact', 'quicknote', 'image'
     ];
     
     if (commonWidgets.includes(widget.type)) {
@@ -3552,7 +3599,7 @@ export function MyPage() {
                     : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold'
                 }`}
               >
-                {isStealthMode ? 'urwebs workspace' : 'URWEBS'}
+                urwebs workspace
               </Button>
               
               <div className="flex items-center gap-2">

@@ -346,10 +346,10 @@ export function PopularTemplatesGrid() {
 
       {/* 템플릿 그리드 */}
       {!loading && templates.length > 0 && (
-        <div className="grid grid-cols-4 gap-4">
-          {templates.map((template) => (
-            <div
-              key={template.id}
+      <div className="grid grid-cols-4 gap-4">
+        {templates.map((template) => (
+          <div
+            key={template.id}
               className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => handleGoToTemplate(template)}
             >
@@ -373,64 +373,64 @@ export function PopularTemplatesGrid() {
                 ) : (
                   renderPreview(template)
                 )}
-              </div>
+            </div>
 
-              {/* 템플릿 정보 */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm line-clamp-1">
-                  {template.title}
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
-                  {template.description}
-                </p>
-                
-                {/* 태그 */}
+            {/* 템플릿 정보 */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm line-clamp-1">
+                {template.title}
+              </h3>
+              <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                {template.description}
+              </p>
+              
+              {/* 태그 */}
                 {template.tags && template.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {template.tags.slice(0, 2).map((tag, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-full"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
+              <div className="flex flex-wrap gap-1">
+                {template.tags.slice(0, 2).map((tag, index) => (
+                  <span
+                    key={index}
+                    className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-full"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
                 )}
 
-                {/* 통계 */}
-                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-3 h-3" />
-                    {template.likes}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    {template.views}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
+              {/* 통계 */}
+              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-1">
+                  <Star className="w-3 h-3" />
+                  {template.likes}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  {template.views}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users className="w-3 h-3" />
                     <span className="truncate max-w-[80px]">{template.author}</span>
-                  </div>
                 </div>
               </div>
+            </div>
 
-              {/* 액션 버튼 */}
-              <div className="mt-4">
-                <button
+            {/* 액션 버튼 */}
+            <div className="mt-4">
+              <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleGoToTemplate(template);
                   }}
-                  className="w-full px-3 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-1"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  바로가기
-                </button>
-              </div>
+                className="w-full px-3 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3" />
+                바로가기
+              </button>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
       )}
     </div>
   );

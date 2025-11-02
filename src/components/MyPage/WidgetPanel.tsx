@@ -3,6 +3,7 @@ import { X, Star, Clock, Link as LinkIcon, Search, Cloud, Sun, CloudRain, CheckS
 import { Button } from '../ui/button';
 import { widgetCategories, getCategoryIcon, allWidgets } from '../../constants/widgetCategories';
 import { WidgetType } from '../../types/mypage.types';
+import { WidgetCard } from '../ColumnsBoard/WidgetCard';
 
 interface WidgetPanelProps {
   isOpen: boolean;
@@ -10,21 +11,7 @@ interface WidgetPanelProps {
   onAddWidget: (type: WidgetType, size?: any) => void;
 }
 
-function PreviewCard({ icon, title, children }: { icon: React.ReactNode; title: string; children?: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border bg-white shadow-sm overflow-hidden h-28">
-      <div className="flex items-center justify-between h-8 px-3 border-b bg-white/80">
-        <div className="flex items-center gap-2">
-          {icon}
-          <h3 className="text-xs font-semibold text-gray-900 truncate">{title}</h3>
-        </div>
-      </div>
-      <div className="p-2 h-[calc(100%-2rem)] overflow-hidden flex flex-col">
-        {children}
-      </div>
-    </div>
-  );
-}
+// PreviewCard는 이제 WidgetCard를 사용하므로 제거
 
 export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) {
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -44,102 +31,141 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
     );
   };
 
-  // 실제 위젯 느낌의 안전한 프리뷰 (PreviewCard 사용)
-  const renderPreviewBox = (type: WidgetType) => {
+  // 실제 위젯 느낌의 안전한 프리뷰 (WidgetCard 사용, 헤더 포함)
+  const renderPreviewBox = (type: WidgetType, widgetName: string) => {
     const def = allWidgets.find(w => w.type === type);
 
-    const shellIcon = (
-      <span className="w-4 h-4">
-        {typeof def?.icon === 'string' ? def?.icon : <LinkIcon className="w-4 h-4 text-blue-600" />}
-      </span>
-    );
+    const widgetData = {
+      id: `preview-${type}`,
+      type: type,
+      title: widgetName,
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 120,
+      gridSize: { w: 1, h: 1 },
+      size: '1x1',
+      content: {}
+    };
 
     switch (type) {
       case 'bookmark':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={shellIcon} title={def?.name || '위젯'}>
-              <div className="space-y-1">
-                {[1,2].map(i => (
-                  <div key={i} className="flex items-center gap-2 bg-white border border-gray-200 rounded px-1.5 py-1">
-                    <div className="w-4 h-4 rounded bg-gray-200" />
-                    <div className="text-[10px] text-gray-800 truncate">링크 {i}</div>
-                  </div>
-                ))}
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="space-y-1" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              {[1,2].map(i => (
+                <div key={i} className="flex items-center gap-2 bg-white border border-gray-200 rounded px-1.5 py-1">
+                  <div className="w-4 h-4 rounded bg-gray-200" />
+                  <div className="text-[10px] text-gray-800 truncate">링크 {i}</div>
+                </div>
+              ))}
+            </div>
+          </WidgetCard>
         );
       case 'exchange':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={shellIcon} title={def?.name || '위젯'}>
-              <div className="grid grid-cols-1 gap-1 text-[10px]">
-                {[
-                  ['USD/KRW','1,353.2'],
-                  ['EUR/KRW','1,438.5']
-                ].map(([pair, price]) => (
-                  <div key={pair} className="flex items-center justify-between bg-white border border-gray-200 rounded px-1.5 py-1">
-                    <span className="text-gray-700">{pair}</span>
-                    <span className="font-semibold text-gray-900">{price}</span>
-                  </div>
-                ))}
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="grid grid-cols-1 gap-1 text-[10px]" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              {[
+                ['USD/KRW','1,353.2'],
+                ['EUR/KRW','1,438.5']
+              ].map(([pair, price]) => (
+                <div key={pair} className="flex items-center justify-between bg-white border border-gray-200 rounded px-1.5 py-1">
+                  <span className="text-gray-700">{pair}</span>
+                  <span className="font-semibold text-gray-900">{price}</span>
+                </div>
+              ))}
+            </div>
+          </WidgetCard>
         );
       case 'crypto':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={shellIcon} title={def?.name || '위젯'}>
-              <div className="grid grid-cols-1 gap-1 text-[10px]">
-                {[
-                  ['BTC','104.5M'],
-                  ['ETH','3.75M']
-                ].map(([sym, price]) => (
-                  <div key={sym} className="flex items-center justify-between bg-white border border-gray-200 rounded px-1.5 py-1">
-                    <span className="text-gray-700">{sym}</span>
-                    <span className="font-semibold text-gray-900">{price}</span>
-                  </div>
-                ))}
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="grid grid-cols-1 gap-1 text-[10px]" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              {[
+                ['BTC','104.5M'],
+                ['ETH','3.75M']
+              ].map(([sym, price]) => (
+                <div key={sym} className="flex items-center justify-between bg-white border border-gray-200 rounded px-1.5 py-1">
+                  <span className="text-gray-700">{sym}</span>
+                  <span className="font-semibold text-gray-900">{price}</span>
+                </div>
+              ))}
+            </div>
+          </WidgetCard>
         );
       case 'economic_calendar':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={shellIcon} title={def?.name || '위젯'}>
-              <div className="space-y-1 text-[10px]">
-                {[
-                  ['비농업고용', '예상 18만'],
-                  ['한국 금리', '현재 3.50%']
-                ].map(([title, sub], idx) => (
-                  <div key={idx} className="bg-white border border-gray-200 rounded p-1.5">
-                    <div className="font-medium text-gray-900 truncate">{title}</div>
-                    <div className="text-[10px] text-gray-500 truncate">{sub}</div>
-                  </div>
-                ))}
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="space-y-1 text-[10px]" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              {[
+                ['비농업고용', '예상 18만'],
+                ['한국 금리', '현재 3.50%']
+              ].map(([title, sub], idx) => (
+                <div key={idx} className="bg-white border border-gray-200 rounded p-1.5">
+                  <div className="font-medium text-gray-900 truncate">{title}</div>
+                  <div className="text-[10px] text-gray-500 truncate">{sub}</div>
+                </div>
+              ))}
+            </div>
+          </WidgetCard>
         );
       case 'google_search':
       case 'naver_search':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={<Search className="w-4 h-4 text-blue-600" />} title={def?.name || '검색'}>
-              <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-1.5 py-1">
-                <Search className="w-3.5 h-3.5 text-gray-500" />
-                <div className="text-[10px] text-gray-400">검색어를 입력하세요</div>
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-1.5 py-1" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              <Search className="w-3.5 h-3.5 text-gray-500" />
+              <div className="text-[10px] text-gray-400">검색어를 입력하세요</div>
+            </div>
+          </WidgetCard>
         );
       case 'weather':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={<Cloud className="w-4 h-4 text-blue-600" />} title={def?.name || '날씨'}>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div style={{ pointerEvents: 'none', userSelect: 'none' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sun className="w-4 h-4 text-yellow-500" />
@@ -155,103 +181,143 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                   </div>
                 ))}
               </div>
-            </PreviewCard>
-          </div>
+            </div>
+          </WidgetCard>
         );
       case 'quicknote':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={shellIcon} title={def?.name || '위젯'}>
-              <div className="text-[11px] text-gray-700 leading-4">
-                간단 메모 미리보기.
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="text-[11px] text-gray-700 leading-4" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              간단 메모 미리보기.
+            </div>
+          </WidgetCard>
         );
       case 'todo':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={<CheckSquare className="w-4 h-4 text-blue-600" />} title={def?.name || '할일'}>
-              <div className="space-y-1">
-                {[1,2].map(i => (
-                  <div key={i} className="flex items-center gap-2 bg-white border border-gray-200 rounded px-1.5 py-1">
-                    <div className="w-3 h-3 rounded border border-gray-300" />
-                    <div className="text-[10px] text-gray-800 truncate">할일 {i}</div>
-                  </div>
-                ))}
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="space-y-1" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              {[1,2].map(i => (
+                <div key={i} className="flex items-center gap-2 bg-white border border-gray-200 rounded px-1.5 py-1">
+                  <div className="w-3 h-3 rounded border border-gray-300" />
+                  <div className="text-[10px] text-gray-800 truncate">할일 {i}</div>
+                </div>
+              ))}
+            </div>
+          </WidgetCard>
         );
       case 'english_words':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={<BookOpen className="w-4 h-4 text-blue-600" />} title={def?.name || '영어단어'}>
-              <div className="bg-white border border-gray-200 rounded p-1.5">
-                <div className="text-[10px] font-semibold text-gray-900">word</div>
-                <div className="text-[10px] text-gray-600 mt-0.5">단어</div>
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="bg-white border border-gray-200 rounded p-1.5" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              <div className="text-[10px] font-semibold text-gray-900">word</div>
+              <div className="text-[10px] text-gray-600 mt-0.5">단어</div>
+            </div>
+          </WidgetCard>
         );
       case 'timer':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={<Timer className="w-4 h-4 text-blue-600" />} title={def?.name || '타이머'}>
-              <div className="flex items-center justify-center">
-                <div className="text-[16px] font-bold text-gray-900">00:00</div>
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="flex items-center justify-center" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              <div className="text-[16px] font-bold text-gray-900">00:00</div>
+            </div>
+          </WidgetCard>
         );
       case 'calendar':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={<Calendar className="w-4 h-4 text-blue-600" />} title={def?.name || '캘린더'}>
-              <div className="grid grid-cols-7 gap-0.5">
-                {['일','월','화','수','목','금','토'].map(d => (
-                  <div key={d} className="text-center">
-                    <div className="text-[9px] text-gray-500">{d}</div>
-                    <div className={`text-[8px] mt-0.5 ${d==='일' ? 'text-red-500' : d==='토' ? 'text-blue-500' : 'text-gray-900'}`}>1</div>
-                  </div>
-                ))}
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="grid grid-cols-7 gap-0.5" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              {['일','월','화','수','목','금','토'].map(d => (
+                <div key={d} className="text-center">
+                  <div className="text-[9px] text-gray-500">{d}</div>
+                  <div className={`text-[8px] mt-0.5 ${d==='일' ? 'text-red-500' : d==='토' ? 'text-blue-500' : 'text-gray-900'}`}>1</div>
+                </div>
+              ))}
+            </div>
+          </WidgetCard>
         );
       case 'qr_code':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={<QrCode className="w-4 h-4 text-blue-600" />} title={def?.name || 'QR코드'}>
-              <div className="flex items-center justify-center">
-                <div className="w-12 h-12 bg-white border-2 border-gray-300 rounded flex items-center justify-center">
-                  <QrCode className="w-6 h-6 text-gray-600" />
-                </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="flex items-center justify-center" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              <div className="w-12 h-12 bg-white border-2 border-gray-300 rounded flex items-center justify-center">
+                <QrCode className="w-6 h-6 text-gray-600" />
               </div>
-            </PreviewCard>
-          </div>
+            </div>
+          </WidgetCard>
         );
       case 'unified_search':
         return (
-          <div className="mt-2">
-            <PreviewCard icon={<Search className="w-4 h-4 text-blue-600" />} title={def?.name || '통합검색'}>
-              <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-1.5 py-1">
-                <Search className="w-3.5 h-3.5 text-gray-500" />
-                <div className="text-[10px] text-gray-400">통합 검색...</div>
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-1.5 py-1" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              <Search className="w-3.5 h-3.5 text-gray-500" />
+              <div className="text-[10px] text-gray-400">통합 검색...</div>
+            </div>
+          </WidgetCard>
         );
       default:
         return (
-          <div className="mt-2">
-            <PreviewCard icon={shellIcon} title={def?.name || '위젯'}>
-              <div className="space-y-1 text-[10px]">
-                <div className="h-2 bg-gray-200/80 rounded" />
-                <div className="h-2 bg-gray-200/70 rounded w-2/3" />
-              </div>
-            </PreviewCard>
-          </div>
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="space-y-1 text-[10px]" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              <div className="h-2 bg-gray-200/80 rounded" />
+              <div className="h-2 bg-gray-200/70 rounded w-2/3" />
+            </div>
+          </WidgetCard>
         );
     }
   };
@@ -296,24 +362,25 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                 <Clock className="w-5 h-5 text-gray-500" />
                 <h4 className="text-base font-semibold text-gray-800">최근 사용</h4>
               </div>
-              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
+              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
                 {recentWidgets.map((widget) => {
                   const Icon = widget.icon as any;
                   return (
                     <div key={widget.type} className="relative">
-                      <div className="p-2 bg-white border border-gray-200 rounded-xl transition-all shadow-sm relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavorite(widget.type);
-                          }}
-                          className={`absolute top-2 right-2 p-1 hover:bg-gray-100 rounded transition-colors z-10 ${favorites.includes(widget.type) ? 'text-yellow-500' : 'text-gray-300'}`}
-                        >
-                          <Star className={`w-4 h-4 ${favorites.includes(widget.type) ? 'fill-yellow-500' : ''}`} />
-                        </button>
-                        <div
-                          className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => {
+                      <div 
+                        className="bg-white border border-gray-200 rounded-xl transition-all shadow-sm relative cursor-pointer hover:shadow-md hover:border-blue-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-1"
+                        onClick={() => {
+                          const addWithColumn = (window as any).__addWidgetWithColumn;
+                          if (addWithColumn) {
+                            addWithColumn(widget.type, '1x1');
+                          } else {
+                            onAddWidget(widget.type, '1x1');
+                          }
+                          onClose();
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
                             const addWithColumn = (window as any).__addWidgetWithColumn;
                             if (addWithColumn) {
                               addWithColumn(widget.type, '1x1');
@@ -321,17 +388,23 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                               onAddWidget(widget.type, '1x1');
                             }
                             onClose();
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`${widget.name} 위젯 추가`}
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(widget.type);
                           }}
+                          className={`absolute top-1 right-1 p-1 hover:bg-gray-100 rounded transition-colors z-10 ${favorites.includes(widget.type) ? 'text-yellow-500' : 'text-gray-300'}`}
+                          aria-label={favorites.includes(widget.type) ? '즐겨찾기 해제' : '즐겨찾기 추가'}
                         >
-                          <div className="text-xl text-gray-600">
-                            {typeof Icon === 'string' ? Icon : <Icon className="w-5 h-5" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[12px] font-medium text-gray-800 truncate">{widget.name}</div>
-                            <div className="text-[10px] text-gray-500 truncate mt-0.5">{widget.description}</div>
-                          </div>
-                        </div>
-                        {renderPreviewBox(widget.type)}
+                          <Star className={`w-3.5 h-3.5 ${favorites.includes(widget.type) ? 'fill-yellow-500' : ''}`} />
+                        </button>
+                        {renderPreviewBox(widget.type, widget.name)}
                       </div>
                     </div>
                   );
@@ -347,24 +420,25 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                 <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                 <h4 className="text-base font-semibold text-gray-800">즐겨찾기</h4>
               </div>
-              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
+              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
                 {favoriteWidgets.map((widget) => {
                   const Icon = widget.icon as any;
                   return (
                     <div key={widget.type} className="relative">
-                      <div className="p-2 bg-white border border-gray-200 rounded-xl transition-all shadow-sm relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavorite(widget.type);
-                          }}
-                          className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded z-10"
-                        >
-                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                        </button>
-                        <div
-                          className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => {
+                      <div 
+                        className="bg-white border border-gray-200 rounded-xl transition-all shadow-sm relative cursor-pointer hover:shadow-md hover:border-blue-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-1"
+                        onClick={() => {
+                          const addWithColumn = (window as any).__addWidgetWithColumn;
+                          if (addWithColumn) {
+                            addWithColumn(widget.type, '1x1');
+                          } else {
+                            onAddWidget(widget.type, '1x1');
+                          }
+                          onClose();
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
                             const addWithColumn = (window as any).__addWidgetWithColumn;
                             if (addWithColumn) {
                               addWithColumn(widget.type, '1x1');
@@ -372,17 +446,23 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                               onAddWidget(widget.type, '1x1');
                             }
                             onClose();
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`${widget.name} 위젯 추가`}
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(widget.type);
                           }}
+                          className="absolute top-1 right-1 p-1 hover:bg-gray-100 rounded transition-colors z-10 text-yellow-500"
+                          aria-label="즐겨찾기 해제"
                         >
-                          <div className="text-xl text-gray-600">
-                            {typeof Icon === 'string' ? Icon : <Icon className="w-5 h-5" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[12px] font-medium text-gray-800 truncate">{widget.name}</div>
-                            <div className="text-[10px] text-gray-500 truncate mt-0.5">{widget.description}</div>
-                          </div>
-                        </div>
-                        {renderPreviewBox(widget.type)}
+                          <Star className="w-3.5 h-3.5 fill-yellow-500" />
+                        </button>
+                        {renderPreviewBox(widget.type, widget.name)}
                       </div>
                     </div>
                   );
@@ -398,25 +478,26 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                 <div className="text-lg">{getCategoryIcon(categoryKey)}</div>
                 <h4 className="text-base font-semibold text-gray-800">{category.name}</h4>
               </div>
-              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
+              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
                 {category.widgets.map((widget) => {
                   const Icon = widget.icon as any;
                   const isFavorite = favorites.includes(widget.type);
                   return (
                     <div key={widget.type} className="relative">
-                      <div className="p-2 bg-white border border-gray-200 rounded-xl transition-all shadow-sm relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavorite(widget.type);
-                          }}
-                          className={`absolute top-2 right-2 p-1 hover:bg-gray-100 rounded transition-colors z-10 ${isFavorite ? 'text-yellow-500' : 'text-gray-300'}`}
-                        >
-                          <Star className={`w-4 h-4 ${isFavorite ? 'fill-yellow-500' : ''}`} />
-                        </button>
-                        <div
-                          className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => {
+                      <div 
+                        className="bg-white border border-gray-200 rounded-xl transition-all shadow-sm relative cursor-pointer hover:shadow-md hover:border-blue-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-1"
+                        onClick={() => {
+                          const addWithColumn = (window as any).__addWidgetWithColumn;
+                          if (addWithColumn) {
+                            addWithColumn(widget.type, '1x1');
+                          } else {
+                            onAddWidget(widget.type, '1x1');
+                          }
+                          onClose();
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
                             const addWithColumn = (window as any).__addWidgetWithColumn;
                             if (addWithColumn) {
                               addWithColumn(widget.type, '1x1');
@@ -424,17 +505,23 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
                               onAddWidget(widget.type, '1x1');
                             }
                             onClose();
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`${widget.name} 위젯 추가`}
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(widget.type);
                           }}
+                          className={`absolute top-1 right-1 p-1 hover:bg-gray-100 rounded transition-colors z-10 ${isFavorite ? 'text-yellow-500' : 'text-gray-300'}`}
+                          aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
                         >
-                          <div className="text-xl text-gray-600">
-                            {typeof Icon === 'string' ? Icon : <Icon className="w-5 h-5" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[12px] font-medium text-gray-800 truncate">{widget.name}</div>
-                            <div className="text-[10px] text-gray-500 truncate mt-0.5">{widget.description}</div>
-                          </div>
-                        </div>
-                        {renderPreviewBox(widget.type)}
+                          <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-yellow-500' : ''}`} />
+                        </button>
+                        {renderPreviewBox(widget.type, widget.name)}
                       </div>
                     </div>
                   );
