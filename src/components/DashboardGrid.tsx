@@ -88,7 +88,7 @@ export default function DashboardGrid({
       {widgets.map((w) => (
         <div
           key={w.id}
-          className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100"
+          className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-300"
           style={{
             gridColumn: `span ${w.size.w} / span ${w.size.w}`,
             gridRow: `span ${w.size.h} / span ${w.size.h}`,
@@ -182,12 +182,17 @@ export function SizePicker({
           { label: '1x2', w: 1, h: 2 },
           { label: '1x3', w: 1, h: 3 }
         ];
-      case 'bookmark': // 북마크 위젯 - 1칸 너비만 허용
+      case 'bookmark': // 북마크 위젯 - 1칸 너비만 허용 (1x2~1x4)
         return [
-          { label: '1x1', w: 1, h: 1 },
           { label: '1x2', w: 1, h: 2 },
           { label: '1x3', w: 1, h: 3 },
           { label: '1x4', w: 1, h: 4 }
+        ];
+      case 'news': // 뉴스피드 위젯 - 2칸 너비만 허용 (2x1~2x3)
+        return [
+          { label: '2x1', w: 2, h: 1 },
+          { label: '2x2', w: 2, h: 2 },
+          { label: '2x3', w: 2, h: 3 }
         ];
       case 'dday': // D-Day 위젯 - 1x1, 1x2 허용
         return [

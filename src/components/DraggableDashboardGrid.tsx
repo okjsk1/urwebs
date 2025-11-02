@@ -76,7 +76,7 @@ function DraggableWidget({
   return (
     <div
       data-widget-id={widget.id}
-      className={`bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 transition-all ${
+      className={`bg-white rounded-lg shadow-md overflow-hidden border border-gray-300 transition-all ${
         isDragging ? 'opacity-60 scale-[0.98]' : ''
       } ${isEditMode ? 'hover:shadow-xl hover:border-blue-300' : ''}`}
       style={{
@@ -132,9 +132,18 @@ export default function DraggableDashboardGrid({
   const activeWidget = activeId ? widgets.find(w => w.id === activeId) : null;
   
   // 초기 로드 시 겹침 자동 해소 (한 번만 실행, 겹침이 있을 때만)
+  // 주의: 드래그 중에는 실행되지 않도록 activeId 확인
+  const isInitialMountRef = useRef(true);
   useEffect(() => {
     // 위젯이 없으면 스킵
     if (widgets.length === 0) return;
+    
+    // 드래그 중이면 스킵 (레이아웃 변경 방지)
+    if (activeId) return;
+    
+    // 마운트 시에만 실행 (한 번만)
+    if (!isInitialMountRef.current) return;
+    isInitialMountRef.current = false;
     
     const layouts: WidgetLayout[] = widgets.map(w => ({
       id: w.id,
@@ -156,9 +165,18 @@ export default function DraggableDashboardGrid({
       if (hasOverlap) break;
     }
     
-    // 겹침이 있을 때만 정규화
+    // 겹침이 있을 때만 정규화 (초기 로드 시에만)
     if (hasOverlap && onLayoutChange) {
       const normalized = normalizeLayout(layouts, cols);
+      
+      // normalizeLayout이 모든 위젯을 보존했는지 확인
+      const normalizedIds = new Set(normalized.map(l => l.id));
+      const allPreserved = layouts.every(l => normalizedIds.has(l.id));
+      
+      if (!allPreserved) {
+        console.warn('normalizeLayout이 일부 위젯을 누락했습니다. 레이아웃 정규화를 건너뜁니다.');
+        return;
+      }
       
       // 변경사항이 있으면 업데이트 (크기는 변경하지 않음)
       const hasChanges = normalized.some((n, i) => {
@@ -175,10 +193,19 @@ export default function DraggableDashboardGrid({
           }
           return widget;
         });
-        onLayoutChange(updatedWidgets);
+        
+        // 모든 위젯이 포함되었는지 확인
+        if (updatedWidgets.length === widgets.length) {
+          onLayoutChange(updatedWidgets);
+        } else {
+          console.warn('위젯 수가 일치하지 않습니다. 레이아웃 업데이트를 건너뜁니다.', {
+            original: widgets.length,
+            updated: updatedWidgets.length
+          });
+        }
       }
     }
-  }, []); // 빈 배열 - 마운트 시 한 번만 실행
+  }, [widgets.length]); // widgets.length 변경 시에만 체크 (초기 로드)
 
   // 각 컬럼별 최하단 위젯 찾기
   const getColumnBottomWidget = useCallback((columnIndex: number) => {
@@ -402,7 +429,36 @@ export default function DraggableDashboardGrid({
         
         if (hasCollision) {
           // 충돌이 있을 때만 normalizeLayout 호출
-          newLayouts = normalizeLayout(tempLayouts, cols);
+          const normalized = normalizeLayout(tempLayouts, cols);
+          
+          // normalizeLayout이 모든 위젯을 보존했는지 확인
+          const originalIds = new Set(tempLayouts.map(l => l.id));
+          const normalizedIds = new Set(normalized.map(l => l.id));
+          const allPreserved = tempLayouts.every(l => normalizedIds.has(l.id));
+          
+          if (allPreserved && normalized.length === tempLayouts.length) {
+            newLayouts = normalized;
+          } else {
+            // normalizeLayout이 위젯을 제거했다면, 수동으로 충돌 해결
+            console.warn('normalizeLayout이 위젯을 제거했습니다. 수동 충돌 해결을 시도합니다.');
+            newLayouts = tempLayouts;
+            
+            // 수동으로 충돌 해결: 아래 위젯들을 밀어내기
+            newLayouts = newLayouts.map(layout => {
+              if (layout.id === updatedWidget.id) return layout;
+              
+              // 업데이트된 위젯과 겹치는지 확인
+              if (isOverlapping(layout, updatedWidget)) {
+                // 아래로 밀어내기
+                return {
+                  ...layout,
+                  y: updatedWidget.y + updatedWidget.h
+                };
+              }
+              
+              return layout;
+            });
+          }
         } else {
           // 충돌이 없으면 그대로 사용
           newLayouts = tempLayouts;
@@ -432,14 +488,28 @@ export default function DraggableDashboardGrid({
       }
 
       // 위젯 업데이트 (크기는 변경하지 않음)
+      // 모든 위젯이 보존되도록 보장
       const updatedWidgets = widgets.map(w => {
         const layout = newLayouts.find(l => l.id === w.id);
         if (layout) {
           // 크기는 유지하고 위치만 변경
           return { ...w, x: layout.x, y: layout.y };
         }
+        // 레이아웃에서 찾을 수 없으면 원본 유지
         return w;
       });
+
+      // 모든 위젯이 포함되었는지 확인
+      if (updatedWidgets.length !== widgets.length) {
+        console.error('위젯 수가 일치하지 않습니다. 업데이트를 취소합니다.', {
+          original: widgets.length,
+          updated: updatedWidgets.length
+        });
+        setActiveId(null);
+        setPreviewPos(null);
+        setDragOffset({ x: 0, y: 0 });
+        return;
+      }
 
       if (onLayoutChange) {
         onLayoutChange(updatedWidgets);

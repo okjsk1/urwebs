@@ -40,7 +40,7 @@ export function Home() {
     const templateConfigs = {
       default: {
         widgets: [
-          { type: 'bookmark', size: '1x1', x: 0, y: 0 },
+          { type: 'bookmark', size: '1x2', x: 0, y: 0 },
           { type: 'todo', size: '2x2', x: 1, y: 0 },
           { type: 'weather', size: '1x2', x: 3, y: 0 },
           { type: 'calendar', size: '1x1', x: 0, y: 1 }
@@ -48,7 +48,7 @@ export function Home() {
       },
       business: {
         widgets: [
-          { type: 'bookmark', size: '1x1', x: 0, y: 0 },
+          { type: 'bookmark', size: '1x2', x: 0, y: 0 },
           { type: 'todo', size: '2x2', x: 1, y: 0 },
           { type: 'exchange', size: '1x2', x: 3, y: 0 },
           { type: 'news', size: '2x2', x: 0, y: 1 }
@@ -56,7 +56,7 @@ export function Home() {
       },
       student: {
         widgets: [
-          { type: 'bookmark', size: '1x1', x: 0, y: 0 },
+          { type: 'bookmark', size: '1x2', x: 0, y: 0 },
           { type: 'todo', size: '2x2', x: 1, y: 0 },
           { type: 'calendar', size: '1x2', x: 3, y: 0 },
           { type: 'english_words', size: '1x1', x: 0, y: 1 }
@@ -64,7 +64,7 @@ export function Home() {
       },
       creative: {
         widgets: [
-          { type: 'bookmark', size: '1x1', x: 0, y: 0 },
+          { type: 'bookmark', size: '1x2', x: 0, y: 0 },
           { type: 'todo', size: '2x2', x: 1, y: 0 },
           { type: 'weather', size: '1x2', x: 3, y: 0 },
           { type: 'quote', size: '1x1', x: 0, y: 1 }

@@ -16,7 +16,7 @@ export const WIDGET_DEFAULT_SIZES: Record<string, WidgetSize> = {
   'english_words': '1x2',
   'economic_calendar': '2x2',
   'qr_code': '1x1',
-  'bookmark': '1x1',
+  'bookmark': '1x2',
   'quicknote': '1x1',
   'news': '2x2',
   'exchange': '1x1',

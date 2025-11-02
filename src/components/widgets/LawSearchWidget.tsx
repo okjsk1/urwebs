@@ -31,8 +31,8 @@ export function LawSearchWidget({ id, title, size = 'm', onRemove, onResize, onP
       </div>
 
       <form onSubmit={handleSearch} className="w-full">
-        <div className="flex items-center gap-2 rounded-full border border-gray-300 bg-white/80 backdrop-blur px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500">
-          <select className="px-2 py-1 text-sm border-none focus:outline-none bg-transparent text-blue-600 font-medium">
+        <div className="flex items-center gap-2 rounded-full border border-gray-300 bg-white/80 backdrop-blur px-3 py-3 shadow-sm focus-within:ring-2 focus-within:ring-blue-500">
+          <select className="px-2 py-1 text-base border-none focus:outline-none bg-transparent text-blue-600 font-medium">
             <option>현행법령</option>
             <option>법령해석례</option>
             <option>행정규칙</option>
@@ -43,7 +43,7 @@ export function LawSearchWidget({ id, title, size = 'm', onRemove, onResize, onP
             placeholder="검색어를 입력하세요"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm"
+            className="flex-1 bg-transparent outline-none text-base placeholder:text-gray-500"
           />
           <button type="submit" className="p-2 bg-blue-500 hover:bg-blue-600 rounded focus:outline-none">
             <Search className="w-4 h-4 text-white" aria-hidden="true" />

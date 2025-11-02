@@ -1,6 +1,7 @@
+// 날씨 위젯 데모 (ColumnsBoard용)
 import { Cloud, Droplets, Wind } from 'lucide-react';
 
-export function WeatherWidget() {
+export function WeatherWidgetDemo() {
   return (
     <div className="bg-gradient-to-br from-blue-400 to-blue-600 text-white p-6 rounded-xl -m-4">
       <div className="text-center mb-4">
@@ -22,36 +23,3 @@ export function WeatherWidget() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

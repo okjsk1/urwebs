@@ -44,6 +44,7 @@ const DEFAULT_CATEGORIES = [
 
 export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (count: number) => void }> = ({ widget, isEditMode, updateWidget, onBookmarkCountChange }) => {
   const lastBookmarkCountRef = useRef<number>(0);
+  const listRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<BookmarkState>(() => {
     const saved = readLocal(widget.id, {
       bookmarks: DEFAULT_BOOKMARKS,
@@ -64,7 +65,15 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
   });
 
   // 폴더명(위젯 제목) 초기 자동 지정: "새 폴더", "새 폴더(1)" ...
+  // 마이그레이션: 기존 categories[0].name이 있으면 타이틀로 승격
   useEffect(() => {
+    // 1. 마이그레이션: categories[0].name이 있으면 타이틀로 승격
+    if ((!widget.title || !widget.title.trim()) && state.categories?.[0]?.name) {
+      updateWidget?.(widget.id, { ...widget, title: state.categories[0].name });
+      return;
+    }
+    
+    // 2. 타이틀이 비어 있거나 '즐겨찾기'인 경우에만 자동 생성
     const currentTitle = (widget.title || '').trim();
     if (!currentTitle || currentTitle === '즐겨찾기') {
       const key = 'bookmark_folder_counter';
@@ -74,22 +83,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       try { localStorage.setItem(key, String(next + 1)); } catch {}
       updateWidget?.(widget.id, { ...widget, title: name });
     }
-  }, [widget.id]);
-
-  // 내부 제목 편집 UI 제거 (타이틀 바에서만 편집)
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [draftTitle, setDraftTitle] = useState<string>('');
-
-  const startRename = () => {
-    setDraftTitle(widget.title || '');
-    setIsRenaming(true);
-  };
-
-  const commitRename = () => {
-    const name = (draftTitle || '').trim() || '새 폴더';
-    updateWidget?.(widget.id, { ...widget, title: name });
-    setIsRenaming(false);
-  };
+  }, [widget.id, widget.title, state.categories]);
 
   // 드래그 앤 드롭 순서 변경용 로컬 상태 (퍼시스트 필요 없음)
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -177,7 +171,16 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
     return filtered;
   }, [state.bookmarks, state.activeCategoryId]);
 
-  // 북마크 개수에 따라 위젯 높이 자동 조절
+  // 더보기/접기 상태
+  const [collapsed, setCollapsed] = useState(true);
+  const VISIBLE_COUNT = 8; // 접힘 모드에서 보일 최대 개수
+
+  // 보이는 북마크 계산
+  const visibleBookmarks = useMemo(() => {
+    return collapsed ? filteredBookmarks.slice(0, VISIBLE_COUNT) : filteredBookmarks;
+  }, [collapsed, filteredBookmarks]);
+
+  // 북마크 개수에 따라 위젯 높이 자동 조절 (디바운싱으로 안정화)
   useEffect(() => {
     const bookmarkCount = filteredBookmarks.length;
     
@@ -186,28 +189,47 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       return;
     }
     
-    lastBookmarkCountRef.current = bookmarkCount;
+    // 디바운싱: 짧은 지연 후 업데이트 (레이아웃 안정화)
+    const timer = setTimeout(() => {
+      lastBookmarkCountRef.current = bookmarkCount;
 
-    // 부모 컴포넌트에게 북마크 개수 변경 알림
-    onBookmarkCountChange?.(bookmarkCount);
+      // 부모 컴포넌트에게 북마크 개수 변경 알림
+      onBookmarkCountChange?.(bookmarkCount);
 
-    // 북마크 개수에 따라 위젯 높이 자동 조절
-    // 북마크 2개마다 1칸씩 증가 (최소 1칸)
-    // 1-2개: 1칸, 3-4개: 2칸, 5-6개: 3칸, 7-8개: 4칸
-    const newHeight = Math.max(1, Math.ceil(bookmarkCount / 2));
-    
-    // 위젯의 현재 gridSize 가져오기
-    const currentGridSize = (widget as any).gridSize || (widget as any).size || { w: 1, h: 1 };
-    
-    // 높이가 변경된 경우에만 업데이트
-    if (newHeight !== currentGridSize.h && updateWidget) {
-      updateWidget(widget.id, {
-        ...widget,
-        gridSize: { ...currentGridSize, h: newHeight },
-        size: { ...currentGridSize, h: newHeight },
-      });
-    }
+      // 북마크 개수에 따라 위젯 높이 자동 조절
+      // 1-4개: 2칸 (1x2), 5-6개: 3칸 (1x3), 7-8개: 4칸 (1x4)
+      let newHeight;
+      if (bookmarkCount <= 4) {
+        newHeight = 2;
+      } else if (bookmarkCount <= 6) {
+        newHeight = 3;
+      } else if (bookmarkCount <= 8) {
+        newHeight = 4;
+      } else {
+        // 9개 이상일 때는 더보기/접기 기능 사용하므로 4칸 고정
+        newHeight = 4;
+      }
+      
+      // 위젯의 현재 gridSize 가져오기
+      const currentGridSize = (widget as any).gridSize || (widget as any).size || { w: 1, h: 2 };
+      
+      // 높이가 변경된 경우에만 업데이트
+      if (newHeight !== currentGridSize.h && updateWidget) {
+        // gridSize를 픽셀 높이로 변환 (북마크 위젯은 1칸 너비이므로 w는 1로 고정)
+        const cellHeight = 160; // MyPage의 cellHeight와 일치해야 함
+        const spacing = 12; // MyPage의 spacing과 일치해야 함
+        const newHeightPx = newHeight * (cellHeight + spacing) - spacing;
+        
+        updateWidget(widget.id, {
+          ...widget,
+          gridSize: { w: 1, h: newHeight },
+          size: { w: 1, h: newHeight },
+          height: newHeightPx, // 픽셀 높이도 함께 업데이트
+        });
+      }
+    }, 100); // 100ms 디바운싱
 
+    return () => clearTimeout(timer);
   }, [filteredBookmarks.length, onBookmarkCountChange, updateWidget, widget]);
 
   const addBookmark = useCallback(() => {
@@ -235,10 +257,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       return;
     }
 
-    if (state.bookmarks.length >= 8) {
-      showToast('북마크는 최대 8개까지 추가할 수 있습니다', 'error');
-      return;
-    }
+    // 최대 개수 제한 제거 (더보기/접기로 처리)
 
     // 이름 자동 제안: '@' 접두 제거 후 도메인/경로에서 서비스명 추출
     const rawName = name.trim().replace(/^@+/, '');
@@ -309,7 +328,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+Z, Ctrl+Y 단축키는 나중에 구현
       // 디버그 모드에서만 로그 출력
-      if (import.meta.env.DEV && e.key === 'F12') {
+      if ((import.meta as any).env?.DEV && e.key === 'F12') {
         // F12는 개발자 도구 단축키이므로 무시
         return;
       }
@@ -442,161 +461,176 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       }}
       onDrop={handleExternalDrop}
     >
-      {/* 위젯 타이틀 이름 편집 (펜 아이콘) */}
-      {isEditMode && (
-        <div className="px-2.5 pt-2 flex items-center justify-between">
-          {!isRenaming ? (
-            <div className="flex items-center gap-2 w-full">
-              <div className="text-sm font-semibold text-gray-800 truncate">
-                {(widget.title || '새 폴더')}
-              </div>
-              <button
-                onClick={startRename}
-                className="ml-auto p-1 rounded hover:bg-gray-100"
-                aria-label="폴더 이름 편집"
-                title="폴더 이름 편집"
+      {/* 북마크 리스트 (세로 배치) - 스크롤 제거 */}
+      {/* 내부 폴더 헤더 제거: 폴더명은 위젯 타이틀 바(WidgetShell)에서만 사용 */}
+      <div 
+        ref={listRef}
+        className="space-y-2 mb-3 flex-1 min-h-0 overflow-y-auto px-2.5 pt-2 scrollbar-none"
+        onDragOver={(e) => e.preventDefault()}
+      >
+        {/* 붙여넣기 기능 제거 */}
+        {visibleBookmarks.map((bookmark, index) => {
+          const isEditing = state.editingId === bookmark.id;
+          return (
+            <div key={bookmark.id}>
+              <div 
+                className={`relative group ${dragOverId === bookmark.id ? 'ring-2 ring-blue-300 rounded' : ''} ${isEditing ? 'mb-2' : ''}`}
+                draggable={isEditMode && !isEditing}
+                onDragStart={(e) => {
+                  e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                  handleDragStart(e, bookmark.id);
+                }}
+                onDragOver={(e) => {
+                  e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                  handleDragOver(e, bookmark.id);
+                }}
+                onDrop={(e) => {
+                  e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                  handleDrop(e, bookmark.id);
+                }}
+                onDragEnd={(e) => {
+                  e.stopPropagation(); // 위젯 드래그와 충돌 방지
+                  handleDragEnd();
+                }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-gray-600"><path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712z"/><path d="M19.513 8.199l-3.712-3.712-9.88 9.88a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.93.93l2.685-.8a5.25 5.25 0 002.214-1.32l9.88-9.88z"/></svg>
-              </button>
+                <button
+                  onClick={() => !isEditing && openBookmark(bookmark.url)}
+                  className="w-full p-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
+                  aria-label={`${bookmark.name} 열기`}
+                >
+                  {/* 로고 */}
+                  <div className="flex-shrink-0">
+                    <SiteAvatar url={bookmark.url} name={bookmark.name} size={20} />
+                  </div>
+                  
+                  {/* 사이트 이름 (오른쪽) */}
+                  <div className="flex-1 text-left text-xs font-medium text-gray-800 truncate">
+                    {bookmark.name}
+                  </div>
+                  
+                  {/* 외부 링크 아이콘 */}
+                  {!isEditing && (
+                    <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                  )}
+                </button>
+                
+                {/* 편집/삭제 버튼 */}
+                {!isEditing && (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEdit(bookmark);
+                      }}
+                      className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-blue-600"
+                      aria-label="북마크 편집"
+                      title="편집"
+                    >
+                      <Edit className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteBookmark(bookmark.id);
+                      }}
+                      className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                      aria-label="북마크 삭제"
+                      title="삭제"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                
+                {/* 드래그 핸들 시각 강화 (왼쪽 바) */}
+                {isEditMode && !isEditing && (
+                  <div className="absolute -left-2 top-0 bottom-0 w-1.5 rounded-l bg-gradient-to-b from-gray-300 to-gray-200 opacity-0 group-hover:opacity-100" />
+                )}
+              </div>
+              
+              {/* 인라인 편집 폼 (해당 항목 바로 아래에 표시) */}
+              {isEditing && (
+                <div 
+                  className="p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg mb-2 shadow-sm"
+                  ref={(el) => {
+                    // 편집 폼이 보이도록 스크롤
+                    if (el && listRef.current) {
+                      setTimeout(() => {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                      }, 100);
+                    }
+                  }}
+                >
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={state.editDraft?.name || ''}
+                      onChange={(e) => setState(prev => ({ ...prev, editDraft: { ...(prev.editDraft || { name: '', url: '' }), name: e.target.value } }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          saveEdit(state.editingId!);
+                        } else if (e.key === 'Escape') {
+                          cancelEdit();
+                        }
+                      }}
+                      placeholder="사이트 이름"
+                      className="w-full px-2 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      autoFocus
+                    />
+                    <input
+                      type="url"
+                      value={state.editDraft?.url || ''}
+                      onChange={(e) => setState(prev => ({ ...prev, editDraft: { ...(prev.editDraft || { name: '', url: '' }), url: e.target.value } }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          saveEdit(state.editingId!);
+                        } else if (e.key === 'Escape') {
+                          cancelEdit();
+                        }
+                      }}
+                      placeholder="https://example.com"
+                      className="w-full px-2 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    />
+                    <div className="flex gap-2 justify-end pt-1">
+                      <Button 
+                        size="sm" 
+                        className="h-7 text-xs px-3" 
+                        onClick={() => saveEdit(state.editingId!)}
+                      >
+                        <Check className="w-3 h-3 mr-1" /> 저장
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 text-xs px-3 border-gray-300 dark:border-gray-600" 
+                        onClick={cancelEdit}
+                      >
+                        <XIcon className="w-3 h-3 mr-1" /> 취소
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex items-center gap-2 w-full">
-              <input
-                autoFocus
-                type="text"
-                value={draftTitle}
-                onChange={(e) => setDraftTitle(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setIsRenaming(false); }}
-                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
-                placeholder="폴더 이름"
-              />
-              <button className="px-2 py-1 text-xs bg-blue-600 text-white rounded" onClick={commitRename}>저장</button>
-              <button className="px-2 py-1 text-xs border rounded" onClick={() => setIsRenaming(false)}>취소</button>
-            </div>
-          )}
+          );
+        })}
+      </div>
+
+      {/* 더보기/접기 버튼 */}
+      {filteredBookmarks.length > VISIBLE_COUNT && (
+        <div className="px-2.5 pb-2 flex-shrink-0">
+          <button
+            className="w-full py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:underline transition-colors"
+            onClick={() => setCollapsed(v => !v)}
+          >
+            {collapsed 
+              ? `더보기 (${filteredBookmarks.length - VISIBLE_COUNT}개)` 
+              : '접기'}
+          </button>
         </div>
       )}
-      {/* 북마크 리스트 (세로 배치) - 스크롤 제거 */}
-      <div className="space-y-2 mb-3 flex-1 overflow-visible px-2.5 pt-2">
-        {/* 붙여넣기 기능 제거 */}
-        {filteredBookmarks.map((bookmark, index) => (
-          <div 
-            key={bookmark.id}
-            className={`relative group ${dragOverId === bookmark.id ? 'ring-2 ring-blue-300 rounded' : ''}`}
-            draggable={isEditMode}
-            onDragStart={(e) => {
-              e.stopPropagation(); // 위젯 드래그와 충돌 방지
-              handleDragStart(e, bookmark.id);
-            }}
-            onDragOver={(e) => {
-              e.stopPropagation(); // 위젯 드래그와 충돌 방지
-              handleDragOver(e, bookmark.id);
-            }}
-            onDrop={(e) => {
-              e.stopPropagation(); // 위젯 드래그와 충돌 방지
-              handleDrop(e, bookmark.id);
-            }}
-            onDragEnd={(e) => {
-              e.stopPropagation(); // 위젯 드래그와 충돌 방지
-              handleDragEnd();
-            }}
-          >
-            <button
-              onClick={() => openBookmark(bookmark.url)}
-              className="w-full p-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
-              aria-label={`${bookmark.name} 열기`}
-            >
-              {/* 로고 */}
-              <div className="flex-shrink-0">
-                <SiteAvatar url={bookmark.url} name={bookmark.name} size={20} />
-              </div>
-              
-              {/* 사이트 이름 (오른쪽) */}
-              <div className="flex-1 text-left text-xs font-medium text-gray-800 truncate">
-                {bookmark.name}
-              </div>
-              
-              {/* 외부 링크 아이콘 */}
-              <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-            </button>
-            
-            {/* 편집/삭제 버튼 */}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {/* 붙여넣기 기능 제거: 대신 그냥 이 위젯 내부에서 드래그로 순서 변경 */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  startEdit(bookmark);
-                }}
-                className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs"
-                aria-label="북마크 편집"
-                title="편집"
-              >
-                <Edit className="w-3 h-3" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteBookmark(bookmark.id);
-                }}
-                className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
-                aria-label="북마크 삭제"
-                title="삭제"
-              >
-                ×
-              </button>
-            </div>
-            
-            {/* 드래그 핸들 시각 강화 (왼쪽 바) */}
-            {isEditMode && (
-              <div className="absolute -left-2 top-0 bottom-0 w-1.5 rounded-l bg-gradient-to-b from-gray-300 to-gray-200 opacity-0 group-hover:opacity-100" />
-            )}
-          </div>
-        ))}
-        
-        {/* 인라인 편집 폼 (해당 항목 아래에 표시) */}
-        {state.editingId && (
-          <div className="p-2 bg-blue-50 border border-blue-200 rounded">
-            <div className="flex gap-1 mb-1">
-              <input
-                type="text"
-                value={state.editDraft?.name || ''}
-                onChange={(e) => setState(prev => ({ ...prev, editDraft: { ...(prev.editDraft || { name: '', url: '' }), name: e.target.value } }))}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    saveEdit(state.editingId!);
-                  }
-                }}
-                placeholder="사이트 이름"
-                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
-              />
-              <input
-                type="url"
-                value={state.editDraft?.url || ''}
-                onChange={(e) => setState(prev => ({ ...prev, editDraft: { ...(prev.editDraft || { name: '', url: '' }), url: e.target.value } }))}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    saveEdit(state.editingId!);
-                  }
-                }}
-                placeholder="https://example.com"
-                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
-              />
-            </div>
-            <div className="flex gap-1 justify-end">
-              <Button size="sm" className="h-6 text-xs" onClick={() => saveEdit(state.editingId!)}>
-                <Check className="w-3 h-3 mr-1" /> 저장
-              </Button>
-              <Button size="sm" variant="outline" className="h-6 text-xs" onClick={cancelEdit}>
-                <XIcon className="w-3 h-3 mr-1" /> 취소
-              </Button>
-            </div>
-          </div>
-        )}
-
-      </div>
       
       {/* 페이지 추가 버튼 (고정 위치) */}
       {isEditMode && state.bookmarks.length < 100 && (

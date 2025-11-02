@@ -97,7 +97,7 @@ export function BookmarksWidget({ widget, onResize }: BookmarksWidgetProps) {
   return (
     <div
       ref={listRef}
-      className={`space-y-2 ${shouldForceScroll ? 'overflow-y-auto' : 'overflow-visible'}`}
+      className={`space-y-2 ${shouldForceScroll ? 'overflow-y-auto scrollbar-none pr-2' : 'overflow-visible'}`}
       style={shouldForceScroll && maxHeight ? { maxHeight: `${maxHeight}px` } : undefined}
     >
       {bookmarks.map((bookmark) => (

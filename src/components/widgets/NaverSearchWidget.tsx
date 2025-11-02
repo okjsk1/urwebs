@@ -31,14 +31,14 @@ export function NaverSearchWidget({ id, title, size = 'm', onRemove, onResize, o
       </div>
 
       <form onSubmit={handleSearch} className="w-full">
-        <div className="flex items-center gap-1 rounded-full border border-gray-300 bg-white/80 backdrop-blur px-2 py-1.5 shadow-sm focus-within:ring-2 focus-within:ring-green-500">
+        <div className="flex items-center gap-1 rounded-full border border-gray-300 bg-white/80 backdrop-blur px-3 py-3 shadow-sm focus-within:ring-2 focus-within:ring-green-500">
           <Search className="w-4 h-4 text-gray-400" aria-hidden="true" />
           <input
             type="text"
             placeholder="검색어를 입력해 주세요"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm"
+            className="flex-1 bg-transparent outline-none text-base placeholder:text-gray-500"
           />
           <button type="submit" className="p-1.5 bg-green-500 hover:bg-green-600 rounded-full focus:outline-none">
             <Search className="w-4 h-4 text-white" aria-hidden="true" />

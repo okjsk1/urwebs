@@ -1372,8 +1372,12 @@ export function MyPage() {
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'bookmark') {
-      // 북마크 위젯은 1x1, 1x2, 1x3, 1x4 크기 가능
-      widgetSize = (size === '1x1' || size === '1x2' || size === '1x3') ? size : '1x1';
+      // 북마크 위젯은 1x2, 1x3, 1x4 크기 가능
+      if (size === '1x2' || size === '1x3' || size === '1x4') {
+        widgetSize = size;
+      } else {
+        widgetSize = '1x2';
+      }
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -1419,6 +1423,16 @@ export function MyPage() {
     } else if (type === 'law_search') {
       // 법제처 검색 위젯은 1x1, 2x1 크기 가능 (기본 1x1)
       widgetSize = (size === '1x1' || size === '2x1') ? size : '1x1';
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'news') {
+      // 뉴스피드 위젯은 2x1, 2x2, 2x3 크기 가능 (기본 2x2)
+      if (size === '2x1' || size === '2x2' || size === '2x3') {
+        widgetSize = size;
+      } else {
+        widgetSize = '2x2';
+      }
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -1577,8 +1591,18 @@ export function MyPage() {
     console.log('=== 저장하기 버튼 클릭 ===');
     console.log('currentUser:', currentUser);
     console.log('pageTitle:', pageTitle);
-    console.log('widgets:', widgets);
+    console.log('widgets 개수:', widgets.length);
+    console.log('widgets 상세:', widgets);
     console.log('shareSettings.isPublic:', shareSettings.isPublic);
+    console.log('currentPageId:', currentPageId);
+    console.log('pages:', pages);
+    
+    // 위젯이 비어있으면 경고
+    if (widgets.length === 0) {
+      console.warn('⚠️ 저장할 위젯이 없습니다!');
+      setToast({ type: 'error', msg: '저장할 위젯이 없습니다. 위젯을 추가한 후 다시 시도해주세요.' });
+      return;
+    }
     
     // 현재 페이지가 없으면 새 페이지 생성
     let updatedPages = pages;
@@ -1646,9 +1670,17 @@ export function MyPage() {
     console.log('Firebase 저장 조건 체크:', { currentUser: !!currentUser, isPublic: shareSettings.isPublic });
     if (currentUser) {
       console.log('→ Firebase 저장 시작 (공개/비공개 모두 저장)');
+      
+      // pageData를 try 블록 밖에서 선언하여 catch에서도 접근 가능하도록
+      let pageData: any = null;
+      
       try {
         const currentPage = updatedPages.find(p => p.id === targetPageId);
-        if (!currentPage) return;
+        if (!currentPage) {
+          console.error('❌ 현재 페이지를 찾을 수 없습니다:', targetPageId);
+          setToast({ type: 'error', msg: '저장 실패: 현재 페이지를 찾을 수 없습니다.' });
+          return;
+        }
 
         // urlId 생성
         const userIdPart = (currentUser?.email?.split('@')[0] || 'user');
@@ -1678,7 +1710,7 @@ export function MyPage() {
           return obj;
         };
 
-        const pageData = removeUndefined({
+        pageData = removeUndefined({
           title: pageTitle || '제목 없음',
           description: '',
           authorId: currentUser.id || '',
@@ -1796,11 +1828,25 @@ export function MyPage() {
         console.error('❌ Firebase 저장 실패:', error);
         console.error('에러 메시지:', error?.message);
         console.error('에러 코드:', error?.code);
+        console.error('에러 스택:', error?.stack);
+        if (pageData) {
+          console.error('저장하려던 데이터:', {
+            title: pageData.title,
+            widgetCount: pageData.widgets?.length || 0,
+            urlId: pageData.urlId,
+            authorId: pageData.authorId
+          });
+        } else {
+          console.error('pageData가 생성되지 않았습니다.');
+        }
         
         // 사용자에게 에러 알림
-        setToast({ type: 'error', msg: `Firebase 저장 실패: ${error?.message || '알 수 없는 오류'}. 로컬에는 저장되었습니다.` });
+        const errorMsg = error?.message || error?.code || '알 수 없는 오류';
+        setToast({ type: 'error', msg: `Firebase 저장 실패: ${errorMsg}. 로컬에는 저장되었습니다.` });
         
         // Firebase 저장 실패해도 로컬에는 저장되었으므로 계속 진행
+        // 하지만 에러를 다시 throw하여 개발자가 확인할 수 있도록
+        throw error;
       }
     } else {
       console.log('→ Firebase 저장 조건 미충족');
@@ -1837,10 +1883,22 @@ export function MyPage() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // 위젯 업데이트
+  // 위젯 업데이트 (충돌 감지 및 해결 포함)
   const updateWidget = useCallback((id: string, updates: Partial<Widget>) => {
-    setWidgets(prevWidgets => prevWidgets.map(w => w.id === id ? { ...w, ...updates } : w));
-  }, []);
+    setWidgets(prevWidgets => {
+      // 업데이트할 위젯 찾기
+      const targetWidget = prevWidgets.find(w => w.id === id);
+      if (!targetWidget) return prevWidgets;
+
+      // 북마크 위젯 높이 증가 시 최소한의 충돌 처리만 수행
+      // 복잡한 충돌 처리는 DraggableDashboardGrid의 normalizeLayout에 맡김
+      // 여기서는 단순히 업데이트만 수행
+      
+      // 일반 업데이트 (높이 변경 없음)
+      const updatedWidget = { ...targetWidget, ...updates };
+      return prevWidgets.map(w => w.id === id ? updatedWidget : w);
+    });
+  }, [cellHeight, spacing, mainColumnWidth]);
 
   // 위젯 선택
   const selectWidget = (id: string) => {
@@ -2501,7 +2559,7 @@ export function MyPage() {
       if (widget.type === 'google_search' || widget.type === 'naver_search' || widget.type === 'unified_search') {
         gridSize = { w: 2, h: 1 }; // 검색 위젯은 2x1 기본
       } else if (widget.type === 'bookmark') {
-        gridSize = { w: 1, h: 1 }; // 북마크는 기본 1x1 (1x1, 1x2, 1x3, 1x4 가능)
+        gridSize = { w: 1, h: 2 }; // 북마크는 기본 1x2 (1x2, 1x3, 1x4 가능)
       } else if (widget.type === 'calendar') {
         gridSize = { w: 1, h: 1 }; // 캘린더 기본 1x1 (1x1, 1x2 허용)
       } else if (widget.type === 'crypto') {
@@ -2526,6 +2584,8 @@ export function MyPage() {
         gridSize = { w: 1, h: 1 }; // 빠른메모는 기본 1x1 (1x1, 1x2, 1x3 가능)
       } else if (widget.type === 'law_search') {
         gridSize = { w: 1, h: 1 }; // 법제처 검색 위젯은 기본 1x1 (1x1, 2x1 가능)
+      } else if (widget.type === 'news') {
+        gridSize = { w: 2, h: 2 }; // 뉴스피드 위젯은 기본 2x2 (2x1, 2x2, 2x3 가능)
       } else {
         gridSize = { w: 1, h: 1 }; // 기본적으로 1x1
       }
@@ -3153,7 +3213,7 @@ export function MyPage() {
       case 'product_grid':
         return (
           <div className="p-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {widget.content.products?.map((product: any) => (
                 <div key={product.id} className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
                   <div className="aspect-square bg-gray-200 rounded mb-2 flex items-center justify-center">
@@ -4338,21 +4398,61 @@ export function MyPage() {
 
           {/* DraggableDashboardGrid 사용 */}
           <DraggableDashboardGrid
-            widgets={widgets.map(convertToGridWidget)}
+            widgets={widgets.map(w => {
+              const converted = convertToGridWidget(w);
+              if (!converted) {
+                console.error('[convertToGridWidget] 위젯 변환 실패:', w.id);
+                return null;
+              }
+              return converted;
+            }).filter(Boolean) as any}
             renderWidget={(w) => renderWidget(w)}
             onLayoutChange={(updatedWidgets) => {
               // 변경 전 스냅샷을 히스토리에 저장 (현재 prevWidgets를 이용)
               // 위젯 위치 업데이트 (그리드 좌표를 그대로 사용)
-              setWidgets(prevWidgets => 
-                (pushLayoutHistory(prevWidgets),
-                prevWidgets.map(widget => {
-                  const updated = updatedWidgets.find(w => w.id === widget.id);
+              // 모든 위젯이 보존되도록 확인
+              setWidgets(prevWidgets => {
+                // updatedWidgets에 모든 위젯이 포함되었는지 확인
+                if (updatedWidgets.length < prevWidgets.length) {
+                  console.error('[onLayoutChange] 위젯 손실 감지!', {
+                    original: prevWidgets.length,
+                    updated: updatedWidgets.length,
+                    missing: prevWidgets.length - updatedWidgets.length
+                  });
+                  
+                  // 누락된 위젯을 찾아서 추가
+                  const updatedIds = new Set(updatedWidgets.map(w => w.id));
+                  const missingWidgets = prevWidgets.filter(w => !updatedIds.has(w.id));
+                  
+                  if (missingWidgets.length > 0) {
+                    console.error('[onLayoutChange] 누락된 위젯 목록:', missingWidgets.map(w => ({ id: w.id, type: w.type, title: w.title })));
+                    // 누락된 위젯을 포함하여 반환 (위치 업데이트는 하지 않음)
+                    const updatedMap = new Map(updatedWidgets.map(w => [w.id, w]));
+                    const result = prevWidgets.map(widget => {
+                      const updated = updatedMap.get(widget.id);
+                      if (updated && updated.x !== undefined && updated.y !== undefined) {
+                        return { ...widget, x: updated.x, y: updated.y };
+                      }
+                      return widget;
+                    });
+                    
+                    return result;
+                  }
+                }
+                
+                // 위치만 업데이트 (크기 변경은 유지)
+                const updatedMap = new Map(updatedWidgets.map(w => [w.id, w]));
+                const result = prevWidgets.map(widget => {
+                  const updated = updatedMap.get(widget.id);
                   if (updated && updated.x !== undefined && updated.y !== undefined) {
+                    // 위치만 업데이트, 다른 속성은 유지 (크기 포함)
                     return { ...widget, x: updated.x, y: updated.y };
                   }
                   return widget;
-                }))
-              );
+                });
+                
+                return result;
+              });
             }}
             isEditMode={isEditMode}
             cellHeight={cellHeight}
@@ -4819,7 +4919,7 @@ export function MyPage() {
                               className="w-full p-2 border rounded"
                             />
                           </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">날짜</label>
                       <input
@@ -4903,7 +5003,7 @@ export function MyPage() {
                               className="w-full p-2 border rounded h-20 resize-none"
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">날짜</label>
                               <input
@@ -4946,7 +5046,7 @@ export function MyPage() {
                               className="w-full p-2 border rounded h-20 resize-none"
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">목표 값</label>
                               <input

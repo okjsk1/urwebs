@@ -501,6 +501,13 @@ export function TimerWidget({
   const displayTime = calculateDisplayTime();
   // Stealth 모드 감지
   const isStealthMode = document.querySelector('[data-stealth-mode="true"]') !== null;
+
+  // 모드 순환 함수 (compact용)
+  const cycleMode = (m: TimerMode): TimerMode => {
+    return m === 'countdown' ? 'stopwatch' 
+         : m === 'stopwatch' ? 'pomodoro' 
+         : 'countdown';
+  };
   
   const getColor = () => {
     if (isStealthMode) {
@@ -540,7 +547,7 @@ export function TimerWidget({
       isPinned={isPinned}
       variant="bare"
     >
-      <div ref={widgetRef} className="h-full flex flex-col">
+      <div ref={widgetRef} className="h-full flex min-h-0 flex-col overflow-hidden">
         {/* 접근성: 라이브 영역 */}
         <div 
           role="timer" 
@@ -553,85 +560,118 @@ export function TimerWidget({
           </span>
         </div>
 
-        {/* 모드 선택 (h-10 rounded-xl 통일) */}
-        <div className="flex gap-1 mb-3" role="tablist">
-          {(['countdown', 'stopwatch', 'pomodoro'] as TimerMode[]).map((mode) => (
+        {/* 모드 선택: compact는 순환 버튼, 그 외는 탭 3개 */}
+        {size === 's' ? (
+          <div className="mb-2 flex justify-end">
             <button
-              key={mode}
-              onClick={() => changeMode(mode)}
-              role="tab"
-              aria-pressed={core.mode === mode}
-              aria-label={`${MODE_LABELS[mode]} 모드로 전환`}
-              className={`h-10 px-4 text-sm rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
-                core.mode === mode 
-                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium' 
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
+              onClick={() => changeMode(cycleMode(core.mode))}
+              className="h-7 px-2 rounded-lg text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+              aria-label={`모드 전환: 현재 ${MODE_LABELS[core.mode]}`}
+              title={MODE_LABELS[core.mode]}
             >
-              {MODE_LABELS[mode]}
+              {MODE_LABELS[core.mode]}
             </button>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="flex gap-1 mb-3" role="tablist">
+            {(['countdown', 'stopwatch', 'pomodoro'] as TimerMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => changeMode(mode)}
+                role="tab"
+                aria-pressed={core.mode === mode}
+                aria-label={`${MODE_LABELS[mode]} 모드로 전환`}
+                className={`h-10 px-4 text-sm rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
+                  core.mode === mode 
+                    ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                {MODE_LABELS[mode]}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* 메인 타이머 */}
-        <div className={`flex-1 flex flex-col items-center justify-center ${isCompact ? 'gap-2' : 'gap-3'}`}>
+        <div className={`flex-1 flex flex-col items-center justify-center ${size === 's' ? 'gap-1' : 'gap-3'}`}>
           <div 
-            className={`${isCompact ? 'text-4xl mb-1' : 'text-6xl mb-2'} font-mono font-bold tabular-nums ${timerColor.className} transition-colors duration-200`}
+            className={`${size === 's' ? 'text-[28px]' : size === 'm' ? 'text-6xl' : 'text-7xl'} font-mono font-bold tabular-nums leading-none ${timerColor.className} transition-colors duration-200`}
             style={timerColor.style}
             aria-label={core.mode === 'stopwatch' ? '경과 시간' : '남은 시간'}
           >
             {displayTime.formatted}
           </div>
           
-          {/* 세컨드라인 정보 */}
-          {core.mode === 'pomodoro' && !isCompact && (
+          {/* 부가 정보: compact에서는 숨김 */}
+          {core.mode === 'pomodoro' && size !== 's' && (
             <div className="text-xs font-light text-gray-500 dark:text-gray-400">
               {core.pomoPhase === 'work' ? '작업' : '휴식'} • {core.pomoRounds}라운드
             </div>
           )}
-          {core.mode === 'countdown' && displayTime.remainingMs > 0 && !isCompact && (
+          {core.mode === 'countdown' && displayTime.remainingMs > 0 && size !== 's' && (
             <div className="text-xs font-light text-gray-500 dark:text-gray-500">
               {Math.floor(displayTime.remainingMs / 60000)}분 {Math.floor((displayTime.remainingMs % 60000) / 1000)}초 남음
             </div>
           )}
-          {core.mode === 'stopwatch' && !isCompact && (
+          {core.mode === 'stopwatch' && size !== 's' && (
             <div className="text-xs font-light text-gray-500 dark:text-gray-500">
               {Math.floor(displayTime.elapsedMs / 60000)}분 {Math.floor((displayTime.elapsedMs % 60000) / 1000)}초 경과
             </div>
           )}
 
-          {/* 컨트롤 버튼 */}
-          <div className={`flex gap-2 ${isCompact ? 'mt-2' : 'mt-4'}`}>
-            <button
-              onClick={toggleTimer}
-              aria-pressed={core.running}
-              aria-label={core.running ? '일시정지' : '시작'}
-              className={`${isCompact ? 'px-3 py-1.5' : 'px-4 py-2'} bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 transition-colors`}
-            >
-              {core.running ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            </button>
-            <button
-              onClick={resetTimer}
-              aria-label="리셋"
-              className={`${isCompact ? 'px-3 py-1.5' : 'px-4 py-2'} bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors`}
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-            <button
-              onClick={toggleSound}
-              aria-pressed={core.sound}
-              aria-label={core.sound ? '사운드 끄기' : '사운드 켜기'}
-              className={`${isCompact ? 'px-2.5 py-1.5' : 'px-4 py-2'} rounded-lg focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors ${
-                core.sound ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              {core.sound ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            </button>
-          </div>
+          {/* 컨트롤 */}
+          {size === 's' ? (
+            <div className="mt-1 flex items-center gap-1.5">
+              <button
+                onClick={toggleTimer}
+                aria-pressed={core.running}
+                aria-label={core.running ? '일시정지' : '시작'}
+                className="h-8 w-8 grid place-items-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 transition-colors"
+              >
+                {core.running ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={resetTimer}
+                aria-label="리셋"
+                className="h-8 w-8 grid place-items-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={toggleTimer}
+                aria-pressed={core.running}
+                aria-label={core.running ? '일시정지' : '시작'}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 transition-colors"
+              >
+                {core.running ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={resetTimer}
+                aria-label="리셋"
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+              <button
+                onClick={toggleSound}
+                aria-pressed={core.sound}
+                aria-label={core.sound ? '사운드 끄기' : '사운드 켜기'}
+                className={`px-4 py-2 rounded-lg focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors ${
+                  core.sound ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                {core.sound ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* 설정 */}
-        {core.mode === 'countdown' && !isCompact && (
+        {/* 설정 패널/단축키 안내 */}
+        {core.mode === 'countdown' && size !== 's' && (
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
             <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">빠른 설정</div>
             <div className="flex gap-1 flex-wrap">
@@ -649,7 +689,7 @@ export function TimerWidget({
           </div>
         )}
 
-        {core.mode === 'pomodoro' && !isCompact && (
+        {core.mode === 'pomodoro' && size !== 's' && (
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
             <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">포모도로 설정</div>
             <div className="flex gap-1 mb-2 flex-wrap">
@@ -702,7 +742,7 @@ export function TimerWidget({
         )}
 
         {/* 단축키 안내 */}
-        {!isCompact && (
+        {size !== 's' && (
           <div className="mt-2 text-xs text-gray-400 dark:text-gray-500" aria-label="키보드 단축키">
             Space: 시작/정지 • R: 리셋
           </div>

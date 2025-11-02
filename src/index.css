@@ -3020,3 +3020,31 @@ html {
 .widget-item {
   height: 100%;
 }
+
+/* AutoRail: 오른쪽으로 흐르는 전시형 레일 */
+@keyframes auto-rail-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50%));
+  }
+}
+
+/* 사용자 모션 선호도 존중 */
+@media (prefers-reduced-motion: reduce) {
+  .auto-rail-anim {
+    animation: none !important;
+  }
+}
+
+/* 레일 애니메이션 유틸리티 */
+.auto-rail-anim {
+  animation: auto-rail-scroll var(--rail-duration, 50s) linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.auto-rail-paused {
+  animation-play-state: paused !important;
+}
