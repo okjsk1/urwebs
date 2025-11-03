@@ -40,6 +40,10 @@ interface DraggableDashboardGridProps {
     lg?: number;
     xl?: number;
   };
+  // 레이아웃 프리셋: two-columns, three-columns, masonry 등
+  layoutPreset?: 'two_columns' | 'three_columns' | 'masonry';
+  // 마그넷(자석) 스냅 강도: 같은 컬럼 최하단과의 허용 거리 (그리드 행 단위)
+  magnetThresholdRows?: number;
 }
 
 function DraggableWidget({
@@ -117,6 +121,8 @@ export default function DraggableDashboardGrid({
     lg: 160,
     xl: 160,
   },
+  layoutPreset,
+  magnetThresholdRows = 1,
 }: DraggableDashboardGridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -127,6 +133,48 @@ export default function DraggableDashboardGrid({
   const [currentBreakpoint, setCurrentBreakpoint] = useState('md');
   const [showAddButtonState, setShowAddButtonState] = useState<{ [column: number]: boolean }>({});
   const hideButtonTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const rafMoveRef = useRef<number | null>(null);
+
+  // 레이아웃 프리셋 적용기
+  const applyLayoutPreset = useCallback((preset: typeof layoutPreset) => {
+    if (!preset || !onLayoutChange || widgets.length === 0) return;
+    const next = [...widgets];
+    if (preset === 'two_columns') {
+      // 2열 배치: 교대로 x=0,1 배치, y는 해당 컬럼 최하단에 누적
+      let bottoms = [0, 0];
+      for (const w of next) {
+        const col = bottoms[0] <= bottoms[1] ? 0 : 1;
+        (w as any).x = col;
+        (w as any).y = bottoms[col];
+        bottoms[col] += w.size.h;
+      }
+    } else if (preset === 'three_columns') {
+      // 3열 배치
+      let bottoms = [0, 0, 0];
+      for (const w of next) {
+        const col = bottoms.indexOf(Math.min(...bottoms));
+        (w as any).x = col;
+        (w as any).y = bottoms[col];
+        bottoms[col] += w.size.h;
+      }
+    } else if (preset === 'masonry') {
+      // masonry 유사: 현 x를 유지하되 각 컬럼에서 위로 당김(compact)
+      const layouts: WidgetLayout[] = next.map(w => ({ id: w.id, x: w.x || 0, y: w.y || 0, w: w.size.w, h: w.size.h }));
+      const compacted = compactLayout(layouts, cols);
+      const map = new Map(compacted.map(l => [l.id, l]));
+      for (const w of next) {
+        const l = map.get(w.id);
+        if (l) { (w as any).x = l.x; (w as any).y = l.y; }
+      }
+    }
+    onLayoutChange(next);
+  }, [widgets, onLayoutChange, cols]);
+
+  // 프리셋 변경 시 1회 적용
+  useEffect(() => {
+    applyLayoutPreset(layoutPreset);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutPreset]);
 
   // 활성 위젯 찾기
   const activeWidget = activeId ? widgets.find(w => w.id === activeId) : null;
@@ -399,22 +447,27 @@ export default function DraggableDashboardGrid({
 
     const handleMove = (e: MouseEvent | TouchEvent) => {
       e.preventDefault();
-      
       const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
       const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
-      
       setCurrentPos({ x: clientX, y: clientY });
       
-      // 드래그 중 미리보기 위치 업데이트
-      const gridPos = pixelToGridCoord(clientX, clientY);
-      const widget = widgets.find(w => w.id === activeId);
-      
-      if (widget) {
-        // 경계 체크
-        const newX = Math.max(0, Math.min(gridPos.x, cols - widget.size.w));
-        const newY = Math.max(0, gridPos.y);
-        setPreviewPos({ x: newX, y: newY });
-      }
+      if (rafMoveRef.current) cancelAnimationFrame(rafMoveRef.current);
+      rafMoveRef.current = requestAnimationFrame(() => {
+        // 드래그 중 미리보기 위치 업데이트 (rAF로 스로틀)
+        const gridPos = pixelToGridCoord(clientX, clientY);
+        const widget = widgets.find(w => w.id === activeId);
+        if (widget) {
+          // 경계 체크
+          const newX = Math.max(0, Math.min(gridPos.x, cols - widget.size.w));
+          let newY = Math.max(0, gridPos.y);
+          // 마그넷: 같은 컬럼 최하단과 가까우면 스냅
+          const bottomY = getColumnBottomY(newX);
+          if (Math.abs(bottomY - newY) <= magnetThresholdRows) {
+            newY = bottomY;
+          }
+          setPreviewPos({ x: newX, y: newY });
+        }
+      });
     };
 
     const handleEnd = (e: MouseEvent | TouchEvent) => {
@@ -574,6 +627,7 @@ export default function DraggableDashboardGrid({
       document.removeEventListener('touchmove', handleMove);
       document.removeEventListener('mouseup', handleEnd);
       document.removeEventListener('touchend', handleEnd);
+      if (rafMoveRef.current) cancelAnimationFrame(rafMoveRef.current);
     };
   }, [
     activeId,
@@ -586,6 +640,8 @@ export default function DraggableDashboardGrid({
     onLayoutChange,
     saveCurrentLayout,
     pixelToGridCoord,
+    magnetThresholdRows,
+    getColumnBottomY,
   ]);
 
   // 충돌 해결 함수 (간단한 push 전략)
@@ -678,7 +734,7 @@ export default function DraggableDashboardGrid({
       </style>
       <div
         ref={gridRef}
-        className={`draggable-grid-container gap-3 ${className}`}
+        className={`draggable-grid-container ${className}`}
         style={{
           ...generateResponsiveStyles(),
           userSelect: activeId ? 'none' : 'auto',
@@ -686,6 +742,12 @@ export default function DraggableDashboardGrid({
           gridAutoRows: `${responsiveCells.default}px`, // 고정 높이로 변경 (auto 제거)
           position: 'relative',
           display: 'grid',
+          gap: '16px',
+          justifyContent: 'center',
+          alignContent: 'start',
+          maxWidth: `${cols * 300 + (cols - 1) * gap}px`,
+          marginLeft: 'auto',
+          marginRight: 'auto',
         }}
         onMouseLeave={() => setShowAddButtonState({})}
       >

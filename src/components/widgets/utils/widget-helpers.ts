@@ -41,6 +41,19 @@ export const isWidgetEditable = (widgetType: string): boolean => {
 };
 
 // 로컬 스토리지 저장/불러오기
+// 백엔드 동기화를 위한 어댑터 인터페이스 (향후 확장)
+export interface DataSyncAdapter {
+  isEnabled: () => boolean;
+  save: (widgetId: string, data: any) => Promise<void>;
+  load: (widgetId: string) => Promise<any | null>;
+}
+
+let registeredDataSyncAdapter: DataSyncAdapter | null = null;
+
+export const registerDataSyncAdapter = (adapter: DataSyncAdapter) => {
+  registeredDataSyncAdapter = adapter;
+};
+
 export const persistOrLocal = (widgetId: string, data: any, updateWidget?: (widgetId: string, partial: any) => void) => {
   try {
     const dataString = JSON.stringify(data);
@@ -51,6 +64,12 @@ export const persistOrLocal = (widgetId: string, data: any, updateWidget?: (widg
       setTimeout(() => {
         updateWidget(widgetId, { content: data });
       }, 0);
+    }
+
+    // 선택적 원격 동기화 (비차단)
+    if (registeredDataSyncAdapter && registeredDataSyncAdapter.isEnabled()) {
+      // 비동기 저장, 실패해도 무시하고 로컬은 유지
+      registeredDataSyncAdapter.save(widgetId, data).catch(() => {});
     }
   } catch (error) {
     console.warn('Failed to persist widget data:', error);
@@ -64,6 +83,24 @@ export const readLocal = (widgetId: string, fallback: any = null): any => {
   } catch {
     return fallback;
   }
+};
+
+// 원격 우선 읽기 (비동기). 원격이 비활성/실패 시 로컬로 폴백
+export const readState = async (widgetId: string, fallback: any = null): Promise<any> => {
+  try {
+    if (registeredDataSyncAdapter && registeredDataSyncAdapter.isEnabled()) {
+      const remote = await registeredDataSyncAdapter.load(widgetId);
+      if (remote !== undefined && remote !== null) {
+        // 로컬 캐시도 최신화
+        try {
+          localStorage.setItem(`widget:${widgetId}`, JSON.stringify(remote));
+        } catch {}
+        return remote;
+      }
+    }
+  } catch {}
+  // 폴백: 로컬 동기 읽기
+  return readLocal(widgetId, fallback);
 };
 
 // 클립보드 복사

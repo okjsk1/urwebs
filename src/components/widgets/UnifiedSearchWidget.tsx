@@ -1,7 +1,7 @@
 // 통합검색 위젯 V2 - 탭형 검색박스, 키보드 단축키, 자동완성, 엔진 재정렬
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ChevronDown, Search as SearchIcon, X, Pin, PinOff, ArrowUpDown, Settings } from 'lucide-react';
-import { WidgetProps as HelperWidgetProps, persistOrLocal, readLocal } from './utils/widget-helpers';
+import { WidgetProps as HelperWidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
 import { WidgetShell, WidgetProps as ShellWidgetProps } from './WidgetShell';
 
 // 엔진 인터페이스 확장
@@ -17,16 +17,13 @@ export interface SearchEngine {
 const SEARCH_ENGINES: SearchEngine[] = [
   { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=', icon: 'G', color: '#4285F4' },
   { id: 'naver', name: 'Naver', url: 'https://search.naver.com/search.naver?query=', icon: 'N', color: '#03C75A' },
-  { id: 'yahoo', name: 'Yahoo', url: 'https://search.yahoo.com/search?p=', icon: 'Y', color: '#720E9E' },
-  { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=', icon: 'B', color: '#008373' },
   { id: 'daum', name: 'Daum', url: 'https://search.daum.net/search?q=', icon: 'D', color: '#FF5722' },
   { 
     id: 'law', 
     name: '법제처', 
-    url: 'https://www.law.go.kr/LSW/lsInfoP.do?',
+    url: 'https://www.law.go.kr/LSW/totalSearch.do?query=',
     icon: '법', 
-    color: '#4A90E2',
-    buildUrl: (q: string) => `https://www.law.go.kr/LSW/lsLinkProc.do?lsNm=${encodeURIComponent(q)}&efYd=${new Date().toISOString().split('T')[0].replace(/-/g, '')}`
+    color: '#4A90E2'
   }
 ];
 
@@ -38,6 +35,7 @@ interface UnifiedSearchStateV2 {
   order: string[];                  // 엔진 재정렬 순서
   pinned: string[];                 // 고정 엔진
   openInNewTab: boolean;            // 새 탭 열기 설정
+  searchCounts?: Record<string, number>; // 인기 검색 집계 (엔진별 합산)
 }
 
 const DEFAULT_STATE_V2: UnifiedSearchStateV2 = {
@@ -46,7 +44,8 @@ const DEFAULT_STATE_V2: UnifiedSearchStateV2 = {
   recent: {},
   order: SEARCH_ENGINES.map(e => e.id),
   pinned: [],
-  openInNewTab: true
+  openInNewTab: true,
+  searchCounts: {}
 };
 
 // 레거시 상태 마이그레이션
@@ -58,7 +57,8 @@ function migrateToV2(saved: any): UnifiedSearchStateV2 {
       recent: saved.recent || {},
       order: saved.order || DEFAULT_STATE_V2.order,
       pinned: saved.pinned || [],
-      openInNewTab: saved.openInNewTab !== undefined ? saved.openInNewTab : true
+      openInNewTab: saved.openInNewTab !== undefined ? saved.openInNewTab : true,
+      searchCounts: saved.searchCounts || {}
     };
   }
   return DEFAULT_STATE_V2;
@@ -139,6 +139,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
   const [showSettings, setShowSettings] = useState(false);
   const [draggedEngine, setDraggedEngine] = useState<string | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [inputError, setInputError] = useState<string | null>(null);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -177,15 +178,29 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
     if (e) e.preventDefault();
     
     const query = state.searchQuery.trim();
-    if (!query) return;
+    if (!query) {
+      setInputError('검색어를 입력하세요.');
+      showToast('검색어를 입력하세요.', 'error');
+      return;
+    }
+    if (query.length < 2) {
+      setInputError('두 글자 이상 입력해주세요.');
+      showToast('두 글자 이상 입력해주세요.', 'info');
+      return;
+    }
+    setInputError(null);
 
     // 최근 검색어 추가
     setState(prev => {
       const engineRecent = prev.recent[prev.selectedEngine] || [];
       const updatedRecent = [query, ...engineRecent.filter(q => q !== query)].slice(0, 10);
+      const counts = { ...(prev.searchCounts || {}) };
+      const key = `${prev.selectedEngine}::${query.toLowerCase()}`;
+      counts[key] = (counts[key] || 0) + 1;
       return {
         ...prev,
-        recent: { ...prev.recent, [prev.selectedEngine]: updatedRecent }
+        recent: { ...prev.recent, [prev.selectedEngine]: updatedRecent },
+        searchCounts: counts
       };
     });
 
@@ -260,13 +275,20 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // 입력창 포커스
-      if (e.key === '/' && !(e.target instanceof HTMLInputElement)) {
+      if ((e.key === '/' && !(e.target instanceof HTMLInputElement)) || (e.ctrlKey && e.key.toLowerCase() === 'k')) {
         e.preventDefault();
         inputRef.current?.focus();
         return;
       }
 
       if (!inputRef.current?.matches(':focus-within') && e.target !== document.body) return;
+
+      // Ctrl+Enter: 항상 새 탭에서 검색
+      if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        handleSearch(undefined, true);
+        return;
+      }
 
       // Ctrl/Cmd + Arrow: 엔진 전환
       if ((e.ctrlKey || e.metaKey) && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
@@ -367,24 +389,19 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
       size={size}
       contentClassName="w-full h-full flex flex-col min-h-0 p-0"
     >
-      <div className={`${isCompact ? 'p-2' : 'p-3'} h-full flex flex-col min-h-0`}>
+      <div className={`${isCompact ? 'p-2' : 'p-2.5'} h-full flex flex-col min-h-0`}>
       {/* 탭 영역 */}
       <div className="mb-2">
         <div 
           role="tablist" 
           aria-label="검색 엔진 선택"
-          className="flex gap-1 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
-          style={{
-            scrollbarWidth: 'thin',
-            WebkitOverflowScrolling: 'touch'
-          }}
+          className="flex gap-1 flex-wrap pb-2 overflow-x-hidden"
         >
-          {/* 페이드 힌트 */}
-          <div className="absolute left-0 w-8 h-8 pointer-events-none bg-gradient-to-r from-white dark:from-gray-800 to-transparent opacity-80" />
+          {/* 수평 스크롤 제거: flex-wrap으로 행 바꿈 */}
           
           {orderedEngines.map((engine, index) => (
-                      <button
-                        key={engine.id}
+            <button
+              key={engine.id}
               role="tab"
               aria-selected={state.selectedEngine === engine.id}
               aria-controls={`search-input-${engine.id}`}
@@ -393,39 +410,33 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
               onDragOver={handleDragOver(index)}
               onDragEnd={handleDragEnd}
               onDrop={handleDrop(index)}
-                        onClick={() => selectEngine(engine.id)}
+              onClick={() => selectEngine(engine.id)}
               className={`
-                flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap
-                transition-all cursor-pointer relative
+                flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap
+                transition-all cursor-pointer relative border
                 ${state.selectedEngine === engine.id
-                  ? 'text-gray-900 dark:text-gray-100 font-semibold'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  ? 'text-gray-900 dark:text-gray-100 border-blue-500 bg-blue-50 dark:bg-gray-700'
+                  : 'text-gray-700 dark:text-gray-300 border-gray-300 hover:border-gray-400'
                 }
-                ${draggedEngine === engine.id ? 'opacity-50' : ''}
-                ${dragOverIndex === index ? 'scale-105' : ''}
+                ${draggedEngine === engine.id ? 'opacity-60' : ''}
               `}
               style={{
-                borderBottom: state.selectedEngine === engine.id 
-                  ? `2px solid ${engine.color}` 
-                  : '2px solid transparent'
+                // 강조는 상자 테두리로 처리
               }}
             >
-              <span style={{ color: state.selectedEngine === engine.id ? engine.color : undefined }}>
-                          {engine.icon}
-                        </span>
-              <span className="hidden sm:inline">{engine.name}</span>
+              <span className="truncate">{engine.name}</span>
               {state.pinned.includes(engine.id) && (
                 <Pin className="w-3 h-3 text-gray-400" />
               )}
-                      </button>
-                    ))}
-                  </div>
+            </button>
+          ))}
+        </div>
             </div>
 
       {/* 검색 폼 */}
       <form onSubmit={(e) => handleSearch(e, undefined)} className="flex-1 flex flex-col">
         <div className="relative w-full">
-          <div className="flex items-center bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-blue-500">
+          <div className="flex items-center bg-white dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600 rounded-full shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-blue-500">
             {/* 검색 아이콘 */}
             <SearchIcon className="w-4 h-4 text-gray-400 ml-3 flex-shrink-0" />
             
@@ -435,11 +446,18 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
               id={`search-input-${selectedEngineData.id}`}
               type="text"
               value={state.searchQuery}
-              onChange={(e) => setState(prev => ({ ...prev, searchQuery: e.target.value }))}
+            onChange={(e) => {
+              const v = e.target.value;
+              setState(prev => ({ ...prev, searchQuery: v }));
+              if (!v) setInputError(null);
+              else if (v.trim().length >= 2) setInputError(null);
+            }}
               onFocus={() => setShowSuggestions(true)}
               placeholder={`${selectedEngineData.name} 검색`}
-              className="flex-1 px-2 py-2 text-sm border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
+              className="flex-1 px-2 py-1.25 text-sm border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
               aria-label={`${selectedEngineData.name}에서 검색하기`}
+            aria-invalid={inputError ? 'true' : 'false'}
+            aria-describedby={inputError ? `search-error-${widget.id}` : undefined}
             />
             {/* 스크린리더 안내 */}
             <span className="sr-only">
@@ -462,7 +480,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
             <button
               type="button"
               onClick={() => setShowSettings(!showSettings)}
-              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full mr-1 transition-colors"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full mr-1 transition-colors"
               aria-label="설정"
             >
               <Settings className="w-3.5 h-3.5 text-gray-500" />
@@ -471,12 +489,18 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
             {/* 검색 버튼 */}
             <button
               type="submit"
-              className="p-1.5 rounded-r-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-1 rounded-r-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               aria-label="검색 실행"
             >
               <SearchIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
           </div>
+        {/* 에러 메시지 (접근성) */}
+        {inputError && (
+          <div id={`search-error-${widget.id}`} role="alert" aria-live="polite" className="mt-1 text-xs text-red-500">
+            {inputError}
+          </div>
+        )}
 
           {/* 서제스트 패널 */}
           {showSuggestions && (suggestions.length > 0 || recentQueries.length > 0) && (
@@ -521,6 +545,36 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                       </button>
                     </button>
                   ))}
+                </div>
+              )}
+
+              {/* 인기 검색어 (간단 집계) */}
+              {state.searchCounts && Object.keys(state.searchCounts).length > 0 && (
+                <div className="border-t border-gray-200 dark:border-gray-600 p-2">
+                  <div className="px-2 py-1 mb-1">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">인기 검색어</span>
+                  </div>
+                  {Object.entries(state.searchCounts)
+                    .filter(([key]) => key.startsWith(`${state.selectedEngine}::`))
+                    .sort((a, b) => (b[1] as number) - (a[1] as number))
+                    .slice(0, 5)
+                    .map(([key]) => {
+                      const q = key.split('::')[1];
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            setState(prev => ({ ...prev, searchQuery: q }));
+                            handleSearch(undefined, state.openInNewTab);
+                          }}
+                          className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded text-sm text-left"
+                          role="option"
+                        >
+                          {q}
+                        </button>
+                      );
+                    })}
                 </div>
               )}
 
@@ -592,12 +646,10 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
           </div>
         )}
 
-        {/* 도움말 */}
-        {!isCompact && (
-          <div className="mt-2 text-xs text-gray-400 dark:text-gray-500 text-center">
-            Ctrl+←/→ 엔진 전환 · Alt+1~9 직접 선택 · Shift+Enter 현재 탭
-          </div>
-        )}
+        {/* 도움말 - 항상 작게 표시하여 2x1에서도 보이도록 */}
+        <div className="mt-1 text-[10px] leading-3 text-gray-400 dark:text-gray-500 text-center">
+          Alt+1~9 전환 · Shift+Enter 현재 탭
+        </div>
       </form>
       </div>
     </WidgetShell>

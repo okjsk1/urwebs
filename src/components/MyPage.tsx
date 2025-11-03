@@ -1471,38 +1471,31 @@ export function MyPage() {
     }
     
     setWidgets(prevWidgets => {
-    let position;
-    
-    if (targetColumn !== undefined) {
-      // 특정 메인 컬럼에 추가
-      const columnWidgets = prevWidgets.filter(widget => {
-        const col = Math.floor(widget.x / (mainColumnWidth + spacing));
-        return col === targetColumn;
-      });
-      
-      // 해당 컬럼의 가장 아래 Y 위치 찾기
-      const maxY = columnWidgets.length > 0 
-        ? Math.max(...columnWidgets.map(w => w.y + w.height))
-        : 0;
-      
-      position = {
-        x: targetColumn * (mainColumnWidth + spacing),
-        y: maxY + (columnWidgets.length > 0 ? spacing : 0)
+      // 그리드 좌표로 컬럼 하단을 계산
+      const totalCols = COLS || 8;
+      const getColumnBottom = (colIndex: number) => {
+        const widgetsInCol = prevWidgets.filter(w => (w.x ?? 0) === colIndex);
+        if (widgetsInCol.length === 0) return 0;
+        return Math.max(...widgetsInCol.map(w => (w.y ?? 0) + (w.gridSize?.h || 1)));
       };
-    } else {
-      // 자동 위치 지정 - 첫 번째 컬럼의 맨 아래에 배치
-      const firstColumnWidgets = prevWidgets.filter(widget => {
-        const col = Math.floor(widget.x / COL_TRACK);
-        return col === 0;
-      });
-      const maxY = firstColumnWidgets.length > 0 
-        ? Math.max(...firstColumnWidgets.map(w => w.y + w.height)) 
-        : 0;
-      position = {
-        x: 0,
-        y: maxY + (firstColumnWidgets.length > 0 ? spacing : 0)
-      };
-    }
+
+      // 배치할 컬럼 선택: 지정된 컬럼 또는 가장 낮은 컬럼
+      const targetCol = (typeof targetColumn === 'number' && targetColumn >= 0)
+        ? targetColumn
+        : (() => {
+            let minBottom = Number.MAX_SAFE_INTEGER;
+            let best = 0;
+            for (let c = 0; c < totalCols; c++) {
+              const bottom = getColumnBottom(c);
+              if (bottom < minBottom) {
+                minBottom = bottom;
+                best = c;
+              }
+            }
+            return best;
+          })();
+
+      const columnBottom = getColumnBottom(targetCol);
     
     // widgetSize를 gridSize로 변환 (예: '2x2' -> { w: 2, h: 2 })
     const parseGridSize = (size: string): { w: number; h: number } => {
@@ -1515,10 +1508,12 @@ export function MyPage() {
     const newWidget: Widget = {
       id: Date.now().toString(),
       type: type as any,
-      x: position.x,
-      y: position.y,
-      width,
-      height,
+        // 그리드 좌표로 추가: 선택 컬럼의 맨 아래
+        x: targetCol,
+        y: columnBottom,
+        // width/height는 그리드 단위로 저장해 일관성 유지
+        width: gridSize.w,
+        height: gridSize.h,
       title: allWidgets.find(w => w.type === type)?.name || '새 위젯',
       content: type === 'bookmark' 
         ? { bookmarks: [] } 
@@ -1536,8 +1531,8 @@ export function MyPage() {
       console.log('🎨 새 위젯 추가:', {
         type,
         size: widgetSize,
-        dimensions: { width, height },
-        position: { x: position.x, y: position.y }
+        dimensions: { w: gridSize.w, h: gridSize.h },
+        position: { x: targetCol, y: columnBottom }
       });
       return [...prevWidgets, newWidget];
     });
@@ -1767,10 +1762,12 @@ export function MyPage() {
               }
               return null;
             };
-      // 구글/네이버/통합검색 위젯은 강제로 2칸 너비로 설정
+      // 검색 위젯: 최소 너비 2 보장, 높이는 선택값 존중(2x2 허용)
       let gridSize;
       if (w.type === 'google_search' || w.type === 'naver_search' || w.type === 'unified_search') {
-        gridSize = { w: 2, h: 1 }; // 강제로 2x1 그리드 크기
+        const existing = w.gridSize || parseSize(w.size);
+        const ensured = existing || { w: 2, h: 1 };
+        gridSize = { w: Math.max(2, ensured.w || 2), h: Math.max(1, ensured.h || 1) };
       } else {
         gridSize = w.gridSize || parseSize(w.size) || {
           w: toGridW(w.width || 150),
@@ -2589,6 +2586,30 @@ export function MyPage() {
 
   // 위젯을 그리드 형식으로 변환 (좌표는 그리드 단위로 일관 유지)
   const convertToGridWidget = (widget: Widget) => {
+    // 레거시 데이터 정규화: gridSize/size 부재 또는 픽셀 기반 좌표를 그리드 단위로 보정
+    try {
+      // gridSize 없고 width/height가 숫자일 경우 그리드 크기 추정
+      if (!widget.gridSize && typeof (widget as any).width === 'number' && typeof (widget as any).height === 'number') {
+        const gw = Math.max(1, toGridW((widget as any).width));
+        const gh = Math.max(1, toGridH((widget as any).height));
+        widget = { ...widget, gridSize: { w: gw, h: gh }, size: `${gw}x${gh}` } as any;
+      }
+
+      // x,y가 픽셀 기반(너무 큰 값)이면 그리드 좌표로 변환
+      if (typeof (widget as any).x === 'number' && typeof (widget as any).y === 'number') {
+        const xVal = (widget as any).x as number;
+        const yVal = (widget as any).y as number;
+        // 가정: 합리적 그리드 범위를 넘어서는 픽셀값이면 변환
+        if (xVal > 100 || yVal > 100) {
+          const gx = Math.max(0, toGridX(xVal));
+          const gy = Math.max(0, toGridY(yVal));
+          widget = { ...widget, x: gx, y: gy } as any;
+        }
+      }
+    } catch (e) {
+      console.warn('[normalizeLegacyWidget] 정규화 중 오류:', e);
+    }
+
     // 기존 gridSize가 있으면 우선 사용
     let gridSize = widget.gridSize || { w: 1, h: 1 };
     
@@ -4522,6 +4543,8 @@ export function MyPage() {
             userId={currentUser?.uid || 'guest'}
             collisionStrategy="push"
             responsiveCells={responsiveCellHeights}
+            layoutPreset={isEditMode ? ((new URLSearchParams(window.location.search)).get('preset') as any) || 'masonry' : undefined}
+            magnetThresholdRows={Number((new URLSearchParams(window.location.search)).get('magnet')) || 1}
           />
           </div>
         </div>

@@ -83,7 +83,13 @@ export default function DashboardGrid({
       </style>
       <div
         className={`responsive-grid-auto-rows grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 ${className}`}
-        style={generateResponsiveStyles()}
+        style={{
+          ...generateResponsiveStyles(),
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          maxWidth: '1280px',
+          alignContent: 'start',
+        }}
       >
       {widgets.map((w) => (
         <div
@@ -143,8 +149,11 @@ export function SizePicker({
           { label: '1x1', w: 1, h: 1 },
           { label: '2x1', w: 2, h: 1 }
         ];
-      case 'unified_search': // 통합검색 위젯 - 2x1 허용
-        return [{ label: '2x1', w: 2, h: 1 }];
+      case 'unified_search': // 통합검색 위젯 - 2x1, 2x2 허용
+        return [
+          { label: '2x1', w: 2, h: 1 },
+          { label: '2x2', w: 2, h: 2 },
+        ];
       case 'exchange': // 환율 위젯 - 1칸 너비만 허용
         return [
           { label: '1x1', w: 1, h: 1 },

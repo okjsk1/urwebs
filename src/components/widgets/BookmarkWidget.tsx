@@ -20,21 +20,23 @@ interface Bookmark {
   icon: string;
   favicon?: string;
   categoryId?: string;
+  tags?: string[];
 }
 
 interface BookmarkState {
   bookmarks: Bookmark[];
   categories: { id: string; name: string }[];
   activeCategoryId?: string; // 필터용
+  activeTag?: string; // 태그 필터
   showAddForm: boolean;
   newBookmark: {
     name: string;
     url: string;
     categoryId?: string;
+    tags?: string[];
   };
   editingId?: string;
-  editDraft?: { name: string; url: string };
-  // 정렬 기능 제거
+  editDraft?: { name: string; url: string; tags?: string[] };
 }
 
 const DEFAULT_BOOKMARKS: Bookmark[] = [];
@@ -51,9 +53,9 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       categories: DEFAULT_CATEGORIES,
       activeCategoryId: 'default',
       showAddForm: false,
-      newBookmark: { name: '', url: '', categoryId: 'default' },
+      newBookmark: { name: '', url: '', categoryId: 'default', tags: [] },
       editingId: undefined,
-      editDraft: { name: '', url: '' }
+      editDraft: { name: '', url: '', tags: [] }
     });
     
     // widget.content에서 북마크 데이터가 있으면 사용 (공개페이지용)
@@ -162,14 +164,31 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
     }
   }, []);
 
-  // 필터링된 북마크 반환 (정렬 기능 제거)
+  // 모든 태그 추출
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    state.bookmarks.forEach(bm => {
+      bm.tags?.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [state.bookmarks]);
+
+  // 필터링된 북마크 반환
   const filteredBookmarks = useMemo(() => {
-    const filtered = state.activeCategoryId 
-      ? state.bookmarks.filter(bm => bm.categoryId === state.activeCategoryId)
-      : state.bookmarks;
+    let filtered = state.bookmarks;
+    
+    // 카테고리 필터
+    if (state.activeCategoryId) {
+      filtered = filtered.filter(bm => bm.categoryId === state.activeCategoryId);
+    }
+    
+    // 태그 필터
+    if (state.activeTag) {
+      filtered = filtered.filter(bm => bm.tags?.includes(state.activeTag!));
+    }
 
     return filtered;
-  }, [state.bookmarks, state.activeCategoryId]);
+  }, [state.bookmarks, state.activeCategoryId, state.activeTag]);
 
   // 더보기/접기 상태
   const [collapsed, setCollapsed] = useState(true);
@@ -281,7 +300,8 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       url: normalizedUrl,
       icon: getDomainIcon(normalizedUrl),
       favicon: getFaviconUrl(normalizedUrl),
-      categoryId: state.activeCategoryId || 'default'
+      categoryId: state.activeCategoryId || 'default',
+      tags: state.newBookmark.tags || []
     };
 
     setState(prev => {
@@ -289,7 +309,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       return {
         ...prev,
         bookmarks: updatedBookmarks,
-        newBookmark: { name: '', url: '' },
+                newBookmark: { name: '', url: '', tags: [] },
         showAddForm: false
       };
     });
@@ -393,12 +413,12 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
     setState(prev => ({
       ...prev,
       editingId: bm.id,
-      editDraft: { name: bm.name, url: bm.url }
+      editDraft: { name: bm.name, url: bm.url, tags: bm.tags || [] }
     }));
   }, []);
 
   const cancelEdit = useCallback(() => {
-    setState(prev => ({ ...prev, editingId: undefined, editDraft: { name: '', url: '' } }));
+    setState(prev => ({ ...prev, editingId: undefined, editDraft: { name: '', url: '', tags: [] } }));
   }, []);
 
   const saveEdit = useCallback((id: string) => {
@@ -416,13 +436,14 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
         name,
         url: normalizedUrl,
         icon: getDomainIcon(normalizedUrl),
-        favicon: getFaviconUrl(normalizedUrl)
+        favicon: getFaviconUrl(normalizedUrl),
+        tags: draft.tags || []
       } : bm);
       return {
         ...prev,
         bookmarks: updatedBookmarks,
         editingId: undefined,
-        editDraft: { name: '', url: '' }
+        editDraft: { name: '', url: '', tags: [] }
       };
     });
     showToast('수정되었습니다', 'success');
@@ -461,6 +482,33 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
       }}
       onDrop={handleExternalDrop}
     >
+      {/* 태그 필터 */}
+      {isEditMode && allTags.length > 0 && (
+        <div className="px-2.5 pt-2 flex flex-wrap gap-1 mb-2">
+          {state.activeTag && (
+            <button
+              onClick={() => setState(prev => ({ ...prev, activeTag: undefined }))}
+              className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+            >
+              필터 해제
+            </button>
+          )}
+          {allTags.map(tag => (
+            <button
+              key={tag}
+              onClick={() => setState(prev => ({ ...prev, activeTag: prev.activeTag === tag ? undefined : tag }))}
+              className={`text-xs px-2 py-1 rounded transition-colors ${
+                state.activeTag === tag
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* 북마크 리스트 (세로 배치) - 스크롤 제거 */}
       {/* 내부 폴더 헤더 제거: 폴더명은 위젯 타이틀 바(WidgetShell)에서만 사용 */}
       <div 
@@ -503,9 +551,34 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
                     <SiteAvatar url={bookmark.url} name={bookmark.name} size={20} />
                   </div>
                   
-                  {/* 사이트 이름 (오른쪽) */}
-                  <div className="flex-1 text-left text-xs font-medium text-gray-800 truncate">
-                    {bookmark.name}
+                  {/* 사이트 이름과 태그 */}
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
+                      {bookmark.name}
+                    </div>
+                    {bookmark.tags && bookmark.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-0.5 mt-0.5">
+                        {bookmark.tags.slice(0, 3).map(tag => (
+                          <span
+                            key={tag}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setState(prev => ({ ...prev, activeTag: prev.activeTag === tag ? undefined : tag }));
+                            }}
+                            className={`text-[10px] px-1 py-0.5 rounded ${
+                              state.activeTag === tag 
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                            } cursor-pointer hover:bg-blue-400 transition-colors`}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {bookmark.tags.length > 3 && (
+                          <span className="text-[10px] text-gray-400">+{bookmark.tags.length - 3}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   {/* 외부 링크 아이콘 */}
@@ -593,6 +666,16 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
                       placeholder="https://example.com"
                       className="w-full px-2 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     />
+                    <input
+                      type="text"
+                      value={state.editDraft?.tags?.join(', ') || ''}
+                      onChange={(e) => {
+                        const tags = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
+                        setState(prev => ({ ...prev, editDraft: { ...(prev.editDraft || { name: '', url: '' }), tags } }));
+                      }}
+                      placeholder="태그 (쉼표로 구분)"
+                      className="w-full px-2 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    />
                     <div className="flex gap-2 justify-end pt-1">
                       <Button 
                         size="sm" 
@@ -670,6 +753,20 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
             className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded"
             aria-label="URL 입력"
           />
+          <input
+            type="text"
+            value={state.newBookmark.tags?.join(', ') || ''}
+            onChange={(e) => {
+              const tags = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
+              setState(prev => ({ 
+                ...prev, 
+                newBookmark: { ...prev.newBookmark, tags } 
+              }));
+            }}
+            placeholder="태그 (쉼표로 구분)"
+            className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded"
+            aria-label="태그 입력"
+          />
           {/* 폴더 선택 제거: 현재 활성 폴더로 자동 추가 */}
           {/* 자동 추천 힌트 */}
           {state.newBookmark.url && (
@@ -690,7 +787,7 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
               onClick={() => setState(prev => ({ 
                 ...prev, 
                 showAddForm: false, 
-                newBookmark: { name: '', url: '' } 
+                newBookmark: { name: '', url: '', tags: [] } 
               }))}
             >
               취소

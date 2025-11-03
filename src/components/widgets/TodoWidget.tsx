@@ -10,6 +10,13 @@ interface TodoItem {
   completed: boolean;
   createdAt: string;
   completedAt?: string;
+  dueDate?: string;
+  priority?: 'low' | 'medium' | 'high';
+  repeat?: {
+    type: 'daily' | 'weekly' | 'monthly';
+    interval: number;
+    nextOccurrence?: string;
+  };
 }
 
 interface TodoState {
@@ -17,8 +24,8 @@ interface TodoState {
   newItem: string;
   showAddForm: boolean;
   editingItem: string | null;
-  filter: 'all' | 'completed';
-  sortBy: 'created' | 'alphabetical';
+  filter: 'all' | 'active' | 'completed';
+  sortBy: 'created' | 'alphabetical' | 'priority' | 'dueDate';
   showCompleted: boolean;
   draggedItem: string | null;
   draggedOverItem: string | null;
@@ -98,20 +105,66 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
   }, [state.newItem]);
 
   const toggleTodo = useCallback((id: string) => {
-    setState(prev => ({
-      ...prev,
-      items: prev.items.map(item => 
-        item.id === id 
-          ? { 
-              ...item, 
-              completed: !item.completed,
-              completedAt: !item.completed ? new Date().toISOString() : undefined
-            }
-          : item
-      )
-    }));
+    setState(prev => {
+      const item = prev.items.find(i => i.id === id);
+      if (!item) return prev;
+      
+      const wasCompleted = item.completed;
+      const nowCompleted = !wasCompleted;
+      
+      // 반복 일정 처리: 완료 시 다음 일정 생성
+      if (nowCompleted && item.repeat) {
+        const nextDate = new Date();
+        switch (item.repeat.type) {
+          case 'daily':
+            nextDate.setDate(nextDate.getDate() + item.repeat.interval);
+            break;
+          case 'weekly':
+            nextDate.setDate(nextDate.getDate() + 7 * item.repeat.interval);
+            break;
+          case 'monthly':
+            nextDate.setMonth(nextDate.getMonth() + item.repeat.interval);
+            break;
+        }
+        
+        // 새 반복 항목 생성
+        const newItem: TodoItem = {
+          ...item,
+          id: `${id}_${Date.now()}`,
+          completed: false,
+          completedAt: undefined,
+          createdAt: new Date().toISOString(),
+          repeat: {
+            ...item.repeat,
+            nextOccurrence: nextDate.toISOString()
+          }
+        };
+        
+        return {
+          ...prev,
+          items: prev.items.map(i => 
+            i.id === id 
+              ? { ...i, completed: true, completedAt: new Date().toISOString() }
+              : i
+          ).concat(newItem)
+        };
+      }
+      
+      return {
+        ...prev,
+        items: prev.items.map(item => 
+          item.id === id 
+            ? { 
+                ...item, 
+                completed: nowCompleted,
+                completedAt: nowCompleted ? new Date().toISOString() : undefined
+              }
+            : item
+        )
+      };
+    });
     saveState();
-  }, []);
+  }, [saveState]);
 
   const deleteTodo = useCallback((id: string) => {
     setState(prev => ({
@@ -198,6 +251,9 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
       case 'completed':
         filtered = filtered.filter(item => item.completed);
         break;
+      case 'active':
+        filtered = filtered.filter(item => !item.completed);
+        break;
       case 'all':
       default:
         // 전체 표시 (필터링 없음)
@@ -205,7 +261,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
     }
 
     // 완료된 항목 숨기기
-    if (!state.showCompleted) {
+    if (!state.showCompleted && state.filter === 'all') {
       filtered = filtered.filter(item => !item.completed);
     }
 
@@ -214,6 +270,19 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
       switch (state.sortBy) {
         case 'alphabetical':
           return a.text.localeCompare(b.text);
+        case 'priority':
+          const priorityOrder = { high: 3, medium: 2, low: 1, undefined: 0 };
+          const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+          const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+          if (bPriority !== aPriority) return bPriority - aPriority;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'dueDate':
+          if (a.dueDate && b.dueDate) {
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          }
+          if (a.dueDate) return -1;
+          if (b.dueDate) return 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         case 'created':
         default:
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -231,21 +300,57 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
 
   return (
     <div className="p-3 h-full flex flex-col">
-      {/* 편집 모드에서만 표시되는 필터 */}
+      {/* 완료율 표시 */}
+      <div className="mb-2 shrink-0">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs text-gray-600 dark:text-gray-400">진행률</span>
+          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+            {completionStats.percentage}%
+          </span>
+        </div>
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+          <div 
+            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+            style={{ width: `${completionStats.percentage}%` }}
+          />
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+          {completionStats.completed} / {completionStats.total} 완료
+        </div>
+      </div>
+
+      {/* 편집 모드에서만 표시되는 필터 및 정렬 */}
       {isEditMode && (
         <div className="mb-3 space-y-2 shrink-0">
           <div className="flex gap-1">
-            {['all', 'completed'].map(filter => (
+            {[
+              { key: 'all', label: '전체' },
+              { key: 'active', label: '진행중' },
+              { key: 'completed', label: '완료' }
+            ].map(filter => (
               <Button
-                key={filter}
+                key={filter.key}
                 size="sm"
-                variant={state.filter === filter ? 'default' : 'outline'}
+                variant={state.filter === filter.key ? 'default' : 'outline'}
                 className="flex-1 h-6 text-xs"
-                onClick={() => setState(prev => ({ ...prev, filter: filter as any }))}
+                onClick={() => setState(prev => ({ ...prev, filter: filter.key as any }))}
               >
-                {filter === 'all' ? '전체' : '완료'}
+                {filter.label}
               </Button>
             ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">정렬:</span>
+            <select
+              value={state.sortBy}
+              onChange={(e) => setState(prev => ({ ...prev, sortBy: e.target.value as any }))}
+              className="flex-1 text-xs px-2 py-1 border rounded bg-white dark:bg-[var(--input-background)]"
+            >
+              <option value="created">생성일</option>
+              <option value="alphabetical">이름순</option>
+              <option value="priority">우선순위</option>
+              <option value="dueDate">마감일</option>
+            </select>
           </div>
         </div>
       )}
@@ -310,7 +415,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
                 </button>
                 
                 <div className="flex-1 min-w-0">
-                  <div className={`text-base ${item.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                  <div className={`text-sm font-medium ${item.completed ? 'line-through text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
                     {state.editingItem === item.id ? (
                       <input
                         type="text"
@@ -335,6 +440,29 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
                       >
                         {item.text}
                       </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {item.priority && (
+                      <span className={`text-[10px] px-1 py-0.5 rounded ${
+                        item.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                        item.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {item.priority === 'high' ? '높음' : item.priority === 'medium' ? '보통' : '낮음'}
+                      </span>
+                    )}
+                    {item.repeat && (
+                      <span className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-0.5">
+                        <Clock className="w-3 h-3" />
+                        {item.repeat.type === 'daily' ? '매일' : item.repeat.type === 'weekly' ? '매주' : '매월'}
+                      </span>
+                    )}
+                    {item.dueDate && (
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(item.dueDate).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                      </span>
                     )}
                   </div>
                 </div>

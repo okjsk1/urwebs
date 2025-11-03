@@ -5,7 +5,7 @@ import {
   Play, Pause, Settings, Trash2, Edit2, Maximize2, RotateCw,
   GripVertical, Plus, Link as LinkIcon, Copy
 } from 'lucide-react';
-import { WidgetProps, persistOrLocal, readLocal } from './utils/widget-helpers';
+import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
 import { trackEvent } from '../../utils/analytics';
 import { createPortal } from 'react-dom';
 
@@ -57,7 +57,7 @@ const DEFAULT_STATE: ImageWidgetState = {
 };
 
 export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
-  const [state, setState] = useState<ImageWidgetState>(() => {
+  const [state, setState] = useState(() => {
     const saved = readLocal(widget.id, DEFAULT_STATE);
     // 기본값 병합
     return {
@@ -72,14 +72,16 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isDragging, setIsDragging] = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(null as any);
+  const [dragOverId, setDragOverId] = useState(null as any);
+  const [isDropActive, setIsDropActive] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([] as string[]);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const urlInputRef = useRef<HTMLInputElement>(null);
-  const slideshowTimerRef = useRef<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const lightboxRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef(null);
+  const urlInputRef = useRef(null);
+  const slideshowTimerRef = useRef(null as any);
+  const containerRef = useRef(null);
+  const lightboxRef = useRef(null);
   
   const widgetSize = useMemo(() => {
     const gridSize = (widget as any).gridSize;
@@ -145,9 +147,11 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (!file.type.startsWith('image/') || !ALLOWED_TYPES.includes(file.type)) {
+        showToast(`지원하지 않는 형식입니다 (${file.name}). PNG/JPG/WebP만 업로드 가능`, 'error');
         continue;
       }
       if (file.size > MAX_SIZE) {
+        showToast(`파일이 너무 큽니다 (${file.name}). 최대 10MB`, 'error');
         continue;
       }
       validFiles.push(file);
@@ -155,7 +159,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     
     if (validFiles.length === 0) return;
     if (state.items.length + validFiles.length > MAX_FILES) {
-      alert(`최대 ${MAX_FILES}장까지 업로드 가능합니다.`);
+      showToast(`최대 ${MAX_FILES}장까지 업로드 가능합니다.`, 'info');
       return;
     }
     
@@ -183,17 +187,135 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       trackEvent('image_widget_upload', { count: validFiles.length });
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
-      alert('이미지 업로드에 실패했습니다.');
+      showToast('이미지 업로드에 실패했습니다.', 'error');
     } finally {
       setIsUploading(false);
     }
   }, [state.items.length]);
 
+  // 유틸: 이미지 로드
+  const loadImage = (src: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  };
+
+  // 회전 (90도 단위)
+  const rotateImage = useCallback(async (item: PhotoItem, degree: number) => {
+    try {
+      const img = await loadImage(item.src);
+      const rad = (degree * Math.PI) / 180;
+      const sin = Math.abs(Math.sin(rad));
+      const cos = Math.abs(Math.cos(rad));
+      const newW = Math.floor(img.width * cos + img.height * sin);
+      const newH = Math.floor(img.width * sin + img.height * cos);
+      const canvas = document.createElement('canvas');
+      canvas.width = newW;
+      canvas.height = newH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not supported');
+      ctx.translate(newW / 2, newH / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      const blob: Blob | null = await new Promise(res => canvas.toBlob(b => res(b), 'image/jpeg', 0.92));
+      if (!blob) throw new Error('Image export failed');
+      const newUrl = URL.createObjectURL(blob);
+      setState(prev => ({
+        ...prev,
+        items: prev.items.map(i => i.id === item.id ? { ...i, src: newUrl } : i),
+        lastUpdated: Date.now()
+      }));
+      if (item.src.startsWith('blob:')) URL.revokeObjectURL(item.src);
+      showToast('이미지를 회전했어요.', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('회전에 실패했습니다.', 'error');
+    }
+  }, []);
+
+  // 중앙 정사각형 크롭
+  const cropImageCenterSquare = useCallback(async (item: PhotoItem) => {
+    try {
+      const img = await loadImage(item.src);
+      const size = Math.min(img.width, img.height);
+      const sx = Math.floor((img.width - size) / 2);
+      const sy = Math.floor((img.height - size) / 2);
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not supported');
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
+      const blob: Blob | null = await new Promise(res => canvas.toBlob(b => res(b), 'image/jpeg', 0.92));
+      if (!blob) throw new Error('Image export failed');
+      const newUrl = URL.createObjectURL(blob);
+      setState(prev => ({
+        ...prev,
+        items: prev.items.map(i => i.id === item.id ? { ...i, src: newUrl } : i),
+        lastUpdated: Date.now()
+      }));
+      if (item.src.startsWith('blob:')) URL.revokeObjectURL(item.src);
+      showToast('이미지를 크롭했어요.', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('크롭에 실패했습니다.', 'error');
+    }
+  }, []);
+
+  // 선택 토글/전체선택/해제
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }, []);
+  const selectAll = useCallback(() => {
+    setSelectedIds(state.items.map(i => i.id));
+  }, [state.items]);
+  const clearSelection = useCallback(() => setSelectedIds([]), []);
+
+  // 일괄 삭제
+  const batchDeleteSelected = useCallback(() => {
+    if (selectedIds.length === 0) return;
+    setState(prev => {
+      prev.items.forEach(i => { if (selectedIds.includes(i.id) && i.src.startsWith('blob:')) URL.revokeObjectURL(i.src); });
+      const remaining = prev.items.filter(i => !selectedIds.includes(i.id));
+      return {
+        ...prev,
+        items: remaining,
+        activeIndex: Math.min(prev.activeIndex, Math.max(0, remaining.length - 1)),
+        lastUpdated: Date.now()
+      };
+    });
+    setSelectedIds([]);
+    showToast('선택한 이미지를 삭제했습니다.', 'success');
+  }, [selectedIds]);
+
+  // 일괄 다운로드
+  const batchDownloadSelected = useCallback(() => {
+    if (selectedIds.length === 0) return;
+    const targets = state.items.filter(i => selectedIds.includes(i.id));
+    targets.forEach((item, idx) => {
+      const a = document.createElement('a');
+      a.href = item.src;
+      a.download = `photo_${idx + 1}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+    showToast('선택한 이미지를 다운로드했습니다.', 'success');
+  }, [selectedIds, state.items]);
+
   // URL로 추가
   const handleAddByUrl = useCallback(() => {
     const url = urlInputRef.current?.value?.trim();
     if (!url || !url.startsWith('https://')) {
-      alert('올바른 URL을 입력하세요 (https://로 시작)');
+      showToast('올바른 URL을 입력하세요 (https://로 시작)', 'error');
+      return;
+    }
+    if (state.items.some(i => i.src === url)) {
+      showToast('이미 추가된 이미지 URL입니다.', 'info');
       return;
     }
     
@@ -213,6 +335,24 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     if (urlInputRef.current) urlInputRef.current.value = '';
     trackEvent('image_widget_add_by_url');
   }, []);
+
+  // Alt+클릭용 빠른 URL 추가 (prompt)
+  const handleQuickAddByUrl = useCallback(() => {
+    const input = window.prompt('이미지 URL을 입력하세요 (https://...)');
+    const url = (input || '').trim();
+    if (!url) return;
+    if (!url.startsWith('https://')) {
+      showToast('https로 시작하는 올바른 URL을 입력하세요.', 'error');
+      return;
+    }
+    if (state.items.some(i => i.src === url)) {
+      showToast('이미 추가된 이미지 URL입니다.', 'info');
+      return;
+    }
+    const newItem: PhotoItem = { id: generateId(), src: url, caption: '', createdAt: Date.now() };
+    setState(prev => ({ ...prev, items: [...prev.items, newItem], lastUpdated: Date.now() }));
+    trackEvent('image_widget_add_by_url_quick');
+  }, [state.items]);
 
   // 클립보드 붙여넣기
   useEffect(() => {
@@ -264,14 +404,14 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     setIsDragging(id);
   };
 
-  const handleDragOver = (e: React.DragEvent, id: string) => {
+  const handleDragOver = (e: any, id: string) => {
     e.preventDefault();
     if (isDragging && isDragging !== id) {
       setDragOverId(id);
     }
   };
 
-  const handleDrop = (e: React.DragEvent, targetId: string) => {
+  const handleDrop = (e: any, targetId: string) => {
     e.preventDefault();
     if (!isDragging || isDragging === targetId) return;
     
@@ -430,7 +570,25 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
   return (
     <div 
       ref={containerRef}
-      className="h-full flex flex-col overflow-hidden"
+      className={`h-full flex flex-col overflow-hidden ${isEditMode && isDropActive ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`}
+      onDragOver={(e) => {
+        if (!isEditMode) return;
+        if (!e.dataTransfer) return;
+        e.preventDefault();
+        setIsDropActive(true);
+      }}
+      onDragLeave={(e) => {
+        if (!isEditMode) return;
+        setIsDropActive(false);
+      }}
+      onDrop={(e) => {
+        if (!isEditMode) return;
+        e.preventDefault();
+        setIsDropActive(false);
+        if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+          handleFileUpload(e.dataTransfer.files);
+        }
+      }}
       onMouseEnter={() => {
         if (state.mode === 'slideshow' && state.pauseOnHover && slideshowTimerRef.current) {
           clearInterval(slideshowTimerRef.current);
@@ -466,6 +624,34 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
           minHeight: 0 
         }}
       >
+        {/* 전역 추가(+) 버튼 - 편집모드 전용 */}
+        {isEditMode && (
+          <button
+            onClick={(e) => {
+              if (e.altKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleQuickAddByUrl();
+              } else {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }
+            }}
+            title="이미지 추가 (일반 클릭: 파일, Alt+클릭: URL)"
+            aria-label="이미지 추가"
+            className="absolute top-2 right-2 z-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-1.5 shadow focus:outline-none focus:ring-2 focus:ring-white/70"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* 드롭 가이드 오버레이 */}
+        {isEditMode && isDropActive && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-100/60 dark:bg-blue-900/30 border-2 border-dashed border-blue-400 rounded-xl">
+            <div className="text-blue-700 dark:text-blue-200 text-sm font-medium">여기로 이미지를 드롭해서 업로드</div>
+          </div>
+        )}
         {isUploading && (
           <div className="absolute inset-0 bg-white/80 dark:bg-black/80 flex items-center justify-center z-10">
             <div className="text-sm text-gray-600 dark:text-[var(--foreground)]">업로드 중...</div>
@@ -529,6 +715,27 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
           </div>
         )}
 
+        {/* 썸네일 스트립: 2x2 이상 & 이미지 2장 이상일 때 */}
+        {widgetSize.w >= 2 && widgetSize.h >= 2 && state.items.length > 1 && (
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 max-w-[95%] bg-black/35 rounded-full px-2 py-1 z-10">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+              {state.items.slice(0, 10).map((item, idx) => (
+                <button
+                  key={item.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setState(prev => ({ ...prev, activeIndex: idx }));
+                  }}
+                  aria-label={`썸네일 ${idx + 1}`}
+                  className={`relative w-7 h-7 rounded-md overflow-hidden ring-1 ${idx === state.activeIndex ? 'ring-white' : 'ring-white/40 hover:ring-white/70'}`}
+                >
+                  <img src={item.src} alt="썸네일" className="w-full h-full object-cover" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 캡션 (하단) */}
         {state.showCaption && currentItem.caption && (
           <div className={`absolute bottom-0 left-0 right-0 bg-black/60 text-white ${isCompact ? 'text-[10px] px-1.5 py-1' : 'text-xs px-3 py-2'} rounded-b-xl`}>
@@ -540,6 +747,32 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       {/* 편집 모드: 설정 패널 */}
       {isEditMode && (
         <div className="border-t border-gray-200 dark:border-[var(--border)] bg-white dark:bg-[var(--card)] p-2 space-y-2 max-h-40 overflow-y-auto scrollbar-none">
+          {/* 일괄 작업 바 */}
+          {state.items.length > 0 && (
+            <div className="flex items-center gap-2 text-xs">
+              <label className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.length > 0 && selectedIds.length === state.items.length}
+                  onChange={(e) => (e.target.checked ? selectAll() : clearSelection())}
+                />
+                <span>전체 선택</span>
+              </label>
+              <span className="text-gray-500">{selectedIds.length} 선택됨</span>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={batchDeleteSelected}
+                  className="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-40"
+                  disabled={selectedIds.length === 0}
+                >삭제</button>
+                <button
+                  onClick={batchDownloadSelected}
+                  className="px-2 py-1 rounded bg-gray-800 text-white hover:bg-gray-900 disabled:opacity-40"
+                  disabled={selectedIds.length === 0}
+                >다운로드</button>
+              </div>
+            </div>
+          )}
           {/* 기본 설정 */}
           <div className="flex items-center gap-2 text-xs">
             <button
@@ -704,6 +937,13 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
                     dragOverId === item.id ? 'ring-2 ring-blue-500' : ''
                   } ${index === state.activeIndex ? 'bg-blue-50 dark:bg-[var(--accent)]' : ''}`}
                 >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(item.id)}
+                    onChange={() => toggleSelect(item.id)}
+                    className="w-4 h-4"
+                    aria-label="선택"
+                  />
                   <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
                   <img
                     src={item.src}
@@ -711,6 +951,20 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
                     className="w-8 h-8 object-cover rounded"
                     loading="lazy"
                   />
+                  <button
+                    onClick={() => rotateImage(item, 90)}
+                    className="p-1 rounded bg-gray-100 dark:bg-[var(--accent)] text-gray-700 dark:text-[var(--foreground)]"
+                    title="90° 회전"
+                  >
+                    <RotateCw className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => cropImageCenterSquare(item)}
+                    className="p-1 rounded bg-gray-100 dark:bg-[var(--accent)] text-gray-700 dark:text-[var(--foreground)]"
+                    title="정사각형 크롭"
+                  >
+                    <ImageIcon className="w-3 h-3" />
+                  </button>
                   <input
                     type="text"
                     value={item.caption || ''}
