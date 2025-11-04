@@ -232,6 +232,7 @@ export function AutoRail() {
                   compact={true}
                   showHeader={true}
                   headerVariant="compact"
+                  titleColor={item.color.split(' ').find(c => c.startsWith('text-')) || item.color.split(' ')[1]} // 'bg-blue-100 text-blue-600'에서 'text-blue-600' 추출
                 >
                   {/* 위젯 본문 영역 - 작은 크기로 렌더링 */}
                   <div 

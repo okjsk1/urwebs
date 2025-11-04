@@ -12,7 +12,8 @@ import { collection, addDoc, updateDoc, doc, query, where, getDocs, serverTimest
 import { Widget, WidgetSize, BackgroundSettings, ShareSettings, Page, Bookmark, FontSettings, LayoutSettings } from '../types/mypage.types';
 import { uploadImage, validateImageFile } from '../utils/imageUpload';
 import { getAuth } from 'firebase/auth';
-import { isWidgetEditable } from './widgets/utils/widget-helpers';
+import { isWidgetEditable, readLocal, persistOrLocal } from './widgets/utils/widget-helpers';
+import { useIsMobile } from './ui/use-mobile';
 import { widgetCategories, getCategoryIcon, fontOptions, allWidgets } from '../constants/widgetCategories';
 import { getWidgetDimensions, isWidgetOverlapping, getNextAvailablePosition, getColumnLastWidget as getColumnLastWidgetUtil, getColumnBottomY as getColumnBottomYUtil } from '../utils/widgetHelpers';
 import { 
@@ -55,6 +56,7 @@ export function MyPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, authChecked } = useAuth();
+  const isMobile = useIsMobile();
   
   // Public View 모드 계산: ?view=public 또는 로그인 미상태에서 읽기 전용
   const viewMode = useMemo(() => {
@@ -384,9 +386,21 @@ export function MyPage() {
         }
       }
       
-      // 저장된 페이지가 없으면 템플릿 선택창 표시
-      console.log('→ 비로그인 사용자: 템플릿 선택창 표시');
-      setShowTemplateModal(true);
+      // 저장된 페이지가 없으면 빈 페이지로 바로 시작
+      console.log('→ 비로그인 사용자: 빈 페이지로 시작');
+      const emptyPage = {
+        id: `page_${Date.now()}`,
+        title: '새 페이지',
+        widgets: [],
+        createdAt: new Date().toISOString(),
+        isActive: true
+      };
+      setPages([emptyPage]);
+      setCurrentPageId(emptyPage.id);
+      setPageTitle(emptyPage.title);
+      setWidgets([]);
+      localStorage.setItem('myPages', JSON.stringify([emptyPage]));
+      localStorage.setItem(userVisitKey, 'true');
       return;
     }
     
@@ -809,19 +823,10 @@ export function MyPage() {
   };
 
   const createNewPage = () => {
-    // 첫 이용자인지 확인 (저장된 페이지가 없는 경우)
-    const hasExistingPages = widgets.length > 0 || (currentUser && localStorage.getItem(`myPages_${currentUser.id}`));
-    
-    if (!hasExistingPages) {
-      // 첫 이용자: 템플릿 선택 모달 표시
-      setShowTemplateModal(true);
-      loadTemplates();
-    } else {
-      // 기존 사용자: 빈 캔버스로 바로 시작
-      setWidgets([]);
-      setPageTitle('새 페이지');
-      setShowTemplateModal(false);
-    }
+    // 항상 빈 캔버스로 바로 시작 (템플릿 선택 모달 제거)
+    setWidgets([]);
+    setPageTitle('새 페이지');
+    setShowTemplateModal(false);
   };
 
   // MyPage 첫 로드 시 템플릿 미리 불러오기
@@ -1472,7 +1477,7 @@ export function MyPage() {
     
     setWidgets(prevWidgets => {
       // 그리드 좌표로 컬럼 하단을 계산
-      const totalCols = COLS || 8;
+      const totalCols = isMobile ? 4 : (COLS || 8);
       const getColumnBottom = (colIndex: number) => {
         const widgetsInCol = prevWidgets.filter(w => (w.x ?? 0) === colIndex);
         if (widgetsInCol.length === 0) return 0;
@@ -1628,12 +1633,12 @@ export function MyPage() {
     console.log('currentPageId:', currentPageId);
     console.log('pages:', pages);
     
-    // 위젯이 비어있으면 경고
-    if (widgets.length === 0) {
-      console.warn('⚠️ 저장할 위젯이 없습니다!');
-      setToast({ type: 'error', msg: '저장할 위젯이 없습니다. 위젯을 추가한 후 다시 시도해주세요.' });
-      return;
-    }
+    // 위젯이 비어있어도 배경 설정 등은 저장 가능하도록 허용
+    // if (widgets.length === 0) {
+    //   console.warn('⚠️ 저장할 위젯이 없습니다!');
+    //   setToast({ type: 'error', msg: '저장할 위젯이 없습니다. 위젯을 추가한 후 다시 시도해주세요.' });
+    //   return;
+    // }
     
     // 현재 페이지가 없으면 새 페이지 생성
     let updatedPages = pages;
@@ -1934,6 +1939,23 @@ export function MyPage() {
       return prevWidgets.map(w => w.id === id ? updatedWidget : w);
     });
   }, [cellHeight, spacing, mainColumnWidth]);
+
+  // 북마크를 다른 위젯으로 이동
+  const handleMoveBookmarkToWidget = useCallback((bookmark: any, sourceWidgetId: string, targetWidgetId: string) => {
+    // 소스 위젯의 북마크 데이터 읽기
+    const sourceState = readLocal(sourceWidgetId, { bookmarks: [] });
+    const updatedSourceBookmarks = sourceState.bookmarks.filter((bm: any) => bm.id !== bookmark.id);
+    
+    // 소스 위젯 업데이트
+    persistOrLocal(sourceWidgetId, { ...sourceState, bookmarks: updatedSourceBookmarks }, updateWidget);
+    
+    // 타겟 위젯의 북마크 데이터 읽기
+    const targetState = readLocal(targetWidgetId, { bookmarks: [] });
+    const updatedTargetBookmarks = [...(targetState.bookmarks || []), { ...bookmark, id: Date.now().toString() }];
+    
+    // 타겟 위젯 업데이트
+    persistOrLocal(targetWidgetId, { ...targetState, bookmarks: updatedTargetBookmarks }, updateWidget);
+  }, [updateWidget]);
 
   // 위젯 선택
   const selectWidget = (id: string) => {
@@ -2788,6 +2810,7 @@ export function MyPage() {
           updateWidget={updateWidget}
           widgets={widgets}
           setWidgets={setWidgets}
+          onMoveBookmarkToWidget={handleMoveBookmarkToWidget}
         />
       );
     }
@@ -4526,7 +4549,7 @@ export function MyPage() {
             cellHeight={cellHeight}
             cellWidth={subCellWidth}
             gap={12}
-            cols={8}
+            cols={isMobile ? 4 : 8}
             className=""
             onAddWidget={(columnIndex?: number) => {
               // 위젯 패널을 열어서 선택하도록 하되, 선택 시 해당 컬럼 최하단에 추가되도록 targetColumn 전달
@@ -4746,7 +4769,65 @@ export function MyPage() {
                   취소
                 </Button>
                 <Button
-                  onClick={() => setShowBackgroundModal(false)}
+                  onClick={async () => {
+                    // 배경 설정을 현재 페이지에 저장
+                    const updatedPages = pages.map(page => {
+                      if (page.id === currentPageId) {
+                        return {
+                          ...page,
+                          backgroundSettings: backgroundSettings
+                        };
+                      }
+                      return page;
+                    });
+                    setPages(updatedPages);
+                    
+                    // localStorage에 저장
+                    if (currentUser) {
+                      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
+                      localStorage.setItem(`backgroundSettings_${currentUser.id}`, JSON.stringify(backgroundSettings));
+                    } else {
+                      localStorage.setItem('myPages', JSON.stringify(updatedPages));
+                      localStorage.setItem('backgroundSettings_guest', JSON.stringify(backgroundSettings));
+                    }
+                    
+                    // Firebase에 저장 (로그인 사용자이고 위젯이 있는 경우)
+                    if (currentUser && widgets.length > 0) {
+                      try {
+                        const currentPage = updatedPages.find(p => p.id === currentPageId);
+                        if (currentPage) {
+                          const userIdPart = (currentUser?.email?.split('@')[0] || 'user');
+                          const userPageIndex = updatedPages.findIndex(p => p.id === currentPageId) + 1;
+                          const urlId = customUrl || `${userIdPart}_${userPageIndex}`;
+                          
+                          const pagesRef = collection(db, 'userPages');
+                          const q = query(pagesRef, where('authorId', '==', currentUser.id), where('urlId', '==', urlId));
+                          const snapshot = await getDocs(q);
+                          
+                          if (!snapshot.empty) {
+                            const docId = snapshot.docs[0].id;
+                            const docRef = doc(db, 'userPages', docId);
+                            await updateDoc(docRef, {
+                              backgroundSettings: backgroundSettings,
+                              updatedAt: serverTimestamp()
+                            });
+                          } else if ((currentPage as any)?.firebaseDocId) {
+                            const fallbackId = (currentPage as any).firebaseDocId as string;
+                            const docRef = doc(db, 'userPages', fallbackId);
+                            await updateDoc(docRef, {
+                              backgroundSettings: backgroundSettings,
+                              updatedAt: serverTimestamp()
+                            });
+                          }
+                        }
+                      } catch (error) {
+                        console.error('배경 설정 Firebase 저장 실패:', error);
+                      }
+                    }
+                    
+                    setShowBackgroundModal(false);
+                    setToast({ type: 'success', msg: '배경 설정이 저장되었습니다.' });
+                  }}
                   className="flex-1"
                 >
                   적용

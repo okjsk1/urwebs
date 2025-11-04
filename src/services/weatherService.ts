@@ -200,13 +200,15 @@ class OpenWeatherProvider implements WeatherProvider {
   }
 
   async getCurrent(location: WeatherLocation): Promise<CurrentWeather> {
-    if (this.apiKey === 'demo') {
-      // 개발 환경에서는 시뮬레이션 데이터 사용 (오류 대신 조용히 처리)
+    if (this.apiKey === 'demo' || !this.apiKey || this.apiKey.trim() === '') {
+      // API 키가 없으면 계절/시간 고려한 시뮬레이션 데이터 사용
+      console.warn('OpenWeatherMap API 키가 없습니다. 시뮬레이션 데이터를 사용합니다.');
       return this.generateSimulationData(location);
     }
 
-    const url = `${this.baseUrl}/weather?lat=${location.lat}&lon=${location.lon}&appid=${this.apiKey}&units=metric&lang=kr`;
-    const data = await this.fetchWithRetry(url);
+    try {
+      const url = `${this.baseUrl}/weather?lat=${location.lat}&lon=${location.lon}&appid=${this.apiKey}&units=metric&lang=kr`;
+      const data = await this.fetchWithRetry(url);
 
     return {
       location,
@@ -225,16 +227,21 @@ class OpenWeatherProvider implements WeatherProvider {
       sunrise: data.sys.sunrise * 1000,
       sunset: data.sys.sunset * 1000,
     };
+    } catch (error) {
+      console.warn('OpenWeatherMap API 호출 실패, 시뮬레이션 데이터 사용:', error);
+      return this.generateSimulationData(location);
+    }
   }
 
   async getHourly(location: WeatherLocation): Promise<HourlyForecast[]> {
-    if (this.apiKey === 'demo') {
-      // 개발 환경에서는 시뮬레이션 데이터 사용
+    if (this.apiKey === 'demo' || !this.apiKey || this.apiKey.trim() === '') {
+      // API 키가 없으면 시뮬레이션 데이터 사용
       return this.generateHourlySimulation(location);
     }
 
-    const url = `${this.baseUrl}/forecast?lat=${location.lat}&lon=${location.lon}&appid=${this.apiKey}&units=metric&lang=kr`;
-    const data = await this.fetchWithRetry(url);
+    try {
+      const url = `${this.baseUrl}/forecast?lat=${location.lat}&lon=${location.lon}&appid=${this.apiKey}&units=metric&lang=kr`;
+      const data = await this.fetchWithRetry(url);
 
     return data.list.slice(0, 24).map((item: any) => ({
       timestamp: item.dt * 1000,
@@ -249,16 +256,21 @@ class OpenWeatherProvider implements WeatherProvider {
       precipitationProbability: Math.round((item.pop || 0) * 100),
       icon: this.getWeatherIcon(item.weather[0].icon),
     }));
+    } catch (error) {
+      console.warn('OpenWeatherMap API 호출 실패, 시뮬레이션 데이터 사용:', error);
+      return this.generateHourlySimulation(location);
+    }
   }
 
   async getDaily(location: WeatherLocation): Promise<DailyForecast[]> {
-    if (this.apiKey === 'demo') {
-      // 개발 환경에서는 시뮬레이션 데이터 사용
+    if (this.apiKey === 'demo' || !this.apiKey || this.apiKey.trim() === '') {
+      // API 키가 없으면 시뮬레이션 데이터 사용
       return this.generateDailySimulation(location);
     }
 
-    const url = `${this.baseUrl}/forecast?lat=${location.lat}&lon=${location.lon}&appid=${this.apiKey}&units=metric&lang=kr`;
-    const data = await this.fetchWithRetry(url);
+    try {
+      const url = `${this.baseUrl}/forecast?lat=${location.lat}&lon=${location.lon}&appid=${this.apiKey}&units=metric&lang=kr`;
+      const data = await this.fetchWithRetry(url);
 
     // 5일간의 일별 예보 생성
     const dailyForecasts: DailyForecast[] = [];
@@ -296,6 +308,10 @@ class OpenWeatherProvider implements WeatherProvider {
     }
     
     return dailyForecasts;
+    } catch (error) {
+      console.warn('OpenWeatherMap API 호출 실패, 시뮬레이션 데이터 사용:', error);
+      return this.generateDailySimulation(location);
+    }
   }
 
   private getWeatherIcon(iconCode: string): string {
@@ -313,31 +329,62 @@ class OpenWeatherProvider implements WeatherProvider {
     return iconMap[iconCode] || '☀️';
   }
 
-  // 시뮬레이션 데이터 생성 메서드들 추가
+  // 시뮬레이션 데이터 생성 메서드들 추가 (계절 및 지역 고려)
   private generateSimulationData(location: WeatherLocation): CurrentWeather {
     const now = new Date();
     const hour = now.getHours();
+    const month = now.getMonth(); // 0-11
     
-    // 시간대별 온도 시뮬레이션
-    const baseTemp = 20 + Math.sin((hour - 6) * Math.PI / 12) * 8;
-    const temp = Math.round(baseTemp + (Math.random() - 0.5) * 4);
+    // 계절별 기준 온도 (한국)
+    const seasonBaseTemp = (() => {
+      if (month >= 11 || month <= 2) return -5; // 겨울
+      if (month >= 3 && month <= 5) return 15; // 봄
+      if (month >= 6 && month <= 8) return 25; // 여름
+      return 18; // 가을
+    })();
     
-    const conditions = ['맑음', '구름많음', '흐림', '비', '눈'];
-    const condition = conditions[Math.floor(Math.random() * conditions.length)];
+    // 시간대별 온도 변화 (새벽 최저, 오후 최고)
+    const hourOffset = Math.sin((hour - 6) * Math.PI / 12) * 8;
+    const baseTemp = seasonBaseTemp + hourOffset;
+    
+    // 지역별 온도 조정 (위도 기반)
+    const latAdjust = (location.lat - 37.5) * 0.5; // 서울 기준
+    const temp = Math.round(baseTemp + latAdjust + (Math.random() - 0.5) * 3);
+    
+    // 계절별 날씨 조건 확률 조정
+    let condition: string;
+    if (month >= 11 || month <= 2) {
+      // 겨울: 눈, 맑음, 흐림
+      condition = ['눈', '맑음', '맑음', '흐림', '구름많음'][Math.floor(Math.random() * 5)];
+    } else if (month >= 6 && month <= 8) {
+      // 여름: 비, 구름많음, 맑음
+      condition = ['비', '구름많음', '맑음', '맑음', '흐림'][Math.floor(Math.random() * 5)];
+    } else {
+      // 봄/가을: 맑음, 구름많음, 흐림, 비
+      condition = ['맑음', '맑음', '구름많음', '흐림', '비'][Math.floor(Math.random() * 5)];
+    }
+    
+    const iconMap: Record<string, string> = {
+      '맑음': '☀️',
+      '구름많음': '⛅',
+      '흐림': '☁️',
+      '비': '🌧️',
+      '눈': '❄️'
+    };
     
     return {
       location,
       temperature: temp,
-      feelsLike: temp + Math.round((Math.random() - 0.5) * 3),
+      feelsLike: temp + Math.round((Math.random() - 0.5) * 4),
       condition,
       description: condition,
-      humidity: Math.round(40 + Math.random() * 40),
-      windSpeed: Math.round(Math.random() * 10),
+      humidity: month >= 6 && month <= 8 ? Math.round(60 + Math.random() * 30) : Math.round(40 + Math.random() * 40),
+      windSpeed: Math.round(Math.random() * 8 * 10) / 10,
       windDirection: Math.round(Math.random() * 360),
       visibility: Math.round(8000 + Math.random() * 2000),
       pressure: Math.round(1010 + Math.random() * 20),
-      uvIndex: Math.round(Math.random() * 10),
-      icon: ['☀️', '⛅', '☁️', '🌧️', '❄️'][Math.floor(Math.random() * 5)],
+      uvIndex: hour >= 10 && hour <= 16 ? Math.round(5 + Math.random() * 5) : Math.round(Math.random() * 3),
+      icon: iconMap[condition] || '☀️',
       timestamp: Date.now(),
       sunrise: this.getSunriseTime(now),
       sunset: this.getSunsetTime(now),
@@ -347,23 +394,48 @@ class OpenWeatherProvider implements WeatherProvider {
   private generateHourlySimulation(location: WeatherLocation): HourlyForecast[] {
     const forecasts: HourlyForecast[] = [];
     const now = new Date();
+    const month = now.getMonth();
+    const hour = now.getHours();
+    
+    // 계절별 기준 온도
+    const seasonBaseTemp = (() => {
+      if (month >= 11 || month <= 2) return -5;
+      if (month >= 3 && month <= 5) return 15;
+      if (month >= 6 && month <= 8) return 25;
+      return 18;
+    })();
     
     for (let i = 0; i < 24; i++) {
-      const hour = (now.getHours() + i) % 24;
-      const baseTemp = 20 + Math.sin((hour - 6) * Math.PI / 12) * 8;
-      const temp = Math.round(baseTemp + (Math.random() - 0.5) * 4);
+      const forecastHour = (hour + i) % 24;
+      const hourOffset = Math.sin((forecastHour - 6) * Math.PI / 12) * 8;
+      const latAdjust = (location.lat - 37.5) * 0.5;
+      const temp = Math.round(seasonBaseTemp + hourOffset + latAdjust + (Math.random() - 0.5) * 3);
+      
+      let condition: string;
+      if (month >= 11 || month <= 2) {
+        condition = ['눈', '맑음', '맑음', '흐림', '구름많음'][Math.floor(Math.random() * 5)];
+      } else if (month >= 6 && month <= 8) {
+        condition = ['비', '구름많음', '맑음', '맑음', '흐림'][Math.floor(Math.random() * 5)];
+      } else {
+        condition = ['맑음', '맑음', '구름많음', '흐림', '비'][Math.floor(Math.random() * 5)];
+      }
+      
+      const iconMap: Record<string, string> = {
+        '맑음': '☀️', '구름많음': '⛅', '흐림': '☁️', '비': '🌧️', '눈': '❄️'
+      };
       
       forecasts.push({
         timestamp: now.getTime() + i * 3600000,
         temperature: temp,
-        condition: ['맑음', '구름많음', '흐림', '비', '눈'][Math.floor(Math.random() * 5)],
-        description: '시뮬레이션 데이터',
-        humidity: Math.round(40 + Math.random() * 40),
-        windSpeed: Math.round(Math.random() * 10),
+        feelsLike: temp + Math.round((Math.random() - 0.5) * 2),
+        condition,
+        description: condition,
+        humidity: month >= 6 && month <= 8 ? Math.round(60 + Math.random() * 30) : Math.round(40 + Math.random() * 40),
+        windSpeed: Math.round(Math.random() * 8 * 10) / 10,
         windDirection: Math.round(Math.random() * 360),
-        precipitation: Math.round(Math.random() * 5),
-        precipitationProbability: Math.round(Math.random() * 100),
-        icon: ['☀️', '⛅', '☁️', '🌧️', '❄️'][Math.floor(Math.random() * 5)],
+        precipitation: condition === '비' || condition === '눈' ? Math.round(Math.random() * 5 * 10) / 10 : 0,
+        precipitationProbability: condition === '비' || condition === '눈' ? Math.round(50 + Math.random() * 50) : Math.round(Math.random() * 30),
+        icon: iconMap[condition] || '☀️',
       });
     }
     
@@ -376,23 +448,46 @@ class OpenWeatherProvider implements WeatherProvider {
     
     for (let i = 0; i < 7; i++) {
       const date = new Date(now.getTime() + i * 86400000);
-      const baseTemp = 20 + Math.sin((date.getMonth() / 12) * Math.PI * 2) * 10;
-      const randomVariation = (Math.random() - 0.5) * 6;
-      const minTemp = Math.round(baseTemp + randomVariation - 5);
-      const maxTemp = Math.round(baseTemp + randomVariation + 5);
+      const month = date.getMonth();
+      
+      // 계절별 기준 온도
+      const seasonBaseTemp = (() => {
+        if (month >= 11 || month <= 2) return -5;
+        if (month >= 3 && month <= 5) return 15;
+        if (month >= 6 && month <= 8) return 25;
+        return 18;
+      })();
+      
+      const latAdjust = (location.lat - 37.5) * 0.5;
+      const randomVariation = (Math.random() - 0.5) * 4;
+      const minTemp = Math.round(seasonBaseTemp + latAdjust + randomVariation - 5);
+      const maxTemp = Math.round(seasonBaseTemp + latAdjust + randomVariation + 5);
+      
+      let condition: string;
+      if (month >= 11 || month <= 2) {
+        condition = ['눈', '맑음', '맑음', '흐림', '구름많음'][Math.floor(Math.random() * 5)];
+      } else if (month >= 6 && month <= 8) {
+        condition = ['비', '구름많음', '맑음', '맑음', '흐림'][Math.floor(Math.random() * 5)];
+      } else {
+        condition = ['맑음', '맑음', '구름많음', '흐림', '비'][Math.floor(Math.random() * 5)];
+      }
+      
+      const iconMap: Record<string, string> = {
+        '맑음': '☀️', '구름많음': '⛅', '흐림': '☁️', '비': '🌧️', '눈': '❄️'
+      };
       
       forecasts.push({
         date: date.toISOString().split('T')[0],
         timestamp: date.getTime(),
         temperature: { min: minTemp, max: maxTemp },
-        condition: ['맑음', '구름많음', '흐림', '비', '눈'][Math.floor(Math.random() * 5)],
-        description: '시뮬레이션 데이터',
-        humidity: Math.round(40 + Math.random() * 40),
-        windSpeed: Math.round(Math.random() * 10),
+        condition,
+        description: condition,
+        humidity: month >= 6 && month <= 8 ? Math.round(60 + Math.random() * 30) : Math.round(40 + Math.random() * 40),
+        windSpeed: Math.round(Math.random() * 8 * 10) / 10,
         windDirection: Math.round(Math.random() * 360),
-        precipitation: Math.round(Math.random() * 10),
-        precipitationProbability: Math.round(Math.random() * 100),
-        icon: ['☀️', '⛅', '☁️', '🌧️', '❄️'][Math.floor(Math.random() * 5)],
+        precipitation: condition === '비' || condition === '눈' ? Math.round(Math.random() * 10 * 10) / 10 : 0,
+        precipitationProbability: condition === '비' || condition === '눈' ? Math.round(50 + Math.random() * 50) : Math.round(Math.random() * 30),
+        icon: iconMap[condition] || '☀️',
         sunrise: this.getSunriseTime(date),
         sunset: this.getSunsetTime(date),
       });

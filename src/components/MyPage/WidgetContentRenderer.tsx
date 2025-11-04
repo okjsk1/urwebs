@@ -32,6 +32,7 @@ interface WidgetContentRendererProps {
   updateWidget: (id: string, updates: Partial<Widget>) => void;
   widgets: Widget[];
   setWidgets: React.Dispatch<React.SetStateAction<Widget[]>>;
+  onMoveBookmarkToWidget?: (bookmark: any, sourceWidgetId: string, targetWidgetId: string) => void;
 }
 
 export function WidgetContentRenderer({ 
@@ -39,7 +40,8 @@ export function WidgetContentRenderer({
   isEditMode, 
   updateWidget,
   widgets,
-  setWidgets 
+  setWidgets,
+  onMoveBookmarkToWidget
 }: WidgetContentRendererProps) {
   const commonProps = {
     widget,
@@ -50,7 +52,12 @@ export function WidgetContentRenderer({
   try {
     switch (widget.type) {
       case 'bookmark':
-        return <BookmarkWidget {...commonProps} onBookmarkCountChange={() => {}} />;
+        return <BookmarkWidget 
+          {...commonProps} 
+          onBookmarkCountChange={() => {}} 
+          onMoveBookmarkToWidget={onMoveBookmarkToWidget}
+          allWidgets={widgets}
+        />;
 
       case 'weather':
         return <WeatherWidget {...commonProps} />;
@@ -196,6 +203,9 @@ export function WidgetContentRenderer({
           onRemove={() => {}}
           onResize={() => {}}
           onPin={() => {}}
+          widget={widget}
+          isEditMode={isEditMode}
+          updateWidget={updateWidget}
         />;
 
       case 'timer':

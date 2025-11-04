@@ -44,7 +44,11 @@ const DEFAULT_CATEGORIES = [
   { id: 'default', name: '기본' }
 ];
 
-export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (count: number) => void }> = ({ widget, isEditMode, updateWidget, onBookmarkCountChange }) => {
+export const BookmarkWidget: React.FC<WidgetProps & { 
+  onBookmarkCountChange?: (count: number) => void;
+  onMoveBookmarkToWidget?: (bookmark: Bookmark, sourceWidgetId: string, targetWidgetId: string) => void;
+  allWidgets?: any[];
+}> = ({ widget, isEditMode, updateWidget, onBookmarkCountChange, onMoveBookmarkToWidget, allWidgets }) => {
   const lastBookmarkCountRef = useRef<number>(0);
   const listRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<BookmarkState>(() => {
@@ -462,16 +466,48 @@ export const BookmarkWidget: React.FC<WidgetProps & { onBookmarkCountChange?: (c
   // 다른 즐겨찾기 위젯에서 드롭받기
   const handleExternalDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isEditMode) return;
+    
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      if (data.type === 'bookmark' && data.widgetId !== widget.id) {
-        // 다른 즐겨찾기 위젯에서 온 북마크
-        showToast('다른 즐겨찾기 위젯에서 북마크를 이동하려면 위젯 타이틀을 클릭하여 편집 모드에서 이동하세요', 'info');
+      if (data.type === 'bookmark' && data.widgetId && data.widgetId !== widget.id) {
+        // 다른 북마크 위젯에서 온 북마크
+        const sourceBookmark = state.bookmarks.find(bm => bm.id === data.bookmarkId);
+        
+        if (!sourceBookmark) {
+          // 다른 위젯에서 온 북마크인 경우
+          if (onMoveBookmarkToWidget && allWidgets) {
+            const sourceWidget = allWidgets.find(w => w.id === data.widgetId);
+            if (sourceWidget && sourceWidget.type === 'bookmark') {
+              // 소스 위젯의 북마크 데이터 읽기
+              const sourceBookmarks = readLocal(data.widgetId, { bookmarks: [] }).bookmarks || [];
+              const bookmarkToMove = sourceBookmarks.find((bm: Bookmark) => bm.id === data.bookmarkId);
+              
+              if (bookmarkToMove) {
+                // 소스 위젯에서 북마크 제거 (먼저 실행)
+                if (onMoveBookmarkToWidget) {
+                  onMoveBookmarkToWidget(bookmarkToMove, data.widgetId, widget.id);
+                }
+                
+                // 현재 위젯에 북마크 추가
+                setState(prev => ({
+                  ...prev,
+                  bookmarks: [...prev.bookmarks, { ...bookmarkToMove, id: Date.now().toString() }]
+                }));
+                
+                showToast(`"${bookmarkToMove.name}"이(가) 이동되었습니다`, 'success');
+              }
+            }
+          }
+        }
       }
-    } catch {
-      // 일반 드래그 처리
+    } catch (error) {
+      // 일반 드래그 처리 또는 파싱 실패
+      console.warn('북마크 이동 실패:', error);
     }
-  }, [widget.id]);
+  }, [widget.id, isEditMode, state.bookmarks, onMoveBookmarkToWidget, allWidgets]);
 
   return (
     <div 

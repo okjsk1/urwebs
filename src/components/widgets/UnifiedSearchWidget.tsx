@@ -140,10 +140,12 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
   const [draggedEngine, setDraggedEngine] = useState<string | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [inputError, setInputError] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1); // 방향키로 선택된 항목 인덱스
   
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const suggestionItemsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   // 엔진 순서 정규화
   const orderedEngines = useMemo(() => {
@@ -164,6 +166,35 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
   );
 
   const { suggestions, loading: suggestionsLoading } = useSuggestions(state.selectedEngine, state.searchQuery, recentQueries);
+
+  // 서제스트 항목 목록 생성 (최근 검색어 + 인기 검색어 + 제안)
+  const suggestionItems = useMemo(() => {
+    const items: Array<{ type: 'recent' | 'popular' | 'suggestion'; query: string }> = [];
+    
+    // 최근 검색어
+    recentQueries.forEach(query => {
+      items.push({ type: 'recent', query });
+    });
+    
+    // 인기 검색어
+    if (state.searchCounts) {
+      Object.entries(state.searchCounts)
+        .filter(([key]) => key.startsWith(`${state.selectedEngine}::`))
+        .sort((a, b) => (b[1] as number) - (a[1] as number))
+        .slice(0, 5)
+        .forEach(([key]) => {
+          const q = key.split('::')[1];
+          items.push({ type: 'popular', query: q });
+        });
+    }
+    
+    // 제안
+    suggestions.forEach(suggestion => {
+      items.push({ type: 'suggestion', query: suggestion });
+    });
+    
+    return items;
+  }, [recentQueries, state.searchCounts, state.selectedEngine, suggestions]);
 
   // URL 빌드
   const buildSearchUrl = useCallback((engine: SearchEngine, query: string): string => {
@@ -338,11 +369,22 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
     const handleClickOutside = (e: MouseEvent) => {
       if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
         setShowSuggestions(false);
+        setSelectedIndex(-1);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // 선택된 항목으로 스크롤
+  useEffect(() => {
+    if (selectedIndex >= 0 && suggestionItemsRef.current[selectedIndex]) {
+      suggestionItemsRef.current[selectedIndex]?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth'
+      });
+    }
+  }, [selectedIndex]);
 
   // 드래그앤드롭
   const handleDragStart = useCallback((engineId: string) => (e: React.DragEvent) => {
@@ -452,7 +494,53 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
               if (!v) setInputError(null);
               else if (v.trim().length >= 2) setInputError(null);
             }}
-              onFocus={() => setShowSuggestions(true)}
+              onFocus={() => {
+                setShowSuggestions(true);
+                setSelectedIndex(-1); // 서제스트 열릴 때 선택 인덱스 초기화
+              }}
+              onKeyDown={(e) => {
+                // Alt + 방향키로 서제스트 항목 선택
+                if (showSuggestions && suggestionItems.length > 0 && e.altKey) {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSelectedIndex(prev => {
+                      const next = prev < suggestionItems.length - 1 ? prev + 1 : 0;
+                      // 선택된 항목으로 스크롤
+                      setTimeout(() => {
+                        suggestionItemsRef.current[next]?.scrollIntoView({
+                          block: 'nearest',
+                          behavior: 'smooth'
+                        });
+                      }, 0);
+                      return next;
+                    });
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSelectedIndex(prev => {
+                      const next = prev > 0 ? prev - 1 : suggestionItems.length - 1;
+                      // 선택된 항목으로 스크롤
+                      setTimeout(() => {
+                        suggestionItemsRef.current[next]?.scrollIntoView({
+                          block: 'nearest',
+                          behavior: 'smooth'
+                        });
+                      }, 0);
+                      return next;
+                    });
+                  } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    const selectedItem = suggestionItems[selectedIndex];
+                    if (selectedItem) {
+                      setState(prev => ({ ...prev, searchQuery: selectedItem.query }));
+                      handleSearch(undefined, state.openInNewTab);
+                      setSelectedIndex(-1);
+                    }
+                  }
+                } else if (e.key === 'Escape') {
+                  setShowSuggestions(false);
+                  setSelectedIndex(-1);
+                }
+              }}
               placeholder={`${selectedEngineData.name} 검색`}
               className="flex-1 px-2 py-1.25 text-sm border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
               aria-label={`${selectedEngineData.name}에서 검색하기`}
@@ -523,28 +611,39 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                       전체 삭제
                     </button>
                   </div>
-                  {recentQueries.map(query => (
-                    <button
-                      key={query}
-                      type="button"
-                      onClick={() => {
-                        setState(prev => ({ ...prev, searchQuery: query }));
-                        handleSearch(undefined, state.openInNewTab);
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded text-sm text-left"
-                      role="option"
-                    >
-                      <span className="flex-1 truncate">{query}</span>
+                  {recentQueries.map((query, idx) => {
+                    const itemIndex = idx;
+                    const isSelected = selectedIndex === itemIndex;
+                    return (
                       <button
+                        key={query}
+                        ref={(el) => { suggestionItemsRef.current[itemIndex] = el; }}
                         type="button"
-                        onClick={(e) => removeRecentQuery(query, e)}
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                        aria-label="삭제"
+                        onClick={() => {
+                          setState(prev => ({ ...prev, searchQuery: query }));
+                          handleSearch(undefined, state.openInNewTab);
+                        }}
+                        onMouseEnter={() => setSelectedIndex(itemIndex)}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm text-left ${
+                          isSelected 
+                            ? 'bg-blue-50 dark:bg-blue-900/20' 
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                        role="option"
+                        aria-selected={isSelected}
                       >
-                        <X className="w-3 h-3 text-gray-400" />
+                        <span className="flex-1 truncate">{query}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => removeRecentQuery(query, e)}
+                          className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                          aria-label="삭제"
+                        >
+                          <X className="w-3 h-3 text-gray-400" />
+                        </button>
                       </button>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -558,18 +657,27 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                     .filter(([key]) => key.startsWith(`${state.selectedEngine}::`))
                     .sort((a, b) => (b[1] as number) - (a[1] as number))
                     .slice(0, 5)
-                    .map(([key]) => {
+                    .map(([key], idx) => {
                       const q = key.split('::')[1];
+                      const itemIndex = recentQueries.length + idx;
+                      const isSelected = selectedIndex === itemIndex;
                       return (
                         <button
                           key={key}
+                          ref={(el) => { suggestionItemsRef.current[itemIndex] = el; }}
                           type="button"
                           onClick={() => {
                             setState(prev => ({ ...prev, searchQuery: q }));
                             handleSearch(undefined, state.openInNewTab);
                           }}
-                          className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded text-sm text-left"
+                          onMouseEnter={() => setSelectedIndex(itemIndex)}
+                          className={`w-full px-3 py-2 rounded text-sm text-left ${
+                            isSelected 
+                              ? 'bg-blue-50 dark:bg-blue-900/20' 
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                          }`}
                           role="option"
+                          aria-selected={isSelected}
                         >
                           {q}
                         </button>
@@ -584,20 +692,35 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                   <div className="px-2 py-1 mb-1">
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">제안</span>
                   </div>
-                  {suggestions.map(suggestion => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => {
-                        setState(prev => ({ ...prev, searchQuery: suggestion }));
-                        handleSearch(undefined, state.openInNewTab);
-                      }}
-                      className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded text-sm text-left"
-                      role="option"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
+                  {suggestions.map((suggestion, idx) => {
+                    const itemIndex = recentQueries.length + 
+                      (state.searchCounts ? Object.entries(state.searchCounts)
+                        .filter(([key]) => key.startsWith(`${state.selectedEngine}::`))
+                        .sort((a, b) => (b[1] as number) - (a[1] as number))
+                        .slice(0, 5).length : 0) + idx;
+                    const isSelected = selectedIndex === itemIndex;
+                    return (
+                      <button
+                        key={suggestion}
+                        ref={(el) => { suggestionItemsRef.current[itemIndex] = el; }}
+                        type="button"
+                        onClick={() => {
+                          setState(prev => ({ ...prev, searchQuery: suggestion }));
+                          handleSearch(undefined, state.openInNewTab);
+                        }}
+                        onMouseEnter={() => setSelectedIndex(itemIndex)}
+                        className={`w-full px-3 py-2 rounded text-sm text-left ${
+                          isSelected 
+                            ? 'bg-blue-50 dark:bg-blue-900/20' 
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                        role="option"
+                        aria-selected={isSelected}
+                      >
+                        {suggestion}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 

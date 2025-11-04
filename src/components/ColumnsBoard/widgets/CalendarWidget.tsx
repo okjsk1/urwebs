@@ -220,16 +220,16 @@ export function CalendarWidget({
     switch (size) {
       case '1x1':
         return {
-          container: "p-1",
-          header: "mb-1 pb-1",
-          monthText: "text-xs font-semibold",
-          navButton: "p-0.5",
-          navIcon: "w-3 h-3",
-          todayButton: "px-1 py-0.5 text-[10px]",
-          weekdayHeader: "text-[9px] py-0.5",
-          dateCell: "min-h-[16px] text-[8px]",
-          todayText: "text-[8px]",
-          legend: "text-[8px] gap-2 mt-1"
+          container: "p-0",
+          header: "mb-0 pb-0 h-[18px]",
+          monthText: "text-[8px] font-semibold leading-none",
+          navButton: "p-0",
+          navIcon: "w-2 h-2",
+          todayButton: "px-0.5 py-0 text-[7px] leading-tight",
+          weekdayHeader: "text-[6px] py-0 leading-none h-[12px]",
+          dateCell: "h-[11px] text-[6px] leading-none",
+          todayText: "text-[6px] leading-tight",
+          legend: "text-[6px] gap-1 mt-0.5 leading-tight"
         };
       case '1x2':
         return {
@@ -358,13 +358,13 @@ export function CalendarWidget({
 
   return (
     <div
-      className={`${styles.container} h-full flex flex-col bg-white dark:bg-gray-900 rounded-lg ${className}`}
+      className={`${styles.container} h-full flex flex-col bg-white dark:bg-gray-900 rounded-lg ${className} ${size === '1x1' ? 'overflow-hidden' : ''}`}
       role="grid"
       aria-label="달력"
     >
       {/* 헤더 */}
-      <div className={`flex items-center justify-between ${styles.header} border-b border-gray-200 dark:border-gray-700`}>
-        <div className="flex gap-1">
+      <div className={`flex items-center justify-between ${styles.header} ${size === '1x1' ? 'border-b border-gray-200 dark:border-gray-700' : 'border-b border-gray-200 dark:border-gray-700'}`}>
+        <div className={`flex ${size === '1x1' ? 'gap-0' : 'gap-1'}`}>
           <button
             onClick={goPrevMonth}
             className={`${styles.navButton} hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors`}
@@ -382,20 +382,25 @@ export function CalendarWidget({
             <ChevronRight className={`${styles.navIcon} text-gray-600 dark:text-gray-300`} />
           </button>
         </div>
-        <div className={`${styles.monthText} text-gray-800 dark:text-gray-100 select-none`}>
-          {fmtMonth.format(currentDate)}
+        <div className={`${styles.monthText} text-gray-800 dark:text-gray-100 select-none ${size === '1x1' ? 'truncate max-w-[80px]' : ''}`}>
+          {size === '1x1' 
+            ? `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월`
+            : fmtMonth.format(currentDate)
+          }
         </div>
-        <button
-          onClick={goToday}
-          className={`${styles.todayButton} rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800`}
-          type="button"
-        >
-          오늘
-        </button>
+        {size !== '1x1' && (
+          <button
+            onClick={goToday}
+            className={`${styles.todayButton} rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800`}
+            type="button"
+          >
+            오늘
+          </button>
+        )}
       </div>
 
       {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 gap-0.5 mb-1" role="row">
+      <div className={`grid grid-cols-7 ${size === '1x1' ? 'gap-0 mb-0' : 'gap-0.5 mb-1'} ${size === '1x1' ? 'flex-shrink-0' : ''}`} role="row">
         {weekdayOrder.map((label, i) => (
           <div
             key={label}
@@ -413,7 +418,7 @@ export function CalendarWidget({
       </div>
 
       {/* 날짜 그리드 (6주 고정) */}
-      <div className="grid grid-cols-7 gap-0.5 flex-1">
+      <div className={`grid grid-cols-7 ${size === '1x1' ? 'gap-0' : 'gap-0.5'} ${size === '1x1' ? 'flex-1 min-h-0' : 'flex-1'}`} style={size === '1x1' ? { gridTemplateRows: 'repeat(6, 1fr)' } : undefined}>
         {grid.map(({ date, inCurrentMonth }, idx) => {
           const weekendIndex = (idx % 7); // 0~6
           const isTodayCell = isSameDay(date, today);
@@ -434,8 +439,8 @@ export function CalendarWidget({
               title={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일${holidayName ? ` (${holidayName})` : ''}`}
                  className={[
                    `flex flex-col items-center justify-center rounded transition-colors relative ${styles.dateCell}`,
-                   "border border-gray-200 dark:border-gray-700",
-                   "min-h-[36px] min-w-[36px]", // 터치 타겟 ≥ 36px
+                   size === '1x1' ? "border-0" : "border border-gray-200 dark:border-gray-700",
+                   size === '1x1' ? "min-h-0 w-full h-full" : "min-h-[36px] min-w-[36px]", // 1x1은 작게, 나머지는 터치 타겟 ≥ 36px
                    inCurrentMonth
                      ? "bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer hover:border-blue-300"
                      : "bg-gray-50 dark:bg-gray-800/40 text-gray-400 dark:text-gray-500",
@@ -445,15 +450,15 @@ export function CalendarWidget({
                    weekendIndex === 0 && inCurrentMonth && !isTodayCell && !isHolidayDate ? "text-red-600 dark:text-red-400" : "",
                    weekendIndex === 6 && inCurrentMonth && !isTodayCell && !isHolidayDate ? "text-blue-600 dark:text-blue-400" : "",
                   // 오늘 스타일 (가독성 강화)
-                  isTodayCell ? "bg-blue-600 text-white font-bold ring-2 ring-blue-400 ring-offset-1" : "",
+                  isTodayCell ? (size === '1x1' ? "bg-blue-600 text-white font-bold" : "bg-blue-600 text-white font-bold ring-2 ring-blue-400 ring-offset-1") : "",
                   // 선택된 날짜 스타일 (가독성 강화)
-                  isSelected && !isTodayCell ? "bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-500 ring-1 ring-blue-300" : "",
+                  isSelected && !isTodayCell ? (size === '1x1' ? "bg-blue-100 dark:bg-blue-900/30" : "bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-500 ring-1 ring-blue-300") : "",
                  ].join(" ")}
             >
               <span>{date.getDate()}</span>
               {/* 공휴일 표시 */}
-              {isHolidayDate && inCurrentMonth && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+              {isHolidayDate && inCurrentMonth && size !== '1x1' && (
+                <div className={`absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full`}></div>
               )}
               {/* 일정 표시 (4x4 크기일 때만) */}
               {size === '4x4' && dayEvents.length > 0 && inCurrentMonth && (
@@ -488,26 +493,30 @@ export function CalendarWidget({
       </div>
 
       {/* 오늘 표시 */}
-      <div className={`${styles.todayText} text-center text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-800`}>
-        오늘: {today.getFullYear()}년 {today.getMonth() + 1}월 {today.getDate()}일 (
-        {weekdayFormatter.format(today)}요일)
-      </div>
+      {size !== '1x1' && (
+        <div className={`${styles.todayText} text-center text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-800`}>
+          오늘: {today.getFullYear()}년 {today.getMonth() + 1}월 {today.getDate()}일 (
+          {weekdayFormatter.format(today)}요일)
+        </div>
+      )}
 
       {/* 범례 */}
-      <div className={`flex items-center justify-center ${styles.legend} text-gray-500 dark:text-gray-400`}>
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-          <span>공휴일</span>
+      {size !== '1x1' && (
+        <div className={`flex items-center justify-center ${styles.legend} text-gray-500 dark:text-gray-400`}>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span>공휴일</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span>일요일</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span>토요일</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-          <span>일요일</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-          <span>토요일</span>
-        </div>
-      </div>
+      )}
 
       {/* 일정 추가/편집 폼 (4x4 크기일 때만) */}
       {size === '4x4' && showEventForm && (

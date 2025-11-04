@@ -8,10 +8,18 @@ interface GoogleAuthProps {
   onLogout?: () => void;
 }
 
+// 모바일 디바이스 감지
+const isMobileDevice = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase()) ||
+         (window.innerWidth <= 768);
+};
+
 export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => {
   const { user, loading, isAuthenticated } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [useRedirect, setUseRedirect] = useState(false);
+  const [useRedirect, setUseRedirect] = useState(isMobileDevice());
 
   // 앱 최초 로드 시 리다이렉트 결과 처리
   useEffect(() => {
@@ -30,7 +38,7 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
     handleRedirectResult();
   }, [onLogin]);
 
-  // Google 로그인 (팝업 우선, 실패 시 리다이렉트)
+  // Google 로그인 (모바일은 리다이렉트, 데스크톱은 팝업 우선)
   const handleGoogleLogin = async () => {
     if (isLoggingIn) return;
     
@@ -38,7 +46,14 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
       setIsLoggingIn(true);
       console.log('Google 로그인 시도...');
       
-      // 팝업 방식으로 먼저 시도
+      // 모바일이거나 이미 리다이렉트 모드인 경우 바로 리다이렉트
+      if (useRedirect || isMobileDevice()) {
+        console.log('리다이렉트 로그인 시도...');
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+      
+      // 데스크톱에서는 팝업 방식으로 먼저 시도
       if (!useRedirect) {
         try {
           const result = await signInWithPopup(auth, googleProvider);
@@ -56,8 +71,6 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
               popupError?.message?.includes('COOP')) {
             setUseRedirect(true);
             console.log('팝업이 차단되었습니다. 리다이렉트 방식으로 전환합니다...');
-            // 사용자에게 알림
-            alert('팝업이 차단되었습니다. 새 페이지로 이동하여 로그인을 완료해주세요.');
             await signInWithRedirect(auth, googleProvider);
             return;
           }
@@ -65,10 +78,6 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
           // 다른 오류는 그대로 전파
           throw popupError;
         }
-      } else {
-        // 리다이렉트 방식
-        console.log('리다이렉트 로그인 시도...');
-        await signInWithRedirect(auth, googleProvider);
       }
     } catch (error: any) {
       console.error('Google 로그인 실패:', error);

@@ -12,9 +12,10 @@ interface WidgetCardProps {
   compact?: boolean; // 프리뷰 모드: 헤더/패딩 최소화 (기본값 false)
   showHeader?: boolean; // 헤더 표시 여부 (프리뷰에서도 헤더 보이게 할 때 사용, 기본값은 !compact)
   headerVariant?: 'default' | 'compact'; // 헤더 스타일 (기본값 'default')
+  titleColor?: string; // 타이틀 색상 클래스 (예: 'text-blue-600')
 }
 
-export function WidgetCard({ widget, isEditMode, isPublic = false, onDelete, children, compact = false, showHeader, headerVariant = 'default' }: WidgetCardProps) {
+export function WidgetCard({ widget, isEditMode, isPublic = false, onDelete, children, compact = false, showHeader, headerVariant = 'default', titleColor }: WidgetCardProps) {
   // Public View에서는 모든 편집 기능 비활성화
   const canEdit = isEditMode && !isPublic;
   const {
@@ -127,12 +128,12 @@ export function WidgetCard({ widget, isEditMode, isPublic = false, onDelete, chi
               />
             )}
             <h3 
-              className="truncate overflow-hidden text-ellipsis"
+              className={`truncate overflow-hidden text-ellipsis ${titleColor || ''}`}
               style={{
                 fontSize: headerVariant === 'compact' ? '12px' : '13.5px',
                 lineHeight: '1.2',
                 fontWeight: 'var(--stealth-font-weight-header)',
-                color: 'var(--stealth-text-primary)',
+                color: titleColor ? undefined : 'var(--stealth-text-primary)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
