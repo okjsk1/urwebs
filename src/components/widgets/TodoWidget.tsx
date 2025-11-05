@@ -290,34 +290,12 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
     });
   }, [state.items, state.filter, state.showCompleted, state.sortBy]);
 
-  const completionStats = useMemo(() => {
-    const total = state.items.length;
-    const completed = state.items.filter(item => item.completed).length;
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-    
-    return { total, completed, remaining: total - completed, percentage };
-  }, [state.items]);
+  // 진행률/통계 계산 제거 (요청에 따라 UI 비표시)
+  const completionStats = useMemo(() => ({ total: 0, completed: 0, remaining: 0, percentage: 0 }), []);
 
   return (
     <div className="p-3 h-full flex flex-col">
-      {/* 완료율 표시 */}
-      <div className="mb-2 shrink-0">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-gray-600 dark:text-gray-400">진행률</span>
-          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-            {completionStats.percentage}%
-          </span>
-        </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-          <div 
-            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-            style={{ width: `${completionStats.percentage}%` }}
-          />
-        </div>
-        <div className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
-          {completionStats.completed} / {completionStats.total} 완료
-        </div>
-      </div>
+      {/* 진행률 표시 제거됨 */}
 
       {/* 편집 모드에서만 표시되는 필터 및 정렬 */}
       {isEditMode && (
@@ -550,10 +528,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
         </div>
       )}
 
-      {/* 통계 */}
-      <div className="text-center text-xs text-gray-500 mt-2">
-        완료: {completionStats.completed} | 남은: {completionStats.remaining}
-      </div>
+      {/* 통계 표시 제거됨 */}
     </div>
   );
 };

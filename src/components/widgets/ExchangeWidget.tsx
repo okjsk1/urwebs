@@ -345,33 +345,26 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
         </div>
       )}
 
-      {/* 환율 목록 - 컴팩트 버전 */}
+      {/* 환율 목록 - 미니멀 리스트 (국기 · 통화코드 · 굵은 가격 · 등락) */}
       <div className="flex-1 overflow-y-auto space-y-1">
         {filteredAndSortedRates.slice(0, 5).map(rate => {
+          const isUp = (rate.changePercent || 0) >= 0;
+          const code = rate.fromCurrency;
+          const flag = code === 'USD' ? '🇺🇸' : code === 'EUR' ? '🇪🇺' : code === 'JPY' ? '🇯🇵' : '🌐';
           return (
-            <div key={rate.id} className="bg-gray-50 dark:bg-gray-700 rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-              <div className="flex justify-between items-center">
-                <div className="flex-1">
-                  <div className="flex items-center gap-1 mb-1">
-                    <span className="text-xs font-medium text-gray-800 dark:text-gray-100">
-                      {rate.fromCurrency}/{rate.toCurrency}
-                    </span>
-                    {rate.isWatched && (
-                      <span className="text-xs text-blue-500">⭐</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(rate.lastUpdate).toLocaleTimeString()}
-                  </div>
+            <div key={rate.id} className="bg-white dark:bg-gray-800/80 rounded-xl px-3 py-2 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-base leading-none">{flag}</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{code}</span>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold text-gray-800 dark:text-gray-100">
-                    {formatFxRate(rate.rate, rate.fromCurrency, rate.toCurrency)}
+                <div className="flex items-center gap-3">
+                  <div className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-gray-100">
+                    {formatFxRate(rate.rate, rate.fromCurrency, rate.toCurrency)}<span className="text-sm font-semibold ml-0.5">원</span>
                   </div>
-                  <div className={`text-xs font-medium ${
-                    (rate.changePercent || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {formatChangePct(rate.changePercent || 0)}
+                  <div className={`flex items-center gap-1 text-sm font-semibold ${isUp ? 'text-red-600' : 'text-blue-600'}`}>
+                    <span className={`inline-block w-0 h-0 border-l-4 border-r-4 ${isUp ? 'border-t-0 border-b-6 border-b-red-600' : 'border-b-0 border-t-6 border-t-blue-600'}`} style={{ borderLeftColor: 'transparent', borderRightColor: 'transparent' }} />
+                    <span>{Math.abs(rate.changePercent || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

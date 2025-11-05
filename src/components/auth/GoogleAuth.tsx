@@ -38,13 +38,27 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout }) => 
     handleRedirectResult();
   }, [onLogin]);
 
-  // Google 로그인 (모바일은 리다이렉트, 데스크톱은 팝업 우선)
+  // 인앱 브라우저 감지
+  const isInAppBrowser = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    return /FBAN|FBAV|Instagram|NAVER|KAKAOTALK/i.test(ua);
+  };
+
+  // Google 로그인 (인앱 → 외부 브라우저 안내 및 리디렉션, 일반 → 리다이렉트/팝업)
   const handleGoogleLogin = async () => {
     if (isLoggingIn) return;
     
     try {
       setIsLoggingIn(true);
       console.log('Google 로그인 시도...');
+      
+      // 인앱 브라우저에서는 보안 정책으로 Google 로그인이 차단됨
+      if (isInAppBrowser()) {
+        alert('외부 브라우저(Chrome 등)에서 로그인해주세요.');
+        window.location.href = 'https://urwebs.com/login';
+        return;
+      }
       
       // 모바일이거나 이미 리다이렉트 모드인 경우 바로 리다이렉트
       if (useRedirect || isMobileDevice()) {

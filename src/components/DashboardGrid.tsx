@@ -209,13 +209,10 @@ export function SizePicker({
           { label: '2x2', w: 2, h: 2 },
           { label: '2x3', w: 2, h: 3 }
         ];
-      case 'image': // 이미지 위젯 - 1x1, 1x2, 2x1, 2x2, 3x2 허용
+      case 'image': // 이미지 위젯 - 2x2, 3x3만 허용
         return [
-          { label: '1x1', w: 1, h: 1 },
-          { label: '1x2', w: 1, h: 2 },
-          { label: '2x1', w: 2, h: 1 },
           { label: '2x2', w: 2, h: 2 },
-          { label: '3x2', w: 3, h: 2 }
+          { label: '3x3', w: 3, h: 3 }
         ];
       case 'dday': // D-Day 위젯 - 1x1, 1x2 허용
         return [

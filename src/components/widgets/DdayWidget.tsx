@@ -59,6 +59,11 @@ export function DdayWidget({
   const [showAddForm, setShowAddForm] = useState(false);
   const [quickInput, setQuickInput] = useState('');
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingDate, setEditingDate] = useState<string>('');
+  const yearRef = React.useRef<HTMLInputElement>(null);
+  const monthRef = React.useRef<HTMLInputElement>(null);
+  const dayRef = React.useRef<HTMLInputElement>(null);
 
   // 알림 권한 요청
   useEffect(() => {
@@ -329,35 +334,70 @@ export function DdayWidget({
                 type="text"
                 placeholder="제목"
                 className={`w-full ${isCompact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    const target = e.target as HTMLInputElement;
-                    if (target.value.trim()) {
-                      addItem({ title: target.value.trim() });
-                      target.value = '';
-                      setShowAddForm(false);
-                    }
-                  }
-                }}
               />
-              <div className={`flex ${isCompact ? 'gap-1' : 'gap-2'}`}>
+              <div className={`flex items-center ${isCompact ? 'gap-1' : 'gap-2'}`}>
                 <input
-                  type="date"
-                  className={`flex-1 ${isCompact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                  ref={yearRef}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="YYYY"
+                  className={`${isCompact ? 'w-14 px-1.5 py-0.5 text-[10px]' : 'w-16 px-2 py-1 text-xs'} text-center border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
                   onChange={(e) => {
-                    if (e.target.value) {
-                      const titleInput = e.currentTarget.parentElement?.previousElementSibling as HTMLInputElement;
-                      addItem({ 
-                        at: new Date(e.target.value).toISOString(),
-                        title: titleInput?.value || ''
-                      });
-                      if (titleInput) titleInput.value = '';
-                      setShowAddForm(false);
+                    const v = e.currentTarget.value.replace(/\D/g, '').slice(0, 4);
+                    e.currentTarget.value = v;
+                    if (v.length === 4) monthRef.current?.focus();
+                  }}
+                />
+                <span className="text-gray-500">-</span>
+                <input
+                  ref={monthRef}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={2}
+                  placeholder="MM"
+                  className={`${isCompact ? 'w-10 px-1.5 py-0.5 text-[10px]' : 'w-12 px-2 py-1 text-xs'} text-center border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                  onChange={(e) => {
+                    const v = e.currentTarget.value.replace(/\D/g, '').slice(0, 2);
+                    e.currentTarget.value = v;
+                    if (v.length === 2) dayRef.current?.focus();
+                  }}
+                />
+                <span className="text-gray-500">-</span>
+                <input
+                  ref={dayRef}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={2}
+                  placeholder="DD"
+                  className={`${isCompact ? 'w-10 px-1.5 py-0.5 text-[10px]' : 'w-12 px-2 py-1 text-xs'} text-center border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                  onChange={(e) => {
+                    const v = e.currentTarget.value.replace(/\D/g, '').slice(0, 2);
+                    e.currentTarget.value = v;
+                  }}
+                  onKeyUp={(e) => {
+                    if ((e.target as HTMLInputElement).value.length === 2) {
+                      const y = yearRef.current?.value || '';
+                      const m = monthRef.current?.value || '';
+                      const d = dayRef.current?.value || '';
+                      if (y.length === 4 && m.length === 2 && d.length === 2) {
+                        const titleInput = (yearRef.current?.parentElement?.previousElementSibling) as HTMLInputElement | null;
+                        const dateStr = `${y}-${m}-${d}`;
+                        const date = new Date(`${dateStr}T00:00:00`);
+                        if (!isNaN(date.getTime())) {
+                          addItem({ at: date.toISOString(), title: titleInput?.value || '' });
+                          if (titleInput) titleInput.value = '';
+                          setShowAddForm(false);
+                          yearRef.current && (yearRef.current.value = '');
+                          monthRef.current && (monthRef.current.value = '');
+                          dayRef.current && (dayRef.current.value = '');
+                        }
+                      }
                     }
                   }}
                 />
                 {!isCompact && (
-                  <select className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                  <select className="ml-auto px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                     {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
@@ -446,12 +486,38 @@ export function DdayWidget({
                       className={`${isCompact ? 'text-sm' : 'text-base'} font-bold ${item.dday.color}`}
                       style={item.dday.stealthColor ? { color: item.dday.stealthColor } : {}}
                     >
-                      {item.dday.isPast ? (
-                        <span>+{item.dday.days}일</span>
+                      {editingId === item.id ? (
+                        <input
+                          type="date"
+                          autoFocus
+                          value={editingDate}
+                          onChange={(e) => setEditingDate(e.target.value)}
+                          onBlur={() => {
+                            if (editingDate) {
+                              const date = new Date(`${editingDate}T00:00:00`);
+                              if (!isNaN(date.getTime())) {
+                                setState(prev => ({
+                                  ...prev,
+                                  items: prev.items.map(it => it.id === item.id ? { ...it, at: date.toISOString() } : it)
+                                }));
+                              }
+                            }
+                            setEditingId(null);
+                          }}
+                          className="px-2 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                      ) : item.dday.isPast ? (
+                        <button onClick={() => { setEditingId(item.id); setEditingDate(item.at.slice(0,10)); }} className="underline-offset-2 hover:underline">
+                          +{item.dday.days}일
+                        </button>
                       ) : item.dday.days === 0 ? (
-                        <span>D-Day</span>
+                        <button onClick={() => { setEditingId(item.id); setEditingDate(item.at.slice(0,10)); }} className="underline-offset-2 hover:underline">
+                          D-Day
+                        </button>
                       ) : (
-                        <span>D-{item.dday.days}</span>
+                        <button onClick={() => { setEditingId(item.id); setEditingDate(item.at.slice(0,10)); }} className="underline-offset-2 hover:underline">
+                          D-{item.dday.days}
+                        </button>
                       )}
                     </div>
                   </div>

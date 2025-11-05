@@ -829,6 +829,38 @@ export function MyPage() {
     setShowTemplateModal(false);
   };
 
+  // 툴바에서 바로 새 페이지를 추가하고 페이지 관리 열기
+  const addAndManageNewPage = () => {
+    const newPageId = `page${Date.now()}`;
+    const userId = currentUser?.email?.split('@')[0] || 'User';
+    const pageCount = pages.length + 1;
+    const pageTitle = pageCount === 1 
+      ? `${userId}님의 페이지`
+      : `${userId}님의 페이지 (${pageCount})`;
+
+    const newPage = {
+      id: newPageId,
+      title: pageTitle,
+      widgets: [],
+      createdAt: new Date().toISOString(),
+      isActive: true
+    } as any;
+
+    const updatedPages = pages.map(p => ({ ...p, isActive: false })).concat(newPage);
+    setPages(updatedPages);
+    setCurrentPageId(newPageId);
+    setPageTitle(pageTitle);
+    setWidgets([]);
+
+    if (currentUser) {
+      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
+    } else {
+      localStorage.setItem('myPages', JSON.stringify(updatedPages));
+    }
+
+    setShowPageManager(true);
+  };
+
   // MyPage 첫 로드 시 템플릿 미리 불러오기
   useEffect(() => {
     loadTemplates();
@@ -1459,11 +1491,12 @@ export function MyPage() {
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'image') {
-      // 이미지 위젯은 1x1, 1x2, 2x1, 2x2, 3x2 허용 (기본 1x1)
-      if (size === '1x1' || size === '1x2' || size === '2x1' || size === '2x2' || size === '3x2') {
-        widgetSize = size;
+      // 이미지 위젯은 2x2, 3x3만 허용 (기본 2x2)
+      const s = (size as any) as string;
+      if (s === '2x2' || s === '3x3') {
+        widgetSize = s as any;
       } else {
-        widgetSize = '1x1';
+        widgetSize = '2x2' as any;
       }
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
@@ -2675,7 +2708,7 @@ export function MyPage() {
       } else if (widget.type === 'news') {
         gridSize = { w: 2, h: 2 }; // 뉴스피드 위젯은 기본 2x2 (2x1, 2x2, 2x3 가능)
       } else if (widget.type === 'image') {
-        gridSize = { w: 1, h: 1 }; // 이미지 위젯 기본 1x1 (1x1, 1x2, 2x1, 2x2, 3x2 가능)
+        gridSize = { w: 2, h: 2 }; // 이미지 위젯 기본 2x2 (2x2, 3x3만 허용)
       } else {
         gridSize = { w: 1, h: 1 }; // 기본적으로 1x1
       }
@@ -3803,7 +3836,7 @@ export function MyPage() {
                 위젯 추가
               </Button>
 
-              {/* 페이지 관리 버튼 - Stealth 모드에서는 outline */}
+              {/* 페이지 관리 및 추가 버튼 - Stealth 모드에서는 outline */}
               <Button
                 variant={isStealthMode ? "outline" : "ghost"}
                 size="sm"
@@ -3824,6 +3857,23 @@ export function MyPage() {
               >
                 <FileText className={`w-4 h-4 mr-1 ${isStealthMode ? 'opacity-80' : ''}`} />
                 페이지 ({pages.length})
+              </Button>
+              <Button
+                variant={isStealthMode ? "outline" : "default"}
+                size="sm"
+                onClick={addAndManageNewPage}
+                className={isStealthMode 
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 font-medium"
+                  : "bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                }
+                title="페이지 추가"
+                style={isStealthMode ? {
+                  borderColor: 'var(--stealth-button-border)',
+                  backgroundColor: 'transparent',
+                  transition: 'all var(--stealth-transition-duration) var(--stealth-transition-easing)',
+                } : {}}
+              >
+                +페이지 추가
               </Button>
             
               {/* 저장하기 버튼 - Stealth 모드에서는 outline */}
@@ -3979,7 +4029,7 @@ export function MyPage() {
                 className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 h-7"
               >
                 <Plus className="w-3 h-3 mr-1" />
-                새 페이지
+                +페이지 추가
               </Button>
               <Button
                 size="sm"

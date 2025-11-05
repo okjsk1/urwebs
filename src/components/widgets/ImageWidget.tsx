@@ -42,11 +42,11 @@ const DEFAULT_STATE: ImageWidgetState = {
   items: [],
   mode: 'single',
   activeIndex: 0,
-  objectFit: 'cover',
+  objectFit: 'contain',
   rounded: 'xl',
   showCaption: false,
-  showShadow: true,
-  borderStyle: 'subtle',
+  showShadow: false,
+  borderStyle: 'none',
   autoplay: false,
   intervalMs: 5000,
   pauseOnHover: true,
@@ -75,13 +75,15 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
   const [isDragging, setIsDragging] = useState(null as any);
   const [dragOverId, setDragOverId] = useState(null as any);
   const [isDropActive, setIsDropActive] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([] as string[]);
+  
   
   const fileInputRef = useRef(null);
   const urlInputRef = useRef(null);
   const slideshowTimerRef = useRef(null as any);
   const containerRef = useRef(null);
   const lightboxRef = useRef(null);
+  const persistTimerRef = useRef(null as any);
+  const fileActionRef = useRef('add' as 'add' | 'replace');
   
   const widgetSize = useMemo(() => {
     const gridSize = (widget as any).gridSize;
@@ -94,11 +96,62 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
   }, [(widget as any).gridSize, (widget as any).size]);
   
   const isCompact = widgetSize.w === 1 && widgetSize.h === 1;
+  const [isWideLayout, setIsWideLayout] = useState(false);
 
-  // 상태 저장
+  // 실제 렌더 박스의 가로/세로를 기준으로 와이드 여부 판단
   useEffect(() => {
-    persistOrLocal(widget.id, state, updateWidget);
-  }, [widget.id, state, updateWidget]);
+    const el = containerRef.current as any;
+    if (!el) return;
+
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setIsWideLayout(rect.width > rect.height);
+    };
+    update();
+
+    const ResizeObs = (window as any).ResizeObserver;
+    const ro = ResizeObs ? new ResizeObs(() => update()) : null;
+    if (ro) ro.observe(el);
+
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      if (ro && el) ro.unobserve(el);
+    };
+  }, []);
+
+  // 상태 저장 (300ms 디바운스, 핵심 키 변경 시만)
+  useEffect(() => {
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current);
+    }
+    persistTimerRef.current = window.setTimeout(() => {
+      persistOrLocal(widget.id, state, updateWidget);
+    }, 300);
+
+    return () => {
+      if (persistTimerRef.current) {
+        clearTimeout(persistTimerRef.current);
+      }
+    };
+  }, [
+    widget.id,
+    updateWidget,
+    state.items,
+    state.mode,
+    state.activeIndex,
+    state.objectFit,
+    state.rounded,
+    state.showCaption,
+    state.showShadow,
+    state.borderStyle,
+    state.autoplay,
+    state.intervalMs,
+    state.pauseOnHover,
+    state.bgBlur,
+    state.grayscale,
+    state.muteGestures
+  ]);
 
   // 슬라이드쇼 자동 재생
   useEffect(() => {
@@ -135,22 +188,29 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     };
   }, [state.items]);
 
-  // 파일 업로드 처리
-  const handleFileUpload = useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  // 파일 업로드 처리 (유형 검증 완화 + HEIC/HEIF 안내 + 로깅)
+  const handleFileUpload = useCallback(async (filesInput: File[] | FileList | null) => {
+    const list = filesInput ? Array.from(filesInput as any) as File[] : [];
+    console.log('[ImageWidget] handleFileUpload start', list?.length || 0);
+    if (!list.length) return;
     
     const MAX_FILES = 20;
     const MAX_SIZE = 10 * 1024 * 1024; // 10MB
-    const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
     
     const validFiles: File[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!file.type.startsWith('image/') || !ALLOWED_TYPES.includes(file.type)) {
-        showToast(`지원하지 않는 형식입니다 (${file.name}). PNG/JPG/WebP만 업로드 가능`, 'error');
+    for (const file of list) {
+      if (!file.type || !file.type.startsWith('image/')) {
+        console.warn('[ImageWidget] rejected non-image', file);
+        showToast(`이미지 파일이 아닙니다 (${file.name})`, 'error');
+        continue;
+      }
+      if (/image\/heic|image\/heif/i.test(file.type)) {
+        console.warn('[ImageWidget] non-previewable (HEIC/HEIF?)', file.type);
+        showToast('HEIC/HEIF는 브라우저 미리보기가 어려워요. JPG/PNG/WebP로 변환해 주세요.', 'info');
         continue;
       }
       if (file.size > MAX_SIZE) {
+        console.warn('[ImageWidget] oversized', file.size);
         showToast(`파일이 너무 큽니다 (${file.name}). 최대 10MB`, 'error');
         continue;
       }
@@ -168,7 +228,6 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     
     try {
       for (const file of validFiles) {
-        // EXIF 방향 보정은 간단히 pass (필요시 createImageBitmap 사용 가능)
         const blobUrl = URL.createObjectURL(file);
         newItems.push({
           id: generateId(),
@@ -177,6 +236,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
           createdAt: Date.now()
         });
       }
+      console.log('[ImageWidget] added items', newItems.length);
       
       setState(prev => ({
         ...prev,
@@ -192,6 +252,49 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       setIsUploading(false);
     }
   }, [state.items.length]);
+
+  // 단일 파일 교체 처리 (현재 활성 이미지 교체)
+  const handleReplaceFile = useCallback(async (file: File | undefined | null) => {
+    if (!file) return;
+    console.log('[ImageWidget] replace start');
+    if (!file.type || !file.type.startsWith('image/')) {
+      console.warn('[ImageWidget] replace rejected non-image', file);
+      showToast(`이미지 파일이 아닙니다 (${file.name})`, 'error');
+      return;
+    }
+    if (/image\/heic|image\/heif/i.test(file.type)) {
+      console.warn('[ImageWidget] replace non-previewable (HEIC/HEIF?)', file.type);
+      showToast('HEIC/HEIF는 브라우저 미리보기가 어려워요. JPG/PNG/WebP로 변환해 주세요.', 'info');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      console.warn('[ImageWidget] replace oversized', file.size);
+      showToast(`파일이 너무 큽니다 (${file.name}). 최대 10MB`, 'error');
+      return;
+    }
+
+    const blobUrl = URL.createObjectURL(file);
+    setState(prev => {
+      if (prev.items.length === 0) {
+        return {
+          ...prev,
+          items: [
+            { id: generateId(), src: blobUrl, caption: '', createdAt: Date.now() }
+          ],
+          activeIndex: 0,
+          lastUpdated: Date.now()
+        };
+      }
+      const idx = Math.min(Math.max(prev.activeIndex, 0), prev.items.length - 1);
+      const old = prev.items[idx];
+      if (old?.src?.startsWith('blob:')) {
+        try { URL.revokeObjectURL(old.src); } catch {}
+      }
+      const newItems = prev.items.map((it, i) => i === idx ? { ...it, src: blobUrl, createdAt: Date.now() } : it);
+      return { ...prev, items: newItems, lastUpdated: Date.now() };
+    });
+    showToast('사진을 교체했습니다.', 'success');
+  }, []);
 
   // 유틸: 이미지 로드
   const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -266,46 +369,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     }
   }, []);
 
-  // 선택 토글/전체선택/해제
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  }, []);
-  const selectAll = useCallback(() => {
-    setSelectedIds(state.items.map(i => i.id));
-  }, [state.items]);
-  const clearSelection = useCallback(() => setSelectedIds([]), []);
-
-  // 일괄 삭제
-  const batchDeleteSelected = useCallback(() => {
-    if (selectedIds.length === 0) return;
-    setState(prev => {
-      prev.items.forEach(i => { if (selectedIds.includes(i.id) && i.src.startsWith('blob:')) URL.revokeObjectURL(i.src); });
-      const remaining = prev.items.filter(i => !selectedIds.includes(i.id));
-      return {
-        ...prev,
-        items: remaining,
-        activeIndex: Math.min(prev.activeIndex, Math.max(0, remaining.length - 1)),
-        lastUpdated: Date.now()
-      };
-    });
-    setSelectedIds([]);
-    showToast('선택한 이미지를 삭제했습니다.', 'success');
-  }, [selectedIds]);
-
-  // 일괄 다운로드
-  const batchDownloadSelected = useCallback(() => {
-    if (selectedIds.length === 0) return;
-    const targets = state.items.filter(i => selectedIds.includes(i.id));
-    targets.forEach((item, idx) => {
-      const a = document.createElement('a');
-      a.href = item.src;
-      a.download = `photo_${idx + 1}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    });
-    showToast('선택한 이미지를 다운로드했습니다.', 'success');
-  }, [selectedIds, state.items]);
+  // 선택/일괄 기능 제거됨
 
   // URL로 추가
   const handleAddByUrl = useCallback(() => {
@@ -529,13 +593,13 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
                 파일 선택
               </button>
               <div className="flex gap-2">
-                <input
-                  ref={urlInputRef}
-                  type="text"
-                  placeholder="https://..."
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddByUrl()}
-                />
+              <input
+                ref={urlInputRef}
+                type="text"
+                placeholder="https://..."
+                className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddByUrl()}
+              />
                 <button
                   onClick={handleAddByUrl}
                   className="px-4 py-2 bg-gray-100 dark:bg-[var(--input-background)] text-gray-700 dark:text-[var(--foreground)] rounded-lg hover:bg-gray-200 dark:hover:bg-[var(--accent)] transition-colors text-sm flex items-center gap-1"
@@ -550,8 +614,23 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
               ref={fileInputRef}
               type="file"
               multiple
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              onChange={(e) => handleFileUpload(e.target.files)}
+              accept="image/*"
+      onChange={(e) => {
+        const list = e.currentTarget.files;
+        if (!list || list.length === 0) return;
+        const files = Array.from(list);
+        const action = fileActionRef.current || 'add';
+        if (action === 'replace' && state.items.length > 0) {
+          // 교체: 첫 번째 유효 이미지 1장만 사용
+          (async () => {
+            const picked = files[0];
+            await handleReplaceFile(picked);
+          })();
+        } else {
+          handleFileUpload(files as any);
+        }
+        e.currentTarget.value = '';
+      }}
               className="hidden"
             />
           </>
@@ -575,6 +654,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
         if (!isEditMode) return;
         if (!e.dataTransfer) return;
         e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
         setIsDropActive(true);
       }}
       onDragLeave={(e) => {
@@ -585,8 +665,9 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
         if (!isEditMode) return;
         e.preventDefault();
         setIsDropActive(false);
-        if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-          handleFileUpload(e.dataTransfer.files);
+        const dt = e.dataTransfer;
+        if (dt?.files && dt.files.length > 0) {
+          handleFileUpload(Array.from(dt.files) as any);
         }
       }}
       onMouseEnter={() => {
@@ -611,8 +692,14 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/png,image/jpeg,image/jpg,image/webp"
-        onChange={(e) => handleFileUpload(e.target.files)}
+        accept="image/*"
+        onChange={(e) => {
+          const list = e.currentTarget.files;
+          if (!list || list.length === 0) return;
+          const files = Array.from(list);
+          handleFileUpload(files as any);
+          e.currentTarget.value = '';
+        }}
         className="hidden"
       />
 
@@ -635,6 +722,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
               } else {
                 e.preventDefault();
                 e.stopPropagation();
+                fileActionRef.current = 'add';
                 fileInputRef.current?.click();
               }
             }}
@@ -658,83 +746,27 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
           </div>
         )}
 
-        <img
-          src={currentItem.src}
-          alt={currentItem.caption || '사진'}
-          className={`w-full h-full ${objectFitClass} ${roundedClass} ${borderClass} ${shadowClass} transition-all duration-300 ${!state.muteGestures ? 'cursor-pointer' : ''}`}
-          loading="lazy"
-          onError={(e) => {
-            console.error('이미지 로드 실패:', currentItem.src);
-            (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iI0Y3RjNGNiIvPgo8cGF0aCBkPSJNMTYgMTBMMTIgMThIMjBMMTYgMTBaIiBmaWxsPSIjNkI3MjgwIi8+Cjwvc3ZnPgo=';
-          }}
-          onClick={() => !isEditMode && openLightbox(state.activeIndex)}
-          draggable={false}
-        />
+        <div className="w-full h-full flex items-center justify-center">
+          <img
+            src={currentItem.src}
+            alt={currentItem.caption || '사진'}
+            className={`max-w-full max-h-full object-contain object-center ${roundedClass} ${borderClass} ${shadowClass} transition-all duration-300 ${!state.muteGestures ? 'cursor-pointer' : ''}`}
+            loading="lazy"
+            onError={(e) => {
+              console.error('이미지 로드 실패:', currentItem.src);
+              console.log('[ImageWidget] state summary', { count: state.items.length, activeIndex: state.activeIndex });
+              (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iI0Y3RjNGNiIvPgo8cGF0aCBkPSJNMTYgMTBMMTIgMThIMjBMMTYgMTBaIiBmaWxsPSIjNkI3MjgwIi8+Cjwvc3ZnPgo=';
+            }}
+            onClick={() => !isEditMode && openLightbox(state.activeIndex)}
+            draggable={false}
+          />
+        </div>
 
-        {/* 네비게이션 버튼 (hover 시 표시) */}
-        {!isEditMode && state.items.length > 1 && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                goPrevious();
-              }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 hover:opacity-100 transition-opacity z-10"
-              aria-label="이전 이미지"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                goNext();
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 hover:opacity-100 transition-opacity z-10"
-              aria-label="다음 이미지"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </>
-        )}
+        {/* 네비게이션 버튼 숨김 */}
 
-        {/* 인디케이터 (슬라이드쇼 모드) */}
-        {!isEditMode && state.mode === 'slideshow' && state.items.length > 1 && !isCompact && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-            {state.items.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setState(prev => ({ ...prev, activeIndex: index }))}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === state.activeIndex 
-                    ? 'bg-white' 
-                    : 'bg-white/40 hover:bg-white/60'
-                }`}
-                aria-label={`이미지 ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
+        {/* 인디케이터 숨김 */}
 
-        {/* 썸네일 스트립: 2x2 이상 & 이미지 2장 이상일 때 */}
-        {widgetSize.w >= 2 && widgetSize.h >= 2 && state.items.length > 1 && (
-          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 max-w-[95%] bg-black/35 rounded-full px-2 py-1 z-10">
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-              {state.items.slice(0, 10).map((item, idx) => (
-                <button
-                  key={item.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setState(prev => ({ ...prev, activeIndex: idx }));
-                  }}
-                  aria-label={`썸네일 ${idx + 1}`}
-                  className={`relative w-7 h-7 rounded-md overflow-hidden ring-1 ${idx === state.activeIndex ? 'ring-white' : 'ring-white/40 hover:ring-white/70'}`}
-                >
-                  <img src={item.src} alt="썸네일" className="w-full h-full object-cover" loading="lazy" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* 썸네일 스트립 숨김 */}
 
         {/* 캡션 (하단) */}
         {state.showCaption && currentItem.caption && (
@@ -747,32 +779,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       {/* 편집 모드: 설정 패널 */}
       {isEditMode && (
         <div className="border-t border-gray-200 dark:border-[var(--border)] bg-white dark:bg-[var(--card)] p-2 space-y-2 max-h-40 overflow-y-auto scrollbar-none">
-          {/* 일괄 작업 바 */}
-          {state.items.length > 0 && (
-            <div className="flex items-center gap-2 text-xs">
-              <label className="flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.length > 0 && selectedIds.length === state.items.length}
-                  onChange={(e) => (e.target.checked ? selectAll() : clearSelection())}
-                />
-                <span>전체 선택</span>
-              </label>
-              <span className="text-gray-500">{selectedIds.length} 선택됨</span>
-              <div className="ml-auto flex items-center gap-2">
-                <button
-                  onClick={batchDeleteSelected}
-                  className="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-40"
-                  disabled={selectedIds.length === 0}
-                >삭제</button>
-                <button
-                  onClick={batchDownloadSelected}
-                  className="px-2 py-1 rounded bg-gray-800 text-white hover:bg-gray-900 disabled:opacity-40"
-                  disabled={selectedIds.length === 0}
-                >다운로드</button>
-              </div>
-            </div>
-          )}
+          {/* 일괄 작업 바 제거됨 */}
           {/* 기본 설정 */}
           <div className="flex items-center gap-2 text-xs">
             <button
@@ -786,220 +793,78 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
               {state.items.length}장
             </span>
             {state.items.length > 0 && (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="ml-auto px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="w-3 h-3 inline mr-1" />
-                추가
-              </button>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    fileActionRef.current = 'add';
+                    fileInputRef.current?.click();
+                  }}
+                  className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-3 h-3 inline mr-1" />
+                  추가
+                </button>
+                <button
+                  onClick={() => {
+                    fileActionRef.current = 'replace';
+                    fileInputRef.current?.click();
+                  }}
+                  className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-900 transition-colors"
+                  title="현재 사진 교체"
+                >
+                  교체
+                </button>
+              </div>
             )}
           </div>
 
-          {/* 설정 패널 (확장) */}
+          {/* 설정 패널 (축소: 모드/자동재생만 유지) */}
           {showSettings && (
             <div className="space-y-2 text-xs border-t pt-2">
-              <div className="grid grid-cols-2 gap-2">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={state.showCaption}
-                    onChange={(e) => toggleSetting('showCaption', e.target.checked)}
-                    className="w-4 h-4"
-                  />
-                  <span>캡션 표시</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={state.showShadow}
-                    onChange={(e) => toggleSetting('showShadow', e.target.checked)}
-                    className="w-4 h-4"
-                  />
-                  <span>그림자</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={state.bgBlur}
-                    onChange={(e) => toggleSetting('bgBlur', e.target.checked)}
-                    className="w-4 h-4"
-                  />
-                  <span>배경 블러</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={state.grayscale}
-                    onChange={(e) => toggleSetting('grayscale', e.target.checked)}
-                    className="w-4 h-4"
-                  />
-                  <span>그레이스케일</span>
-                </label>
-              </div>
-
               {state.items.length > 1 && (
-                <>
-                  <div>
-                    <label className="block text-xs mb-1">모드</label>
-                    <select
-                      value={state.mode}
-                      onChange={(e) => toggleSetting('mode', e.target.value)}
-                      className="w-full px-2 py-1 text-xs border rounded bg-white dark:bg-[var(--input-background)] text-gray-900 dark:text-[var(--foreground)]"
-                    >
-                      <option value="single">단일</option>
-                      <option value="slideshow">슬라이드쇼</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-xs mb-1">모드</label>
+                  <select
+                    value={state.mode}
+                    onChange={(e) => toggleSetting('mode', e.target.value)}
+                    className="w-full px-2 py-1 text-xs border rounded bg-white dark:bg-[var(--input-background)] text-gray-900 dark:text-[var(--foreground)]"
+                  >
+                    <option value="single">단일</option>
+                    <option value="slideshow">슬라이드쇼</option>
+                  </select>
+                </div>
+              )}
 
-                  {state.mode === 'slideshow' && (
-                    <>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={state.autoplay}
-                          onChange={(e) => toggleSetting('autoplay', e.target.checked)}
-                          className="w-4 h-4"
-                        />
-                        <span>자동 재생</span>
-                      </label>
-                      {state.autoplay && (
-                        <div>
-                          <label className="block text-xs mb-1">간격 (초)</label>
-                          <input
-                            type="range"
-                            min="3"
-                            max="20"
-                            value={state.intervalMs / 1000}
-                            onChange={(e) => toggleSetting('intervalMs', Number(e.target.value) * 1000)}
-                            className="w-full"
-                          />
-                        </div>
-                      )}
-                    </>
+              {state.items.length > 1 && state.mode === 'slideshow' && (
+                <>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={state.autoplay}
+                      onChange={(e) => toggleSetting('autoplay', e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span>자동 재생</span>
+                  </label>
+                  {state.autoplay && (
+                    <div>
+                      <label className="block text-xs mb-1">간격 (초)</label>
+                      <input
+                        type="range"
+                        min="3"
+                        max="20"
+                        value={state.intervalMs / 1000}
+                        onChange={(e) => toggleSetting('intervalMs', Number(e.target.value) * 1000)}
+                        className="w-full"
+                      />
+                    </div>
                   )}
                 </>
               )}
-
-              <div>
-                <label className="block text-xs mb-1">모서리</label>
-                <select
-                  value={state.rounded}
-                  onChange={(e) => toggleSetting('rounded', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border rounded bg-white dark:bg-[var(--input-background)]"
-                >
-                  <option value="none">없음</option>
-                  <option value="md">보통</option>
-                  <option value="xl">둥글게</option>
-                  <option value="full">원형</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs mb-1">테두리</label>
-                <select
-                  value={state.borderStyle}
-                  onChange={(e) => toggleSetting('borderStyle', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border rounded bg-white dark:bg-[var(--input-background)]"
-                >
-                  <option value="none">없음</option>
-                  <option value="subtle">얇게</option>
-                  <option value="strong">굵게</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs mb-1">비율 조정</label>
-                <select
-                  value={state.objectFit}
-                  onChange={(e) => toggleSetting('objectFit', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border rounded bg-white dark:bg-[var(--input-background)]"
-                >
-                  <option value="cover">커버</option>
-                  <option value="contain">포함</option>
-                  <option value="fill">채우기</option>
-                </select>
-              </div>
             </div>
           )}
 
-          {/* 이미지 목록 (편집 모드) */}
-          {state.items.length > 0 && (
-            <div className="space-y-1 max-h-24 overflow-y-auto scrollbar-none">
-              {state.items.map((item, index) => (
-                <div
-                  key={item.id}
-                  draggable={isEditMode}
-                  onDragStart={() => handleDragStart(item.id)}
-                  onDragOver={(e) => handleDragOver(e, item.id)}
-                  onDrop={(e) => handleDrop(e, item.id)}
-                  className={`flex items-center gap-2 p-1.5 rounded border border-gray-200 dark:border-[var(--border)] bg-white dark:bg-[var(--input-background)] ${
-                    dragOverId === item.id ? 'ring-2 ring-blue-500' : ''
-                  } ${index === state.activeIndex ? 'bg-blue-50 dark:bg-[var(--accent)]' : ''}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(item.id)}
-                    onChange={() => toggleSelect(item.id)}
-                    className="w-4 h-4"
-                    aria-label="선택"
-                  />
-                  <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
-                  <img
-                    src={item.src}
-                    alt="썸네일"
-                    className="w-8 h-8 object-cover rounded"
-                    loading="lazy"
-                  />
-                  <button
-                    onClick={() => rotateImage(item, 90)}
-                    className="p-1 rounded bg-gray-100 dark:bg-[var(--accent)] text-gray-700 dark:text-[var(--foreground)]"
-                    title="90° 회전"
-                  >
-                    <RotateCw className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={() => cropImageCenterSquare(item)}
-                    className="p-1 rounded bg-gray-100 dark:bg-[var(--accent)] text-gray-700 dark:text-[var(--foreground)]"
-                    title="정사각형 크롭"
-                  >
-                    <ImageIcon className="w-3 h-3" />
-                  </button>
-                  <input
-                    type="text"
-                    value={item.caption || ''}
-                    onChange={(e) => {
-                      setState(prev => ({
-                        ...prev,
-                        items: prev.items.map(i => 
-                          i.id === item.id ? { ...i, caption: e.target.value } : i
-                        ),
-                        lastUpdated: Date.now()
-                      }));
-                    }}
-                    placeholder="캡션..."
-                    className="flex-1 px-2 py-0.5 text-xs border rounded bg-white dark:bg-[var(--card)] text-gray-900 dark:text-[var(--foreground)]"
-                  />
-                  <button
-                    onClick={() => {
-                      setState(prev => ({ ...prev, activeIndex: index }));
-                    }}
-                    className={`p-1 rounded ${index === state.activeIndex ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-[var(--accent)] text-gray-600 dark:text-[var(--foreground)]'}`}
-                    title="선택"
-                  >
-                    <Edit2 className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-1 rounded bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                    title="삭제"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* 이미지 목록 (편집 모드) 제거됨 */}
         </div>
       )}
 
