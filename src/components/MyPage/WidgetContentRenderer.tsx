@@ -218,15 +218,7 @@ export function WidgetContentRenderer({
           onPin={() => {}}
         />;
 
-      case 'news_summary':
-        return <NewsSummaryWidget 
-          id={widget.id}
-          title={widget.title || '뉴스 요약'}
-          size={widget.gridSize?.h === 1 ? 's' : widget.gridSize?.h === 2 ? 'm' : 'l'}
-          onRemove={() => {}}
-          onResize={() => {}}
-          onPin={() => {}}
-        />;
+      
 
       case 'dday':
         return <DdayWidget 

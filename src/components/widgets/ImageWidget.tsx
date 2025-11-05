@@ -72,6 +72,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percentage: 0 });
   const [isDragging, setIsDragging] = useState(null as any);
   const [dragOverId, setDragOverId] = useState(null as any);
   const [isDropActive, setIsDropActive] = useState(false);
@@ -224,10 +225,12 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     }
     
     setIsUploading(true);
+    setUploadProgress({ current: 0, total: validFiles.length, percentage: 0 });
     const newItems: PhotoItem[] = [];
     
     try {
-      for (const file of validFiles) {
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
         const blobUrl = URL.createObjectURL(file);
         newItems.push({
           id: generateId(),
@@ -235,6 +238,26 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
           caption: '',
           createdAt: Date.now()
         });
+        
+        // 진행률 업데이트 (3% 단위로 표시)
+        const current = i + 1;
+        const rawPercentage = (current / validFiles.length) * 100;
+        // 3% 단위로 반올림 (0, 3, 6, 9, ..., 96, 99, 100)
+        let roundedPercentage = Math.floor(rawPercentage / 3) * 3;
+        // 마지막 파일은 100%로 표시
+        if (current === validFiles.length) {
+          roundedPercentage = 100;
+        }
+        setUploadProgress({ 
+          current, 
+          total: validFiles.length, 
+          percentage: roundedPercentage 
+        });
+        
+        // UI 업데이트를 위한 작은 딜레이 (너무 빠르면 진행률을 볼 수 없음)
+        if (i < validFiles.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
       }
       console.log('[ImageWidget] added items', newItems.length);
       
@@ -250,6 +273,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       showToast('이미지 업로드에 실패했습니다.', 'error');
     } finally {
       setIsUploading(false);
+      setUploadProgress({ current: 0, total: 0, percentage: 0 });
     }
   }, [state.items.length]);
 
@@ -273,27 +297,53 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       return;
     }
 
-    const blobUrl = URL.createObjectURL(file);
-    setState(prev => {
-      if (prev.items.length === 0) {
-        return {
-          ...prev,
-          items: [
-            { id: generateId(), src: blobUrl, caption: '', createdAt: Date.now() }
-          ],
-          activeIndex: 0,
-          lastUpdated: Date.now()
-        };
+    setIsUploading(true);
+    setUploadProgress({ current: 0, total: 1, percentage: 0 });
+    
+    try {
+      // 진행률 단계별 표시 (3% 단위: 0%, 3%, 6%, ..., 99%, 100%)
+      const steps = [0, 30, 60, 90, 100];
+      for (let step = 0; step < steps.length; step++) {
+        const percentage = steps[step];
+        setUploadProgress({ current: 0, total: 1, percentage });
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        // 중간 단계에서 실제 처리
+        if (step === 2) {
+          const blobUrl = URL.createObjectURL(file);
+          setState(prev => {
+            if (prev.items.length === 0) {
+              return {
+                ...prev,
+                items: [
+                  { id: generateId(), src: blobUrl, caption: '', createdAt: Date.now() }
+                ],
+                activeIndex: 0,
+                lastUpdated: Date.now()
+              };
+            }
+            const idx = Math.min(Math.max(prev.activeIndex, 0), prev.items.length - 1);
+            const old = prev.items[idx];
+            if (old?.src?.startsWith('blob:')) {
+              try { URL.revokeObjectURL(old.src); } catch {}
+            }
+            const newItems = prev.items.map((it, i) => i === idx ? { ...it, src: blobUrl, createdAt: Date.now() } : it);
+            return { ...prev, items: newItems, lastUpdated: Date.now() };
+          });
+        }
       }
-      const idx = Math.min(Math.max(prev.activeIndex, 0), prev.items.length - 1);
-      const old = prev.items[idx];
-      if (old?.src?.startsWith('blob:')) {
-        try { URL.revokeObjectURL(old.src); } catch {}
-      }
-      const newItems = prev.items.map((it, i) => i === idx ? { ...it, src: blobUrl, createdAt: Date.now() } : it);
-      return { ...prev, items: newItems, lastUpdated: Date.now() };
-    });
-    showToast('사진을 교체했습니다.', 'success');
+      
+      setUploadProgress({ current: 1, total: 1, percentage: 100 });
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      showToast('사진을 교체했습니다.', 'success');
+    } catch (error) {
+      console.error('이미지 교체 실패:', error);
+      showToast('이미지 교체에 실패했습니다.', 'error');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress({ current: 0, total: 0, percentage: 0 });
+    }
   }, []);
 
   // 유틸: 이미지 로드
@@ -742,7 +792,20 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
         )}
         {isUploading && (
           <div className="absolute inset-0 bg-white/80 dark:bg-black/80 flex items-center justify-center z-10">
-            <div className="text-sm text-gray-600 dark:text-[var(--foreground)]">업로드 중...</div>
+            <div className="text-center space-y-2">
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                업로드 중... {uploadProgress.current}/{uploadProgress.total}
+              </div>
+              <div className="w-48 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 dark:bg-blue-400 transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress.percentage}%` }}
+                />
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {uploadProgress.percentage}%
+              </div>
+            </div>
           </div>
         )}
 

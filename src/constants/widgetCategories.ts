@@ -37,7 +37,6 @@ export const widgetCategories: Record<string, WidgetCategory> = {
     name: '정보 & 뉴스',
     widgets: [
       { type: 'news', name: '뉴스 피드', icon: Globe, description: '최신 뉴스 및 관심사' },
-      { type: 'news_summary', name: '뉴스 요약', icon: Newspaper, description: 'RSS 피드 요약 및 필터링' },
       { type: 'weather', name: '날씨 정보', icon: Cloud, description: '실시간 날씨 정보' },
       { type: 'unified_search', name: '통합검색', icon: Search, description: '여러 검색 엔진 통합 검색' },
       { type: 'google_search', name: '구글 검색', icon: Search, description: '구글 검색 바로가기' },
