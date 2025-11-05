@@ -180,7 +180,7 @@ export function WeatherWide({ state, isEditMode, setState, updateLocation, detec
                   </div>
                   {/* 시간별 예보 (간략) */}
                   <div className="flex items-center gap-2 ml-auto">
-                    {state.hourlyForecast.slice(0, width === 2 ? 4 : 6).map((hour, index) => (
+                    {state.hourlyForecast.filter((_, i) => i % 3 === 0).slice(0, width === 2 ? 4 : 6).map((hour, index) => (
                       <div key={index} className="text-center">
                         <div className="text-[8px] text-gray-500 dark:text-gray-400">
                           {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit' })}
@@ -215,7 +215,7 @@ export function WeatherWide({ state, isEditMode, setState, updateLocation, detec
                     <div className="flex-shrink-0 ml-auto">
                       <div className="text-[10px] font-semibold mb-1 text-gray-900 dark:text-gray-100">시간별</div>
                       <div className={`grid ${width === 2 ? 'grid-cols-4' : 'grid-cols-6'} gap-1`}>
-                        {state.hourlyForecast.slice(0, width === 2 ? 4 : 6).map((hour, index) => (
+                        {state.hourlyForecast.filter((_, i) => i % 3 === 0).slice(0, width === 2 ? 4 : 6).map((hour, index) => (
                           <div key={index} className="text-center">
                             <div className="text-[9px] text-gray-500 dark:text-gray-400">
                               {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit' })}

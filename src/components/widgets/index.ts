@@ -11,6 +11,7 @@ export { CryptoWidget } from './CryptoWidget';
 export { EconomicCalendarWidget } from './EconomicCalendarWidget';
 export { QRCodeWidget } from './QRCodeWidget';
 export { UnifiedSearchWidget } from './UnifiedSearchWidget';
+export { MarketIndexWidget } from './MarketIndexWidget';
 
 // 새로운 위젯들
 export { TimerWidget } from './TimerWidget';

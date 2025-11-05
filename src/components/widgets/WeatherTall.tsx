@@ -169,7 +169,7 @@ export function WeatherTall({ state, isEditMode, setState, updateLocation, detec
             {/* 시간별 예보 */}
             <div className="flex-1 overflow-y-auto min-h-0">
               <div className="grid grid-cols-4 gap-1">
-                {state.hourlyForecast.slice(0, 8).map((hour, index) => (
+                {state.hourlyForecast.filter((_, i) => i % 3 === 0).slice(0, 8).map((hour, index) => (
                   <div key={index} className="text-center">
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit' })}

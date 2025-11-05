@@ -478,9 +478,9 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
       {/* 검색 폼 */}
       <form onSubmit={(e) => handleSearch(e, undefined)} className="flex-1 flex flex-col">
         <div className="relative w-full">
-          <div className="flex items-center bg-white dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600 rounded-full shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-blue-500">
+          <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full shadow-sm transition-shadow focus-within:ring-2 focus-within:ring-blue-500 px-2 py-1">
             {/* 검색 아이콘 */}
-            <SearchIcon className="w-4 h-4 text-gray-400 ml-3 flex-shrink-0" />
+            <SearchIcon className="w-4 h-4 text-gray-400 ml-1 flex-shrink-0" />
             
             {/* 입력 필드 */}
             <input
@@ -542,7 +542,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                 }
               }}
               placeholder={`${selectedEngineData.name} 검색`}
-              className="flex-1 px-2 py-1.25 text-sm border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
+              className="flex-1 px-2 py-0.5 text-sm border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
               aria-label={`${selectedEngineData.name}에서 검색하기`}
             aria-invalid={inputError ? 'true' : 'false'}
             aria-describedby={inputError ? `search-error-${widget.id}` : undefined}
@@ -568,7 +568,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
             <button
               type="button"
               onClick={() => setShowSettings(!showSettings)}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full mr-1 transition-colors"
+              className="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full mr-1 transition-colors"
               aria-label="설정"
             >
               <Settings className="w-3.5 h-3.5 text-gray-500" />
@@ -577,7 +577,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
             {/* 검색 버튼 */}
             <button
               type="submit"
-              className="p-1 rounded-r-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-0.5 rounded-r-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               aria-label="검색 실행"
             >
               <SearchIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />

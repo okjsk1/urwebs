@@ -187,7 +187,7 @@ export function WeatherFull({ state, isEditMode, setState, updateLocation, detec
             <div className="mb-4">
               <div className="text-sm font-semibold mb-3 text-gray-900 dark:text-gray-100">시간별 예보</div>
               <div className="grid grid-cols-4 gap-2">
-                {state.hourlyForecast.slice(0, 8).map((hour, index) => (
+                {state.hourlyForecast.filter((_, i) => i % 3 === 0).slice(0, 8).map((hour, index) => (
                   <div key={index} className="text-center space-y-1">
                     <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">
                       {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit' })}

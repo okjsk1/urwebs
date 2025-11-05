@@ -306,8 +306,8 @@ export function DdayWidget({
       variant="bare"
     >
       <div className={`flex flex-col min-h-0 h-full ${isCompact ? 'p-1' : ''}`}>
-        {/* 빠른 추가 */}
-        <div className={`${isCompact ? 'mb-1' : 'mb-2'} flex-shrink-0`}>
+        {/* 빠른 추가 (1x1에서도 항상 표시) */}
+        <div className={`mb-2 flex-shrink-0`}>
           <div className={`flex ${isCompact ? 'gap-1' : 'gap-2'}`}>
             <input
               type="text"
@@ -319,7 +319,7 @@ export function DdayWidget({
             />
             <button
               onClick={() => setShowAddForm(!showAddForm)}
-              className={`${isCompact ? 'px-1.5 py-0.5' : 'px-2 py-1'} bg-green-600 text-white rounded hover:bg-green-700 focus:ring-2 focus:ring-green-200 flex-shrink-0`}
+              className={`px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 focus:ring-2 focus:ring-green-200 flex-shrink-0`}
             >
               <Plus className={isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
             </button>

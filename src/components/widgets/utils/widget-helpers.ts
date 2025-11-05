@@ -264,3 +264,16 @@ export const showToast = (message: string, type: 'success' | 'error' | 'info' = 
     toast.remove();
   }, 3000);
 };
+
+// 위젯 모음(컬렉션) 관리
+export const addToWidgetCollection = (widgetType: string) => {
+  try {
+    const key = 'widget_collection';
+    const raw = localStorage.getItem(key);
+    const list: string[] = raw ? JSON.parse(raw) : [];
+    if (!list.includes(widgetType)) {
+      const updated = [...list, widgetType];
+      localStorage.setItem(key, JSON.stringify(updated));
+    }
+  } catch {}
+};

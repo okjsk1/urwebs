@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { TrendingUp, TrendingDown, Globe, Bell, Plus, Settings, RefreshCw, Wifi, WifiOff } from 'lucide-react';
-import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
+import { WidgetProps, persistOrLocal, readLocal, showToast, addToWidgetCollection } from './utils/widget-helpers';
 
 interface ExchangeRate {
   id: string;
@@ -102,6 +102,13 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
     if (!saved.status) {
       saved.status = 'live';
     }
+    // 기본 정렬: USD, JPY 우선
+    saved.rates = (saved.rates || []).sort((a: any, b: any) => {
+      const order = ['USD', 'JPY'];
+      const ai = order.indexOf(a.fromCurrency);
+      const bi = order.indexOf(b.fromCurrency);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
     return saved;
   });
 
@@ -109,6 +116,11 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
   useEffect(() => {
     persistOrLocal(widget.id, state, updateWidget);
   }, [widget.id, state, updateWidget]);
+
+  // 컬렉션에 등록
+  useEffect(() => {
+    addToWidgetCollection('exchange');
+  }, []);
 
   const addExchangeRate = useCallback(() => {
     const { fromCurrency, toCurrency, rate } = state.newRate;
@@ -189,29 +201,43 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
     }));
   }, []);
 
+  // 드래그 정렬 전용 상태
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
   const filteredAndSortedRates = useMemo(() => {
-    let filtered = [...state.rates]; // 불변성 유지
-    
-    if (state.showOnlyWatched) {
-      filtered = filtered.filter(rate => rate.isWatched);
+    return [...state.rates];
+  }, [state.rates]);
+
+  const startDrag = (e: React.DragEvent, id: string) => {
+    if (!isEditMode) return;
+    setDraggingId(id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+  };
+  const overDrag = (e: React.DragEvent, id: string) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    setDragOverId(id);
+  };
+  const dropDrag = (e: React.DragEvent, targetId: string) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    const sourceId = draggingId || e.dataTransfer.getData('text/plain');
+    if (!sourceId || sourceId === targetId) {
+      setDraggingId(null); setDragOverId(null); return;
     }
-    
-    return filtered.sort((a, b) => {
-      let comparison = 0;
-      switch (state.sortBy) {
-        case 'currency':
-          comparison = a.fromCurrency.localeCompare(b.fromCurrency);
-          break;
-        case 'rate':
-          comparison = a.rate - b.rate;
-          break;
-        case 'change':
-          comparison = (a.changePercent || 0) - (b.changePercent || 0);
-          break;
-      }
-      return state.sortOrder === 'desc' ? -comparison : comparison;
+    setState(prev => {
+      const list = [...prev.rates];
+      const from = list.findIndex(r => r.id === sourceId);
+      const to = list.findIndex(r => r.id === targetId);
+      if (from === -1 || to === -1) return prev;
+      const [m] = list.splice(from, 1);
+      list.splice(to, 0, m);
+      return { ...prev, rates: list };
     });
-  }, [state.rates, state.showOnlyWatched, state.sortBy, state.sortOrder]);
+    setDraggingId(null); setDragOverId(null);
+  };
 
   const watchedStats = useMemo(() => {
     const watchedRates = state.rates.filter(rate => rate.isWatched);
@@ -230,120 +256,6 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
 
   return (
     <div className="p-2 h-full flex flex-col">
-      {/* 드래그 핸들 영역 */}
-      <div className="absolute top-0 left-0 right-0 h-6 cursor-move" style={{ zIndex: 10 }}></div>
-      
-      {/* 컴팩트 헤더 */}
-      <div className="text-center mb-2 flex-shrink-0 relative" style={{ userSelect: 'none' }}>
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <div className="text-lg">💱</div>
-          <div className="flex items-center gap-1">
-            {state.status === 'live' ? (
-              <Wifi className="w-3 h-3 text-green-600" title="실시간 연결" />
-            ) : state.status === 'error' ? (
-              <WifiOff className="w-3 h-3 text-red-600" title="연결 오류" />
-            ) : state.status === 'stale' ? (
-              <RefreshCw className="w-3 h-3 text-yellow-600" title="오래된 데이터" />
-            ) : (
-              <RefreshCw className={`w-3 h-3 text-gray-600 ${state.status === 'loading' ? 'animate-spin' : ''}`} title={state.status} />
-            )}
-            <span className={`text-xs font-medium ${
-              state.status === 'live' ? 'text-green-600' : 
-              state.status === 'error' ? 'text-red-600' : 
-              state.status === 'stale' ? 'text-yellow-600' : 'text-gray-600'
-            }`}>
-              {state.status === 'live' ? 'LIVE' : 
-               state.status === 'error' ? 'ERROR' : 
-               state.status === 'stale' ? 'STALE' : 
-               (state.status || 'idle').toUpperCase()}
-            </span>
-          </div>
-        </div>
-        <h4 className="font-semibold text-xs text-gray-800 dark:text-gray-100">환율 정보</h4>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {new Date(state.lastRefresh).toLocaleTimeString()}
-        </p>
-      </div>
-
-      {/* 관심 환율 요약 */}
-      {watchedStats.watchedCount > 0 && (
-        <div className="mb-3 p-2 bg-green-50 rounded border border-green-200">
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-green-800 font-medium">관심 환율</span>
-            <span className="text-green-600">
-              {watchedStats.watchedCount}/{watchedStats.totalCount}개 통화
-            </span>
-          </div>
-          <div className="text-green-800 text-xs mt-1">
-            평균 변동률: {watchedStats.averageChange >= 0 ? '+' : ''}{watchedStats.averageChange.toFixed(2)}%
-          </div>
-        </div>
-      )}
-
-      {/* 필터 및 정렬 */}
-      {isEditMode && (
-        <div className="mb-3 space-y-2">
-          <div className="flex gap-2">
-            <select
-              value={state.sortBy}
-              onChange={(e) => setState(prev => ({ ...prev, sortBy: e.target.value as any }))}
-              className="flex-1 text-xs px-2 py-1 border border-gray-300 rounded"
-              aria-label="정렬 기준"
-            >
-              <option value="change">변동률</option>
-              <option value="currency">통화</option>
-              <option value="rate">환율</option>
-            </select>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-6 text-xs"
-              onClick={() => setState(prev => ({ 
-                ...prev, 
-                sortOrder: prev.sortOrder === 'asc' ? 'desc' : 'asc' 
-              }))}
-              aria-label="정렬 순서 변경"
-            >
-              {state.sortOrder === 'asc' ? '↑' : '↓'}
-            </Button>
-            <Button
-              size="sm"
-              variant={state.showOnlyWatched ? 'default' : 'outline'}
-              className="h-6 text-xs"
-              onClick={() => setState(prev => ({ ...prev, showOnlyWatched: !prev.showOnlyWatched }))}
-              aria-label="관심 환율만 보기"
-            >
-              <Globe className="w-3 h-3" />
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 h-6 text-xs"
-              onClick={() => {
-                // 수동 새로고침은 자동 구독에서 처리됨
-                showToast('환율이 자동으로 업데이트됩니다', 'success');
-              }}
-            >
-              <RefreshCw className="w-3 h-3 mr-1" />
-              새로고침
-            </Button>
-            <select
-              value={state.refreshInterval}
-              onChange={(e) => setState(prev => ({ ...prev, refreshInterval: parseInt(e.target.value) }))}
-              className="text-xs px-2 py-1 border border-gray-300 rounded"
-              aria-label="새로고침 간격"
-            >
-              <option value="0">수동</option>
-              <option value="60000">1분</option>
-              <option value="300000">5분</option>
-              <option value="600000">10분</option>
-              <option value="1800000">30분</option>
-            </select>
-          </div>
-        </div>
-      )}
 
       {/* 환율 목록 - 미니멀 리스트 (국기 · 통화코드 · 굵은 가격 · 등락) */}
       <div className="flex-1 overflow-y-auto space-y-1">
@@ -352,7 +264,14 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
           const code = rate.fromCurrency;
           const flag = code === 'USD' ? '🇺🇸' : code === 'EUR' ? '🇪🇺' : code === 'JPY' ? '🇯🇵' : '🌐';
           return (
-            <div key={rate.id} className="bg-white dark:bg-gray-800/80 rounded-xl px-3 py-2 border border-gray-200 dark:border-gray-700">
+            <div
+              key={rate.id}
+              draggable={isEditMode}
+              onDragStart={(e) => startDrag(e, rate.id)}
+              onDragOver={(e) => overDrag(e, rate.id)}
+              onDrop={(e) => dropDrag(e, rate.id)}
+              className={`bg-white dark:bg-gray-800/80 rounded-xl px-3 py-2 border border-gray-200 dark:border-gray-700 ${dragOverId === rate.id ? 'ring-2 ring-blue-400' : ''}`}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-base leading-none">{flag}</span>

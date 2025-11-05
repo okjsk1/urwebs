@@ -518,6 +518,18 @@ export const BookmarkWidget: React.FC<WidgetProps & {
       }}
       onDrop={handleExternalDrop}
     >
+      {/* 위젯 타이틀 편집 (편집모드에서 표시) */}
+      {isEditMode && updateWidget && (
+        <div className="px-2.5 pt-2">
+          <input
+            type="text"
+            defaultValue={widget.title || ''}
+            placeholder="위젯 제목"
+            onBlur={(e) => updateWidget(widget.id, { ...widget, title: e.target.value })}
+            className="w-full text-sm px-2 py-1 border border-gray-300 dark:border-[var(--border)] rounded bg-white dark:bg-[var(--input-background)] text-gray-900 dark:text-[var(--foreground)]"
+          />
+        </div>
+      )}
       {/* 태그 필터 */}
       {isEditMode && allTags.length > 0 && (
         <div className="px-2.5 pt-2 flex flex-wrap gap-1 mb-2">

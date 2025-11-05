@@ -40,37 +40,36 @@ export const NewsWidget = ({ widget, isEditMode, updateWidget }: any) => {
 
   return (
     <div className="p-2 h-full flex flex-col">
-      {/* 헤더 */}
-      <div className="text-center mb-2 shrink-0">
-        <div className="text-lg mb-1">📰</div>
-        <h4 className="font-semibold text-base text-gray-800">뉴스 피드</h4>
-      </div>
+      {/* 보기 모드에서는 내부 카드/헤더를 렌더하지 않음 (중첩 카드 제거) */}
+      {isEditMode && (
+        <div className="mb-2 shrink-0">
+          <div className="text-sm font-semibold text-gray-700 mb-1">카테고리</div>
+          <div className="flex flex-wrap gap-1">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-2 py-1 text-xs rounded ${
+                  selectedCategory === cat 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* 카테고리 필터 */}
-      <div className="flex flex-wrap gap-1 mb-2 shrink-0">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-2 py-1 text-sm rounded ${
-              selectedCategory === cat 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* 뉴스 목록 */}
-      <div className="flex-1 overflow-y-auto space-y-2">
+      {/* 뉴스 목록 (플랫 리스트) */}
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-200">
         {news.slice(0, 5).map(item => (
-          <div key={item.id} className="bg-white rounded-lg p-2 border border-gray-200">
-            <div className="text-sm font-medium text-gray-800 mb-1 line-clamp-2">
+          <div key={item.id} className="py-2">
+            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
               {item.title}
             </div>
-            <div className="flex items-center justify-between text-sm text-gray-500">
+            <div className="flex items-center justify-between text-xs text-gray-500 mt-0.5">
               <span>{item.source}</span>
               <span>{item.time}</span>
             </div>
@@ -78,9 +77,9 @@ export const NewsWidget = ({ widget, isEditMode, updateWidget }: any) => {
         ))}
       </div>
 
-      {/* 편집 모드 */}
+      {/* 편집 모드: 키워드 관리 */}
       {isEditMode && (
-        <div className="mt-3 pt-3 border-t border-gray-200 shrink-0">
+        <div className="mt-2 pt-2 border-t border-gray-200 shrink-0">
           <div className="space-y-2">
             <div className="flex gap-1">
               <input

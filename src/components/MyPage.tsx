@@ -829,6 +829,52 @@ export function MyPage() {
     setShowTemplateModal(false);
   };
 
+  // 휴지통 (삭제된 페이지 7일 보관)
+  type TrashedPage = { page: any; deletedAt: number };
+  const trashKey = currentUser ? `trash_pages_${currentUser.id}` : 'trash_pages_guest';
+  const [trashPages, setTrashPages] = useState<TrashedPage[]>(() => {
+    try {
+      const raw = localStorage.getItem(trashKey);
+      const arr = raw ? JSON.parse(raw) : [];
+      const seven = 7 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const cleaned = arr.filter((t: TrashedPage) => now - t.deletedAt < seven);
+      if (cleaned.length !== arr.length) localStorage.setItem(trashKey, JSON.stringify(cleaned));
+      return cleaned;
+    } catch { return []; }
+  });
+  const [showTrash, setShowTrash] = useState(false);
+
+  const saveTrash = (list: TrashedPage[]) => {
+    setTrashPages(list);
+    try { localStorage.setItem(trashKey, JSON.stringify(list)); } catch {}
+  };
+
+  const movePageToTrash = (pageToDelete: any) => {
+    const entry: TrashedPage = { page: pageToDelete, deletedAt: Date.now() };
+    saveTrash([entry, ...trashPages]);
+  };
+
+  const restoreFromTrash = (pageId: string) => {
+    const idx = trashPages.findIndex(t => t.page?.id === pageId);
+    if (idx === -1) return;
+    const entry = trashPages[idx];
+    const remaining = [...trashPages];
+    remaining.splice(idx, 1);
+    saveTrash(remaining);
+    // 복원: 활성화 상태로 추가
+    const restored = { ...entry.page, isActive: true };
+    setPages(prev => prev.map(p => ({ ...p, isActive: false })).concat(restored));
+    setCurrentPageId(restored.id);
+    setPageTitle(restored.title);
+    setWidgets(restored.widgets || []);
+    if (currentUser) localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(prevPagesRef.current ? prevPagesRef.current : []));
+  };
+
+  const purgeTrashItem = (pageId: string) => {
+    saveTrash(trashPages.filter(t => t.page?.id !== pageId));
+  };
+
   // 툴바에서 바로 새 페이지를 추가하고 페이지 관리 열기
   const addAndManageNewPage = () => {
     const newPageId = `page${Date.now()}`;
@@ -1063,12 +1109,13 @@ export function MyPage() {
       alert('최소 하나의 페이지는 유지해야 합니다.');
       return;
     }
-    
+    // 휴지통으로 이동
+    const target = pages.find(p => p.id === pageId);
+    if (target) movePageToTrash(target);
     const remainingPages = pages.filter(page => page.id !== pageId);
     setPages(remainingPages);
-    
     // 삭제된 페이지가 현재 페이지였다면 첫 번째 페이지로 전환
-    if (currentPageId === pageId) {
+    if (currentPageId === pageId && remainingPages.length > 0) {
       const firstPage = remainingPages[0];
       setCurrentPageId(firstPage.id);
       setPageTitle(firstPage.title);
@@ -4033,6 +4080,15 @@ export function MyPage() {
               </Button>
               <Button
                 size="sm"
+                variant="outline"
+                onClick={() => setShowTrash(!showTrash)}
+                className="text-xs h-7"
+                title="휴지통"
+              >
+                휴지통
+              </Button>
+              <Button
+                size="sm"
                 variant="ghost"
                 onClick={() => setShowPageManager(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -4042,6 +4098,30 @@ export function MyPage() {
               </Button>
             </div>
           </div>
+
+          {showTrash && (
+            <div className="mb-3 p-2 border rounded bg-gray-50">
+              <div className="text-sm font-medium mb-2">삭제된 페이지 (7일 보관)</div>
+              {trashPages.length === 0 ? (
+                <div className="text-xs text-gray-500">비어 있음</div>
+              ) : (
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {trashPages.map(t => (
+                    <div key={t.page.id} className="flex items-center justify-between text-xs bg-white border rounded px-2 py-1">
+                      <div className="truncate mr-2">
+                        <span className="font-medium">{t.page.title}</span>
+                        <span className="text-gray-500 ml-2">{new Date(t.deletedAt).toLocaleString()}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="sm" className="h-6" onClick={() => restoreFromTrash(t.page.id)}>복원</Button>
+                        <Button size="sm" variant="outline" className="h-6" onClick={() => purgeTrashItem(t.page.id)}>영구삭제</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {pages.map((page, index) => (
