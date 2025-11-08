@@ -1,29 +1,50 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect, lazy, Suspense, useCallback } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Header } from './components/Header';
-import { HomePageNew } from './components/HomePageNew';
-import { CategoryDetailPageColumns } from './components/CategoryDetailPageColumns';
-import { NoticePage } from './components/NoticePage';
-import { CommunityPage } from './components/CommunityPage';
-import { ContactPage } from './components/ContactPage';
-import { MyPage } from './components/MyPage';
-import { AdminPage } from './components/AdminPage';
-import { TemplateEditorPage } from './components/admin/TemplateEditorPage';
-import { AllPagesListPage } from './components/AllPagesListPage';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useDocumentTitle } from './hooks/useDocumentTitle';
+import { useFavorites } from './hooks/useFavorites';
+import { trackEvent, ANALYTICS_EVENTS } from './utils/analytics';
 import { templateService } from './services/templateService';
 import DraggableDashboardGrid from './components/DraggableDashboardGrid';
 import { renderWidget } from './utils/widgetRenderer';
 import { colToX, rowToY, gridWToPx, gridHToPx } from './utils/layoutConfig';
 import { allWidgets } from './constants/widgetCategories';
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { useDocumentTitle } from './hooks/useDocumentTitle';
-import { FavoritesPage } from './pages/FavoritesPage';
-import { useFavorites } from './hooks/useFavorites';
-import { HomePageWithRedirect } from './components/HomePageWithRedirect';
+import { getCachedData, setCachedData, createCacheKey } from './utils/firebaseCache';
 // Firebase는 config.ts에서 초기화됩니다
+
+const HomePageWithRedirect = lazy(() =>
+  import('./components/HomePageWithRedirect').then((m) => ({ default: m.HomePageWithRedirect }))
+);
+const NoticePage = lazy(() => import('./components/NoticePage').then((m) => ({ default: m.NoticePage })));
+const CommunityPage = lazy(() =>
+  import('./components/CommunityPage').then((m) => ({ default: m.CommunityPage }))
+);
+const ContactPage = lazy(() => import('./components/ContactPage').then((m) => ({ default: m.ContactPage })));
+const MyPage = lazy(() => import('./components/MyPage').then((m) => ({ default: m.MyPage })));
+const AdminPage = lazy(() => import('./components/AdminPage').then((m) => ({ default: m.AdminPage })));
+const TemplateEditorPage = lazy(() =>
+  import('./components/admin/TemplateEditorPage').then((m) => ({ default: m.TemplateEditorPage }))
+);
+const AllPagesListPage = lazy(() =>
+  import('./components/AllPagesListPage').then((m) => ({ default: m.AllPagesListPage }))
+);
+const FavoritesPage = lazy(() =>
+  import('./pages/FavoritesPage').then((m) => ({ default: m.FavoritesPage }))
+);
+const PageFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
+    <div className="flex flex-col items-center gap-4">
+      <div className="h-12 w-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+      <p className="text-sm text-gray-500 dark:text-gray-400">콘텐츠를 불러오는 중...</p>
+    </div>
+  </div>
+);
+
+const withSuspense = (node: React.ReactNode) => <Suspense fallback={<PageFallback />}>{node}</Suspense>;
 
 // 공개 페이지 뷰어 컴포넌트
 function PublicPageViewer() {
@@ -34,11 +55,20 @@ function PublicPageViewer() {
   const [loading, setLoading] = useState(() => true);
   const [error, setError] = useState(() => null as string | null);
   const { isFavorite, addFavorite, removeFavorite } = useFavorites(user?.uid || null);
+  const cacheKey = createCacheKey(['publicPage', pageId]);
 
   useEffect(() => {
+    const cached = pageId ? getCachedData<any>(cacheKey) : null;
+    if (cached) {
+      setPageData(cached);
+      setLoading(false);
+    }
+
     const fetchPage = async () => {
       try {
-        setLoading(true);
+        if (!cached) {
+          setLoading(true);
+        }
         // 페이지 데이터 즉시 로드 (조회수 증가는 백그라운드)
         const { collection, query, where, getDocs, doc, updateDoc, increment, arrayUnion, arrayRemove } = await import('firebase/firestore');
         const { db } = await import('./firebase/config');
@@ -51,6 +81,7 @@ function PublicPageViewer() {
           const docData = snapshot.docs[0].data();
           const pageId_doc = snapshot.docs[0].id;
           setPageData({ id: pageId_doc, ...docData });
+          setCachedData(cacheKey, { id: pageId_doc, ...docData }, 1000 * 60 * 5);
           
           // 관심 상태는 useFavorites 훅에서 관리
           
@@ -70,7 +101,12 @@ function PublicPageViewer() {
               
               const docRef = doc(db, 'userPages', pageId_doc);
               await updateDoc(docRef, { views: increment(1) });
-              setPageData((prev: any) => ({ ...prev, views: (prev.views || 0) + 1 }));
+              setPageData((prev: any) => {
+                if (!prev) return prev;
+                const next = { ...prev, views: (prev.views || 0) + 1 };
+                setCachedData(cacheKey, next, 1000 * 60 * 5);
+                return next;
+              });
             } catch (e) {
               // 조회수 증가 실패는 조용히 무시
               console.error('조회수 증가 실패:', e);
@@ -92,7 +128,7 @@ function PublicPageViewer() {
     if (pageId) {
       fetchPage();
     }
-  }, [pageId, user]);
+  }, [pageId, user, cacheKey]);
 
   if (loading) {
     return (
@@ -175,11 +211,16 @@ function PublicPageViewer() {
                   if (currentIsFavorite) {
                     // 관심 취소
                     await removeFavorite(pageData.id);
-                    setPageData((prev: any) => ({ 
-                      ...prev, 
-                      likesCount: Math.max(0, (prev.likesCount || 0) - 1),
-                      likes: Math.max(0, (prev.likes || 0) - 1) 
-                    }));
+                    setPageData((prev: any) => {
+                      if (!prev) return prev;
+                      const next = {
+                        ...prev,
+                        likesCount: Math.max(0, (prev.likesCount || 0) - 1),
+                        likes: Math.max(0, (prev.likes || 0) - 1),
+                      };
+                      setCachedData(cacheKey, next, 1000 * 60 * 5);
+                      return next;
+                    });
                   } else {
                     // 관심 추가
                     const favoriteData: any = {
@@ -195,11 +236,16 @@ function PublicPageViewer() {
                     }
                     
                     await addFavorite(favoriteData);
-                    setPageData((prev: any) => ({ 
-                      ...prev, 
-                      likesCount: (prev.likesCount || 0) + 1,
-                      likes: (prev.likes || 0) + 1 
-                    }));
+                    setPageData((prev: any) => {
+                      if (!prev) return prev;
+                      const next = {
+                        ...prev,
+                        likesCount: (prev.likesCount || 0) + 1,
+                        likes: (prev.likes || 0) + 1,
+                      };
+                      setCachedData(cacheKey, next, 1000 * 60 * 5);
+                      return next;
+                    });
                   }
                 } catch (error) {
                   console.error('관심 추가/제거 실패:', error);
@@ -398,6 +444,7 @@ function PublicPageViewer() {
 // 메인 앱 컴포넌트 (라우터 사용)
 function AppContent() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedCategory, setSelectedCategory] = useState(() => '');
   const [selectedSubCategory, setSelectedSubCategory] = useState(() => '');
   
@@ -408,22 +455,31 @@ function AppContent() {
   useDocumentTitle();
 
   // 홈으로 이동하는 헬퍼 함수 (리디렉션 방지 플래그 설정)
-  const navigateHome = () => {
+  const navigateHome = useCallback(() => {
     sessionStorage.setItem('homeVisited', 'true');
     navigate('/');
-  };
+  }, [navigate]);
 
-  const handleCategorySelect = (categoryId: string, subCategory?: string) => {
+  const handleCategorySelect = useCallback((categoryId: string, subCategory?: string) => {
     setSelectedCategory(categoryId);
     setSelectedSubCategory(subCategory || '');
-  };
+  }, []);
+
+  useEffect(() => {
+    trackEvent(ANALYTICS_EVENTS.PAGE_ENTER, {
+      path: location.pathname,
+    });
+  }, [location.pathname]);
 
   return (
     <AuthProvider>
       <ThemeProvider children={
         <Routes>
         {/* 메인 페이지 - 로그인 시 /favorites로 리디렉션 */}
-        <Route path="/" element={<HomePageWithRedirect onCategorySelect={handleCategorySelect} />} />
+        <Route
+          path="/"
+          element={withSuspense(<HomePageWithRedirect onCategorySelect={handleCategorySelect} />)}
+        />
 
         {/* 공지사항 */}
         <Route path="/notice" element={
@@ -437,9 +493,7 @@ function AppContent() {
               onNavigateMyPage={() => navigate('/mypage')}
               onNavigateAdminInquiries={() => navigate('/admin')}
             />
-            <main>
-              <NoticePage />
-            </main>
+            <main>{withSuspense(<NoticePage />)}</main>
           </div>
         } />
 
@@ -455,9 +509,7 @@ function AppContent() {
               onNavigateMyPage={() => navigate('/mypage')}
               onNavigateAdminInquiries={() => navigate('/admin')}
             />
-            <main>
-              <CommunityPage />
-            </main>
+            <main>{withSuspense(<CommunityPage />)}</main>
           </div>
         } />
 
@@ -473,27 +525,21 @@ function AppContent() {
               onNavigateMyPage={() => navigate('/mypage')}
               onNavigateAdminInquiries={() => navigate('/admin')}
             />
-            <main>
-              <ContactPage />
-            </main>
+            <main>{withSuspense(<ContactPage />)}</main>
           </div>
         } />
 
         {/* 나의 페이지 (편집 모드) */}
         <Route path="/mypage" element={
           <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
-            <main>
-              <MyPage />
-            </main>
+            <main>{withSuspense(<MyPage />)}</main>
           </div>
         } />
         
         {/* 나의 페이지 - 특정 페이지 (편집 모드) */}
         <Route path="/mypage/:pageId" element={
           <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
-            <main>
-              <MyPage />
-            </main>
+            <main>{withSuspense(<MyPage />)}</main>
           </div>
         } />
 
@@ -510,14 +556,18 @@ function AppContent() {
               onNavigateAdminInquiries={() => navigate('/admin')}
             />
             <main>
-              <AdminPage onNavigateTemplateEdit={(templateData) => {
-                console.log('템플릿 편집 페이지로 이동:', templateData);
-                if (templateData) {
-                  sessionStorage.setItem('templateEditData', JSON.stringify(templateData));
-                  console.log('sessionStorage에 저장됨:', templateData);
-                }
-                navigate('/template-edit');
-              }} />
+              {withSuspense(
+                <AdminPage
+                  onNavigateTemplateEdit={(templateData) => {
+                    console.log('템플릿 편집 페이지로 이동:', templateData);
+                    if (templateData) {
+                      sessionStorage.setItem('templateEditData', JSON.stringify(templateData));
+                      console.log('sessionStorage에 저장됨:', templateData);
+                    }
+                    navigate('/template-edit');
+                  }}
+                />
+              )}
             </main>
           </div>
         } />
@@ -526,105 +576,103 @@ function AppContent() {
         <Route path="/template-edit" element={
           <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 dark:from-gray-950 dark:to-gray-900">
             <main>
-              <TemplateEditorPage 
-                onBack={() => navigate('/')}
-                onSave={async (templateData) => {
-                  try {
-                    const templateId = (() => {
-                      const data = sessionStorage.getItem('templateEditData');
-                      if (data) {
-                        const parsed = JSON.parse(data);
-                        return parsed.id;
-                      }
-                      return undefined;
-                    })();
+              {withSuspense(
+                <TemplateEditorPage
+                  onBack={() => navigate('/')}
+                  onSave={async (templateData) => {
+                    try {
+                      const templateId = (() => {
+                        const data = sessionStorage.getItem('templateEditData');
+                        if (data) {
+                          const parsed = JSON.parse(data);
+                          return parsed.id;
+                        }
+                        return undefined;
+                      })();
 
-                    if (templateId) {
-                      // 기존 템플릿 수정
-                      await templateService.updateTemplate(templateId, {
-                        ...templateData,
-                        widgets: templateData.widgets.map(w => ({
-                          id: w.id,
-                          type: w.type,
-                          x: w.x,
-                          y: w.y,
-                          width: w.width,
-                          height: w.height,
-                          title: w.title,
-                          content: w.content,
-                          zIndex: w.zIndex || 1,
-                          size: w.size || '1x1'
-                        })),
-                        widgetCount: templateData.widgets.length,
-                        preview: templateData.widgets.map(w => w.type)
-                      });
-                      alert('템플릿이 수정되었습니다!');
-                    } else {
-                      // 새 템플릿 생성
-                      await templateService.createTemplate({
-                        ...templateData,
-                        widgets: templateData.widgets.map(w => ({
-                          id: w.id,
-                          type: w.type,
-                          x: w.x,
-                          y: w.y,
-                          width: w.width,
-                          height: w.height,
-                          title: w.title,
-                          content: w.content,
-                          zIndex: w.zIndex || 1,
-                          size: w.size || '1x1'
-                        })),
-                        isActive: true,
-                        isDefault: false,
-                        author: 'admin',
-                        widgetCount: templateData.widgets.length,
-                        preview: templateData.widgets.map(w => w.type)
-                      });
-                      alert('템플릿이 저장되었습니다!');
+                      if (templateId) {
+                        await templateService.updateTemplate(templateId, {
+                          ...templateData,
+                          widgets: templateData.widgets.map((w) => ({
+                            id: w.id,
+                            type: w.type,
+                            x: w.x,
+                            y: w.y,
+                            width: w.width,
+                            height: w.height,
+                            title: w.title,
+                            content: w.content,
+                            zIndex: w.zIndex || 1,
+                            size: w.size || '1x1',
+                          })),
+                          widgetCount: templateData.widgets.length,
+                          preview: templateData.widgets.map((w) => w.type),
+                        });
+                        alert('템플릿이 수정되었습니다!');
+                      } else {
+                        await templateService.createTemplate({
+                          ...templateData,
+                          widgets: templateData.widgets.map((w) => ({
+                            id: w.id,
+                            type: w.type,
+                            x: w.x,
+                            y: w.y,
+                            width: w.width,
+                            height: w.height,
+                            title: w.title,
+                            content: w.content,
+                            zIndex: w.zIndex || 1,
+                            size: w.size || '1x1',
+                          })),
+                          isActive: true,
+                          isDefault: false,
+                          author: 'admin',
+                          widgetCount: templateData.widgets.length,
+                          preview: templateData.widgets.map((w) => w.type),
+                        });
+                        alert('템플릿이 저장되었습니다!');
+                      }
+                      navigate('/');
+                    } catch (error) {
+                      console.error('템플릿 저장 실패:', error);
+                      alert('템플릿 저장에 실패했습니다.');
                     }
-                    navigate('/');
-                  } catch (error) {
-                    console.error('템플릿 저장 실패:', error);
-                    alert('템플릿 저장에 실패했습니다.');
-                  }
-                }}
-                onDelete={async (templateId) => {
-                  try {
-                    await templateService.deleteTemplate(templateId);
-                    alert('템플릿이 삭제되었습니다!');
-                    navigate('/');
-                  } catch (error) {
-                    console.error('템플릿 삭제 실패:', error);
-                    alert('템플릿 삭제에 실패했습니다.');
-                  }
-                }}
-                templateId={(() => {
-                  const data = sessionStorage.getItem('templateEditData');
-                  console.log('sessionStorage에서 templateId 읽기:', data);
-                  if (data) {
-                    const parsed = JSON.parse(data);
-                    console.log('파싱된 데이터:', parsed);
-                    return parsed.id;
-                  }
-                  return undefined;
-                })()}
-                initialData={(() => {
-                  const data = sessionStorage.getItem('templateEditData');
-                  if (data) {
-                    const parsed = JSON.parse(data);
-                    sessionStorage.removeItem('templateEditData');
-                    return parsed;
-                  }
-                  return undefined;
-                })()}
-              />
-        </main>
+                  }}
+                  onDelete={async (templateId) => {
+                    try {
+                      await templateService.deleteTemplate(templateId);
+                      alert('템플릿이 삭제되었습니다!');
+                      navigate('/');
+                    } catch (error) {
+                      console.error('템플릿 삭제 실패:', error);
+                      alert('템플릿 삭제에 실패했습니다.');
+                    }
+                  }}
+                  templateId={(() => {
+                    const data = sessionStorage.getItem('templateEditData');
+                    if (data) {
+                      const parsed = JSON.parse(data);
+                      return parsed.id;
+                    }
+                    return undefined;
+                  })()}
+                  initialData={(() => {
+                    const data = sessionStorage.getItem('templateEditData');
+                    if (data) {
+                      const parsed = JSON.parse(data);
+                      sessionStorage.removeItem('templateEditData');
+                      return parsed;
+                    }
+                    return undefined;
+                  })()}
+                />
+              )}
+            </main>
       </div>
         } />
 
         {/* 전체 페이지 목록 */}
-        <Route path="/pages" element={<AllPagesListPage />} />
+        <Route path="/pages" element={withSuspense(<AllPagesListPage />)} />
 
         {/* 내 관심 페이지 */}
         <Route path="/favorites" element={
@@ -638,14 +686,12 @@ function AppContent() {
               onNavigateMyPage={() => navigate('/mypage')}
               onNavigateAdminInquiries={() => navigate('/admin')}
             />
-            <main>
-              <FavoritesPage />
-            </main>
+            <main>{withSuspense(<FavoritesPage />)}</main>
           </div>
         } />
 
         {/* 공개 페이지 뷰어 - userId_pageNumber 형식 */}
-        <Route path="/:pageId" element={<PublicPageViewer />} />
+        <Route path="/:pageId" element={withSuspense(<PublicPageViewer />)} />
         </Routes>
       } />
     </AuthProvider>

@@ -134,6 +134,7 @@ export default function DraggableDashboardGrid({
   const [showAddButtonState, setShowAddButtonState] = useState<{ [column: number]: boolean }>({});
   const hideButtonTimerRef = useRef<NodeJS.Timeout | null>(null);
   const rafMoveRef = useRef<number | null>(null);
+  const [isColliding, setIsColliding] = useState(false);
 
   // 레이아웃 프리셋 적용기
   const applyLayoutPreset = useCallback((preset: typeof layoutPreset) => {
@@ -175,6 +176,12 @@ export default function DraggableDashboardGrid({
     applyLayoutPreset(layoutPreset);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutPreset]);
+
+  useEffect(() => {
+    if (!activeId) {
+      setIsColliding(false);
+    }
+  }, [activeId]);
 
   // 활성 위젯 찾기
   const activeWidget = activeId ? widgets.find(w => w.id === activeId) : null;
@@ -465,6 +472,24 @@ export default function DraggableDashboardGrid({
           if (Math.abs(bottomY - newY) <= magnetThresholdRows) {
             newY = bottomY;
           }
+          const previewLayout: WidgetLayout = {
+            id: widget.id,
+            x: newX,
+            y: newY,
+            w: widget.size.w,
+            h: widget.size.h,
+          };
+          const tempLayouts: WidgetLayout[] = widgets.map(w => ({
+            id: w.id,
+            x: w.id === previewLayout.id ? previewLayout.x : w.x || 0,
+            y: w.id === previewLayout.id ? previewLayout.y : w.y || 0,
+            w: w.size.w,
+            h: w.size.h,
+          }));
+          const collision = tempLayouts.some(
+            layout => layout.id !== previewLayout.id && isOverlapping(layout, previewLayout)
+          );
+          setIsColliding(collision);
           setPreviewPos({ x: newX, y: newY });
         }
       });
@@ -533,25 +558,7 @@ export default function DraggableDashboardGrid({
           if (allPreserved && normalized.length === tempLayouts.length) {
             newLayouts = normalized;
           } else {
-            // normalizeLayout이 위젯을 제거했다면, 수동으로 충돌 해결
-            console.warn('normalizeLayout이 위젯을 제거했습니다. 수동 충돌 해결을 시도합니다.');
-            newLayouts = tempLayouts;
-            
-            // 수동으로 충돌 해결: 아래 위젯들을 밀어내기
-            newLayouts = newLayouts.map(layout => {
-              if (layout.id === updatedWidget.id) return layout;
-              
-              // 업데이트된 위젯과 겹치는지 확인
-              if (isOverlapping(layout, updatedWidget)) {
-                // 아래로 밀어내기
-                return {
-                  ...layout,
-                  y: updatedWidget.y + updatedWidget.h
-                };
-              }
-              
-              return layout;
-            });
+            newLayouts = resolveCollisionsPush(tempLayouts, updatedWidget);
           }
         } else {
           // 충돌이 없으면 그대로 사용
@@ -567,6 +574,7 @@ export default function DraggableDashboardGrid({
           setActiveId(null);
           setPreviewPos(null);
           setDragOffset({ x: 0, y: 0 });
+          setIsColliding(false);
           return;
         }
         
@@ -615,6 +623,7 @@ export default function DraggableDashboardGrid({
       setActiveId(null);
       setPreviewPos(null);
       setDragOffset({ x: 0, y: 0 });
+      setIsColliding(false);
     };
 
     document.addEventListener('mousemove', handleMove);
@@ -701,6 +710,17 @@ export default function DraggableDashboardGrid({
     return styles;
   };
 
+  const showGuides = Boolean(activeId && isEditMode);
+  const guideStyles = showGuides
+    ? {
+        backgroundImage:
+          'linear-gradient(to right, rgba(99, 102, 241, 0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(99, 102, 241, 0.12) 1px, transparent 1px)',
+        backgroundSize: `calc(100% / ${cols}) 100%, 100% ${cellHeight + gap}px`,
+        backgroundRepeat: 'repeat, repeat',
+        backgroundPosition: '0 0, 0 0',
+      }
+    : {};
+
   return (
     <>
       <style>
@@ -742,12 +762,13 @@ export default function DraggableDashboardGrid({
           gridAutoRows: `${responsiveCells.default}px`, // 고정 높이로 변경 (auto 제거)
           position: 'relative',
           display: 'grid',
-          gap: '16px',
+          gap: `${gap}px`,
           justifyContent: 'center',
           alignContent: 'start',
           maxWidth: `${cols * 300 + (cols - 1) * gap}px`,
           marginLeft: 'auto',
           marginRight: 'auto',
+          ...guideStyles,
         }}
         onMouseLeave={() => setShowAddButtonState({})}
       >
@@ -783,21 +804,27 @@ export default function DraggableDashboardGrid({
         {/* 드롭 예상 위치 플레이스홀더 - 개선된 시각적 피드백 */}
         {activeWidget && previewPos && activeId && (
           <div
-            className="pointer-events-none rounded-lg border-4 border-indigo-500 border-dashed bg-indigo-100/60 dark:bg-indigo-900/30 animate-pulse transition-all duration-200"
+            className={`pointer-events-none rounded-lg border-4 border-dashed animate-pulse transition-all duration-200 ${
+              isColliding
+                ? 'border-rose-500 bg-rose-100/60 dark:bg-rose-900/30'
+                : 'border-indigo-500 bg-indigo-100/60 dark:bg-indigo-900/30'
+            }`}
             style={{
               gridColumn: `${previewPos.x + 1} / span ${activeWidget.size.w}`,
               gridRow: `${previewPos.y + 1} / span ${activeWidget.size.h}`,
               zIndex: 5,
-              boxShadow: '0 0 0 2px rgba(99, 102, 241, 0.3)',
+              boxShadow: isColliding
+                ? '0 0 0 2px rgba(244, 63, 94, 0.3)'
+                : '0 0 0 2px rgba(99, 102, 241, 0.3)',
             }}
             aria-hidden="true"
           >
             <div className="h-full flex items-center justify-center">
-              <div className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold opacity-90 flex items-center gap-1">
+              <div className={`text-xs font-semibold opacity-90 flex items-center gap-1 ${isColliding ? 'text-rose-600 dark:text-rose-300' : 'text-indigo-600 dark:text-indigo-400'}`}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                 </svg>
-                여기에 놓기
+                {isColliding ? '겹치지 않도록 위치를 조정하세요' : '여기에 놓기'}
               </div>
             </div>
           </div>
@@ -845,7 +872,7 @@ export default function DraggableDashboardGrid({
             top: currentPos.y - dragOffset.y,
           }}
         >
-          <div className="rounded-lg shadow-2xl border-2 border-indigo-400 bg-white opacity-90 scale-95">
+          <div className={`rounded-lg shadow-2xl border-2 ${isColliding ? 'border-rose-400' : 'border-indigo-400'} bg-white opacity-90 scale-95`}>
             <div 
               style={{ 
                 width: `${cellWidth * activeWidget.size.w + gap * (activeWidget.size.w - 1)}px`,

@@ -1,4 +1,5 @@
 // API 엔드포인트 및 라우팅 유틸리티
+import { trackEvent, ANALYTICS_EVENTS } from './analytics';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -71,10 +72,17 @@ class ApiClient {
 
   // 템플릿 복제
   async cloneTemplate(request: TemplateCloneRequest): Promise<ApiResponse<TemplateCloneResponse>> {
-    return this.request<TemplateCloneResponse>('/templates/clone', {
+    const response = await this.request<TemplateCloneResponse>('/templates/clone', {
       method: 'POST',
       body: JSON.stringify(request),
     });
+    if (response.success) {
+      trackEvent(ANALYTICS_EVENTS.CLONE_TEMPLATE, {
+        templateId: response.data?.templateId || request.templateId,
+        sourceTemplateId: request.templateId,
+      });
+    }
+    return response;
   }
 
   // 페이지 공유 설정

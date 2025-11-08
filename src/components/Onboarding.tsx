@@ -16,29 +16,19 @@ interface OnboardingProps {
 
 const onboardingSteps: OnboardingStep[] = [
   {
-    id: 'welcome',
-    title: 'URWEBS에 오신 것을 환영합니다! 🎉',
-    description: '개인화된 웹 페이지를 쉽게 만들 수 있는 플랫폼입니다. 간단한 가이드를 따라해보세요!'
+    id: 'template',
+    title: '1단계 · 템플릿 선택',
+    description: '홈 화면의 "템플릿으로 새로 만들기" 버튼을 눌러 시작해보세요. 취향에 맞는 템플릿을 고르면 기본 위젯이 자동으로 배치됩니다.'
   },
   {
-    id: 'templates',
-    title: '템플릿 선택하기',
-    description: '다양한 템플릿 중에서 원하는 스타일을 선택하세요. 비즈니스, 학생, 창작자용 등 다양한 옵션이 있습니다.'
+    id: 'widget',
+    title: '2단계 · 위젯 추가',
+    description: '마이페이지 상단의 "+ 위젯 추가" 버튼을 눌러 필요한 기능을 더해보세요. 첫 번째 위젯을 추가할 때 하이라이트로 안내가 제공됩니다.'
   },
   {
-    id: 'widgets',
-    title: '위젯 추가하기',
-    description: '북마크, 할일, 캘린더, 날씨 등 다양한 위젯을 드래그 앤 드롭으로 쉽게 추가할 수 있습니다.'
-  },
-  {
-    id: 'customize',
-    title: '개인화하기',
-    description: '위젯의 크기와 위치를 자유롭게 조정하고, 다크모드도 지원합니다.'
-  },
-  {
-    id: 'share',
-    title: '공유하기',
-    description: '완성된 페이지를 공개하여 다른 사람들과 공유할 수 있습니다.'
+    id: 'save',
+    title: '3단계 · 저장하기',
+    description: '우측 상단의 "저장하기" 버튼을 누르면 임시 페이지도 로컬에 저장됩니다. 로그인 후에는 언제든지 내 계정으로 동기화할 수 있어요.'
   }
 ];
 

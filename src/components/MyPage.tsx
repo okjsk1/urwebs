@@ -47,6 +47,9 @@ import { NaverSearchWidget } from './widgets/NaverSearchWidget';
 import { LawSearchWidget } from './widgets/LawSearchWidget';
 import { QuoteWidget } from './widgets/QuoteWidget';
 import { QuickNoteWidget } from './widgets/QuickNoteWidget';
+import { PopularWidgetsStrip } from './MyPage/PopularWidgetsStrip';
+import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics';
+import { completeTutorialStep } from '../hooks/useTutorialProgress';
 
 // 인터페이스들은 이제 types에서 import
 
@@ -96,7 +99,16 @@ export function MyPage() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragOverWidget, setDragOverWidget] = useState<string | null>(null);
   const [isReordering, setIsReordering] = useState(false);
-  const [toast, setToast] = useState<{type:'success'|'error', msg:string}|null>(null);
+  const [toast, setToast] = useState<{type:'success'|'error'|'info', msg:string, actionLabel?: string, onAction?: () => void} | null>(null);
+  const [recentlyAddedWidgetId, setRecentlyAddedWidgetId] = useState<string | null>(null);
+  const addAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoStackRef = useRef<{ widget: Widget; index: number; pageId: string | null } | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [highlightedWidgetId, setHighlightedWidgetId] = useState<string | null>(null);
+  const [showFirstWidgetTooltip, setShowFirstWidgetTooltip] = useState(false);
+  const firstWidgetFeedbackShownRef = useRef<boolean>(
+    typeof window !== 'undefined' && localStorage.getItem('urwebs-first-widget-feedback-shown') === 'true'
+  );
   
   // 하위 호환성을 위한 별칭
   const spacing = 12; // DraggableDashboardGrid와 동일한 gap 값 사용
@@ -411,6 +423,37 @@ export function MyPage() {
       localStorage.removeItem('shouldShowTemplateAfterLogin');
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    firstWidgetFeedbackShownRef.current = localStorage.getItem('urwebs-first-widget-feedback-shown') === 'true';
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) {
+        clearTimeout(undoTimerRef.current);
+      }
+      if (addAnimTimerRef.current) {
+        clearTimeout(addAnimTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!toast || toast.actionLabel) return;
+    const timeout = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(timeout);
+  }, [toast]);
+
+  useEffect(() => {
+    if (!showFirstWidgetTooltip) return;
+    const timer = window.setTimeout(() => {
+      setShowFirstWidgetTooltip(false);
+      setHighlightedWidgetId(null);
+    }, 3800);
+    return () => window.clearTimeout(timer);
+  }, [showFirstWidgetTooltip]);
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [showWidgetModal, setShowWidgetModal] = useState(false);
@@ -845,6 +888,27 @@ export function MyPage() {
   });
   const [showTrash, setShowTrash] = useState(false);
 
+  const loadTrashFromStorage = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(trashKey);
+      const arr = raw ? JSON.parse(raw) : [];
+      const seven = 7 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const source = Array.isArray(arr) ? (arr as TrashedPage[]) : [];
+      const cleaned = source.filter((t) => typeof t?.deletedAt === 'number' && now - t.deletedAt < seven);
+      if (cleaned.length !== source.length) {
+        localStorage.setItem(trashKey, JSON.stringify(cleaned));
+      }
+      setTrashPages(cleaned);
+    } catch {
+      setTrashPages([]);
+    }
+  }, [trashKey]);
+
+  useEffect(() => {
+    loadTrashFromStorage();
+  }, [loadTrashFromStorage]);
+
   const saveTrash = (list: TrashedPage[]) => {
     setTrashPages(list);
     try { localStorage.setItem(trashKey, JSON.stringify(list)); } catch {}
@@ -864,11 +928,22 @@ export function MyPage() {
     saveTrash(remaining);
     // 복원: 활성화 상태로 추가
     const restored = { ...entry.page, isActive: true };
-    setPages(prev => prev.map(p => ({ ...p, isActive: false })).concat(restored));
+    setPages(prev => {
+      const updated = prev.map(p => ({ ...p, isActive: false })).concat(restored);
+      try {
+        if (currentUser) {
+          localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updated));
+        } else {
+          localStorage.setItem('myPages', JSON.stringify(updated));
+        }
+      } catch {
+        // ignore storage errors
+      }
+      return updated;
+    });
     setCurrentPageId(restored.id);
     setPageTitle(restored.title);
     setWidgets(restored.widgets || []);
-    if (currentUser) localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(prevPagesRef.current ? prevPagesRef.current : []));
   };
 
   const purgeTrashItem = (pageId: string) => {
@@ -1415,6 +1490,44 @@ export function MyPage() {
 
 
 
+  const handleUndoRemove = useCallback(() => {
+    const snapshot = undoStackRef.current;
+    if (!snapshot) return;
+
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+
+    if (snapshot.pageId && snapshot.pageId !== currentPageId) {
+      undoStackRef.current = null;
+      setToast({ type: 'error', msg: '다른 페이지로 이동하여 되돌릴 수 없습니다.' });
+      return;
+    }
+
+    undoStackRef.current = null;
+
+    setWidgets(prev => {
+      if (prev.some(w => w.id === snapshot.widget.id)) {
+        return prev;
+      }
+      const next = [...prev];
+      const insertIndex = Math.min(snapshot.index, next.length);
+      next.splice(insertIndex, 0, { ...snapshot.widget });
+      return next;
+    });
+
+    setRecentlyAddedWidgetId(snapshot.widget.id);
+    if (addAnimTimerRef.current) {
+      clearTimeout(addAnimTimerRef.current);
+    }
+    addAnimTimerRef.current = setTimeout(() => {
+      setRecentlyAddedWidgetId(current => (current === snapshot.widget.id ? null : current));
+    }, 600);
+
+    setToast({ type: 'success', msg: '위젯 삭제를 취소했습니다.' });
+  }, [setWidgets, currentPageId, setToast]);
+
   // 위젯 추가
   const addWidget = useCallback((type: string, size: WidgetSize = '1x1', targetColumn?: number) => {
     console.log('addWidget 호출됨:', type, 'size:', size, 'targetColumn:', targetColumn);
@@ -1423,6 +1536,12 @@ export function MyPage() {
     const recentWidgets = JSON.parse(localStorage.getItem('recentWidgets') || '[]');
     const updated = [type, ...recentWidgets.filter((t: string) => t !== type)].slice(0, 5);
     localStorage.setItem('recentWidgets', JSON.stringify(updated));
+
+    const widgetId =
+      typeof window !== 'undefined' && window.crypto?.randomUUID
+        ? window.crypto.randomUUID()
+        : `widget_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const wasEmpty = widgets.length === 0;
     
     // 특정 위젯 타입에 따라 자동 크기 설정
     let widgetSize = size;
@@ -1591,7 +1710,7 @@ export function MyPage() {
     const gridSize = parseGridSize(widgetSize);
     
     const newWidget: Widget = {
-      id: Date.now().toString(),
+      id: widgetId,
       type: type as any,
         // 그리드 좌표로 추가: 선택 컬럼의 맨 아래
         x: targetCol,
@@ -1621,14 +1740,74 @@ export function MyPage() {
       });
       return [...prevWidgets, newWidget];
     });
-  }, [cellWidth, cellHeight, spacing, getNextAvailablePosition]);
+    
+    setRecentlyAddedWidgetId(widgetId);
+    if (addAnimTimerRef.current) {
+      clearTimeout(addAnimTimerRef.current);
+    }
+    addAnimTimerRef.current = setTimeout(() => {
+      setRecentlyAddedWidgetId(current => (current === widgetId ? null : current));
+    }, 600);
+    
+    if (wasEmpty && !firstWidgetFeedbackShownRef.current) {
+      firstWidgetFeedbackShownRef.current = true;
+      try {
+        localStorage.setItem('urwebs-first-widget-feedback-shown', 'true');
+      } catch (error) {
+        console.warn('[MyPage] 첫 위젯 피드백 저장 실패', error);
+      }
+      setHighlightedWidgetId(widgetId);
+      setShowFirstWidgetTooltip(true);
+      completeTutorialStep('widget', { widgetType: type });
+      trackEvent(ANALYTICS_EVENTS.FIRST_WIDGET_ADDED, {
+        widgetType: type,
+        pageId: currentPageId ?? 'guest',
+        userType: currentUser ? 'member' : 'guest'
+      });
+    } else {
+      trackEvent(ANALYTICS_EVENTS.WIDGET_ADDED, {
+        widgetType: type,
+        pageId: currentPageId ?? 'guest',
+        userType: currentUser ? 'member' : 'guest'
+      });
+    }
+  }, [cellWidth, cellHeight, spacing, getNextAvailablePosition, widgets, currentPageId, currentUser]);
 
   // 위젯 삭제
   const removeWidget = (id: string) => {
-    setWidgets(widgets.filter(w => w.id !== id));
+    const index = widgets.findIndex(w => w.id === id);
+    if (index === -1) return;
+    const removedWidget = widgets[index];
+
+    setWidgets(prev => prev.filter(w => w.id !== id));
+
     if (selectedWidget === id) {
       setSelectedWidget(null);
     }
+    if (highlightedWidgetId === id) {
+      setHighlightedWidgetId(null);
+    }
+
+    undoStackRef.current = {
+      widget: { ...removedWidget },
+      index,
+      pageId: currentPageId
+    };
+
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+    }
+    undoTimerRef.current = setTimeout(() => {
+      undoStackRef.current = null;
+      setToast(null);
+    }, 5000);
+
+    setToast({
+      type: 'info',
+      msg: '위젯이 삭제되었습니다.',
+      actionLabel: '되돌리기',
+      onAction: () => handleUndoRemove()
+    });
   };
 
   // 모든 페이지를 Firebase에 동기화하는 헬퍼 함수
@@ -1783,6 +1962,18 @@ export function MyPage() {
       console.log('공개 설정 저장됨 (게스트):', shareSettings);
       console.log('배경 설정 저장됨 (게스트):', backgroundSettings);
     }
+
+    trackEvent(ANALYTICS_EVENTS.TEMPLATE_SAVED, {
+      pageId: targetPageId,
+      widgetCount: widgets.length,
+      mode: currentUser ? 'authenticated' : 'guest',
+    });
+
+    completeTutorialStep('save', {
+      pageId: targetPageId,
+      widgetCount: widgets.length,
+      userType: currentUser ? 'member' : 'guest'
+    });
     
     // Firebase에 저장 (로그인한 사용자면 항상 저장 - 공개/비공개 무관)
     console.log('Firebase 저장 조건 체크:', { currentUser: !!currentUser, isPublic: shareSettings.isPublic });
@@ -2787,15 +2978,24 @@ export function MyPage() {
     const isSelected = selectedWidget === originalWidget.id;
     const isDragging = draggedWidget === originalWidget.id;
 
+    const isHighlighted = highlightedWidgetId === originalWidget.id;
+    const isNewlyAdded = recentlyAddedWidgetId === originalWidget.id;
+
     return (
       <div
-        className={`relative h-full overflow-hidden uw-card flex flex-col ${
-          isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
-        } ${isDragging ? 'opacity-75' : ''} ${
+        className={`relative h-full overflow-hidden uw-card flex flex-col transition-shadow transition-transform duration-200 ${
+          isDragging ? 'opacity-75' : ''
+        } ${
           dragOverWidget === originalWidget.id && draggedWidget !== originalWidget.id ? 'ring-2 ring-green-500 bg-green-50' : ''
-        }`}
+        } ${
+          isHighlighted
+            ? 'ring-4 ring-indigo-300/80 shadow-indigo-500/40 animate-[pulse_1.4s_ease-in-out_infinite]'
+            : isSelected
+            ? 'ring-2 ring-blue-500 shadow-lg'
+            : ''
+        } ${isNewlyAdded ? 'animate-widget-enter' : ''}`}
         style={{
-          zIndex: isDragging ? 10 : isSelected ? 5 : 1
+          zIndex: isHighlighted ? 12 : isDragging ? 10 : isSelected ? 5 : 1
         }}
         onClick={() => selectWidget(originalWidget.id)}
         onMouseEnter={() => {
@@ -2814,60 +3014,84 @@ export function MyPage() {
           }
         }}
       >
-        {/* 위젯 헤더 - 고정 - 타이틀 영역만 드래그 가능 */}
-        <div 
-          data-drag-handle="true"
-          data-widget-id={originalWidget.id}
-          className="px-2 py-1 border-b border-gray-100 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex items-center justify-between cursor-move group flex-shrink-0"
-        >
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-              {originalWidget.title || allWidgets.find(w => w.type === originalWidget.type)?.name || '위젯'}
-            </span>
+        {isHighlighted && (
+          <div className="pointer-events-none absolute inset-0 rounded-2xl ring-4 ring-indigo-300/60 shadow-[0_0_30px_rgba(99,102,241,0.35)] animate-[pulse_1.4s_ease-in-out_infinite]" aria-hidden="true" />
+        )}
+        {isHighlighted && showFirstWidgetTooltip && (
+          <div className="absolute -top-20 left-1/2 z-30 w-64 -translate-x-1/2 rounded-2xl bg-indigo-600 px-4 py-3 text-white shadow-2xl shadow-indigo-500/50">
+            <p className="text-sm font-semibold">첫 위젯이 추가되었어요!</p>
+            <p className="text-xs text-indigo-100 mt-1 leading-relaxed">상단의 저장 버튼으로 페이지를 완성해보세요.</p>
           </div>
-          
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {/* 사이즈 선택기 - 특정 위젯들은 제한된 크기만 허용 */}
-            <SizePicker
-              value={originalWidget.gridSize || { w: 1, h: 1 }}
-              onChange={(newSize) => {
-                updateWidget(originalWidget.id, { ...originalWidget, gridSize: newSize });
-              }}
-              widgetType={originalWidget.type}
-            />
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-6 w-6 p-0 hover:bg-red-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeWidget(originalWidget.id);
-              }}
-              title="위젯 삭제"
-            >
-              <X className="w-3 h-3 text-red-600" />
-            </Button>
+        )}
+        <div className="relative z-10 flex flex-col h-full">
+          {/* 위젯 헤더 - 고정 - 타이틀 영역만 드래그 가능 */}
+          <div 
+            data-drag-handle="true"
+            data-widget-id={originalWidget.id}
+            className="px-2 py-1 border-b border-gray-100 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex items-center justify-between cursor-move group flex-shrink-0"
+          >
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                {originalWidget.title || allWidgets.find(w => w.type === originalWidget.type)?.name || '위젯'}
+              </span>
+            </div>
+            
+            {isEditMode && (
+              <div className="flex items-center gap-1 opacity-100 transition-opacity">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    editWidget(originalWidget.id);
+                  }}
+                  title="위젯 설정"
+                >
+                  <Settings className="w-3.5 h-3.5 text-gray-500" />
+                </Button>
+                {/* 사이즈 선택기 - 특정 위젯들은 제한된 크기만 허용 */}
+                <SizePicker
+                  value={originalWidget.gridSize || { w: 1, h: 1 }}
+                  onChange={(newSize) => {
+                    updateWidget(originalWidget.id, { ...originalWidget, gridSize: newSize });
+                  }}
+                  widgetType={originalWidget.type}
+                />
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-rose-500/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeWidget(originalWidget.id);
+                  }}
+                  title="위젯 삭제"
+                >
+                  <X className="w-3 h-3 text-red-600" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* 위젯 콘텐츠 - 스크롤 가능 */}
+          <div 
+            className="flex-1 bg-transparent overflow-y-auto"
+            onMouseDown={(e) => {
+              // 위젯 본문에서는 드래그 완전 방지
+              e.stopPropagation();
+            }}
+            onDragStart={(e) => {
+              // 위젯 내용 영역에서 드래그 시작 방지
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <div className="p-3">
+              {renderWidgetContent(originalWidget)}
+            </div>
           </div>
         </div>
-
-        {/* 위젯 콘텐츠 - 스크롤 가능 */}
-        <div 
-          className="flex-1 bg-transparent overflow-y-auto"
-          onMouseDown={(e) => {
-            // 위젯 본문에서는 드래그 완전 방지
-            e.stopPropagation();
-          }}
-          onDragStart={(e) => {
-            // 위젯 내용 영역에서 드래그 시작 방지
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-        >
-          <div className="p-3">
-            {renderWidgetContent(originalWidget)}
-          </div>
-        </div>
-
       </div>
     );
   };
@@ -4587,6 +4811,8 @@ export function MyPage() {
       {!showTemplateModal && (
       <div className="uw-container py-0 pb-32">
 
+        <PopularWidgetsStrip />
+
 
 
         {/* 위젯 캔버스 - 전체 너비 사용 */}
@@ -5541,10 +5767,26 @@ export function MyPage() {
 
       {/* 토스트 메시지 */}
       {toast && (
-        <div className={`fixed top-20 right-4 px-4 py-2 rounded shadow-lg z-[10000] ${
-          toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-        }`}>
-          {toast.msg}
+        <div
+          className={`fixed bottom-12 right-6 z-[10000] max-w-sm rounded-2xl px-4 py-3 shadow-xl backdrop-blur ${
+            toast.type === 'success'
+              ? 'bg-emerald-500/90 text-white'
+              : toast.type === 'error'
+              ? 'bg-rose-500/90 text-white'
+              : 'bg-slate-900/85 text-white'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium leading-5">{toast.msg}</span>
+            {toast.actionLabel && toast.onAction && (
+              <button
+                onClick={toast.onAction}
+                className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/30 transition-colors"
+              >
+                {toast.actionLabel}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

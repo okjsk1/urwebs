@@ -49,9 +49,23 @@
         '@': path.resolve(__dirname, './src'),
       },
     },
+    cacheDir: 'node_modules/.vite-cache',
     build: {
       target: 'esnext',
       outDir: 'dist',
+      chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            firebase: ['firebase/app', 'firebase/firestore'],
+          },
+        },
+      },
+    },
+    optimizeDeps: {
+      include: ['firebase/app', 'firebase/firestore'],
+      exclude: ['lucide-react'],
     },
     server: {
       port: 3000,

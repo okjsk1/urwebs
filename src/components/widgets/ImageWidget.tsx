@@ -1,9 +1,16 @@
 // Image/PhotoFrame 위젯 - 사진을 예쁘게 표시하는 위젯
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { 
-  Image as ImageIcon, Upload, X, ChevronLeft, ChevronRight, 
-  Play, Pause, Settings, Trash2, Edit2, Maximize2, RotateCw,
-  GripVertical, Plus, Link as LinkIcon, Copy
+import {
+  Image as ImageIcon,
+  Upload,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  Edit2,
+  Plus,
+  Settings,
+  Link as LinkIcon
 } from 'lucide-react';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
 import { trackEvent } from '../../utils/analytics';
@@ -70,12 +77,10 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
 
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [showSettings, setShowSettings] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percentage: 0 });
-  const [isDragging, setIsDragging] = useState(null as any);
-  const [dragOverId, setDragOverId] = useState(null as any);
   const [isDropActive, setIsDropActive] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   
   const fileInputRef = useRef(null);
@@ -84,7 +89,6 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
   const containerRef = useRef(null);
   const lightboxRef = useRef(null);
   const persistTimerRef = useRef(null as any);
-  const fileActionRef = useRef('add' as 'add' | 'replace');
   
   const widgetSize = useMemo(() => {
     const gridSize = (widget as any).gridSize;
@@ -192,13 +196,11 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
   // 파일 업로드 처리 (유형 검증 완화 + HEIC/HEIF 안내 + 로깅)
   const handleFileUpload = useCallback(async (filesInput: File[] | FileList | null) => {
     const list = filesInput ? Array.from(filesInput as any) as File[] : [];
-    console.log('[ImageWidget] handleFileUpload start', list?.length || 0);
     if (!list.length) return;
-    
-    const MAX_FILES = 20;
+
     const MAX_SIZE = 10 * 1024 * 1024; // 10MB
-    
-    const validFiles: File[] = [];
+    let selectedFile: File | null = null;
+
     for (const file of list) {
       if (!file.type || !file.type.startsWith('image/')) {
         console.warn('[ImageWidget] rejected non-image', file);
@@ -215,131 +217,46 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
         showToast(`파일이 너무 큽니다 (${file.name}). 최대 10MB`, 'error');
         continue;
       }
-      validFiles.push(file);
+      selectedFile = file;
+      break;
     }
-    
-    if (validFiles.length === 0) return;
-    if (state.items.length + validFiles.length > MAX_FILES) {
-      showToast(`최대 ${MAX_FILES}장까지 업로드 가능합니다.`, 'info');
-      return;
-    }
-    
-    setIsUploading(true);
-    setUploadProgress({ current: 0, total: validFiles.length, percentage: 0 });
-    const newItems: PhotoItem[] = [];
-    
-    try {
-      for (let i = 0; i < validFiles.length; i++) {
-        const file = validFiles[i];
-        const blobUrl = URL.createObjectURL(file);
-        newItems.push({
-          id: generateId(),
-          src: blobUrl,
-          caption: '',
-          createdAt: Date.now()
-        });
-        
-        // 진행률 업데이트 (3% 단위로 표시)
-        const current = i + 1;
-        const rawPercentage = (current / validFiles.length) * 100;
-        // 3% 단위로 반올림 (0, 3, 6, 9, ..., 96, 99, 100)
-        let roundedPercentage = Math.floor(rawPercentage / 3) * 3;
-        // 마지막 파일은 100%로 표시
-        if (current === validFiles.length) {
-          roundedPercentage = 100;
-        }
-        setUploadProgress({ 
-          current, 
-          total: validFiles.length, 
-          percentage: roundedPercentage 
-        });
-        
-        // UI 업데이트를 위한 작은 딜레이 (너무 빠르면 진행률을 볼 수 없음)
-        if (i < validFiles.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 50));
-        }
-      }
-      console.log('[ImageWidget] added items', newItems.length);
-      
-      setState(prev => ({
-        ...prev,
-        items: [...prev.items, ...newItems],
-        lastUpdated: Date.now()
-      }));
-      
-      trackEvent('image_widget_upload', { count: validFiles.length });
-    } catch (error) {
-      console.error('이미지 업로드 실패:', error);
-      showToast('이미지 업로드에 실패했습니다.', 'error');
-    } finally {
-      setIsUploading(false);
-      setUploadProgress({ current: 0, total: 0, percentage: 0 });
-    }
-  }, [state.items.length]);
 
-  // 단일 파일 교체 처리 (현재 활성 이미지 교체)
-  const handleReplaceFile = useCallback(async (file: File | undefined | null) => {
-    if (!file) return;
-    console.log('[ImageWidget] replace start');
-    if (!file.type || !file.type.startsWith('image/')) {
-      console.warn('[ImageWidget] replace rejected non-image', file);
-      showToast(`이미지 파일이 아닙니다 (${file.name})`, 'error');
-      return;
-    }
-    if (/image\/heic|image\/heif/i.test(file.type)) {
-      console.warn('[ImageWidget] replace non-previewable (HEIC/HEIF?)', file.type);
-      showToast('HEIC/HEIF는 브라우저 미리보기가 어려워요. JPG/PNG/WebP로 변환해 주세요.', 'info');
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      console.warn('[ImageWidget] replace oversized', file.size);
-      showToast(`파일이 너무 큽니다 (${file.name}). 최대 10MB`, 'error');
+    if (!selectedFile) {
       return;
     }
 
     setIsUploading(true);
     setUploadProgress({ current: 0, total: 1, percentage: 0 });
-    
+
     try {
-      // 진행률 단계별 표시 (3% 단위: 0%, 3%, 6%, ..., 99%, 100%)
-      const steps = [0, 30, 60, 90, 100];
-      for (let step = 0; step < steps.length; step++) {
-        const percentage = steps[step];
-        setUploadProgress({ current: 0, total: 1, percentage });
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
-        // 중간 단계에서 실제 처리
-        if (step === 2) {
-          const blobUrl = URL.createObjectURL(file);
-          setState(prev => {
-            if (prev.items.length === 0) {
-              return {
-                ...prev,
-                items: [
-                  { id: generateId(), src: blobUrl, caption: '', createdAt: Date.now() }
-                ],
-                activeIndex: 0,
-                lastUpdated: Date.now()
-              };
-            }
-            const idx = Math.min(Math.max(prev.activeIndex, 0), prev.items.length - 1);
-            const old = prev.items[idx];
-            if (old?.src?.startsWith('blob:')) {
-              try { URL.revokeObjectURL(old.src); } catch {}
-            }
-            const newItems = prev.items.map((it, i) => i === idx ? { ...it, src: blobUrl, createdAt: Date.now() } : it);
-            return { ...prev, items: newItems, lastUpdated: Date.now() };
-          });
-        }
-      }
-      
+      const blobUrl = URL.createObjectURL(selectedFile);
+
       setUploadProgress({ current: 1, total: 1, percentage: 100 });
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      showToast('사진을 교체했습니다.', 'success');
+
+      setState(prev => {
+        const prevItem = prev.items[0];
+        if (prevItem?.src.startsWith('blob:')) {
+          try { URL.revokeObjectURL(prevItem.src); } catch {}
+        }
+
+        return {
+          ...prev,
+          items: [{
+            id: generateId(),
+            src: blobUrl,
+            caption: prevItem?.caption || '',
+            createdAt: Date.now()
+          }],
+          activeIndex: 0,
+          lastUpdated: Date.now()
+        };
+      });
+
+      trackEvent('image_widget_upload', { count: 1 });
+      showToast('사진이 업데이트되었습니다.', 'success');
     } catch (error) {
-      console.error('이미지 교체 실패:', error);
-      showToast('이미지 교체에 실패했습니다.', 'error');
+      console.error('이미지 업로드 실패:', error);
+      showToast('이미지 업로드에 실패했습니다.', 'error');
     } finally {
       setIsUploading(false);
       setUploadProgress({ current: 0, total: 0, percentage: 0 });
@@ -440,13 +357,21 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       createdAt: Date.now()
     };
     
-    setState(prev => ({
-      ...prev,
-      items: [...prev.items, newItem],
-      lastUpdated: Date.now()
-    }));
+    setState(prev => {
+      const prevItem = prev.items[0];
+      if (prevItem?.src.startsWith('blob:')) {
+        try { URL.revokeObjectURL(prevItem.src); } catch {}
+      }
+      return {
+        ...prev,
+        items: [newItem],
+        activeIndex: 0,
+        lastUpdated: Date.now()
+      };
+    });
     
     if (urlInputRef.current) urlInputRef.current.value = '';
+    showToast('사진이 업데이트되었습니다.', 'success');
     trackEvent('image_widget_add_by_url');
   }, []);
 
@@ -464,7 +389,19 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       return;
     }
     const newItem: PhotoItem = { id: generateId(), src: url, caption: '', createdAt: Date.now() };
-    setState(prev => ({ ...prev, items: [...prev.items, newItem], lastUpdated: Date.now() }));
+    setState(prev => {
+      const prevItem = prev.items[0];
+      if (prevItem?.src.startsWith('blob:')) {
+        try { URL.revokeObjectURL(prevItem.src); } catch {}
+      }
+      return {
+        ...prev,
+        items: [newItem],
+        activeIndex: 0,
+        lastUpdated: Date.now()
+      };
+    });
+    showToast('사진이 업데이트되었습니다.', 'success');
     trackEvent('image_widget_add_by_url_quick');
   }, [state.items]);
 
@@ -511,57 +448,6 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       };
     });
     trackEvent('image_widget_delete', { id });
-  }, []);
-
-  // 이미지 순서 변경 (드래그&드롭)
-  const handleDragStart = (id: string) => {
-    setIsDragging(id);
-  };
-
-  const handleDragOver = (e: any, id: string) => {
-    e.preventDefault();
-    if (isDragging && isDragging !== id) {
-      setDragOverId(id);
-    }
-  };
-
-  const handleDrop = (e: any, targetId: string) => {
-    e.preventDefault();
-    if (!isDragging || isDragging === targetId) return;
-    
-    const items = [...state.items];
-    const dragIndex = items.findIndex(i => i.id === isDragging);
-    const targetIndex = items.findIndex(i => i.id === targetId);
-    
-    if (dragIndex === -1 || targetIndex === -1) return;
-    
-    const [removed] = items.splice(dragIndex, 1);
-    items.splice(targetIndex, 0, removed);
-    
-    setState(prev => ({
-      ...prev,
-      items,
-      lastUpdated: Date.now()
-    }));
-    
-    setIsDragging(null);
-    setDragOverId(null);
-    trackEvent('image_widget_reorder');
-  };
-
-  // 이전/다음 이미지
-  const goPrevious = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      activeIndex: prev.activeIndex > 0 ? prev.activeIndex - 1 : prev.items.length - 1
-    }));
-  }, []);
-
-  const goNext = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      activeIndex: (prev.activeIndex + 1) % prev.items.length
-    }));
   }, []);
 
   // 라이트박스 열기
@@ -741,13 +627,11 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       <input
         ref={fileInputRef}
         type="file"
-        multiple
         accept="image/*"
         onChange={(e) => {
           const list = e.currentTarget.files;
           if (!list || list.length === 0) return;
-          const files = Array.from(list);
-          handleFileUpload(files as any);
+          handleFileUpload(list);
           e.currentTarget.value = '';
         }}
         className="hidden"
@@ -761,26 +645,23 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
           minHeight: 0 
         }}
       >
-        {/* 전역 추가(+) 버튼 - 편집모드 전용 */}
+        {/* 전역 교체 버튼 - 편집모드 전용 */}
         {isEditMode && (
           <button
             onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               if (e.altKey) {
-                e.preventDefault();
-                e.stopPropagation();
                 handleQuickAddByUrl();
               } else {
-                e.preventDefault();
-                e.stopPropagation();
-                fileActionRef.current = 'add';
                 fileInputRef.current?.click();
               }
             }}
-            title="이미지 추가 (일반 클릭: 파일, Alt+클릭: URL)"
-            aria-label="이미지 추가"
+            title="사진 교체 (일반 클릭: 파일, Alt+클릭: URL)"
+            aria-label="사진 교체"
             className="absolute top-2 right-2 z-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-1.5 shadow focus:outline-none focus:ring-2 focus:ring-white/70"
           >
-            <Plus className="w-4 h-4" />
+            <Edit2 className="w-4 h-4" />
           </button>
         )}
 

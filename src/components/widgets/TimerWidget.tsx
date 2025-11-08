@@ -17,6 +17,7 @@ interface TimerCore {
   
   // 카운트다운
   targetMs?: number;                  // 목표 시점 (Unix timestamp)
+  countdownTotalMs?: number;          // 설정된 총 카운트다운 시간 (밀리초)
   
   // 포모도로
   pomoPhase: 'work' | 'rest';
@@ -27,6 +28,9 @@ interface TimerCore {
   // 설정
   sound: boolean;
   notifyEnabled: boolean;
+
+  // 커스텀 라벨
+  customLabel?: string;
 }
 
 interface DisplayTime {
@@ -71,6 +75,27 @@ const POMO_PRESETS = [
 ];
 
 const TICK_INTERVAL = 200; // 200ms 틱
+const DEFAULT_COUNTDOWN_MS = 10 * 60 * 1000;
+
+const deriveCountdownTotal = (state: TimerCore, now: number): number | undefined => {
+  if (typeof state.countdownTotalMs === 'number' && !Number.isNaN(state.countdownTotalMs)) {
+    return state.countdownTotalMs;
+  }
+
+  const runtimeMs = state.startEpoch && state.running ? now - state.startEpoch : 0;
+  const elapsedMs = state.accumulatedMs + runtimeMs;
+
+  if (typeof state.countdownTotalMs === 'number' && !Number.isNaN(state.countdownTotalMs)) {
+    return state.countdownTotalMs;
+  }
+
+  if (state.targetMs) {
+    const remaining = Math.max(0, state.targetMs - now);
+    return remaining + elapsedMs;
+  }
+
+  return undefined;
+};
 
 export function TimerWidget({
   id,
@@ -90,12 +115,14 @@ export function TimerWidget({
       running: false,
       mode: 'countdown',
       targetMs: undefined,
+      countdownTotalMs: undefined,
       pomoPhase: 'work',
       pomoRounds: 0,
       pomoWorkMin: POMO_DEFAULTS.workMin,
       pomoRestMin: POMO_DEFAULTS.restMin,
       sound: true,
-      notifyEnabled: true
+      notifyEnabled: true,
+      customLabel: ''
     }
   });
 
@@ -113,6 +140,17 @@ export function TimerWidget({
   
   // 위젯 요소 참조 (IntersectionObserver용)
   const widgetRef = useRef<HTMLDivElement>(null);
+
+  const timerLabel = (core.customLabel ?? '').trim() || title;
+
+  const handleNameChange = useCallback((value: string) => {
+    const next = value.slice(0, 40);
+    setCore(prev => ({ ...prev, customLabel: next }));
+  }, [setCore]);
+
+  const handleNameBlur = useCallback(() => {
+    setCore(prev => ({ ...prev, customLabel: (prev.customLabel ?? '').trim() }));
+  }, [setCore]);
 
   // 오디오 초기화
   useEffect(() => {
@@ -214,7 +252,7 @@ export function TimerWidget({
         new Notification(`${mode === 'countdown' ? '카운트다운' : '포모도로'} 완료`, {
           body: mode === 'pomodoro' 
             ? `${core.pomoPhase === 'work' ? '작업' : '휴식'} 시간이 완료되었습니다.`
-            : '타이머가 완료되었습니다.',
+            : `${timerLabel} 타이머가 완료되었습니다.`,
           icon: '/favicon.ico',
           tag: `timer-${id}`,
           requireInteraction: false
@@ -228,7 +266,7 @@ export function TimerWidget({
             new Notification(`${mode === 'countdown' ? '카운트다운' : '포모도로'} 완료`, {
               body: mode === 'pomodoro' 
                 ? `${core.pomoPhase === 'work' ? '작업' : '휴식'} 시간이 완료되었습니다.`
-                : '타이머가 완료되었습니다.',
+                : `${timerLabel} 타이머가 완료되었습니다.`,
               icon: '/favicon.ico',
               tag: `timer-${id}`
             });
@@ -244,16 +282,16 @@ export function TimerWidget({
       let blinkCount = 0;
       const interval = setInterval(() => {
         document.title = blinkCount % 2 === 0 
-          ? '⏰ 타이머 완료! ⏰' 
-          : title;
+          ? `⏰ ${timerLabel} 완료! ⏰` 
+          : timerLabel;
         blinkCount++;
         if (blinkCount >= 10) {
           clearInterval(interval);
-          document.title = title;
+          document.title = timerLabel;
         }
       }, 500);
     }
-  }, [core.sound, core.notifyEnabled, core.pomoPhase, id, title]);
+  }, [core.sound, core.notifyEnabled, core.pomoPhase, id, timerLabel]);
 
   // 타이머 틱 업데이트
   const updateTimer = useCallback(() => {
@@ -539,7 +577,7 @@ export function TimerWidget({
   return (
     <WidgetShell
       icon={<Clock className="w-4 h-4 text-indigo-600" />}
-      title={title}
+      title={timerLabel}
       size={size}
       onRemove={() => onRemove?.(id)}
       onResize={(newSize) => onResize?.(id, newSize as 's' | 'm' | 'l')}
