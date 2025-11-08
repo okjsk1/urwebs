@@ -25,11 +25,13 @@ export interface WidgetShellProps {
   size?: WidgetSize;
   className?: string;
   /** 카드 크롬 표시 방식 */
-  variant?: 'card' | 'bare';
+  variant?: 'card' | 'bare' | 'inset';
   /** 내부 컨텐츠에 추가 클래스 */
   contentClassName?: string;
   /** 헤더 표시 여부 */
   headerVariant?: 'default' | 'compact' | 'none';
+  /** 헤더 우측에 배치할 사용자 정의 액션 */
+  headerAction?: ReactNode;
 }
 
 const sizeClasses = {
@@ -52,7 +54,8 @@ export function WidgetShell({
   className = '',
   variant = 'card',
   contentClassName = '',
-  headerVariant = 'default'
+  headerVariant = 'default',
+  headerAction
 }: WidgetShellProps) {
   const [showMenu, setShowMenu] = React.useState(false);
 
@@ -66,13 +69,21 @@ export function WidgetShell({
     }
   };
 
-  const wrapperClass = variant === 'card'
-    ? `rounded-2xl border border-gray-300 bg-white shadow-sm overflow-hidden ${sizeClasses[size]} ${className}`
+  const isCardLike = variant === 'card' || variant === 'inset';
+
+  const wrapperClass = isCardLike
+    ? `rounded-2xl border border-gray-200 bg-white/85 shadow-sm overflow-hidden backdrop-blur ${sizeClasses[size]} ${className}`
     : `bg-transparent shadow-none ring-0 ${className}`;
 
-  const bodyPad = variant === 'card' ? 'p-2 h-full overflow-hidden flex flex-col' : 'p-0';
+  const bodyBase = isCardLike ? 'h-full overflow-hidden flex flex-col' : '';
+  const bodyPadding = isCardLike ? 'p-3' : 'p-0';
+  const bodyDecoration = variant === 'inset'
+    ? 'bg-transparent border-none rounded-none shadow-none'
+    : '';
 
-  const showHeader = variant === 'card' && headerVariant !== 'none';
+  const bodyClass = `${bodyPadding} ${bodyBase} ${bodyDecoration} ${contentClassName}`.trim();
+
+  const showHeader = isCardLike && headerVariant !== 'none';
 
   return (
     <section 
@@ -81,7 +92,7 @@ export function WidgetShell({
     >
       {/* 헤더 - card variant이고 headerVariant가 none이 아닐 때만 표시 */}
       {showHeader && (
-        <header className={`flex items-center justify-between border-b bg-white/80 ${
+        <header className={`flex items-center justify-between border-b border-white/60 bg-white/75 backdrop-blur ${
           headerVariant === 'compact' ? 'h-8 px-2' : 'h-10 px-3'
         }`}>
           <div className="flex items-center gap-2">
@@ -90,13 +101,16 @@ export function WidgetShell({
               headerVariant === 'compact' ? 'text-xs' : 'text-sm'
             }`}>{title}</h3>
           </div>
-          
-          {/* 편집/메뉴 버튼 제거 요청에 따라 우측 액션 제거 */}
+          {headerAction && (
+            <div className="flex items-center gap-1">
+              {headerAction}
+            </div>
+          )}
         </header>
       )}
       
       {/* 콘텐츠 */}
-      <div className={`${bodyPad} ${contentClassName}`}>
+      <div className={bodyClass}>
         {children}
       </div>
     </section>
