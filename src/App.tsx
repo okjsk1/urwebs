@@ -35,6 +35,9 @@ const AllPagesListPage = lazy(() =>
 const FavoritesPage = lazy(() =>
   import('./pages/FavoritesPage').then((m) => ({ default: m.FavoritesPage }))
 );
+const TemplatesGalleryPage = lazy(() =>
+  import('./components/TemplatesGalleryPage').then((m) => ({ default: m.TemplatesGalleryPage }))
+);
 const PageFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
     <div className="flex flex-col items-center gap-4">
@@ -673,6 +676,25 @@ function AppContent() {
 
         {/* 전체 페이지 목록 */}
         <Route path="/pages" element={withSuspense(<AllPagesListPage />)} />
+
+        {/* 템플릿 갤러리 */}
+        <Route
+          path="/templates"
+          element={
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 dark:from-gray-950 dark:to-gray-900">
+              <Header
+                currentPage="templates"
+                onNavigateHome={navigateHome}
+                onNavigateNotice={() => navigate('/notice')}
+                onNavigateCommunity={() => navigate('/community')}
+                onNavigateContact={() => navigate('/contact')}
+                onNavigateMyPage={() => navigate('/mypage')}
+                onNavigateAdminInquiries={() => navigate('/admin')}
+              />
+              <main>{withSuspense(<TemplatesGalleryPage />)}</main>
+            </div>
+          }
+        />
 
         {/* 내 관심 페이지 */}
         <Route path="/favorites" element={

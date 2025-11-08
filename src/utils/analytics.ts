@@ -13,11 +13,14 @@ export type AnalyticsTransport = {
 const STORAGE_EVENT_LOG_KEY = 'analytics-event-log-v1';
 const STORAGE_WIDGET_USAGE_KEY = 'analytics-widget-usage-v1';
 const STORAGE_RECENT_TEMPLATES_KEY = 'analytics-recent-templates-v1';
+const STORAGE_TEMPLATE_SNAPSHOTS_KEY = 'analytics-template-snapshots-v1';
 
 const MAX_EVENT_LOG = 500;
 const MAX_WIDGET_LOG = 300;
-const RECENT_TEMPLATE_LIMIT = 8;
+const RECENT_TEMPLATE_LIMIT = 6;
+const MAX_TEMPLATE_SNAPSHOTS = 16;
 const POPULAR_WIDGET_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7일
+const POPULAR_TEMPLATE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7일
 
 class Analytics {
   private events: AnalyticsEvent[] = [];
@@ -101,12 +104,26 @@ class Analytics {
 
     if (
       event.event === ANALYTICS_EVENTS.TEMPLATE_SELECTED ||
-      event.event === ANALYTICS_EVENTS.CLONE_TEMPLATE ||
+      event.event === ANALYTICS_EVENTS.TEMPLATE_CLONE ||
       event.event === ANALYTICS_EVENTS.TEMPLATE_SAVED
     ) {
       if (event.data?.templateId || event.data?.pageId) {
         this.persistRecentTemplate(event);
       }
+    }
+
+    if (
+      event.event === ANALYTICS_EVENTS.TEMPLATE_CLONE &&
+      event.data?.templateId &&
+      event.data?.snapshot
+    ) {
+      this.persistTemplateSnapshot(event.data.templateId as string, {
+        templateId: event.data.templateId,
+        templateName: event.data.templateName,
+        data: event.data.snapshot?.data ?? event.data.snapshot,
+        origin: event.data.source,
+        updatedAt: event.timestamp ?? Date.now(),
+      });
     }
   }
 
@@ -150,6 +167,30 @@ class Analytics {
       console.warn('[analytics] recent template persist failed', error);
     }
   }
+
+  private persistTemplateSnapshot(
+    templateId: string,
+    snapshot: { templateId: string; templateName?: string; data: any; origin?: string; updatedAt: number }
+  ) {
+    try {
+      const raw = localStorage.getItem(STORAGE_TEMPLATE_SNAPSHOTS_KEY);
+      const list: Array<typeof snapshot> = raw ? JSON.parse(raw) : [];
+      const filtered = list.filter((item) => item.templateId !== templateId);
+      filtered.unshift({
+        templateId,
+        templateName: snapshot.templateName,
+        data: snapshot.data,
+        origin: snapshot.origin,
+        updatedAt: snapshot.updatedAt,
+      });
+      if (filtered.length > MAX_TEMPLATE_SNAPSHOTS) {
+        filtered.splice(MAX_TEMPLATE_SNAPSHOTS);
+      }
+      localStorage.setItem(STORAGE_TEMPLATE_SNAPSHOTS_KEY, JSON.stringify(filtered));
+    } catch (error) {
+      console.warn('[analytics] template snapshot persist failed', error);
+    }
+  }
 }
 
 export const analytics = new Analytics();
@@ -189,6 +230,53 @@ export const getPopularWidgets = (options?: { windowMs?: number; limit?: number 
   }
 };
 
+export const getPopularTemplates = (options?: { windowMs?: number; limit?: number }) => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_EVENT_LOG_KEY);
+    const events: AnalyticsEvent[] = raw ? JSON.parse(raw) : [];
+    const windowMs = options?.windowMs ?? POPULAR_TEMPLATE_WINDOW_MS;
+    const minTimestamp = Date.now() - windowMs;
+
+    const counts = events.reduce<Map<
+      string,
+      { count: number; name?: string; lastTimestamp: number }
+    >>((map, event) => {
+      if (event.event !== ANALYTICS_EVENTS.TEMPLATE_CLONE) return map;
+      const timestamp = event.timestamp ?? 0;
+      if (timestamp < minTimestamp) return map;
+      const templateId = event.data?.templateId as string | undefined;
+      if (!templateId) return map;
+      const existing = map.get(templateId) ?? { count: 0, lastTimestamp: 0 };
+      existing.count += 1;
+      existing.lastTimestamp = Math.max(existing.lastTimestamp, timestamp);
+      if (event.data?.templateName) {
+        existing.name = event.data.templateName as string;
+      }
+      map.set(templateId, existing);
+      return map;
+    }, new Map());
+
+    return Array.from(counts.entries())
+      .sort((a, b) => {
+        if (b[1].count !== a[1].count) {
+          return b[1].count - a[1].count;
+        }
+        return b[1].lastTimestamp - a[1].lastTimestamp;
+      })
+      .slice(0, options?.limit ?? 6)
+      .map(([templateId, info]) => ({
+        templateId,
+        templateName: info.name,
+        count: info.count,
+        lastTimestamp: info.lastTimestamp,
+      }));
+  } catch (error) {
+    console.warn('[analytics] popular templates load failed', error);
+    return [];
+  }
+};
+
 export const getRecentTemplates = (limit: number = RECENT_TEMPLATE_LIMIT) => {
   if (typeof window === 'undefined') return [];
   try {
@@ -201,12 +289,27 @@ export const getRecentTemplates = (limit: number = RECENT_TEMPLATE_LIMIT) => {
   }
 };
 
+export const getTemplateSnapshot = (templateId: string) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_TEMPLATE_SNAPSHOTS_KEY);
+    const list: Array<{ templateId: string; templateName?: string; data: any; origin?: string; updatedAt: number }> =
+      raw ? JSON.parse(raw) : [];
+    return list.find((item) => item.templateId === templateId) || null;
+  } catch (error) {
+    console.warn('[analytics] template snapshot load failed', error);
+    return null;
+  }
+};
+
 export const ANALYTICS_EVENTS = {
   CTA_CLICK: 'cta_click',
   VIEW_TEMPLATE: 'view_template',
-  CLONE_TEMPLATE: 'clone_template',
+  TRY_DEMO_CLICK: 'try_demo_click',
+  TEMPLATE_CLONE: 'template_clone',
   FIRST_WIDGET_ADDED: 'first_widget_added',
   WIDGET_ADDED: 'widget_added',
+  WIDGET_MOVE: 'widget_move',
   SHARE_CLICK: 'share_click',
   SEARCH_QUERY: 'search_query',
   CATEGORY_CLICK: 'category_click',
@@ -214,6 +317,7 @@ export const ANALYTICS_EVENTS = {
   SOCIAL_PROOF_CLICK: 'social_proof_click',
   TEMPLATE_SAVED: 'template_saved',
   TEMPLATE_SELECTED: 'template_selected',
+  SAVE_DASHBOARD: 'save_dashboard',
   SEARCH_SUBMIT: 'search_submit',
   TAG_CLICK: 'tag_click',
   PAGE_VIEW: 'page_view',

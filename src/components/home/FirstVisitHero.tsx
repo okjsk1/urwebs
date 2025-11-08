@@ -152,3 +152,4 @@ export const FirstVisitHero: React.FC<FirstVisitHeroProps> = ({ progress, onStar
   );
 };
 
+

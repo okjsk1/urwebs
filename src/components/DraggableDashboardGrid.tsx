@@ -135,6 +135,7 @@ export default function DraggableDashboardGrid({
   const hideButtonTimerRef = useRef<NodeJS.Timeout | null>(null);
   const rafMoveRef = useRef<number | null>(null);
   const [isColliding, setIsColliding] = useState(false);
+  const [showDragGuide, setShowDragGuide] = useState(false);
 
   // 레이아웃 프리셋 적용기
   const applyLayoutPreset = useCallback((preset: typeof layoutPreset) => {
@@ -454,6 +455,9 @@ export default function DraggableDashboardGrid({
 
     const handleMove = (e: MouseEvent | TouchEvent) => {
       e.preventDefault();
+      if (!showDragGuide) {
+        setShowDragGuide(true);
+      }
       const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
       const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
       setCurrentPos({ x: clientX, y: clientY });
@@ -497,7 +501,7 @@ export default function DraggableDashboardGrid({
 
     const handleEnd = (e: MouseEvent | TouchEvent) => {
       if (!activeId) return;
-
+      setShowDragGuide(false);
       const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as MouseEvent).clientX;
       const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : (e as MouseEvent).clientY;
 
@@ -802,7 +806,7 @@ export default function DraggableDashboardGrid({
         ))}
 
         {/* 드롭 예상 위치 플레이스홀더 - 개선된 시각적 피드백 */}
-        {activeWidget && previewPos && activeId && (
+      {activeWidget && previewPos && activeId && (
           <div
             className={`pointer-events-none rounded-lg border-4 border-dashed animate-pulse transition-all duration-200 ${
               isColliding

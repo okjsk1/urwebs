@@ -1,13 +1,20 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles, Heart, Monitor, LayoutDashboard, Palette } from 'lucide-react';
+import { ArrowRight, Sparkles, Heart, Monitor, LayoutDashboard, Palette, Copy } from 'lucide-react';
 import { TemplateSelectModal } from './modals/TemplateSelectModal';
 import { Onboarding } from './Onboarding';
-import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics';
+import {
+  trackEvent,
+  ANALYTICS_EVENTS,
+  getPopularTemplates,
+  getRecentTemplates,
+  getTemplateSnapshot,
+  subscribeAnalytics,
+} from '../utils/analytics';
 import { useAuth } from '../contexts/AuthContext';
 import { useVisitExperience } from '../hooks/useVisitExperience';
 import { useTutorialProgress } from '../hooks/useTutorialProgress';
-import { ensureGuestTrialPage } from '../utils/guestExperience';
+import { ensureGuestTrialPage, resetGuestTrialPage } from '../utils/guestExperience';
 
 const templatesShowcase = [
   {
@@ -69,6 +76,23 @@ export function Home() {
   const [activeTemplate, setActiveTemplate] = useState(0);
   const [parallax, setParallax] = useState(0);
   const [reveal, setReveal] = useState(false);
+  const [popularTemplates, setPopularTemplates] = useState<
+    Array<{
+      templateId: string;
+      templateName?: string;
+      count: number;
+      snapshot?: { templateId: string; templateName?: string; data: any; origin?: string; updatedAt: number } | null;
+    }>
+  >([]);
+  const [recentTemplates, setRecentTemplates] = useState<
+    Array<{
+      id: string;
+      name?: string;
+      timestamp: number;
+      source: string;
+      snapshot?: { templateId: string; templateName?: string; data: any; origin?: string; updatedAt: number } | null;
+    }>
+  >([]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setReveal(true));
@@ -83,13 +107,113 @@ export function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleStartTrial = () => {
-    if (!progress || progress.completedAt) {
-      startTutorial();
-    }
-    trackEvent(ANALYTICS_EVENTS.CTA_CLICK, { button: 'trial_start' });
-    setShowTemplateModal(true);
-  };
+  const refreshTemplateInsights = useCallback(() => {
+    const popular = getPopularTemplates({ limit: 6 }).map((item) => {
+      const snapshot = getTemplateSnapshot(item.templateId);
+      return {
+        templateId: item.templateId,
+        templateName: item.templateName || snapshot?.templateName,
+        count: item.count,
+        snapshot,
+      };
+    });
+    setPopularTemplates(popular);
+
+    const recent = getRecentTemplates(6).map((item) => {
+      const snapshot = getTemplateSnapshot(item.id);
+      return {
+        id: item.id,
+        name: item.name || snapshot?.templateName,
+        timestamp: item.timestamp,
+        source: item.source,
+        snapshot,
+      };
+    });
+    setRecentTemplates(recent);
+  }, []);
+
+  useEffect(() => {
+    refreshTemplateInsights();
+    const unsubscribe = subscribeAnalytics((event) => {
+      if (event.event === ANALYTICS_EVENTS.TEMPLATE_CLONE) {
+        refreshTemplateInsights();
+      }
+    });
+    const storageListener = (event: StorageEvent) => {
+      if (
+        event.key === 'analytics-event-log-v1' ||
+        event.key === 'analytics-recent-templates-v1' ||
+        event.key === 'analytics-template-snapshots-v1'
+      ) {
+        refreshTemplateInsights();
+      }
+    };
+    window.addEventListener('storage', storageListener);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', storageListener);
+    };
+  }, [refreshTemplateInsights]);
+
+  const cloneTemplateById = useCallback(
+    (templateId: string, templateName?: string, origin: string = 'home_clone') => {
+      const snapshot = getTemplateSnapshot(templateId);
+      if (!snapshot?.data) {
+        navigate('/templates');
+        return;
+      }
+
+      try {
+        ensureGuestTrialPage();
+        localStorage.setItem('selectedTemplate', JSON.stringify(snapshot.data));
+      } catch (error) {
+        console.warn('[Home] template snapshot persist failed', error);
+      }
+
+      trackEvent(ANALYTICS_EVENTS.TEMPLATE_CLONE, {
+        templateId,
+        templateName: templateName || snapshot.templateName,
+        source: origin,
+        snapshot: {
+          templateId,
+          templateName: templateName || snapshot.templateName,
+          data: snapshot.data,
+          origin,
+        },
+      });
+      navigate(`/mypage?origin=${origin}&template=${encodeURIComponent(templateId)}`);
+    },
+    [navigate]
+  );
+
+  const formatRelativeTime = useCallback((timestamp: number) => {
+    const diff = Date.now() - timestamp;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    if (days > 0) return `${days}일 전`;
+    if (hours > 0) return `${hours}시간 전`;
+    if (minutes > 0) return `${minutes}분 전`;
+    return '방금 전';
+  }, []);
+
+  const handleStartTrial = useCallback(
+    (forceReset: boolean = false) => {
+      if (forceReset) {
+        resetGuestTrialPage();
+      }
+      ensureGuestTrialPage();
+      if (!progress || progress.completedAt) {
+        startTutorial();
+      }
+      trackEvent(ANALYTICS_EVENTS.TRY_DEMO_CLICK, {
+        source: forceReset ? 'hero_restart' : 'hero_primary',
+      });
+      trackEvent(ANALYTICS_EVENTS.CTA_CLICK, { button: forceReset ? 'trial_restart' : 'trial_start' });
+      navigate('/mypage?origin=hero_trial');
+    },
+    [navigate, progress, startTutorial]
+  );
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('urwebs-onboarding-seen', 'true');
@@ -161,6 +285,18 @@ export function Home() {
     };
     
     localStorage.setItem('selectedTemplate', JSON.stringify(templateData));
+
+    trackEvent(ANALYTICS_EVENTS.TEMPLATE_CLONE, {
+      templateId,
+      templateName: templateLabels[templateId] || '커스텀 템플릿',
+      source: 'home_template_modal',
+      snapshot: {
+        templateId,
+        templateName: templateLabels[templateId] || '커스텀 템플릿',
+        data: templateData,
+        origin: 'home_template_modal',
+      },
+    });
     
     // MyPage로 이동
     navigate('/mypage');
@@ -212,14 +348,14 @@ export function Home() {
               <p className="text-sm text-indigo-600/80 dark:text-indigo-200">{visitCopy}</p>
             )}
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={handleStartTrial}
-                className="group inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
-              >
-                <Sparkles className="h-4 w-4" />
-                체험으로 시작하기
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
+                <button
+                  onClick={() => handleStartTrial(true)}
+                  className="group inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  지금 바로 10초 체험
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </button>
               <button
                 onClick={handleBrowseTemplates}
                 className="inline-flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/70 px-5 py-3 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-600 dark:border-slate-700/60 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:border-indigo-400/60"
@@ -307,6 +443,115 @@ export function Home() {
           </div>
         </div>
       </section>
+
+      {popularTemplates.length > 0 && (
+        <section className="relative z-10 mx-auto max-w-6xl px-6 pb-14">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">최근 인기 템플릿</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+                지난 7일 동안 가장 많이 복제된 템플릿입니다.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/templates')}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-600 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-200"
+            >
+              전체 보기
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {popularTemplates.map((template) => (
+              <div
+                key={`popular-${template.templateId}`}
+                className="rounded-2xl border border-white/60 bg-white/90 p-5 shadow-lg transition hover:-translate-y-1 hover:border-indigo-200/60 hover:shadow-xl dark:border-white/10 dark:bg-slate-900/40"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                      {template.templateName || `템플릿 ${template.templateId}`}
+                    </h3>
+                    <p className="mt-1 text-xs text-indigo-500 dark:text-indigo-300">
+                      지난 7일간 {template.count}회 복제
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-indigo-100/80 px-3 py-1 text-[11px] font-semibold text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-200">
+                    인기
+                  </span>
+                </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <button
+                    onClick={() =>
+                      cloneTemplateById(template.templateId, template.templateName, 'home_popular_template')
+                    }
+                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-slate-900/30 transition hover:-translate-y-0.5 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                    disabled={!template.snapshot?.data}
+                    title={
+                      template.snapshot?.data
+                        ? '바로 복제'
+                        : '템플릿 데이터를 불러올 수 없어 템플릿 목록으로 이동합니다.'
+                    }
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    바로 복제
+                  </button>
+                  <button
+                    onClick={() => navigate('/templates')}
+                    className="text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-300"
+                  >
+                    더 보기
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {recentTemplates.length > 0 && (
+        <section className="relative z-10 mx-auto max-w-6xl px-6 pb-20">
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">최근에 본 템플릿</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+              다시 열어보고 싶은 템플릿을 한 번에 복제해보세요.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {recentTemplates.map((item) => (
+              <div
+                key={`recent-${item.id}`}
+                className="rounded-2xl border border-white/60 bg-white/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200/60 hover:shadow-lg dark:border-white/10 dark:bg-slate-900/40"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {item.name || item.snapshot?.templateName || `템플릿 ${item.id}`}
+                    </h3>
+                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                      {formatRelativeTime(item.timestamp)} • {item.source}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      cloneTemplateById(item.id, item.name || item.snapshot?.templateName, 'home_recent_template')
+                    }
+                    className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-indigo-600 shadow-sm hover:-translate-y-0.5 hover:bg-indigo-50 dark:bg-slate-900/60 dark:text-indigo-300"
+                    disabled={!item.snapshot?.data}
+                    title={
+                      item.snapshot?.data
+                        ? '바로 복제'
+                        : '템플릿 데이터를 불러올 수 없어 템플릿 목록으로 이동합니다.'
+                    }
+                  >
+                    다시 복제
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <TemplateSelectModal
         isOpen={showTemplateModal}

@@ -1,6 +1,7 @@
 import { Page, Widget } from '../types/mypage.types';
 
 const TRIAL_KEY = 'urwebs-guest-trial-initialized';
+const TRIAL_SESSION_KEY = 'urwebs-guest-trial-session';
 
 const createBookmarkWidget = (): Widget => ({
   id: `guest-bookmark-${Date.now()}`,
@@ -93,28 +94,31 @@ const createTrialPage = (): Page => {
 export const ensureGuestTrialPage = () => {
   if (typeof window === 'undefined') return;
 
-  const alreadyInitialized = localStorage.getItem(TRIAL_KEY);
-  if (alreadyInitialized === 'true') return;
+  const sessionFlag = sessionStorage.getItem(TRIAL_SESSION_KEY);
+  if (sessionFlag === 'true') return;
 
   const existing = localStorage.getItem('myPages');
-  if (existing) {
-    localStorage.setItem(TRIAL_KEY, 'true');
-    return;
+
+  if (!existing) {
+    const page = createTrialPage();
+    try {
+      localStorage.setItem('myPages', JSON.stringify([page]));
+      localStorage.setItem(
+        'shareSettings_guest',
+        JSON.stringify({
+          isPublic: false,
+          allowComments: true,
+          showStats: true,
+        })
+      );
+      localStorage.setItem('backgroundSettings_guest', JSON.stringify(page.backgroundSettings));
+    } catch (error) {
+      console.warn('[guestExperience] 임시 페이지 저장 실패', error);
+    }
   }
 
-  const page = createTrialPage();
-  try {
-    localStorage.setItem('myPages', JSON.stringify([page]));
-    localStorage.setItem('shareSettings_guest', JSON.stringify({
-      isPublic: false,
-      allowComments: true,
-      showStats: true
-    }));
-    localStorage.setItem('backgroundSettings_guest', JSON.stringify(page.backgroundSettings));
-    localStorage.setItem(TRIAL_KEY, 'true');
-  } catch (error) {
-    console.warn('[guestExperience] 임시 페이지 저장 실패', error);
-  }
+  sessionStorage.setItem(TRIAL_SESSION_KEY, 'true');
+  localStorage.setItem(TRIAL_KEY, 'true');
 };
 
 export const resetGuestTrialPage = () => {
@@ -123,8 +127,10 @@ export const resetGuestTrialPage = () => {
     localStorage.removeItem('shareSettings_guest');
     localStorage.removeItem('backgroundSettings_guest');
     localStorage.removeItem(TRIAL_KEY);
+    sessionStorage.removeItem(TRIAL_SESSION_KEY);
   } catch (error) {
     console.warn('[guestExperience] reset 실패', error);
   }
 };
+
 

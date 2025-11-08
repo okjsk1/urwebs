@@ -1,4 +1,5 @@
 ﻿import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Star, Clock, Globe, Settings, Palette, Grid, Link, Type, Image, Save, Eye, Trash2, Edit, Move, Maximize2, Minimize2, RotateCcw, Download, Upload, Layers, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, MousePointer, Square, Circle, Triangle, Share2, Copy, ExternalLink, Lock, Unlock, Calendar, User, Users, BarChart3, TrendingUp, DollarSign, Target, CheckSquare, FileText, Image as ImageIcon, Youtube, Twitter, Instagram, Github, Mail, Phone, MapPin, Thermometer, Cloud, Sun, CloudRain, CloudSnow, Zap, Battery, Wifi, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, ThumbsUp, MessageCircle, Bell, Search, Filter, SortAsc, SortDesc, MoreHorizontal, MoreVertical, Sun as SunIcon, Moon, MessageCircle as ContactIcon, Rss, QrCode, Smile, Laugh, Quote, BookOpen, RefreshCw, X, ChevronUp, ChevronDown, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -104,6 +105,16 @@ export function MyPage() {
   const addAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoStackRef = useRef<{ widget: Widget; index: number; pageId: string | null } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hasShownDragToast, setHasShownDragToast] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('urwebs-drag-toast-shown') === 'true';
+  });
+  const [showContinueModal, setShowContinueModal] = useState(false);
+  const continuePromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [continuePromptDismissed, setContinuePromptDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('urwebs-continue-dismissed') === 'true';
+  });
   const [highlightedWidgetId, setHighlightedWidgetId] = useState<string | null>(null);
   const [showFirstWidgetTooltip, setShowFirstWidgetTooltip] = useState(false);
   const firstWidgetFeedbackShownRef = useRef<boolean>(
@@ -213,6 +224,7 @@ export function MyPage() {
   // 페이지 관리 상태
   const [pages, setPages] = useState<Page[]>([]);
   const [currentPageId, setCurrentPageId] = useState<string | null>(null);
+  const [widgets, setWidgets] = useState<Widget[]>([]);
 
   // Firebase 인증 상태 감지 및 사용자 정보 업데이트
   useEffect(() => {
@@ -455,13 +467,50 @@ export function MyPage() {
     return () => window.clearTimeout(timer);
   }, [showFirstWidgetTooltip]);
 
+  useEffect(() => {
+    if (!isEditMode) return;
+    if (hasShownDragToast) return;
+    const timer = setTimeout(() => {
+      setToast({
+        type: 'info',
+        msg: '위젯을 드래그하면 파란 가이드에 맞춰 정렬돼요.',
+      });
+      setHasShownDragToast(true);
+      try {
+        localStorage.setItem('urwebs-drag-toast-shown', 'true');
+      } catch {
+        // ignore
+      }
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [isEditMode, hasShownDragToast]);
+
+  useEffect(() => {
+    if (continuePromptTimerRef.current) {
+      clearTimeout(continuePromptTimerRef.current);
+      continuePromptTimerRef.current = null;
+    }
+    if (currentUser || continuePromptDismissed || widgets.length === 0) {
+      setShowContinueModal(false);
+      return;
+    }
+    continuePromptTimerRef.current = setTimeout(() => {
+      setShowContinueModal(true);
+    }, 90_000);
+    return () => {
+      if (continuePromptTimerRef.current) {
+        clearTimeout(continuePromptTimerRef.current);
+        continuePromptTimerRef.current = null;
+      }
+    };
+  }, [currentUser, widgets.length, continuePromptDismissed]);
+
   const [showShareModal, setShowShareModal] = useState(false);
   const [showWidgetModal, setShowWidgetModal] = useState(false);
   const [showBackgroundModal, setShowBackgroundModal] = useState(false);
   const [showFontModal, setShowFontModal] = useState(false);
   const [isUploadingBackground, setIsUploadingBackground] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
   // 저장된 페이지 불러오기 - Firebase 우선, 없으면 localStorage
   useEffect(() => {
     const loadPages = async () => {
@@ -726,7 +775,6 @@ export function MyPage() {
     pages.find(page => page.id === currentPageId),
     [pages, currentPageId]
   );
-  const [widgets, setWidgets] = useState<Widget[]>([]);
   
   // 실행취소/재실행 히스토리 (최대 20회)
   const [widgetHistory, setWidgetHistory] = useState<Widget[][]>([]);
@@ -1528,6 +1576,60 @@ export function MyPage() {
     setToast({ type: 'success', msg: '위젯 삭제를 취소했습니다.' });
   }, [setWidgets, currentPageId, setToast]);
 
+  const dismissContinuePrompt = useCallback(() => {
+    setShowContinueModal(false);
+    setContinuePromptDismissed(true);
+    try {
+      sessionStorage.setItem('urwebs-continue-dismissed', 'true');
+    } catch {
+      // ignore storage error
+    }
+  }, []);
+
+  const handleContinueLater = useCallback(() => {
+    trackEvent(ANALYTICS_EVENTS.CTA_CLICK, { button: 'trial_continue_later' });
+    dismissContinuePrompt();
+  }, [dismissContinuePrompt]);
+
+  const handleContinueSave = useCallback(() => {
+    trackEvent(ANALYTICS_EVENTS.CTA_CLICK, { button: 'trial_continue_save' });
+    dismissContinuePrompt();
+    navigate('/mypage?auth=continue');
+  }, [dismissContinuePrompt, navigate]);
+
+  const continueModal = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    if (!showContinueModal) return null;
+    return createPortal(
+      <div className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+        <div className="w-full max-w-md rounded-3xl border border-white/30 bg-white/85 p-6 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/80">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            저장하고 계속 이어가볼까요?
+          </h3>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+            지금 로그인하거나 회원가입하면 방금 구성한 위젯을 그대로 저장해 언제든 다시 수정할 수 있어요.
+          </p>
+          <div className="mt-5 flex flex-wrap justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={handleContinueLater}
+              className="rounded-xl border-slate-300 bg-white/70 px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-400 hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200"
+            >
+              잠시 더 둘러볼게요
+            </Button>
+            <Button
+              onClick={handleContinueSave}
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/40 transition hover:bg-indigo-700"
+            >
+              저장하고 계속
+            </Button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }, [showContinueModal, handleContinueLater, handleContinueSave]);
+
   // 위젯 추가
   const addWidget = useCallback((type: string, size: WidgetSize = '1x1', targetColumn?: number) => {
     console.log('addWidget 호출됨:', type, 'size:', size, 'targetColumn:', targetColumn);
@@ -1891,6 +1993,12 @@ export function MyPage() {
     console.log('shareSettings.isPublic:', shareSettings.isPublic);
     console.log('currentPageId:', currentPageId);
     console.log('pages:', pages);
+    
+    trackEvent(ANALYTICS_EVENTS.SAVE_DASHBOARD, {
+      pageId: currentPageId ?? 'guest',
+      widgetCount: widgets.length,
+      userType: currentUser ? 'member' : 'guest',
+    });
     
     // 위젯이 비어있어도 배경 설정 등은 저장 가능하도록 허용
     // if (widgets.length === 0) {
@@ -4812,6 +4920,11 @@ export function MyPage() {
       <div className="uw-container py-0 pb-32">
 
         <PopularWidgetsStrip />
+        {isEditMode && (
+          <div className="mb-6 rounded-2xl border border-indigo-100/60 bg-indigo-50/40 px-6 py-4 text-sm text-indigo-700 shadow-inner backdrop-blur dark:border-indigo-900/40 dark:bg-indigo-900/20 dark:text-indigo-200">
+            첫 체험입니다! 위젯 헤더를 드래그하면 자동으로 격자에 맞춰 정렬돼요. 필요한 위젯을 추가해 자유롭게 배치해보세요.
+          </div>
+        )}
 
 
 
@@ -4889,14 +5002,35 @@ export function MyPage() {
                 
                 // 위치만 업데이트 (크기 변경은 유지)
                 const updatedMap = new Map(updatedWidgets.map(w => [w.id, w]));
+                const movedWidgets: Array<{ id: string; fromX: number; fromY: number; toX: number; toY: number }> = [];
                 const result = prevWidgets.map(widget => {
                   const updated = updatedMap.get(widget.id);
                   if (updated && updated.x !== undefined && updated.y !== undefined) {
-                    // 위치만 업데이트, 다른 속성은 유지 (크기 포함)
+                    if (widget.x !== updated.x || widget.y !== updated.y) {
+                      movedWidgets.push({
+                        id: widget.id,
+                        fromX: widget.x ?? 0,
+                        fromY: widget.y ?? 0,
+                        toX: updated.x,
+                        toY: updated.y,
+                      });
+                    }
                     return { ...widget, x: updated.x, y: updated.y };
                   }
                   return widget;
                 });
+                
+                if (movedWidgets.length > 0) {
+                  movedWidgets.forEach((movement) => {
+                    trackEvent(ANALYTICS_EVENTS.WIDGET_MOVE, {
+                      widgetId: movement.id,
+                      from: { x: movement.fromX, y: movement.fromY },
+                      to: { x: movement.toX, y: movement.toY },
+                      pageId: currentPageId,
+                      userType: currentUser ? 'member' : 'guest',
+                    });
+                  });
+                }
                 
                 return result;
               });
@@ -5789,6 +5923,8 @@ export function MyPage() {
           </div>
         </div>
       )}
+
+      {continueModal}
 
       {/* 나도 나만의 페이지 만들어보기 버튼 */}
       <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-[10001] pointer-events-auto">

@@ -6,9 +6,21 @@ yarn.lock
 # builds
 dist/
 build/
+.next/
+.out/
+.svelte-kit/
+.angular/
 .vercel/
+.cache/
+.parcel-cache/
+.turbo/
+.vite/
+coverage/
 
 # env & misc
 .env*
 *.log
 .DS_Store
+.idea/
+.vscode/
+Thumbs.db

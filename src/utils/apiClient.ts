@@ -77,9 +77,10 @@ class ApiClient {
       body: JSON.stringify(request),
     });
     if (response.success) {
-      trackEvent(ANALYTICS_EVENTS.CLONE_TEMPLATE, {
+      trackEvent(ANALYTICS_EVENTS.TEMPLATE_CLONE, {
         templateId: response.data?.templateId || request.templateId,
-        sourceTemplateId: request.templateId,
+        templateName: request.customizations?.title,
+        source: 'api_clone',
       });
     }
     return response;
