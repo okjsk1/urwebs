@@ -46,6 +46,15 @@ function createEngineDictionary(engines: Omit<SearchEngine, 'buildUrl'>[]): Engi
 
 const BUILTIN_ENGINE_MAP = createEngineDictionary(BUILTIN_ENGINES);
 
+const ENGINE_TEMPLATES: Omit<SearchEngine, 'buildUrl'>[] = [
+  { id: 'law', name: '법제처', url: 'https://www.law.go.kr/LSW/totalSearch.do?query=', icon: '법', color: '#4A90E2', placeholder: '법령 통합검색' },
+  { id: 'opgg', name: 'OP.GG', type: 'builder', buildUrlTemplate: 'https://www.op.gg/summoners/kr/{q}', icon: 'OP', color: '#2D5FFF', placeholder: '소환사/챔피언 검색', meta: { mode: 'summoner' } },
+  { id: 'github', name: 'GitHub', url: 'https://github.com/search?q=', icon: 'GH', color: '#24292F', placeholder: 'GitHub 검색' },
+  { id: 'so', name: 'Stack Overflow', url: 'https://stackoverflow.com/search?q=', icon: 'SO', color: '#F48024', placeholder: 'Stack Overflow 검색' },
+  { id: 'mdn', name: 'MDN', url: 'https://developer.mozilla.org/search?q=', icon: 'MDN', color: '#000000', placeholder: 'MDN 검색' },
+  { id: 'namuwiki', name: '나무위키', url: 'https://namu.wiki/Search?q=', icon: '나', color: '#2AB27B', placeholder: '나무위키 검색' }
+];
+
 // 상태 인터페이스 V2
 interface UnifiedSearchStateV2 {
   selectedEngine: string;
@@ -437,6 +446,15 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
       delete next[key as string];
       return next;
     });
+  }, []);
+
+  const applyTemplateToForm = useCallback((template: Omit<SearchEngine, 'buildUrl'>) => {
+    setEngineModal({ mode: 'create' });
+    setEngineForm({
+      ...template,
+      _userDefined: true
+    });
+    setEngineFormErrors({});
   }, []);
 
   const handleEngineMetaChange = useCallback((key: string, value: any) => {
@@ -1308,6 +1326,38 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
             </div>
 
             <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+              {engineModal.mode === 'create' && (
+                <div>
+                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    추천 템플릿 빠르게 추가
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {ENGINE_TEMPLATES.map((template) => {
+                      const exists = Boolean(state.engines[template.id]);
+                      const disabled = exists;
+                      return (
+                        <button
+                          key={template.id}
+                          type="button"
+                          onClick={() => {
+                            if (disabled) {
+                              showToast('이미 추가된 엔진입니다.', 'info');
+                              return;
+                            }
+                            applyTemplateToForm(template);
+                          }}
+                          disabled={disabled}
+                          className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${disabled ? 'cursor-not-allowed border-gray-200 dark:border-gray-700 text-gray-400 bg-gray-100 dark:bg-gray-800/50' : 'hover:bg-gray-100 dark:hover:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-200'}`}
+                          title={disabled ? '이미 목록에 있는 엔진입니다.' : `${template.name} 템플릿 적용`}
+                        >
+                          {template.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                   엔진 이름

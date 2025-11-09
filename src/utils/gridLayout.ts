@@ -11,6 +11,21 @@ export type WidgetLayout = {
   h: number;    // 세로 셀 수
 };
 
+export interface LayoutMeta {
+  cols: number;
+  colWidth: number;
+  gutter: number;
+  version: number;
+  timestamp?: number;
+}
+
+export interface StoredLayout {
+  meta: LayoutMeta;
+  items: WidgetLayout[];
+}
+
+export const LAYOUT_STORAGE_VERSION = 1;
+
 export type ResponsiveLayouts = {
   base: WidgetLayout[];
   sm?: WidgetLayout[];
@@ -232,10 +247,20 @@ export function compactLayout(layouts: WidgetLayout[]): WidgetLayout[] {
 export function saveLayout(
   userId: string,
   breakpoint: string,
-  layouts: WidgetLayout[]
+  layouts: WidgetLayout[],
+  meta: LayoutMeta
 ): void {
+  if (typeof window === 'undefined') return;
   const key = `urwebs:layout:${userId}:${breakpoint}`;
-  localStorage.setItem(key, JSON.stringify(layouts));
+  const payload: StoredLayout = {
+    meta: {
+      ...meta,
+      version: meta.version ?? LAYOUT_STORAGE_VERSION,
+      timestamp: Date.now(),
+    },
+    items: layouts.map((item) => ({ ...item })),
+  };
+  localStorage.setItem(key, JSON.stringify(payload));
 }
 
 /**
@@ -244,18 +269,46 @@ export function saveLayout(
 export function loadLayout(
   userId: string,
   breakpoint: string
-): WidgetLayout[] | null {
+): StoredLayout | null {
+  if (typeof window === 'undefined') return null;
   const key = `urwebs:layout:${userId}:${breakpoint}`;
-  const data = localStorage.getItem(key);
-  
+  const data = window.localStorage.getItem(key);
+
   if (!data) return null;
-  
+
   try {
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+
+    if (Array.isArray(parsed)) {
+      return {
+        meta: {
+          cols: 0,
+          colWidth: 0,
+          gutter: 0,
+          version: 0,
+        },
+        items: parsed as WidgetLayout[],
+      };
+    }
+
+    if (parsed && Array.isArray(parsed.items)) {
+      const meta = parsed.meta || {};
+      return {
+        meta: {
+          cols: typeof meta.cols === 'number' ? meta.cols : (parsed.cols ?? 0),
+          colWidth: typeof meta.colWidth === 'number' ? meta.colWidth : (parsed.colWidth ?? 0),
+          gutter: typeof meta.gutter === 'number' ? meta.gutter : (parsed.gutter ?? 0),
+          version: typeof meta.version === 'number' ? meta.version : (parsed.version ?? 0),
+          timestamp: typeof meta.timestamp === 'number' ? meta.timestamp : undefined,
+        },
+        items: (parsed.items as WidgetLayout[]).map((item) => ({ ...item })),
+      };
+    }
   } catch (error) {
     console.error('Failed to load layout:', error);
-    return null;
   }
+
+  return null;
 }
 
 /**
@@ -412,5 +465,31 @@ export function normalizeLayout(items: WidgetLayout[], cols: number): WidgetLayo
   const compacted = compact(clamped, cols);
   
   return compacted;
+}
+
+/**
+ * 저장된 레이아웃을 현재 컬럼 수에 맞게 스케일링하고 정규화
+ */
+export function remapLayoutToCols(saved: StoredLayout, targetCols: number): WidgetLayout[] {
+  if (!saved || !Array.isArray(saved.items)) return [];
+  const baseCols = saved.meta?.cols && saved.meta.cols > 0 ? saved.meta.cols : targetCols;
+  const scale = baseCols > 0 ? targetCols / baseCols : 1;
+
+  const scaled = saved.items.map((item) => {
+    const nextX = Math.round(item.x * scale);
+    const nextW = Math.max(1, Math.round(item.w * scale));
+    return clampToGrid(
+      {
+        ...item,
+        x: nextX,
+        w: nextW,
+      },
+      targetCols
+    );
+  });
+
+  // 세로 방향으로만 압축
+  const packed = compactLayout(scaled);
+  return packed.map((item) => ({ ...item }));
 }
 

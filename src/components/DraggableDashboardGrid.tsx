@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   isOverlapping,
   clampToGrid,
@@ -6,6 +6,8 @@ import {
   saveLayout,
   loadLayout,
   normalizeLayout,
+  remapLayoutToCols,
+  LAYOUT_STORAGE_VERSION,
   type WidgetLayout,
   type CollisionStrategy,
 } from '../utils/gridLayout';
@@ -113,7 +115,7 @@ export default function DraggableDashboardGrid({
   onAddWidget,
   showAddButton = false,
   userId = 'guest',
-  collisionStrategy = 'push',
+  collisionStrategy = 'prevent',
   responsiveCells = {
     default: 160,
     sm: 160,
@@ -136,10 +138,70 @@ export default function DraggableDashboardGrid({
   const rafMoveRef = useRef<number | null>(null);
   const [isColliding, setIsColliding] = useState(false);
   const [showDragGuide, setShowDragGuide] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const centerRafRef = useRef<number | null>(null);
+  const [isLayoutReady, setIsLayoutReady] = useState(false);
+  const widgetsRef = useRef<GridWidget[]>(widgets);
+  const pendingSaveRef = useRef(false);
+  const restoreKeyRef = useRef<string | null>(null);
+  const effectiveCollisionStrategy: CollisionStrategy = collisionStrategy;
+
+  useEffect(() => {
+    widgetsRef.current = widgets;
+  }, [widgets]);
+
+  const applyLayoutUpdate = useCallback(
+    (nextWidgets: GridWidget[]) => {
+      if (!onLayoutChange) return;
+      pendingSaveRef.current = true;
+      onLayoutChange(nextWidgets);
+    },
+    [onLayoutChange]
+  );
+
+  const layoutSignature = useMemo(
+    () => widgets.map(w => `${w.id}:${w.x ?? 0}:${w.y ?? 0}`).join('|'),
+    [widgets]
+  );
+
+  const contentWidth = useMemo(
+    () => cols * cellWidth + Math.max(0, cols - 1) * gap,
+    [cols, cellWidth, gap]
+  );
+
+  const applyCentering = useCallback(() => {
+    const wrapperEl = wrapperRef.current;
+    if (!wrapperEl) return;
+    const containerWidth = wrapperEl.clientWidth;
+    const offset = Math.max(0, (containerWidth - contentWidth) / 2);
+    wrapperEl.style.paddingLeft = `${offset}px`;
+    wrapperEl.style.paddingRight = `${offset}px`;
+  }, [contentWidth]);
+
+  const scheduleCentering = useCallback(() => {
+    if (centerRafRef.current) cancelAnimationFrame(centerRafRef.current);
+    centerRafRef.current = requestAnimationFrame(() => {
+      applyCentering();
+    });
+  }, [applyCentering]);
+
+  useEffect(() => {
+    scheduleCentering();
+    const handleResize = () => scheduleCentering();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (centerRafRef.current) cancelAnimationFrame(centerRafRef.current);
+    };
+  }, [scheduleCentering]);
+
+  useEffect(() => {
+    scheduleCentering();
+  }, [scheduleCentering, layoutSignature, cols, cellWidth, gap]);
 
   // 레이아웃 프리셋 적용기
   const applyLayoutPreset = useCallback((preset: typeof layoutPreset) => {
-    if (!preset || !onLayoutChange || widgets.length === 0) return;
+    if (!preset || widgets.length === 0) return;
     const next = [...widgets];
     if (preset === 'two_columns') {
       // 2열 배치: 교대로 x=0,1 배치, y는 해당 컬럼 최하단에 누적
@@ -169,8 +231,8 @@ export default function DraggableDashboardGrid({
         if (l) { (w as any).x = l.x; (w as any).y = l.y; }
       }
     }
-    onLayoutChange(next);
-  }, [widgets, onLayoutChange, cols]);
+    applyLayoutUpdate(next);
+  }, [widgets, applyLayoutUpdate, cols]);
 
   // 프리셋 변경 시 1회 적용
   useEffect(() => {
@@ -257,7 +319,7 @@ export default function DraggableDashboardGrid({
       const allAtLeft = layouts.every(l => l.x === 0);
       
       // 겹침이 있거나 왼쪽으로 몰려있으면 정규화
-      if ((hasOverlap || allAtLeft) && onLayoutChange) {
+      if (hasOverlap || allAtLeft) {
         const normalized = normalizeLayout(layouts, cols);
         
         // normalizeLayout이 모든 위젯을 보존했는지 확인
@@ -289,7 +351,7 @@ export default function DraggableDashboardGrid({
           
           // 모든 위젯이 포함되었는지 확인
           if (updatedWidgets.length === widgets.length) {
-            onLayoutChange(updatedWidgets);
+            applyLayoutUpdate(updatedWidgets);
           } else {
             console.warn('위젯 수가 일치하지 않습니다. 레이아웃 업데이트를 건너뜁니다.', {
               original: widgets.length,
@@ -302,7 +364,75 @@ export default function DraggableDashboardGrid({
     
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgets.length, activeId, onLayoutChange, cols]); // 위젯 개수 변경 시 실행 (내부에서 ref로 이전 값과 비교)
+  }, [widgets.length, activeId, applyLayoutUpdate, cols]); // 위젯 개수 변경 시 실행 (내부에서 ref로 이전 값과 비교)
+
+  useEffect(() => {
+    if (!userId) {
+      setIsLayoutReady(true);
+      scheduleCentering();
+      return;
+    }
+
+    if (!widgets.length) {
+      setIsLayoutReady(true);
+      scheduleCentering();
+      return;
+    }
+
+    if (!onLayoutChange) {
+      setIsLayoutReady(true);
+      scheduleCentering();
+      return;
+    }
+
+    const idsKey = widgets.map(w => w.id).sort().join(',');
+    const signature = `${userId}:${currentBreakpoint}:${cols}:${idsKey}`;
+
+    if (restoreKeyRef.current === signature) {
+      setIsLayoutReady(true);
+      scheduleCentering();
+      return;
+    }
+
+    const saved = loadLayout(userId, currentBreakpoint);
+    restoreKeyRef.current = signature;
+
+    if (!saved) {
+      setIsLayoutReady(true);
+      scheduleCentering();
+      return;
+    }
+
+    const mapped = remapLayoutToCols(saved, cols);
+    if (!mapped.length) {
+      setIsLayoutReady(true);
+      scheduleCentering();
+      return;
+    }
+
+    const layoutMap = new Map(mapped.map(layout => [layout.id, layout]));
+    let hasDiff = false;
+
+    const nextWidgets = widgets.map(widget => {
+      const layout = layoutMap.get(widget.id);
+      if (!layout) return widget;
+      const nextX = layout.x;
+      const nextY = layout.y;
+      if ((widget.x ?? 0) !== nextX || (widget.y ?? 0) !== nextY) {
+        hasDiff = true;
+        return { ...widget, x: nextX, y: nextY };
+      }
+      return widget;
+    });
+
+    if (hasDiff) {
+      setIsLayoutReady(false);
+      applyLayoutUpdate(nextWidgets);
+    } else {
+      setIsLayoutReady(true);
+      scheduleCentering();
+    }
+  }, [userId, currentBreakpoint, cols, widgets, applyLayoutUpdate, scheduleCentering, onLayoutChange]);
 
   // 각 컬럼별 최하단 위젯 찾기
   const getColumnBottomWidget = useCallback((columnIndex: number) => {
@@ -342,8 +472,10 @@ export default function DraggableDashboardGrid({
   // 레이아웃 저장
   const saveCurrentLayout = useCallback(() => {
     if (!userId) return;
-    
-    const layouts: WidgetLayout[] = widgets.map(w => ({
+    const currentWidgets = widgetsRef.current;
+    if (!currentWidgets || currentWidgets.length === 0) return;
+
+    const layouts: WidgetLayout[] = currentWidgets.map(w => ({
       id: w.id,
       x: w.x || 0,
       y: w.y || 0,
@@ -351,8 +483,19 @@ export default function DraggableDashboardGrid({
       h: w.size.h,
     }));
 
-    saveLayout(userId, currentBreakpoint, layouts);
-  }, [widgets, userId, currentBreakpoint]);
+    saveLayout(userId, currentBreakpoint, layouts, {
+      cols,
+      colWidth: cellWidth,
+      gutter: gap,
+      version: LAYOUT_STORAGE_VERSION,
+    });
+  }, [userId, currentBreakpoint, cols, cellWidth, gap]);
+
+  useEffect(() => {
+    if (!pendingSaveRef.current) return;
+    pendingSaveRef.current = false;
+    saveCurrentLayout();
+  }, [widgets, saveCurrentLayout]);
 
   // 픽셀 좌표를 그리드 좌표로 변환
   const pixelToGridCoord = useCallback((clientX: number, clientY: number): { x: number; y: number } => {
@@ -539,7 +682,7 @@ export default function DraggableDashboardGrid({
 
       let newLayouts: WidgetLayout[];
       
-      if (collisionStrategy === 'push') {
+      if (effectiveCollisionStrategy === 'push') {
         // 충돌 해결 (푸시 전략)
         const tempLayouts = layouts.map(w =>
           w.id === updatedWidget.id ? updatedWidget : w
@@ -568,7 +711,7 @@ export default function DraggableDashboardGrid({
           // 충돌이 없으면 그대로 사용
           newLayouts = tempLayouts;
         }
-      } else if (collisionStrategy === 'prevent') {
+      } else if (effectiveCollisionStrategy === 'prevent') {
         // 충돌 시 이동 취소
         const hasCollision = layouts.some(
           w => w.id !== updatedWidget.id && isOverlapping(w, updatedWidget)
@@ -617,12 +760,7 @@ export default function DraggableDashboardGrid({
         return;
       }
 
-      if (onLayoutChange) {
-        onLayoutChange(updatedWidgets);
-      }
-
-      // 저장 (디바운스)
-      setTimeout(saveCurrentLayout, 500);
+      applyLayoutUpdate(updatedWidgets);
 
       setActiveId(null);
       setPreviewPos(null);
@@ -649,9 +787,8 @@ export default function DraggableDashboardGrid({
     cellHeight,
     gap,
     isEditMode,
-    collisionStrategy,
-    onLayoutChange,
-    saveCurrentLayout,
+    effectiveCollisionStrategy,
+    applyLayoutUpdate,
     pixelToGridCoord,
     magnetThresholdRows,
     getColumnBottomY,
@@ -757,25 +894,35 @@ export default function DraggableDashboardGrid({
         `}
       </style>
       <div
-        ref={gridRef}
-        className={`draggable-grid-container ${className}`}
+        ref={wrapperRef}
+        className="draggable-grid-wrapper"
         style={{
-          ...generateResponsiveStyles(),
-          userSelect: activeId ? 'none' : 'auto',
-          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gridAutoRows: `${responsiveCells.default}px`, // 고정 높이로 변경 (auto 제거)
-          position: 'relative',
-          display: 'grid',
-          gap: `${gap}px`,
-          justifyContent: 'center',
-          alignContent: 'start',
-          maxWidth: `${cols * 300 + (cols - 1) * gap}px`,
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          ...guideStyles,
+          opacity: isLayoutReady ? 1 : 0,
+          visibility: isLayoutReady ? 'visible' : 'hidden',
+          transition: 'opacity 0.2s ease',
+          width: '100%',
+          overflowX: 'auto',
         }}
-        onMouseLeave={() => setShowAddButtonState({})}
       >
+        <div
+          ref={gridRef}
+          className={`draggable-grid-container ${className}`}
+          style={{
+            ...generateResponsiveStyles(),
+            userSelect: activeId ? 'none' : 'auto',
+            width: `${contentWidth}px`,
+            maxWidth: '100%',
+            gridTemplateColumns: `repeat(${cols}, ${cellWidth}px)`,
+            gridAutoRows: `${responsiveCells.default}px`, // 고정 높이로 변경 (auto 제거)
+            position: 'relative',
+            display: 'grid',
+            gap: `${gap}px`,
+            alignContent: 'start',
+            margin: '0 auto',
+            ...guideStyles,
+          }}
+          onMouseLeave={() => setShowAddButtonState({})}
+        >
         {widgets.map((widget) => (
           <DraggableWidget
             key={widget.id}
@@ -865,6 +1012,7 @@ export default function DraggableDashboardGrid({
             </div>
           )
         ))}
+        </div>
       </div>
 
       {/* 고스트 오버레이 (커서 따라다니는 미리보기) */}
