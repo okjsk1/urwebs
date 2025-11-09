@@ -72,8 +72,8 @@ export function WidgetShell({
   const isCardLike = variant === 'card' || variant === 'inset';
 
   const wrapperClass = isCardLike
-    ? `rounded-2xl border border-gray-200 bg-white/85 shadow-sm overflow-hidden backdrop-blur ${sizeClasses[size]} ${className}`
-    : `bg-transparent shadow-none ring-0 ${className}`;
+    ? `relative rounded-2xl border border-gray-200 bg-white/85 shadow-sm overflow-hidden backdrop-blur pointer-events-auto ${sizeClasses[size]} ${className}`
+    : `relative bg-transparent shadow-none ring-0 pointer-events-auto ${className}`;
 
   const bodyBase = isCardLike ? 'h-full overflow-hidden flex flex-col' : '';
   const bodyPadding = isCardLike ? 'p-3' : 'p-0';
@@ -92,7 +92,7 @@ export function WidgetShell({
     >
       {/* 헤더 - card variant이고 headerVariant가 none이 아닐 때만 표시 */}
       {showHeader && (
-        <header className={`flex items-center justify-between border-b border-white/60 bg-white/75 backdrop-blur ${
+        <header className={`relative z-10 flex items-center justify-between border-b border-white/60 bg-white/75 backdrop-blur pointer-events-auto ${
           headerVariant === 'compact' ? 'h-8 px-2' : 'h-10 px-3'
         }`}>
           <div className="flex items-center gap-2">
@@ -102,7 +102,7 @@ export function WidgetShell({
             }`}>{title}</h3>
           </div>
           {headerAction && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 pointer-events-auto">
               {headerAction}
             </div>
           )}
@@ -110,7 +110,7 @@ export function WidgetShell({
       )}
       
       {/* 콘텐츠 */}
-      <div className={bodyClass}>
+      <div className={`relative z-0 pointer-events-auto ${bodyClass}`}>
         {children}
       </div>
     </section>

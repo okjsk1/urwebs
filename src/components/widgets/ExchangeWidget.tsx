@@ -1,7 +1,7 @@
 // 환율 정보 위젯 - 간단한 정적 데이터 버전
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
-import { TrendingUp, TrendingDown, Globe, Bell, Plus, Settings, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { WidgetProps, persistOrLocal, readLocal, showToast, addToWidgetCollection } from './utils/widget-helpers';
 
 interface ExchangeRate {
@@ -75,11 +75,6 @@ const formatFxRate = (rate: number, from: string, to: string): string => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
-};
-
-const formatChangePct = (changePct: number): string => {
-  const sign = changePct >= 0 ? '+' : '';
-  return `${sign}${changePct.toFixed(2)}%`;
 };
 
 export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
@@ -206,7 +201,7 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const layoutVariant = useMemo(() => {
-    const { gridSize } = widget;
+    const gridSize = (widget as any)?.gridSize;
     const w = gridSize?.w ?? 1;
     const h = gridSize?.h ?? 1;
     if (w === 1 && h <= 3) {
@@ -249,9 +244,25 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
     [layoutVariant]
   );
 
-  const filteredAndSortedRates = useMemo(() => {
-    return [...state.rates];
-  }, [state.rates]);
+const filteredAndSortedRates = useMemo(() => {
+  return [...state.rates];
+}, [state.rates]);
+
+const KOREAN_CURRENCY: Record<string, string> = {
+  KRW: '원화',
+  USD: '달러',
+  JPY: '엔화',
+  EUR: '유로화',
+  GBP: '파운드화',
+  CNY: '위안화',
+  AUD: '호주달러',
+  CAD: '캐나다달러',
+  CHF: '스위스프랑',
+  SGD: '싱가포르달러',
+  HKD: '홍콩달러',
+};
+
+const getKoName = (code?: string) => (code && KOREAN_CURRENCY[code]) || code || '';
 
   const startDrag = (e: React.DragEvent, id: string) => {
     if (!isEditMode) return;
@@ -300,73 +311,84 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
 
   return (
     <div className={`${typography.rootPadding} h-full flex flex-col`}>
-      {/* 환율 목록 - 미니멀 리스트 (국기 · 통화코드 · 굵은 가격 · 등락) */}
-      <div className={`flex-1 overflow-y-auto ${typography.listGap}`}>
-        {filteredAndSortedRates.slice(0, 5).map(rate => {
+      {/* 환율 목록 */}
+      <ul className={`flex-1 overflow-y-auto ${typography.listGap}`}>
+        {filteredAndSortedRates.slice(0, 5).map((rate) => {
+          const koPairLabel = `${getKoName(rate.fromCurrency)}/${getKoName(rate.toCurrency)}`;
           const isUp = (rate.changePercent || 0) >= 0;
-          const code = rate.fromCurrency;
-          const flag = code === 'USD' ? '🇺🇸' : code === 'EUR' ? '🇪🇺' : code === 'JPY' ? '🇯🇵' : '🌐';
           return (
-            <div
+            <li
               key={rate.id}
               draggable={isEditMode}
               onDragStart={(e) => startDrag(e, rate.id)}
               onDragOver={(e) => overDrag(e, rate.id)}
               onDrop={(e) => dropDrag(e, rate.id)}
-              className={`bg-white dark:bg-gray-800/80 rounded-xl ${typography.cardPadding} border border-gray-200 dark:border-gray-700 ${dragOverId === rate.id ? 'ring-2 ring-blue-400' : ''}`}
+              className={`group rounded-xl ${typography.cardPadding} border border-black/5 bg-white/80 dark:bg-zinc-900/70 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus-within:bg-zinc-50 dark:focus-within:bg-zinc-800/60 ${dragOverId === rate.id ? 'ring-2 ring-indigo-400' : ''}`}
             >
-              <div className={`flex items-center justify-between ${typography.actionGap}`}>
-                <div className="flex items-center gap-2">
-                  <span className={`${typography.flag} leading-none`}>{flag}</span>
-                  <span className={`${typography.code} font-semibold text-gray-900 dark:text-gray-100`}>{code}</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className={`${typography.rate} font-extrabold tracking-tight text-gray-900 dark:text-gray-100`}>
+              <div className="flex items-start justify-between">
+                <div className="min-w-0">
+                  <div className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">
+                    {koPairLabel}
+                  </div>
+                  <div
+                    className={`mt-0.5 ${typography.rate} font-semibold tabular-nums text-zinc-900 dark:text-zinc-100`}
+                  >
                     {formatFxRate(rate.rate, rate.fromCurrency, rate.toCurrency)}
-                    <span className={`${typography.currency} font-semibold ml-0.5`}>원</span>
+                    <span className={`${typography.currency} ml-1 opacity-70`}>
+                      {rate.toCurrency === 'KRW' ? '원' : getKoName(rate.toCurrency)}
+                    </span>
                   </div>
-                  <div className={`flex items-center gap-1 ${typography.change} font-semibold ${isUp ? 'text-red-600' : 'text-blue-600'}`}>
-                    <span
-                      className={`inline-block w-0 h-0 border-l-4 border-r-4 ${isUp ? 'border-t-0 border-b-6 border-b-red-600' : 'border-b-0 border-t-6 border-t-blue-600'}`}
-                      style={{ borderLeftColor: 'transparent', borderRightColor: 'transparent' }}
-                    />
-                    <span>{Math.abs(rate.changePercent || 0).toFixed(2)}</span>
+                  <div
+                    className={[
+                      'mt-1 inline-flex items-center rounded-md px-1.5 py-[2px] text-[11px] font-medium',
+                      isUp
+                        ? 'text-rose-600 bg-rose-50 dark:text-rose-400 dark:bg-rose-950/40'
+                        : 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/40',
+                    ].join(' ')}
+                    aria-label={`변동률 ${Math.abs(rate.changePercent || 0).toFixed(2)}%`}
+                  >
+                    {isUp ? '🔺' : '🔻'}
+                    <span className="ml-1 tabular-nums">
+                      {Math.abs(rate.changePercent || 0).toFixed(2)}%
+                    </span>
                   </div>
                 </div>
-              </div>
-              
-              {isEditMode && (
-                <div className="mt-1 flex items-center justify-between">
-                  <div className="flex gap-1">
+                <div className="ml-2 flex flex-col items-end gap-1">
+                  {isEditMode && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleWatch(rate.id);
                       }}
-                      className={`${typography.watchButton} rounded ${
-                        rate.isWatched 
-                          ? 'bg-blue-100 text-blue-700' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-blue-50'
+                      className={`h-6 rounded-md border border-black/10 px-2 text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                        rate.isWatched
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300'
+                          : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
                       }`}
+                      aria-pressed={rate.isWatched}
                     >
                       {rate.isWatched ? '관심' : '관심 추가'}
                     </button>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteExchangeRate(rate.id);
-                    }}
-                    className={`text-red-500 hover:text-red-700 ${typography.deleteButton}`}
-                  >
-                    삭제
-                  </button>
+                  )}
+                  {isEditMode && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteExchangeRate(rate.id);
+                      }}
+                      className="invisible group-hover:visible h-7 w-7 grid place-items-center rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      aria-label="삭제"
+                      title="삭제"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       {/* 환율 추가 - 컴팩트 버전 */}
       {isEditMode && (

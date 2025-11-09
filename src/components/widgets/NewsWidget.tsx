@@ -172,35 +172,120 @@ export function NewsWidget({
     ]
   };
 
-  // RSS 파싱 함수 (간단한 구현)
-  const parseRSS = async (url: string): Promise<NewsItem[]> => {
-    try {
-      // CORS 문제로 인해 실제로는 프록시 서버를 사용해야 함
-      const response = await fetch(`/api/proxy-rss?url=${encodeURIComponent(url)}`);
-      if (!response.ok) {
-        throw new Error('RSS 파싱 실패');
-      }
-      
-      const text = await response.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(text, 'text/xml');
-      
-      const items = Array.from(doc.querySelectorAll('item')).map((item, index) => {
-        const title = item.querySelector('title')?.textContent || '';
-        const link = item.querySelector('link')?.textContent || '';
-        const pubDate = item.querySelector('pubDate')?.textContent || '';
-        const description = item.querySelector('description')?.textContent || '';
-        
+  const initialRefreshDoneRef = useRef(false);
+  const previousFeedsLengthRef = useRef(state.feeds.length);
+
+  useEffect(() => {
+    if (state.feeds.length === 0) {
+      const seeds = [
+        'https://rss.naver.com/news/topstory.naver',
+        'https://news.google.com/rss/topics/CAAqJAgKIh5DQkFTRUFvSEwyMHZNRGR6ZEdKUWNHUmxHZ0pEUlNnQVAB?hl=ko&gl=KR&ceid=KR:ko',
+        'https://www.coindeskkorea.com/rss/allArticle.xml'
+      ];
+      setState((prev) => {
+        if (prev.feeds && prev.feeds.length > 0) {
+          return prev;
+        }
         return {
-          id: `${url}_${index}`,
-          title,
-          link,
-          source: new URL(url).hostname,
-          ts: new Date(pubDate).getTime(),
-          summary: description.substring(0, 200) + '...'
+          ...prev,
+          feeds: seeds.map((url) => ({ url }))
         };
       });
-      
+    }
+  }, [state.feeds.length, setState]);
+
+  // RSS 파싱 함수 (간단한 구현)
+  const fetchRssText = useCallback(async (targetUrl: string): Promise<string> => {
+    const encoded = encodeURIComponent(targetUrl);
+    const candidates = [
+      `http://localhost:4000/proxy?url=${encoded}`,
+      `/api/proxy-rss?url=${encoded}`,
+      `https://api.allorigins.win/raw?url=${encoded}`,
+      `https://cors.isomorphic-git.org/${targetUrl}`
+    ];
+
+    let lastError: unknown = null;
+
+    for (const endpoint of candidates) {
+      try {
+        const response = await fetch(endpoint);
+        if (!response.ok) {
+          lastError = new Error(`${response.status} ${response.statusText}`);
+          console.warn('[NewsWidget] RSS proxy upstream error', endpoint, response.status, response.statusText);
+          continue;
+        }
+        const text = await response.text();
+        if (text) {
+          return text;
+        }
+      } catch (err) {
+        lastError = err;
+        console.warn('[NewsWidget] RSS proxy request failed', endpoint, err);
+      }
+    }
+
+    throw lastError ?? new Error('RSS proxy failed');
+  }, []);
+
+  const parseRSS = useCallback(async (url: string): Promise<NewsItem[]> => {
+    try {
+      const text = await fetchRssText(url);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'application/xml');
+
+      const items = Array.from(doc.querySelectorAll('item, entry')).map((item, index) => {
+        const title = item.querySelector('title')?.textContent?.trim() || '';
+        const linkNode = item.querySelector('link');
+        let link = linkNode?.textContent?.trim() || linkNode?.getAttribute('href')?.trim() || '';
+        const guid = item.querySelector('guid')?.textContent?.trim() || '';
+        const pub =
+          item.querySelector('pubDate')?.textContent ||
+          item.querySelector('updated')?.textContent ||
+          item.querySelector('published')?.textContent ||
+          '';
+        const description =
+          item.querySelector('description')?.textContent ||
+          item.querySelector('summary')?.textContent ||
+          '';
+
+        if (link.includes('news.google.com') && description.includes('url=')) {
+          try {
+            const matched = description.match(/url=([^&]+)/);
+            if (matched && matched[1]) {
+              const decoded = decodeURIComponent(matched[1]);
+              const realUrl = new URL(decoded);
+              link = realUrl.toString();
+            }
+          } catch {
+            // ignore parsing issues
+          }
+        }
+
+        const fallbackLink = link || guid || url;
+        let sourceHost = '';
+        try {
+          sourceHost = new URL(fallbackLink).hostname;
+        } catch {
+          try {
+            sourceHost = new URL(url).hostname;
+          } catch {
+            sourceHost = 'unknown';
+          }
+        }
+
+        const tsValue = pub ? new Date(pub).getTime() : Date.now() - index * 1000;
+        const timestamp = Number.isNaN(tsValue) ? Date.now() - index * 1000 : tsValue;
+
+        return {
+          id: `${guid || link || title || url}_${index}`,
+          title,
+          link: fallbackLink,
+          source: sourceHost,
+          ts: timestamp,
+          summary: description
+        };
+      });
+
       return items.slice(0, 10); // 최대 10개
     } catch (error) {
       console.error('RSS 파싱 실패:', error);
@@ -212,7 +297,7 @@ export function NewsWidget({
       }
       throw new Error(`RSS 데이터를 불러오지 못했습니다 (${host})`);
     }
-  };
+  }, [fetchRssText]);
 
   // 요약 생성 함수
   const generateSummary = (text: string): string => {
@@ -286,9 +371,7 @@ export function NewsWidget({
         }
       }
 
-      if (source === 'manual') {
-        setError(null);
-      }
+      setError(null);
 
       try {
         const allItems: NewsItem[] = [];
@@ -341,17 +424,27 @@ export function NewsWidget({
         }
 
         const now = Date.now();
-        const uniqueItems = Array.from(dedupedMap.values())
-          .filter((item) => now - item.ts <= 1000 * 60 * 60 * 24)
-          .sort((a, b) => {
-            const tsDiff = b.ts - a.ts;
-            if (tsDiff !== 0) return tsDiff;
-            const weightDiff = getSourceWeight(b.source) - getSourceWeight(a.source);
-            if (weightDiff !== 0) return weightDiff;
-            return b.title.localeCompare(a.title);
-          });
+        const uniqueItems = Array.from(dedupedMap.values()).filter(
+          (item) => !Number.isNaN(item.ts) && item.ts > 0
+        );
 
-        const processedItems = uniqueItems.map((item) => ({
+        let filtered = uniqueItems.filter((item) => now - item.ts <= 1000 * 60 * 60 * 24);
+        if (filtered.length === 0) {
+          filtered = uniqueItems.filter((item) => now - item.ts <= 1000 * 60 * 60 * 72);
+        }
+        if (filtered.length === 0) {
+          filtered = uniqueItems;
+        }
+
+        const sorted = filtered.sort((a, b) => {
+          const tsDiff = b.ts - a.ts;
+          if (tsDiff !== 0) return tsDiff;
+          const weightDiff = getSourceWeight(b.source) - getSourceWeight(a.source);
+          if (weightDiff !== 0) return weightDiff;
+          return b.title.localeCompare(a.title);
+        });
+
+        const processedItems = sorted.map((item) => ({
           ...item,
           summary: item.summary ? generateSummary(item.summary) : ''
         }));
@@ -396,6 +489,22 @@ export function NewsWidget({
     },
     [state.feeds, setState, parseRSS]
   );
+
+  useEffect(() => {
+    if (state.feeds.length === 0) {
+      previousFeedsLengthRef.current = 0;
+      return;
+    }
+
+    const feedsChanged = previousFeedsLengthRef.current !== state.feeds.length;
+    const needsInitialFetch = !initialRefreshDoneRef.current && state.items.length === 0;
+
+    if (feedsChanged || needsInitialFetch) {
+      previousFeedsLengthRef.current = state.feeds.length;
+      initialRefreshDoneRef.current = true;
+      refreshFeeds({ source: 'manual' });
+    }
+  }, [state.feeds.length, state.items.length, refreshFeeds]);
 
   // 피드 추가
   const addFeed = useCallback(() => {
@@ -732,6 +841,32 @@ export function NewsWidget({
     }
   };
 
+  const toggleInterest = useCallback((interest: string) => {
+    setState((prev) => {
+      const current = prev.interests || [];
+      if (current.includes(interest)) {
+        return {
+          ...prev,
+          interests: current.filter((item) => item !== interest)
+        };
+      }
+      return {
+        ...prev,
+        interests: [...current, interest]
+      };
+    });
+  }, [setState]);
+
+  const handleRefreshIntervalChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(event.target.value);
+    if (!Number.isNaN(value)) {
+      setState((prev) => ({
+        ...prev,
+        refreshInterval: value
+      }));
+    }
+  };
+
   const logClick = useCallback(
     (item: NewsItem, options?: { trigger?: 'keyboard' | 'mouse' | 'read_later' }) => {
       setState((prev) => {
@@ -873,21 +1008,26 @@ export function NewsWidget({
   }, []);
 
   const headerControls = (
-    <div className="flex items-center gap-2 text-xs text-gray-600">
+    <div className="relative z-[2] flex flex-wrap items-center gap-2 text-xs text-gray-600 pointer-events-auto">
       {unreadCount > 0 && (
-        <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50/70 px-2.5 py-1 text-[11px] font-medium text-indigo-700">
+        <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-700">
           읽지 않음 {unreadCount}
         </span>
       )}
-      <div className="flex items-center gap-1 rounded-md border border-white/40 bg-white/40 px-2 py-1">
-        <Clock className="h-3.5 w-3.5 text-gray-500" />
+      {state.lastFetchError && (
+        <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-[11px] font-medium text-red-600">
+          {state.lastFetchError}
+        </span>
+      )}
+      <div className="flex items-center gap-1 rounded-md border border-white/40 bg-white/60 px-2 py-1 text-gray-600">
+        <Clock className="h-3.5 w-3.5" />
         <span className="font-medium">
           {state.lastFetched ? formatTime(state.lastFetched) : '아직 없음'}
         </span>
       </div>
       <button
         onClick={() => refreshFeeds({ source: 'manual' })}
-        className="inline-flex items-center justify-center rounded-md border border-white/40 bg-white/40 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50"
+        className="inline-flex items-center justify-center rounded-md border border-white/60 bg-white/70 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50"
         aria-label="뉴스 새로고침"
         title="뉴스 새로고침"
         disabled={spinnerActive || state.feeds.length === 0}
@@ -897,7 +1037,7 @@ export function NewsWidget({
       </button>
       <button
         onClick={() => setShowSettings((prev) => !prev)}
-        className="inline-flex items-center justify-center rounded-md border border-white/40 bg-white/40 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+        className="inline-flex items-center justify-center rounded-md border border-white/60 bg-white/70 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
         aria-label={showSettings ? '설정 닫기' : '설정 열기'}
         title="설정 열기"
       >
@@ -905,7 +1045,7 @@ export function NewsWidget({
       </button>
       <button
         onClick={() => setShowReadLater(true)}
-        className="inline-flex items-center justify-center rounded-md border border-white/40 bg-white/40 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+        className="inline-flex items-center justify-center rounded-md border border-white/60 bg-white/70 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
         aria-label="보관함 열기"
         title="나중에 읽기 보관함"
       >
@@ -917,10 +1057,306 @@ export function NewsWidget({
           </span>
         )}
       </button>
+      <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] text-gray-600">
+        feeds:{state.feeds.length} items:{state.items.length}
+      </span>
     </div>
   );
 
-  const MainContent = () => <div>main</div>;
+  const settingsPanel = showSettings ? (
+    <div className="rounded-xl border border-gray-200 bg-white/80 p-3 text-xs text-gray-700 shadow-inner dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100">
+      <div className="grid gap-3">
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-semibold text-gray-900 dark:text-gray-100">구독 중인 피드</h4>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">{state.feeds.length}개</span>
+          </div>
+          {state.feeds.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-4 text-center text-[11px] text-gray-500 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-400">
+              기본 RSS 피드가 자동으로 추가됩니다. 다른 피드를 추가하려면 아래 입력창을 사용하세요.
+            </div>
+          ) : (
+            <ul className="space-y-1">
+              {state.feeds.map((feed, index) => (
+                <li key={`${feed.url}-${index}`} className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-[11px] shadow-sm dark:border-gray-600 dark:bg-gray-900/50">
+                  <span className="truncate">{feed.url}</span>
+                  <button
+                    onClick={() => removeFeed(index)}
+                    className="rounded-md border border-gray-300 bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 transition hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    제거
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              addFeed();
+            }}
+            className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-2 py-2 shadow-sm dark:border-gray-600 dark:bg-gray-900/50"
+          >
+            <label htmlFor={`${id}-feed-input`} className="text-[11px] font-medium text-gray-600 dark:text-gray-300">RSS 피드 추가</label>
+            <div className="flex gap-2">
+              <input
+                id={`${id}-feed-input`}
+                value={newFeedUrl}
+                onChange={(event) => setNewFeedUrl(event.target.value)}
+                placeholder="https://example.com/rss"
+                className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-[11px] text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-300 dark:focus:ring-blue-300"
+              />
+              <button
+                type="submit"
+                className="rounded-md border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-medium text-blue-600 transition hover:bg-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:border-blue-400/60 dark:bg-blue-500/10 dark:text-blue-200"
+              >
+                추가
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(PRESET_GROUPS).map(([label, urls]) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => addPresetGroup(label, urls)}
+                  className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-[11px] font-medium text-gray-600 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                  {label} 묶음 추가
+                </button>
+              ))}
+            </div>
+          </form>
+        </section>
+
+        <section className="space-y-2">
+          <h4 className="text-xs font-semibold text-gray-900 dark:text-gray-100">관심사 필터</h4>
+          <div className="flex flex-wrap gap-2">
+            {INTEREST_OPTIONS.map((interest) => {
+              const active = (state.interests || []).includes(interest);
+              return (
+                <button
+                  key={interest}
+                  type="button"
+                  onClick={() => toggleInterest(interest)}
+                  className={`rounded-full border px-3 py-1 text-[11px] font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${
+                    active
+                      ? 'border-blue-300 bg-blue-50 text-blue-600 dark:border-blue-400/70 dark:bg-blue-500/10 dark:text-blue-200'
+                      : 'border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {interest}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="space-y-2">
+          <h4 className="text-xs font-semibold text-gray-900 dark:text-gray-100">제외 키워드</h4>
+          <div className="flex gap-2">
+            <input
+              value={excludeInput}
+              onChange={(event) => setExcludeInput(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && (event.preventDefault(), addExcludeKeyword())}
+              placeholder="예: 광고, 스포츠"
+              className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-[11px] text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-300 dark:focus:ring-blue-300"
+            />
+            <button
+              type="button"
+              onClick={addExcludeKeyword}
+              className="rounded-md border border-gray-300 bg-gray-50 px-3 py-1 text-[11px] font-medium text-gray-600 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              추가
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(state.excludedKeywords || []).map((keyword) => (
+              <span
+                key={keyword}
+                className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-[11px] text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+              >
+                {keyword}
+                <button
+                  onClick={() => removeExcludeKeyword(keyword)}
+                  className="text-[10px] text-gray-400 hover:text-red-500 focus:outline-none"
+                  aria-label={`${keyword} 제외 해제`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-semibold text-gray-900 dark:text-gray-100">자동 새로고침</h4>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">분 단위</span>
+          </div>
+          <select
+            value={state.refreshInterval}
+            onChange={handleRefreshIntervalChange}
+            className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-300 dark:focus:ring-blue-300"
+          >
+            {REFRESH_INTERVALS.map((interval) => (
+              <option key={interval} value={interval}>
+                {interval}분
+              </option>
+            ))}
+          </select>
+        </section>
+      </div>
+    </div>
+  ) : null;
+
+  const MainContent = () => {
+    if (spinnerActive && displayedItems.length === 0) {
+      return (
+        <div className="flex h-full items-center justify-center text-sm text-gray-500">
+          불러오는 중…
+        </div>
+      );
+    }
+
+    if (error && displayedItems.length === 0) {
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+          <div className="text-sm font-medium text-red-600">{error}</div>
+          <button
+            onClick={() => refreshFeeds({ source: 'manual' })}
+            className="rounded-md border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+          >
+            다시 시도
+          </button>
+        </div>
+      );
+    }
+
+    if (state.feeds.length === 0) {
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+          <div className="text-sm text-gray-600">구독 중인 RSS가 없습니다.</div>
+          <div className="flex flex-wrap justify-center gap-2">
+            {PRESET_FEEDS.slice(0, 3).map((preset) => (
+              <button
+                key={preset.url}
+                onClick={() => addPresetFeed(preset.url)}
+                className="rounded-md border border-gray-200 bg-white/80 px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (displayedItems.length === 0) {
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-gray-500">
+          표시할 뉴스가 없습니다.
+          <span className="text-xs text-gray-400">필터를 완화하거나 새로고침해 보세요.</span>
+          <button
+            onClick={() => refreshFeeds({ source: 'manual' })}
+            className="rounded-md border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+          >
+            새로고침
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`flex flex-col overflow-y-auto ${sizeConfig.itemSpacing}`}>
+        {displayedItems.map((item, index) => {
+          const isPinned = pinnedIdsSet.has(item.id);
+          const isRead = readIdsSet.has(item.id);
+          const cardClasses = [
+            'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition-transform',
+            'hover:-translate-y-0.5',
+            'border rounded-xl',
+            sizeConfig.itemClass,
+            isPinned ? 'border-blue-300 bg-blue-50/70' : 'border-gray-200 bg-white/70',
+            isRead ? 'opacity-90' : 'shadow-sm'
+          ].join(' ');
+
+          return (
+            <div
+              key={item.id}
+              ref={(el) => (itemRefs.current[index] = el)}
+              tabIndex={0}
+              role="button"
+              className={cardClasses}
+              onClick={() => {
+                markAsRead(item.id);
+                logClick(item, { trigger: 'mouse' });
+                window.open(item.link, '_blank', 'noopener,noreferrer');
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  markAsRead(item.id);
+                  logClick(item, { trigger: 'keyboard' });
+                  window.open(item.link, '_blank', 'noopener,noreferrer');
+                }
+              }}
+            >
+              <div className={`font-semibold text-gray-900 ${sizeConfig.titleClass} ${sizeConfig.clampClass}`}>
+                {item.title}
+              </div>
+              <div className={`mt-1 flex items-center gap-2 ${sizeConfig.metaClass}`}>
+                <span>{item.source}</span>
+                <span aria-hidden="true">·</span>
+                <span>{formatTime(item.ts)}</span>
+              </div>
+              {sizeConfig.showSummary && item.summary && (
+                <p className={`${sizeConfig.summaryClass} mt-2 text-gray-600`}>{item.summary}</p>
+              )}
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-gray-600">
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    togglePin(item);
+                  }}
+                  className="rounded-full border border-gray-200 bg-white/80 px-3 py-1 font-medium transition hover:bg-white"
+                >
+                  {isPinned ? '핀 해제' : '핀 고정'}
+                </button>
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    saveForLater(item);
+                    logSave(item);
+                  }}
+                  className="rounded-full border border-gray-200 bg-white/80 px-3 py-1 font-medium transition hover:bg-white"
+                >
+                  나중에
+                </button>
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleShare(item);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white/80 px-3 py-1 font-medium transition hover:bg-white"
+                >
+                  <Share2 className="h-3 w-3" />
+                  공유
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        {hasMoreItems && (
+          <button
+            onClick={() => setShowAll(true)}
+            className="mt-2 self-center rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+          >
+            더 보기
+          </button>
+        )}
+      </div>
+    );
+  };
 
   const readLaterModal = showReadLater ? (
     <div className="fixed inset-0 z-[13000] flex items-center justify-center bg-black/30 backdrop-blur-sm" role="dialog" aria-modal="true">
@@ -989,8 +1425,9 @@ export function NewsWidget({
   if (embedded) {
     return (
       <>
-        <div className="flex h-full flex-col gap-3 px-3 py-3">
+        <div className="relative z-[1] flex h-full flex-col gap-3 px-3 py-3 pointer-events-auto">
           <div className="flex justify-end">{headerControls}</div>
+          {settingsPanel}
           <MainContent />
         </div>
         {readLaterModal}
@@ -1010,9 +1447,10 @@ export function NewsWidget({
         onPin={() => onPin?.(id)}
         isPinned={isPinned}
         variant="inset"
-        contentClassName="h-full flex flex-col gap-3 px-3 py-3"
+        contentClassName="relative z-[1] h-full flex flex-col gap-3 px-3 py-3 pointer-events-auto"
         headerAction={headerControls}
       >
+        {settingsPanel}
         <MainContent />
       </WidgetShell>
       {readLaterModal}

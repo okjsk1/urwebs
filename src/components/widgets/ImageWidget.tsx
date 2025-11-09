@@ -22,6 +22,8 @@ export interface PhotoItem {
   src: string; // blob URL or https URL
   caption?: string;
   createdAt: number;
+  dataUrl?: string;
+  mimeType?: string;
 }
 
 export interface ImageWidgetState {
@@ -60,18 +62,57 @@ const DEFAULT_STATE: ImageWidgetState = {
   lastUpdated: Date.now()
 };
 
-export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
-  const [state, setState] = useState(() => {
-    const saved = readLocal(widget.id, DEFAULT_STATE);
-    // 기본값 병합
-    return {
+const isRenderableSource = (src: string | undefined | null): boolean => {
+  if (!src) return false;
+  return src.startsWith('data:image') || src.startsWith('http://') || src.startsWith('https://');
+};
+
+const sanitizeItems = (items: PhotoItem[] | undefined | null) => {
+  if (!items || items.length === 0) return [];
+  return items
+    .map((item) => {
+      if (!item) return null;
+      const dataUrl = item.dataUrl && item.dataUrl.startsWith('data:image') ? item.dataUrl : undefined;
+      const src = dataUrl || item.src;
+      if (!isRenderableSource(src)) {
+        return null;
+      }
+      return {
+        ...item,
+        src,
+        dataUrl,
+      };
+    })
+    .filter(Boolean) as PhotoItem[];
+};
+
+const loadInitialImageState = (widgetId: string) => {
+  const saved = readLocal(widgetId, DEFAULT_STATE);
+  const sanitizedItems = sanitizeItems(saved.items);
+  const activeIndexRaw = saved.activeIndex ?? 0;
+  const safeActiveIndex =
+    sanitizedItems.length === 0 ? 0 : Math.min(Math.max(activeIndexRaw, 0), sanitizedItems.length - 1);
+  const legacyDetected =
+    Array.isArray(saved.items) &&
+    saved.items.some((item: any) => item?.src && item.src.startsWith('blob:') && !item?.dataUrl);
+
+  return {
+    state: {
       ...DEFAULT_STATE,
       ...saved,
-      items: saved.items || [],
-      activeIndex: saved.activeIndex ?? 0
-    };
-  });
+      items: sanitizedItems,
+      activeIndex: safeActiveIndex,
+    },
+    legacyDetected,
+  };
+};
 
+const MAX_DATA_URL_SIZE = 2.5 * 1024 * 1024; // 약 2.5MB
+
+export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) => {
+  const [initialData] = useState(() => loadInitialImageState(widget.id));
+  const [state, setState] = useState<ImageWidgetState>(initialData.state);
+  const [hasLegacyBlobs] = useState(initialData.legacyDetected);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -84,6 +125,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
   const containerRef = useRef(null);
   const lightboxRef = useRef(null);
   const persistTimerRef = useRef(null as any);
+  const legacyNoticeShownRef = useRef(false);
   
   const widgetSize = useMemo(() => {
     const gridSize = (widget as any).gridSize;
@@ -119,6 +161,13 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       if (ro && el) ro.unobserve(el);
     };
   }, []);
+
+  useEffect(() => {
+    if (hasLegacyBlobs && !legacyNoticeShownRef.current && state.items.length === 0) {
+      legacyNoticeShownRef.current = true;
+      showToast('이전에 추가한 사진은 새 버전과 호환되지 않아요. 다시 업로드해 주세요.', 'info');
+    }
+  }, [hasLegacyBlobs, state.items.length]);
 
   // 상태 저장 (300ms 디바운스, 핵심 키 변경 시만)
   useEffect(() => {
@@ -233,34 +282,33 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     setUploadProgress({ current: 0, total: 1, percentage: 0 });
 
     try {
-      const blobUrl = URL.createObjectURL(selectedFile);
+      const { dataUrl, mimeType } = await optimizeImageFile(selectedFile);
 
       setUploadProgress({ current: 1, total: 1, percentage: 100 });
 
-      setState(prev => {
-        const prevItem = prev.items[0];
-        if (prevItem?.src.startsWith('blob:')) {
-          try { URL.revokeObjectURL(prevItem.src); } catch {}
-        }
-
-        return {
-          ...prev,
-          items: [{
-            id: generateId(),
-            src: blobUrl,
-            caption: prevItem?.caption || '',
-            createdAt: Date.now()
-          }],
-          activeIndex: 0,
-          lastUpdated: Date.now()
-        };
-      });
+      setState(prev => ({
+        ...prev,
+        items: [{
+          id: generateId(),
+          src: dataUrl,
+          dataUrl,
+          mimeType,
+          caption: prev.items?.[0]?.caption || '',
+          createdAt: Date.now()
+        }],
+        activeIndex: 0,
+        lastUpdated: Date.now()
+      }));
 
       trackEvent('image_widget_upload', { count: 1 });
       showToast('사진이 업데이트되었습니다.', 'success');
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
-      showToast('이미지 업로드에 실패했습니다.', 'error');
+      if (error instanceof Error && error.message === 'optimized_image_too_large') {
+        showToast('이미지가 너무 커요. 해상도를 줄이거나 다른 이미지를 사용해 주세요.', 'error');
+      } else {
+        showToast('이미지 업로드에 실패했습니다.', 'error');
+      }
     } finally {
       setIsUploading(false);
       setUploadProgress({ current: 0, total: 0, percentage: 0 });
@@ -278,10 +326,69 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     });
   };
 
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+
+  const optimizeImageFile = useCallback(
+    async (file: File): Promise<{ dataUrl: string; mimeType: string }> => {
+      const originalDataUrl = await readFileAsDataUrl(file);
+      if (originalDataUrl.length <= MAX_DATA_URL_SIZE) {
+        return { dataUrl: originalDataUrl, mimeType: file.type || 'image/jpeg' };
+      }
+
+      const image = await loadImage(originalDataUrl);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Canvas is not supported in this browser.');
+      }
+
+      const maxDimension = 1600;
+      let targetWidth = image.width;
+      let targetHeight = image.height;
+      if (Math.max(targetWidth, targetHeight) > maxDimension) {
+        const scale = maxDimension / Math.max(targetWidth, targetHeight);
+        targetWidth = Math.round(targetWidth * scale);
+        targetHeight = Math.round(targetHeight * scale);
+      }
+
+      let quality = 0.9;
+      let dataUrl = '';
+
+      while (quality >= 0.4) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        ctx.clearRect(0, 0, targetWidth, targetHeight);
+        ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+        if (dataUrl.length <= MAX_DATA_URL_SIZE) {
+          break;
+        }
+
+        quality -= 0.1;
+        targetWidth = Math.round(targetWidth * 0.9);
+        targetHeight = Math.round(targetHeight * 0.9);
+      }
+
+      if (!dataUrl || dataUrl.length > MAX_DATA_URL_SIZE) {
+        throw new Error('optimized_image_too_large');
+      }
+
+      return { dataUrl, mimeType: 'image/jpeg' };
+    },
+    []
+  );
+
   // 회전 (90도 단위)
   const rotateImage = useCallback(async (item: PhotoItem, degree: number) => {
     try {
-      const img = await loadImage(item.src);
+      const img = await loadImage(item.dataUrl || item.src);
       const rad = (degree * Math.PI) / 180;
       const sin = Math.abs(Math.sin(rad));
       const cos = Math.abs(Math.cos(rad));
@@ -295,15 +402,14 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       ctx.translate(newW / 2, newH / 2);
       ctx.rotate(rad);
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
-      const blob: Blob | null = await new Promise(res => canvas.toBlob(b => res(b), 'image/jpeg', 0.92));
-      if (!blob) throw new Error('Image export failed');
-      const newUrl = URL.createObjectURL(blob);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       setState(prev => ({
         ...prev,
-        items: prev.items.map(i => i.id === item.id ? { ...i, src: newUrl } : i),
+        items: prev.items.map(i =>
+          i.id === item.id ? { ...i, src: dataUrl, dataUrl, mimeType: 'image/jpeg', createdAt: Date.now() } : i
+        ),
         lastUpdated: Date.now()
       }));
-      if (item.src.startsWith('blob:')) URL.revokeObjectURL(item.src);
       showToast('이미지를 회전했어요.', 'success');
     } catch (e) {
       console.error(e);
@@ -314,7 +420,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
   // 중앙 정사각형 크롭
   const cropImageCenterSquare = useCallback(async (item: PhotoItem) => {
     try {
-      const img = await loadImage(item.src);
+      const img = await loadImage(item.dataUrl || item.src);
       const size = Math.min(img.width, img.height);
       const sx = Math.floor((img.width - size) / 2);
       const sy = Math.floor((img.height - size) / 2);
@@ -324,15 +430,14 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas not supported');
       ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
-      const blob: Blob | null = await new Promise(res => canvas.toBlob(b => res(b), 'image/jpeg', 0.92));
-      if (!blob) throw new Error('Image export failed');
-      const newUrl = URL.createObjectURL(blob);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       setState(prev => ({
         ...prev,
-        items: prev.items.map(i => i.id === item.id ? { ...i, src: newUrl } : i),
+        items: prev.items.map(i =>
+          i.id === item.id ? { ...i, src: dataUrl, dataUrl, mimeType: 'image/jpeg', createdAt: Date.now() } : i
+        ),
         lastUpdated: Date.now()
       }));
-      if (item.src.startsWith('blob:')) URL.revokeObjectURL(item.src);
       showToast('이미지를 크롭했어요.', 'success');
     } catch (e) {
       console.error(e);
@@ -357,6 +462,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     const newItem: PhotoItem = {
       id: generateId(),
       src: url,
+      dataUrl: undefined,
       caption: '',
       createdAt: Date.now()
     };

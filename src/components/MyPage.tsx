@@ -48,7 +48,6 @@ import { NaverSearchWidget } from './widgets/NaverSearchWidget';
 import { LawSearchWidget } from './widgets/LawSearchWidget';
 import { QuoteWidget } from './widgets/QuoteWidget';
 import { QuickNoteWidget } from './widgets/QuickNoteWidget';
-import { PopularWidgetsStrip } from './MyPage/PopularWidgetsStrip';
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics';
 import { completeTutorialStep } from '../hooks/useTutorialProgress';
 
@@ -4906,16 +4905,6 @@ export function MyPage() {
 
       {!showTemplateModal && (
       <div className="uw-container py-0 pb-32">
-
-        <PopularWidgetsStrip />
-        {isEditMode && (
-          <div className="mb-6 rounded-2xl border border-indigo-100/60 bg-indigo-50/40 px-6 py-4 text-sm text-indigo-700 shadow-inner backdrop-blur dark:border-indigo-900/40 dark:bg-indigo-900/20 dark:text-indigo-200">
-            첫 체험입니다! 위젯 헤더를 드래그하면 자동으로 격자에 맞춰 정렬돼요. 필요한 위젯을 추가해 자유롭게 배치해보세요.
-          </div>
-        )}
-
-
-
         {/* 위젯 캔버스 - 전체 너비 사용 */}
         <div className="w-full pt-3 pb-0">
           <div 

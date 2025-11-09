@@ -4,6 +4,8 @@ import { AlertCircle } from 'lucide-react';
 import { WeatherState } from './hooks/useWeatherCore';
 import { formatTemperature } from './utils/weatherFormat';
 
+type Units = WeatherState['units'];
+
 interface Props {
   state: WeatherState;
   isEditMode: boolean;
@@ -25,6 +27,70 @@ const DEFAULT_TONE: WeatherToneToken = {
   text: 'text-slate-700 dark:text-slate-200',
   accent: 'text-slate-600 dark:text-slate-300',
   icon: 'text-slate-600 dark:text-slate-300',
+};
+
+interface SecondaryInfoSource {
+  rainProb?: number;
+  pm25Grade?: string | number | null;
+  pm25Label?: string | null;
+  feelsLike?: number | null;
+  temperature?: number | null;
+  windSpeed?: number | null;
+  summary?: string | null;
+}
+
+const normalizeAirQualityLabel = (value?: string | number | null): string | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') {
+    if (value >= 4) return '매우나쁨';
+    if (value === 3) return '나쁨';
+    return null;
+  }
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (lower.includes('매우') || lower.includes('very') || lower.includes('severe')) return '매우나쁨';
+  if (lower.includes('나쁨') || lower.includes('bad') || lower.includes('poor') || lower.includes('unhealthy')) return '나쁨';
+  return null;
+};
+
+const truncate = (text: string, max = 18) => {
+  if (text.length <= max) return text;
+  return `${text.slice(0, max)}…`;
+};
+
+const getSecondaryInfo = (source: SecondaryInfoSource, units: Units): string => {
+  if (!source) return '';
+
+  const rainProb = typeof source.rainProb === 'number' && !Number.isNaN(source.rainProb)
+    ? Math.round(source.rainProb)
+    : undefined;
+  if (rainProb !== undefined && rainProb >= 40) {
+    return `강수 ${rainProb}%`;
+  }
+
+  const airLabel = normalizeAirQualityLabel(source.pm25Label ?? source.pm25Grade);
+  if (airLabel && (airLabel === '나쁨' || airLabel === '매우나쁨')) {
+    return `미세 ${airLabel}`;
+  }
+
+  if (
+    typeof source.feelsLike === 'number' &&
+    typeof source.temperature === 'number' &&
+    Math.abs(source.feelsLike - source.temperature) >= 3
+  ) {
+    return `체감 ${formatTemperature(source.feelsLike, units)}`;
+  }
+
+  if (typeof source.windSpeed === 'number' && source.windSpeed >= 6) {
+    return '강풍 주의';
+  }
+
+  if (source.summary && source.summary.trim()) {
+    return truncate(source.summary.trim());
+  }
+
+  return '';
 };
 
 const getWeatherTone = (conditionRaw: string | undefined, stealth: boolean): WeatherToneToken => {
@@ -113,6 +179,41 @@ export function WeatherMini({
   const [stealthDetected, setStealthDetected] = useState(false);
   const stealth = isStealthMode ?? stealthDetected;
 
+  const secondaryInfo = useMemo(() => {
+    if (!cw) return '';
+
+    const hourlyRainCandidates = state.hourlyForecast
+      .slice(0, 6)
+      .map(hour => hour?.precipitationProbability)
+      .filter((prob): prob is number => typeof prob === 'number' && !Number.isNaN(prob));
+
+    const dailyRainProb = state.dailyForecast?.[0]?.precipitationProbability;
+    if (typeof dailyRainProb === 'number' && !Number.isNaN(dailyRainProb)) {
+      hourlyRainCandidates.push(dailyRainProb);
+    }
+
+    const rainProb =
+      hourlyRainCandidates.length > 0 ? Math.max(...hourlyRainCandidates) : undefined;
+
+    const airQualitySource = (cw as any)?.airQuality || (state as any)?.airQuality;
+
+    const summaryText =
+      (cw as any)?.summary ?? cw.description ?? cw.condition ?? null;
+
+    return getSecondaryInfo(
+      {
+        rainProb,
+        pm25Label: airQualitySource?.pm25Label ?? (cw as any)?.pm25Label ?? null,
+        pm25Grade: airQualitySource?.pm25Grade ?? (cw as any)?.pm25Grade ?? null,
+        feelsLike: cw.feelsLike ?? null,
+        temperature: cw.temperature ?? null,
+        windSpeed: cw.windSpeed ?? null,
+        summary: summaryText,
+      },
+      state.units
+    );
+  }, [cw, state.dailyForecast, state.hourlyForecast, state.units]);
+
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
@@ -150,7 +251,7 @@ export function WeatherMini({
       ref={widgetRef || undefined}
       role="group"
       aria-label="현재 날씨"
-      className="h-full p-1 flex flex-col items-center justify-center text-center min-h-0 bg-white dark:bg-gray-800 focus:outline-none rounded-lg"
+      className="h-full px-2 py-2 flex flex-col items-center justify-center text-center min-h-0 bg-white dark:bg-gray-800 focus:outline-none rounded-lg"
     >
       {state.loading ? (
         <div role="status" aria-live="polite" className="w-full space-y-1">
@@ -181,27 +282,21 @@ export function WeatherMini({
         </div>
       ) : cw ? (
         <div role="status" aria-live="polite" className="flex flex-col items-center w-full">
-          <div aria-hidden="true" className={`text-xl mb-0.5 leading-none ${tone.icon}`}>
+          <div aria-hidden="true" className={`flex items-end gap-1 leading-none ${tone.icon}`}>
             {cw.icon}
           </div>
           <span className="sr-only">{conditionText}</span>
-          <div className={`text-sm font-semibold leading-tight ${tone.text}`}>
-            {temperatureText}
-          </div>
-          {showCondition && (
-            <div
-              className="text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-full leading-tight"
-              title={conditionText}
-            >
-              {conditionText}
+          <div className={`mt-0.5 flex items-baseline gap-1`}>
+            <div className={`text-lg font-semibold leading-none tracking-tight ${tone.text}`}>
+              {temperatureText ?? '--°'}
             </div>
-          )}
-          {showLocation && (
+          </div>
+          {secondaryInfo && (
             <div
-              className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-full leading-tight"
-              title={locationName}
+              className="text-[11px] text-gray-600 dark:text-gray-300 mt-1 leading-tight"
+              title={secondaryInfo}
             >
-              {locationName}
+              {secondaryInfo}
             </div>
           )}
           {isOffline && (
