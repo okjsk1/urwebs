@@ -4,7 +4,15 @@ import { Button } from '../ui/button';
 import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Grid as GridIcon, List, Wifi, WifiOff } from 'lucide-react';
 import { Sparkline } from '../ui/Sparkline';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
-import { getSymbolInfo } from '../../services/cryptoService';
+import {
+  getSymbolInfo,
+  subscribePrices,
+  Symbol as CryptoSymbol,
+  Quote as CryptoQuote,
+  Exchange as CryptoExchange,
+  Status as PriceStatus,
+  PriceTick
+} from '../../services/cryptoService';
 
 interface CryptoState {
   symbols: string[];
@@ -20,7 +28,11 @@ interface CryptoState {
   intervalMs: number;
 }
 
+const SUPPORTED_SYMBOLS = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'DOT', 'MATIC', 'AVAX'] as const;
 const DEFAULT_SYMBOLS: string[] = ['BTC', 'ETH', 'SOL'];
+
+const isSupportedSymbol = (symbol: string): symbol is CryptoSymbol =>
+  (SUPPORTED_SYMBOLS as readonly string[]).includes(symbol);
 
 // 간단한 포맷팅 함수들
 const formatPrice = (price: number, currency: string): string => {
@@ -70,6 +82,11 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
       showToast('심볼을 입력하세요', 'error');
       return;
     }
+
+    if (!isSupportedSymbol(symbol)) {
+      showToast('지원하지 않는 심볼입니다. (가능: BTC, ETH, SOL, XRP, ADA, DOT, MATIC, AVAX)', 'error');
+      return;
+    }
     
     if (state.symbols.includes(symbol)) {
       showToast('이미 추가된 심볼입니다', 'error');
@@ -86,7 +103,7 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
     showToast('심볼이 추가되었습니다', 'success');
   }, [state.newSymbol, state.symbols]);
 
-  const removeSymbol = useCallback((symbol: Symbol) => {
+  const removeSymbol = useCallback((symbol: string) => {
     setState(prev => {
       const newQuotes = { ...prev.quotes };
       const newHistory = { ...prev.history };
@@ -116,6 +133,55 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
       return Math.abs(qB.changePct) - Math.abs(qA.changePct);
     });
   }, [state.symbols, state.quotes]);
+
+  const symbols = state.symbols;
+  const exchange = state.exchange;
+  const currency = state.currency;
+  const intervalMs = state.intervalMs;
+
+  useEffect(() => {
+    const validSymbols = symbols.filter(isSupportedSymbol);
+
+    if (validSymbols.length === 0) {
+      setState(prev => ({ ...prev, status: 'idle' }));
+      return;
+    }
+
+    let isMounted = true;
+    setState(prev => ({ ...prev, status: 'connecting' as PriceStatus }));
+
+    const subscription = subscribePrices(
+      {
+        symbols: validSymbols,
+        quote: currency as CryptoQuote,
+        exchange: exchange as CryptoExchange,
+        intervalMs
+      },
+      (tick: PriceTick) => {
+        if (!isMounted) return;
+        setState(prev => {
+          const history = prev.history[tick.symbol] || [];
+          const nextHistory = [...history, tick.price].slice(-60);
+          return {
+            ...prev,
+            quotes: { ...prev.quotes, [tick.symbol]: tick },
+            history: { ...prev.history, [tick.symbol]: nextHistory },
+            lastUpdate: tick.timestamp,
+            status: 'live'
+          };
+        });
+      },
+      (status) => {
+        if (!isMounted) return;
+        setState(prev => ({ ...prev, status }));
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [symbols, exchange, currency, intervalMs]);
 
   return (
     <div className="p-2 h-full flex flex-col">
@@ -197,6 +263,7 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
             {sortedSymbols.map(symbol => {
               const quote = state.quotes[symbol];
               const hist = state.history[symbol] || [];
+              const info = isSupportedSymbol(symbol) ? getSymbolInfo(symbol) : { name: symbol, icon: symbol };
               
               return (
                 <div
@@ -208,7 +275,7 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
                     <div className="flex-1">
                       <div className="flex items-center gap-1">
                         <span className="text-xs font-bold text-gray-800">{symbol}</span>
-                        <span className="text-xs text-gray-500">{getSymbolInfo(symbol).name}</span>
+                        <span className="text-xs text-gray-500">{info.name}</span>
                       </div>
                       {quote ? (
                         <>

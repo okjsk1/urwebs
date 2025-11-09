@@ -19,7 +19,20 @@ const defaultQuotes = [
   { text: "어제는 역사이고, 내일은 미스터리이며, 오늘은 선물이다.", author: "엘리너 루즈벨트" },
 ];
 
-export function QuoteWidget({ id, title, size = 's', onRemove, onResize, onPin }: WidgetProps) {
+interface QuoteWidgetProps extends WidgetProps {
+  embedded?: boolean;
+}
+
+export function QuoteWidget({
+  id,
+  title,
+  size = 's',
+  onRemove,
+  onResize,
+  onPin,
+  embedded = false,
+  isPinned
+}: QuoteWidgetProps) {
   const [state, setState] = usePersist<QuoteState>(`uw_quote_${id}`, {
     currentQuote: null,
     lastFetched: 0,
@@ -40,40 +53,43 @@ export function QuoteWidget({ id, title, size = 's', onRemove, onResize, onPin }
     }
   }, [state.currentQuote]);
 
-  // QuoteWidget은 1x1 고정으로, onResize는 무시합니다.
-  const handleResize = (newSize: 's' | 'm' | 'l') => {
-    // Do nothing, as it's fixed to 's'
-    console.log(`QuoteWidget is fixed to size 's'. Cannot resize to ${newSize}.`);
-  };
+  const content = (
+    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
+      {state.currentQuote ? (
+        <>
+          <p className="mb-2 line-clamp-3 text-sm font-medium text-gray-800">
+            "{state.currentQuote.text}"
+          </p>
+          <p className="text-xs text-gray-500">- {state.currentQuote.author}</p>
+        </>
+      ) : (
+        <p className="text-sm text-gray-500">명언을 불러오는 중...</p>
+      )}
+      <button
+        onClick={fetchNewQuote}
+        aria-label="새 명언 불러오기"
+        className="mt-3 rounded-md p-1 text-xs text-indigo-600 transition hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+      >
+        새 명언
+      </button>
+    </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
 
   return (
     <WidgetShell
       icon={<Quote className="w-4 h-4 text-gray-600" aria-hidden="true" />}
       title={title || '영감 명언'}
-      size={'s'} // 1x1 고정
+      size={size ?? 's'}
       onRemove={onRemove ? () => onRemove(id) : undefined}
-      onResize={onResize ? (newSize) => onResize(id, newSize) : undefined} // onResize는 전달하되, 내부적으로는 무시
+      onResize={onResize ? (newSize) => onResize(id, newSize) : undefined}
       onPin={onPin ? () => onPin(id) : undefined}
+      isPinned={isPinned}
     >
-      <div className="flex flex-col items-center justify-center h-full text-center p-2">
-        {state.currentQuote ? (
-          <>
-            <p className="text-sm font-medium text-gray-800 mb-2 line-clamp-3">
-              "{state.currentQuote.text}"
-            </p>
-            <p className="text-xs text-gray-500">- {state.currentQuote.author}</p>
-          </>
-        ) : (
-          <p className="text-sm text-gray-500">명언을 불러오는 중...</p>
-        )}
-        <button
-          onClick={fetchNewQuote}
-          aria-label="새 명언 불러오기"
-          className="mt-3 text-xs text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-200 rounded-md p-1"
-        >
-          새 명언
-        </button>
-      </div>
+      {content}
     </WidgetShell>
   );
 }

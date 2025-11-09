@@ -26,7 +26,6 @@ export { LawSearchWidget } from './LawSearchWidget';
 
 // 이미지 위젯
 export { ImageWidget } from './ImageWidget';
-export { ThemeWidget } from './ThemeWidget';
 
 // 공통 컴포넌트들
 export { WidgetShell } from './WidgetShell';

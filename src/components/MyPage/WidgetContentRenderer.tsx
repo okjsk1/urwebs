@@ -144,6 +144,7 @@ export function WidgetContentRenderer({
               onRemove={() => {}}
               onResize={() => {}}
               onPin={() => {}}
+              embedded
             />
           </Suspense>
         );
@@ -201,7 +202,11 @@ export function WidgetContentRenderer({
       case 'frequent_sites':
         return (
           <Suspense fallback={widgetSkeleton}>
-            <FrequentSitesWidget {...commonProps} />
+            <FrequentSitesWidget
+              widget={widget}
+              isEditMode={isEditMode}
+              updateWidget={updateWidget}
+            />
           </Suspense>
         );
       case 'google_ad':
@@ -220,6 +225,7 @@ export function WidgetContentRenderer({
               onRemove={() => {}}
               onResize={() => {}}
               onPin={() => {}}
+              embedded
             />
           </Suspense>
         );

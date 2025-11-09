@@ -350,39 +350,41 @@ export const FrequentSitesWidget = ({ widget, isEditMode, updateWidget }: Widget
   return (
     <div className="p-2 h-full flex flex-col">
       {/* 편집 모드에서만 표시되는 헤더 */}
-      {isEditMode && (
+      {(isEditMode || filteredSites.length > 0) && (
         <div className="flex items-center justify-between mb-2 shrink-0">
           <div className="flex items-center gap-1">
             <TrendingUp className="w-4 h-4 text-blue-600" />
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setState(prev => ({ ...prev, showAddForm: !prev.showAddForm }))}
-              className="p-1 hover:bg-gray-100 rounded"
-              title="사이트 추가"
-            >
-              <Plus className="w-3 h-3 text-green-600" />
-            </button>
-            <button
-              onClick={() => setState(prev => ({ ...prev, showSettings: !prev.showSettings }))}
-              className="p-1 hover:bg-gray-100 rounded"
-              title="설정"
-            >
-              <Settings className="w-3 h-3 text-blue-600" />
-            </button>
-            <button
-              onClick={() => setState(prev => ({ ...prev, showDataManagement: !prev.showDataManagement }))}
-              className="p-1 hover:bg-gray-100 rounded"
-              title="데이터 관리"
-            >
-              <MoreVertical className="w-3 h-3 text-gray-600" />
-            </button>
-          </div>
+          {isEditMode && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setState(prev => ({ ...prev, showAddForm: !prev.showAddForm }))}
+                className="p-1 hover:bg-gray-100 rounded"
+                title="사이트 추가"
+              >
+                <Plus className="w-3 h-3 text-green-600" />
+              </button>
+              <button
+                onClick={() => setState(prev => ({ ...prev, showSettings: !prev.showSettings }))}
+                className="p-1 hover:bg-gray-100 rounded"
+                title="설정"
+              >
+                <Settings className="w-3 h-3 text-blue-600" />
+              </button>
+              <button
+                onClick={() => setState(prev => ({ ...prev, showDataManagement: !prev.showDataManagement }))}
+                className="p-1 hover:bg-gray-100 rounded"
+                title="데이터 관리"
+              >
+                <MoreVertical className="w-3 h-3 text-gray-600" />
+              </button>
+            </div>
+          )}
         </div>
       )}
       
       {/* 사이트 추가 폼 */}
-      {isEditMode && state.showAddForm && (
+      {state.showAddForm && (
         <div className="bg-gray-50 rounded p-2 mb-2 space-y-1 shrink-0">
           <input
             type="url"

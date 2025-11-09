@@ -600,10 +600,10 @@ export function TimerWidget({
 
         {/* 모드 선택: compact는 순환 버튼, 그 외는 탭 3개 */}
         {size === 's' ? (
-          <div className="mb-2 flex justify-end">
+          <div className="mb-1.5 flex justify-end">
             <button
               onClick={() => changeMode(cycleMode(core.mode))}
-              className="h-7 px-2 rounded-lg text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+              className="h-6 px-1.5 rounded-lg text-[11px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
               aria-label={`모드 전환: 현재 ${MODE_LABELS[core.mode]}`}
               title={MODE_LABELS[core.mode]}
             >
@@ -634,7 +634,7 @@ export function TimerWidget({
         {/* 메인 타이머 */}
         <div className={`flex-1 flex flex-col items-center justify-center ${size === 's' ? 'gap-1' : 'gap-3'}`}>
           <div 
-            className={`${size === 's' ? 'text-[28px]' : size === 'm' ? 'text-6xl' : 'text-7xl'} font-mono font-bold tabular-nums leading-none ${timerColor.className} transition-colors duration-200`}
+            className={`${size === 's' ? 'text-[24px]' : size === 'm' ? 'text-6xl' : 'text-7xl'} font-mono font-bold tabular-nums leading-none ${timerColor.className} transition-colors duration-200`}
             style={timerColor.style}
             aria-label={core.mode === 'stopwatch' ? '경과 시간' : '남은 시간'}
           >
@@ -660,21 +660,21 @@ export function TimerWidget({
 
           {/* 컨트롤 */}
           {size === 's' ? (
-            <div className="mt-1 flex items-center gap-1.5">
+          <div className="mt-1 flex items-center gap-1">
               <button
                 onClick={toggleTimer}
                 aria-pressed={core.running}
                 aria-label={core.running ? '일시정지' : '시작'}
-                className="h-8 w-8 grid place-items-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 transition-colors"
+              className="h-7 w-7 grid place-items-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 transition-colors"
               >
-                {core.running ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              {core.running ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
               </button>
               <button
                 onClick={resetTimer}
                 aria-label="리셋"
-                className="h-8 w-8 grid place-items-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors"
+              className="h-7 w-7 grid place-items-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-colors"
               >
-                <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (

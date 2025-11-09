@@ -43,10 +43,10 @@ export function QuickNoteWidget({ id, title, size = 's', onRemove, onResize, onP
 
   const getRows = (currentSize: WidgetSize) => {
     switch (currentSize) {
-      case 's': return 8; // 1x1 - 더 많은 행
-      case 'm': return 12; // 1x2 - 더 많은 행
-      case 'l': return 18; // 1x3 - 더 많은 행
-      default: return 8;
+      case 's': return 6;
+      case 'm': return 10;
+      case 'l': return 14;
+      default: return 6;
     }
   };
 
@@ -63,7 +63,7 @@ export function QuickNoteWidget({ id, title, size = 's', onRemove, onResize, onP
       <textarea
         value={state.text}
         onChange={handleTextChange}
-        className="w-full h-full text-sm border-0 resize-none focus:outline-none bg-transparent text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+        className="w-full h-full min-h-0 text-sm border-0 resize-none focus:outline-none bg-transparent text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 overflow-y-auto"
         style={{ textAlign: 'left', verticalAlign: 'top' }}
         rows={getRows(size)}
         aria-label="빠른 메모 내용"

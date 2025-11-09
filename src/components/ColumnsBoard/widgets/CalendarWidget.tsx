@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Plus, Edit, Trash2, X } from "lucide-react";
+import { useFitScale } from "../../../hooks/useFitScale";
 
 // 한국 공휴일 데이터 (2024-2025)
 const HOLIDAYS = {
@@ -220,20 +221,22 @@ export function CalendarWidget({
     switch (size) {
       case '1x1':
         return {
-          container: "p-0",
-          header: "mb-0 pb-0 h-[18px]",
-          monthText: "text-[8px] font-semibold leading-none",
+          container: "p-0 overflow-hidden",
+          wrapper: "px-1.5 py-1 gap-1",
+          header: "mb-0 pb-0 h-[16px]",
+          monthText: "text-[9px] font-semibold leading-none",
           navButton: "p-0",
-          navIcon: "w-2 h-2",
+          navIcon: "w-2.5 h-2.5",
           todayButton: "px-0.5 py-0 text-[7px] leading-tight",
-          weekdayHeader: "text-[6px] py-0 leading-none h-[12px]",
-          dateCell: "h-[11px] text-[6px] leading-none",
+          weekdayHeader: "text-[6px] py-0 leading-none h-[10px]",
+          dateCell: "h-[10px] text-[6px] leading-none",
           todayText: "text-[6px] leading-tight",
           legend: "text-[6px] gap-1 mt-0.5 leading-tight"
         };
       case '1x2':
         return {
           container: "p-2",
+          wrapper: "gap-2",
           header: "mb-2 pb-2",
           monthText: "text-sm font-bold",
           navButton: "p-1",
@@ -247,6 +250,7 @@ export function CalendarWidget({
       case '2x2':
         return {
           container: "p-3",
+          wrapper: "gap-3",
           header: "mb-2 pb-2",
           monthText: "text-xl font-bold",
           navButton: "p-1",
@@ -260,6 +264,7 @@ export function CalendarWidget({
       case '4x4':
         return {
           container: "p-4",
+          wrapper: "gap-3",
           header: "mb-3 pb-3",
           monthText: "text-lg font-bold",
           navButton: "p-2",
@@ -273,6 +278,7 @@ export function CalendarWidget({
       default:
         return {
           container: "p-2",
+          wrapper: "gap-2",
           header: "mb-2 pb-2",
           monthText: "text-sm font-bold",
           navButton: "p-1",
@@ -356,12 +362,8 @@ export function CalendarWidget({
     return grid.findIndex(g => isSameDay(g.date, target));
   }, [grid, value, currentDate, today]);
 
-  return (
-    <div
-      className={`${styles.container} h-full flex flex-col bg-white dark:bg-gray-900 rounded-lg ${className} ${size === '1x1' ? 'overflow-hidden' : ''}`}
-      role="grid"
-      aria-label="달력"
-    >
+  const calendarContent = (
+    <>
       {/* 헤더 */}
       <div className={`flex items-center justify-between ${styles.header} ${size === '1x1' ? 'border-b border-gray-200 dark:border-gray-700' : 'border-b border-gray-200 dark:border-gray-700'}`}>
         <div className={`flex ${size === '1x1' ? 'gap-0' : 'gap-1'}`}>
@@ -404,7 +406,7 @@ export function CalendarWidget({
         {weekdayOrder.map((label, i) => (
           <div
             key={label}
-            className={`text-center font-bold ${styles.weekdayHeader} ${
+            className={`weekday-label text-center font-bold ${styles.weekdayHeader} ${
               (startOfWeek === 0 ? i === 0 : i === 6) ? "text-red-600 dark:text-red-400" : 
               i === 5 ? "text-blue-600 dark:text-blue-400" : 
               "text-gray-700 dark:text-gray-300"
@@ -438,7 +440,7 @@ export function CalendarWidget({
               onClick={() => handleDateClick(date)}
               title={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일${holidayName ? ` (${holidayName})` : ''}`}
                  className={[
-                   `flex flex-col items-center justify-center rounded transition-colors relative ${styles.dateCell}`,
+                   `day-cell flex flex-col items-center justify-center rounded transition-colors relative ${styles.dateCell}`,
                    size === '1x1' ? "border-0" : "border border-gray-200 dark:border-gray-700",
                    size === '1x1' ? "min-h-0 w-full h-full" : "min-h-[36px] min-w-[36px]", // 1x1은 작게, 나머지는 터치 타겟 ≥ 36px
                    inCurrentMonth
@@ -552,6 +554,27 @@ export function CalendarWidget({
           </div>
         </div>
       )}
+    </>
+  );
+
+  return (
+    <div
+      ref={containerRef}
+      className={`${styles.container} h-full flex flex-col bg-white dark:bg-gray-900 rounded-lg ${className} overflow-hidden`}
+      role="grid"
+      aria-label="달력"
+    >
+      <div
+        ref={contentRef}
+        className={`flex flex-col flex-1 ${styles.wrapper || ''} ${compactTypoClass}`}
+        style={
+          isCompactSize
+            ? { transform: `scale(${scale})`, transformOrigin: 'top left' }
+            : undefined
+        }
+      >
+        {calendarContent}
+      </div>
     </div>
   );
 }

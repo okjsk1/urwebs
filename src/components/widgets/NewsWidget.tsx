@@ -57,6 +57,7 @@ export interface NewsWidgetProps {
   onResize?: (id: string, size: 's' | 'm' | 'l') => void;
   onPin?: (id: string) => void;
   isPinned?: boolean;
+  embedded?: boolean;
 }
 
 const REFRESH_INTERVALS = [5, 10, 15, 30]; // 분 단위
@@ -100,7 +101,8 @@ export function NewsWidget({
   onRemove,
   onResize,
   onPin,
-  isPinned = false
+  isPinned = false,
+  embedded = false
 }: NewsWidgetProps) {
   const [state, setState] = usePersist<NewsState>({
     key: `news_${id}`,
@@ -870,504 +872,150 @@ export function NewsWidget({
     }
   }, []);
 
-  return (
-    <WidgetShell
-      icon={<Newspaper className="w-4 h-4 text-blue-600" />}
-      title={title}
-      size={size}
-      onRefresh={() => refreshFeeds({ source: 'manual' })}
-      onRemove={() => onRemove?.(id)}
-      onResize={(newSize) => onResize?.(id, newSize === 'xl' ? 'l' : newSize)}
-      onPin={() => onPin?.(id)}
-      isPinned={isPinned}
-      variant="inset"
-      contentClassName="h-full flex flex-col gap-3 px-3 py-3"
-      headerAction={
-        <div className="flex items-center gap-2 text-xs text-gray-600">
-          {unreadCount > 0 && (
-            <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50/70 px-2.5 py-1 text-[11px] font-medium text-indigo-700">
-              읽지 않음 {unreadCount}
-            </span>
-          )}
-          <div className="flex items-center gap-1 rounded-md border border-white/40 bg-white/40 px-2 py-1">
-            <Clock className="h-3.5 w-3.5 text-gray-500" />
-            <span className="font-medium">
-              {state.lastFetched ? formatTime(state.lastFetched) : '아직 없음'}
-            </span>
-          </div>
-          <button
-            onClick={() => refreshFeeds({ source: 'manual' })}
-            className="inline-flex items-center justify-center rounded-md border border-white/40 bg-white/40 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50"
-            aria-label="뉴스 새로고침"
-            title="뉴스 새로고침"
-            disabled={spinnerActive || state.feeds.length === 0}
-          >
-            <RefreshCw className={`mr-1 h-3.5 w-3.5 ${spinnerActive ? 'animate-spin text-blue-500' : 'text-gray-600'}`} />
-            새로고침
-          </button>
-          <button
-            onClick={() => setShowSettings((prev) => !prev)}
-            className="inline-flex items-center justify-center rounded-md border border-white/40 bg-white/40 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-            aria-label={showSettings ? '설정 닫기' : '설정 열기'}
-            title="설정 열기"
-          >
-            <Settings className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => setShowReadLater(true)}
-            className="inline-flex items-center justify-center rounded-md border border-white/40 bg-white/40 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-            aria-label="보관함 열기"
-            title="나중에 읽기 보관함"
-          >
-            <Inbox className="mr-1 h-3.5 w-3.5" />
-            보관함
-            {Object.keys(readLaterItems).length > 0 && (
-              <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-semibold text-white">
-                {Object.keys(readLaterItems).length}
-              </span>
-            )}
-          </button>
-        </div>
-      }
-    >
-      <div className="flex h-full flex-col">
-        {/* 상태 요약 */}
-        <div className="flex items-center justify-between rounded-lg border border-white/50 bg-white/35 px-2 py-1 text-xs text-gray-600 backdrop-blur">
-          <span>{state.feeds.length}개 피드 · {state.items.length}개 기사</span>
-          {state.lastFetched && (
-            <span className="flex items-center gap-1 text-gray-500">
-              <Clock className="h-3 w-3" />
-              {formatTime(state.lastFetched)}
-            </span>
-          )}
-        </div>
-
-        {/* 설정 패널 */}
-        {showSettings && (
-          <div className="rounded-xl border border-white/40 bg-white/25 p-3 shadow-none backdrop-blur-sm">
-            <div className="mb-3">
-              <div className="mb-2 text-sm font-medium text-gray-700">추천 프리셋</div>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(PRESET_GROUPS).map(([label, urls]) => (
-                  <button
-                    key={label}
-                    onClick={() => addPresetGroup(label, urls)}
-                    className="rounded-full border border-blue-200 bg-blue-50/70 px-3 py-1 text-xs font-medium text-blue-700 transition hover:bg-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-                  >
-                    #{label}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-1 text-[11px] text-gray-500">
-                카테고리를 선택하면 관련된 RSS 다수를 한 번에 추가합니다.
-              </p>
-            </div>
-
-            <div className="mb-2 text-sm font-medium text-gray-700">피드 추가</div>
-            <div className="mb-3 flex gap-2">
-              <input
-                type="url"
-                value={newFeedUrl}
-                onChange={(e) => setNewFeedUrl(e.target.value)}
-                placeholder="RSS URL 입력"
-                className="flex-1 rounded-md border border-gray-200 bg-white/80 px-2 py-1 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
-                onKeyPress={(e) => e.key === 'Enter' && addFeed()}
-              />
-              <button
-                onClick={addFeed}
-                className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-            
-            {/* 피드 목록 */}
-            {state.feeds.length > 0 && (
-              <div className="space-y-1">
-                {state.feeds.map((feed, index) => (
-                  <div key={index} className="flex items-center justify-between text-xs text-gray-600">
-                    <span className="truncate">{feed.url}</span>
-                    <button
-                      onClick={() => removeFeed(index)}
-                      className="rounded px-2 py-0.5 text-red-500 transition hover:bg-red-50"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* 새로고침 간격 */}
-            <div className="mt-3">
-              <div className="mb-1 text-sm font-medium text-gray-700">새로고침 간격</div>
-              <div className="flex gap-1">
-                {REFRESH_INTERVALS.map((interval) => (
-                  <button
-                    key={interval}
-                    onClick={() => setState(prev => ({ ...prev, refreshInterval: interval }))}
-                    className={`rounded-md px-2 py-1 text-xs transition ${
-                      state.refreshInterval === interval
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-white/70 text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    {interval}분
-                  </button>
-                ))}
-              </div>
-            </div>
-
-        {/* 관심사 선택 */}
-        <div className="mt-3">
-          <div className="text-sm font-medium text-gray-700 mb-2">관심사 (포함 필터)</div>
-          <div className="flex flex-wrap gap-2">
-            {INTEREST_OPTIONS.map(opt => {
-              const active = (state.interests || []).includes(opt);
-              return (
-                <button
-                  key={opt}
-                  onClick={() =>
-                    setState(prev => {
-                      const cur = prev.interests || [];
-                      const next = active ? cur.filter(x => x !== opt) : [...cur, opt];
-                      return { ...prev, interests: next };
-                    })
-                  }
-                  className={`px-2 py-1 text-xs rounded border ${active ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
-                >
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-          <div className="text-[11px] text-gray-500 mt-1">여기에 추가한 키워드가 제목/요약에 포함된 기사만 표시합니다.</div>
-        </div>
-
-        <div className="mt-3">
-          <div className="text-sm font-medium text-gray-700 mb-2">제외 키워드</div>
-          <div className="flex gap-2 mb-2">
-            <input
-              type="text"
-              value={excludeInput}
-              onChange={(e) => setExcludeInput(e.target.value)}
-              placeholder="예: 연예, 광고"
-              className="flex-1 rounded-md border border-gray-200 bg-white/80 px-2 py-1 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addExcludeKeyword();
-                }
-              }}
-            />
-            <button
-              onClick={addExcludeKeyword}
-              className="inline-flex items-center rounded-md border border-gray-200 bg-white/80 px-3 py-1 text-sm font-medium text-gray-600 transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-            >
-              추가
-            </button>
-          </div>
-          {(state.excludedKeywords && state.excludedKeywords.length > 0) ? (
-            <div className="flex flex-wrap gap-1.5">
-              {state.excludedKeywords!.map((keyword) => (
-                <span
-                  key={keyword}
-                  className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] text-red-600"
-                >
-                  {keyword}
-                  <button
-                    onClick={() => removeExcludeKeyword(keyword)}
-                    className="ml-1 text-red-500 hover:text-red-700"
-                    aria-label={`${keyword} 제외 키워드 제거`}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="text-[11px] text-gray-500">
-              제외할 단어를 추가하면 해당 키워드가 포함된 기사가 숨겨집니다.
-            </div>
-          )}
-        </div>
-          </div>
+  const headerControls = (
+    <div className="flex items-center gap-2 text-xs text-gray-600">
+      {unreadCount > 0 && (
+        <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50/70 px-2.5 py-1 text-[11px] font-medium text-indigo-700">
+          읽지 않음 {unreadCount}
+        </span>
+      )}
+      <div className="flex items-center gap-1 rounded-md border border-white/40 bg-white/40 px-2 py-1">
+        <Clock className="h-3.5 w-3.5 text-gray-500" />
+        <span className="font-medium">
+          {state.lastFetched ? formatTime(state.lastFetched) : '아직 없음'}
+        </span>
+      </div>
+      <button
+        onClick={() => refreshFeeds({ source: 'manual' })}
+        className="inline-flex items-center justify-center rounded-md border border-white/40 bg-white/40 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50"
+        aria-label="뉴스 새로고침"
+        title="뉴스 새로고침"
+        disabled={spinnerActive || state.feeds.length === 0}
+      >
+        <RefreshCw className={`mr-1 h-3.5 w-3.5 ${spinnerActive ? 'animate-spin text-blue-500' : 'text-gray-600'}`} />
+        새로고침
+      </button>
+      <button
+        onClick={() => setShowSettings((prev) => !prev)}
+        className="inline-flex items-center justify-center rounded-md border border-white/40 bg-white/40 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+        aria-label={showSettings ? '설정 닫기' : '설정 열기'}
+        title="설정 열기"
+      >
+        <Settings className="h-3.5 w-3.5" />
+      </button>
+      <button
+        onClick={() => setShowReadLater(true)}
+        className="inline-flex items-center justify-center rounded-md border border-white/40 bg-white/40 px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+        aria-label="보관함 열기"
+        title="나중에 읽기 보관함"
+      >
+        <Inbox className="mr-1 h-3.5 w-3.5" />
+        보관함
+        {Object.keys(readLaterItems).length > 0 && (
+          <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-semibold text-white">
+            {Object.keys(readLaterItems).length}
+          </span>
         )}
+      </button>
+    </div>
+  );
 
-        {/* 에러 메시지 */}
-        {error && (
-          <div className="mb-3 rounded-xl border border-red-200 bg-red-50/90 px-3 py-2 text-xs text-red-700">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="font-semibold">뉴스를 가져오는 중 문제가 발생했습니다.</div>
-                <div className="mt-1 text-[11px] text-red-600/80">{error}</div>
-                {state.lastSuccessfulItems && state.lastSuccessfulItems.length > 0 && (
-                  <div className="mt-2 text-[11px] text-red-500/80">
-                    최근 저장된 뉴스를 계속 표시하고 있어요.
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => setError(null)}
-                className="rounded-md px-2 py-1 text-[11px] text-red-500 hover:text-red-600"
-                aria-label="오류 숨기기"
-              >
-                ×
-              </button>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button
-                onClick={() => refreshFeeds({ source: 'manual' })}
-                className="inline-flex items-center rounded-md border border-red-200 bg-white/80 px-3 py-1 text-[11px] font-medium text-red-600 transition hover:bg-white"
-              >
-                다시 시도
-              </button>
-            </div>
+  const MainContent = () => <div>main</div>;
+
+  const readLaterModal = showReadLater ? (
+    <div className="fixed inset-0 z-[13000] flex items-center justify-center bg-black/30 backdrop-blur-sm" role="dialog" aria-modal="true">
+      <div className="max-h-[80vh] w-full max-w-lg rounded-2xl border border-white/50 bg-white/90 p-5 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-gray-900">나중에 읽기 보관함</h3>
+          <button
+            onClick={() => setShowReadLater(false)}
+            className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
+          >
+            닫기
+          </button>
+        </div>
+
+        {readLaterList.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-200 bg-white/60 py-10 text-center text-sm text-gray-500">
+            저장된 기사가 없습니다.
           </div>
-        )}
-
-        {/* 로딩 상태 */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-sm text-gray-600">뉴스 로딩 중...</span>
-          </div>
-        )}
-
-        {/* 뉴스 목록 */}
-        <div className={`flex-1 overflow-y-auto ${sizeConfig.itemSpacing}`}>
-          {state.feeds.length === 0 && !isLoading ? (
-            <div className="rounded-xl border border-dashed border-gray-200/70 bg-white/30 px-4 py-5 text-center text-gray-500">
-              <Newspaper className="mx-auto mb-3 h-8 w-8 text-gray-300" />
-              <div className="mb-3 text-sm">원하는 소식을 빠르게 구독해보세요</div>
-              <div className="flex flex-wrap justify-center gap-2">
-                {PRESET_FEEDS.map((preset) => (
+        ) : (
+          <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto pr-1">
+            {readLaterList.map((item) => (
+              <div key={item.id} className="rounded-xl border border-gray-200 bg-white/80 p-3 shadow-sm">
+                <div className="mb-1 flex items-start justify-between gap-3">
+                  <h4 className="flex-1 text-sm font-semibold text-gray-900 line-clamp-2">{item.title}</h4>
                   <button
-                    key={preset.url}
-                    onClick={() => addPresetFeed(preset.url)}
-                    className="rounded-full border border-blue-200 bg-blue-50/60 px-3 py-1 text-xs text-blue-700 transition hover:bg-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+                    onClick={() => removeFromReadLater(item.id)}
+                    className="text-xs text-red-500 hover:text-red-600"
                   >
-                    {preset.label}
+                    삭제
                   </button>
-                ))}
-              </div>
-            </div>
-          ) : orderedItems.length === 0 && !isLoading ? (
-            <div className="rounded-xl border border-dashed border-gray-200/70 bg-white/30 py-6 text-center text-gray-500">
-              <Newspaper className="mx-auto mb-2 h-8 w-8 text-gray-300" />
-              <div className="text-sm">뉴스 피드를 추가해주세요</div>
-            </div>
-          ) : (
-            displayedItems.map((item, index) => {
-              const isRead = readIdsSet.has(item.id);
-              const isPinned = pinnedIdsSet.has(item.id);
-              const isSaved = Boolean(readLaterItems[item.id]);
-              const isFocused = focusedIndex === index;
-
-              return (
-                <div
-                  key={item.id}
-                  ref={(el) => (itemRefs.current[index] = el)}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${item.title} (${item.source}, ${formatTime(item.ts)})`}
-                  className={`group cursor-pointer rounded-lg border border-gray-200/70 bg-white/10 ${sizeConfig.itemClass} transition hover:border-gray-300 hover:bg-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-1 focus-visible:ring-offset-white ${isRead ? 'opacity-75' : ''} ${isFocused ? 'ring-2 ring-blue-300' : ''}`}
-                  onClick={() => {
-                    markAsRead(item.id);
-                    window.open(item.link, '_blank', 'noopener');
-                    logClick(item);
-                  }}
-                  onFocus={() => setFocusedIndex(index)}
-                  data-index={index}
-                >
-                  <div className="mb-1 flex items-start justify-between gap-2">
-                    <h4
-                      className={`flex-1 font-medium ${sizeConfig.clampClass} ${sizeConfig.titleClass} ${
-                        isRead ? 'text-gray-500' : 'text-gray-900'
-                      }`}
-                    >
-                      {item.title}
-                    </h4>
-                    <ExternalLink
-                      className="h-3 w-3 flex-shrink-0 text-gray-400 transition group-hover:text-gray-500"
-                      title="새 탭에서 열기"
-                    />
-                  </div>
-
-                  <div className={`mb-1 flex flex-wrap items-center gap-2 ${sizeConfig.metaClass}`}>
-                    <span className="flex items-center gap-1">
-                      <Hash className="h-3 w-3" />
-                      {item.source}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatTime(item.ts)}
-                    </span>
-                    {isPinned && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-700">
-                        <Pin className="h-3 w-3" />
-                        고정됨
-                      </span>
-                    )}
-                    {sizeConfig.showBadges && state.interests && state.interests.length > 0 && (
-                      <span className="flex flex-wrap gap-1">
-                        {state.interests.map((chip) => (
-                          <span
-                            key={`${item.id}-${chip}`}
-                            className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] text-indigo-600"
-                          >
-                            #{chip}
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                  </div>
-
-                  {item.summary && sizeConfig.showSummary && (
-                    <p className={sizeConfig.summaryClass}>
-                      {item.summary}
-                    </p>
-                  )}
-
-                  <div className="mt-2 flex flex-wrap items-center justify-end gap-2 text-[11px] text-gray-500">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePin(item);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white/70 px-2 py-0.5 transition hover:bg-white"
-                      aria-pressed={isPinned}
-                    >
-                      {isPinned ? (
-                        <>
-                          <PinOff className="h-3 w-3" />
-                          고정 해제
-                        </>
-                      ) : (
-                        <>
-                          <Pin className="h-3 w-3" />
-                          고정
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isSaved) {
-                          removeFromReadLater(item.id);
-                        } else {
-                          saveForLater(item);
-                          logSave(item);
-                        }
-                      }}
-                      className={`inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white/70 px-2 py-0.5 transition hover:bg-white ${
-                        isSaved ? 'text-emerald-600' : ''
-                      }`}
-                      aria-pressed={isSaved}
-                    >
-                      {isSaved ? (
-                        <>
-                          <BookmarkCheck className="h-3 w-3" />
-                          저장됨
-                        </>
-                      ) : (
-                        <>
-                          <BookmarkPlus className="h-3 w-3" />
-                          나중에 읽기
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(item);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white/70 px-2 py-0.5 transition hover:bg-white"
-                      title="링크 복사"
-                    >
-                      <Share2 className="h-3 w-3" />
-                      공유
-                    </button>
-                  </div>
                 </div>
-              );
-            })
-          )}
-        </div>
-
-        {hasMoreItems && (
-          <button
-            onClick={() => setShowAll((prev) => !prev)}
-            className="mt-1 inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-1 text-xs text-blue-700 transition hover:bg-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-          >
-            {showAll ? '간단히 보기' : `더보기 (${orderedItems.length - displayedItems.length}건)`}
-          </button>
+                <div className="mb-2 flex items-center gap-2 text-[11px] text-gray-500">
+                  <span>{item.source}</span>
+                  <span>·</span>
+                  <span>{formatTime(item.ts)}</span>
+                </div>
+                {item.summary && (
+                  <p className="text-xs text-gray-600 line-clamp-3">{item.summary}</p>
+                )}
+                <div className="mt-2 flex items-center gap-2 text-[11px]">
+                  <button
+                    onClick={() => {
+                      window.open(item.link, '_blank');
+                      logClick(item);
+                    }}
+                    className="rounded-full border border-blue-200 bg-blue-50/70 px-3 py-1 text-blue-700 transition hover:bg-blue-100"
+                  >
+                    기사 열기
+                  </button>
+                  <button
+                    onClick={() => handleShare(item)}
+                    className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white/70 px-2 py-1 text-gray-600 transition hover:bg-white"
+                  >
+                    <Share2 className="h-3 w-3" />
+                    공유
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
+    </div>
+  ) : null;
 
-      {showReadLater && (
-        <div className="fixed inset-0 z-[13000] flex items-center justify-center bg-black/30 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <div className="max-h-[80vh] w-full max-w-lg rounded-2xl border border-white/50 bg-white/90 p-5 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900">나중에 읽기 보관함</h3>
-              <button
-                onClick={() => setShowReadLater(false)}
-                className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
-              >
-                닫기
-              </button>
-            </div>
-
-            {readLaterList.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-200 bg-white/60 py-10 text-center text-sm text-gray-500">
-                저장된 기사가 없습니다.
-              </div>
-            ) : (
-              <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto pr-1">
-                {readLaterList.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-gray-200 bg-white/80 p-3 shadow-sm">
-                    <div className="mb-1 flex items-start justify-between gap-3">
-                      <h4 className="flex-1 text-sm font-semibold text-gray-900 line-clamp-2">{item.title}</h4>
-                      <button
-                        onClick={() => removeFromReadLater(item.id)}
-                        className="text-xs text-red-500 hover:text-red-600"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                    <div className="mb-2 flex items-center gap-2 text-[11px] text-gray-500">
-                      <span>{item.source}</span>
-                      <span>·</span>
-                      <span>{formatTime(item.ts)}</span>
-                    </div>
-                    {item.summary && (
-                      <p className="text-xs text-gray-600 line-clamp-3">{item.summary}</p>
-                    )}
-                    <div className="mt-2 flex items-center gap-2 text-[11px]">
-                      <button
-                        onClick={() => {
-                          window.open(item.link, '_blank');
-                          logClick(item);
-                        }}
-                        className="rounded-full border border-blue-200 bg-blue-50/70 px-3 py-1 text-blue-700 transition hover:bg-blue-100"
-                      >
-                        기사 열기
-                      </button>
-                      <button
-                        onClick={() => handleShare(item)}
-                        className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white/70 px-2 py-1 text-gray-600 transition hover:bg-white"
-                      >
-                        <Share2 className="h-3 w-3" />
-                        공유
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+  if (embedded) {
+    return (
+      <>
+        <div className="flex h-full flex-col gap-3 px-3 py-3">
+          <div className="flex justify-end">{headerControls}</div>
+          <MainContent />
         </div>
-      )}
-    </WidgetShell>
+        {readLaterModal}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <WidgetShell
+        icon={<Newspaper className="w-4 h-4 text-blue-600" />}
+        title={title}
+        size={size}
+        onRefresh={() => refreshFeeds({ source: 'manual' })}
+        onRemove={() => onRemove?.(id)}
+        onResize={(newSize) => onResize?.(id, newSize === 'xl' ? 'l' : newSize)}
+        onPin={() => onPin?.(id)}
+        isPinned={isPinned}
+        variant="inset"
+        contentClassName="h-full flex flex-col gap-3 px-3 py-3"
+        headerAction={headerControls}
+      >
+        <MainContent />
+      </WidgetShell>
+      {readLaterModal}
+    </>
   );
 }

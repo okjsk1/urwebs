@@ -6,9 +6,6 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Trash2,
-  Edit2,
-  Plus,
   Settings,
   Link as LinkIcon
 } from 'lucide-react';
@@ -49,7 +46,7 @@ const DEFAULT_STATE: ImageWidgetState = {
   items: [],
   mode: 'single',
   activeIndex: 0,
-  objectFit: 'contain',
+  objectFit: 'cover',
   rounded: 'xl',
   showCaption: false,
   showShadow: false,
@@ -81,8 +78,6 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percentage: 0 });
   const [isDropActive, setIsDropActive] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  
-  
   const fileInputRef = useRef(null);
   const urlInputRef = useRef(null);
   const slideshowTimerRef = useRef(null as any);
@@ -202,12 +197,21 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     let selectedFile: File | null = null;
 
     for (const file of list) {
-      if (!file.type || !file.type.startsWith('image/')) {
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const isKnownImageExt = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'avif', 'heic', 'heif'].includes(ext);
+
+      if (file.type && file.type.startsWith('image/')) {
+        // ok
+      } else if (isKnownImageExt) {
+        // 일부 환경에서는 file.type이 비어있음 -> 확장자로 허용
+        console.warn('[ImageWidget] MIME 타입이 비어있지만 확장자로 허용', file.name);
+      } else {
         console.warn('[ImageWidget] rejected non-image', file);
         showToast(`이미지 파일이 아닙니다 (${file.name})`, 'error');
         continue;
       }
-      if (/image\/heic|image\/heif/i.test(file.type)) {
+
+      if (file.type && /image\/heic|image\/heif/i.test(file.type)) {
         console.warn('[ImageWidget] non-previewable (HEIC/HEIF?)', file.type);
         showToast('HEIC/HEIF는 브라우저 미리보기가 어려워요. JPG/PNG/WebP로 변환해 주세요.', 'info');
         continue;
@@ -375,36 +379,6 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     trackEvent('image_widget_add_by_url');
   }, []);
 
-  // Alt+클릭용 빠른 URL 추가 (prompt)
-  const handleQuickAddByUrl = useCallback(() => {
-    const input = window.prompt('이미지 URL을 입력하세요 (https://...)');
-    const url = (input || '').trim();
-    if (!url) return;
-    if (!url.startsWith('https://')) {
-      showToast('https로 시작하는 올바른 URL을 입력하세요.', 'error');
-      return;
-    }
-    if (state.items.some(i => i.src === url)) {
-      showToast('이미 추가된 이미지 URL입니다.', 'info');
-      return;
-    }
-    const newItem: PhotoItem = { id: generateId(), src: url, caption: '', createdAt: Date.now() };
-    setState(prev => {
-      const prevItem = prev.items[0];
-      if (prevItem?.src.startsWith('blob:')) {
-        try { URL.revokeObjectURL(prevItem.src); } catch {}
-      }
-      return {
-        ...prev,
-        items: [newItem],
-        activeIndex: 0,
-        lastUpdated: Date.now()
-      };
-    });
-    showToast('사진이 업데이트되었습니다.', 'success');
-    trackEvent('image_widget_add_by_url_quick');
-  }, [state.items]);
-
   // 클립보드 붙여넣기
   useEffect(() => {
     if (!isEditMode) return;
@@ -509,8 +483,13 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
     strong: 'border-2 border-gray-300 dark:border-[var(--border)]'
   }[state.borderStyle];
 
-  const shadowClass = state.showShadow ? 'shadow-md' : '';
-  const objectFitClass = `object-${state.objectFit}`;
+const shadowClass = state.showShadow ? 'shadow-md' : '';
+const objectFitClass =
+  state.objectFit === 'fill'
+    ? 'object-fill'
+    : state.objectFit === 'contain'
+    ? 'object-contain'
+    : 'object-cover';
 
   if (!currentItem && state.items.length === 0) {
     // 빈 상태
@@ -554,17 +533,8 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
       onChange={(e) => {
         const list = e.currentTarget.files;
         if (!list || list.length === 0) return;
-        const files = Array.from(list);
-        const action = fileActionRef.current || 'add';
-        if (action === 'replace' && state.items.length > 0) {
-          // 교체: 첫 번째 유효 이미지 1장만 사용
-          (async () => {
-            const picked = files[0];
-            await handleReplaceFile(picked);
-          })();
-        } else {
-          handleFileUpload(files as any);
-        }
+        const picked = list[0];
+        handleFileUpload([picked] as any);
         e.currentTarget.value = '';
       }}
               className="hidden"
@@ -631,7 +601,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
         onChange={(e) => {
           const list = e.currentTarget.files;
           if (!list || list.length === 0) return;
-          handleFileUpload(list);
+          handleFileUpload([list[0]] as any);
           e.currentTarget.value = '';
         }}
         className="hidden"
@@ -645,29 +615,25 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
           minHeight: 0 
         }}
       >
-        {/* 전역 교체 버튼 - 편집모드 전용 */}
-        {isEditMode && (
+        {currentItem && (
           <button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (e.altKey) {
-                handleQuickAddByUrl();
-              } else {
-                fileInputRef.current?.click();
-              }
+              handleDelete(currentItem.id);
+              setShowSettings(false);
             }}
-            title="사진 교체 (일반 클릭: 파일, Alt+클릭: URL)"
-            aria-label="사진 교체"
-            className="absolute top-2 right-2 z-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-1.5 shadow focus:outline-none focus:ring-2 focus:ring-white/70"
+            title="사진 제거"
+            aria-label="사진 제거"
+            className="absolute top-2 right-2 z-20 bg-white/80 hover:bg-white text-gray-600 rounded-full p-1.5 shadow focus:outline-none focus:ring-2 focus:ring-red-200"
           >
-            <Edit2 className="w-4 h-4" />
+            <X className="w-4 h-4" />
           </button>
         )}
 
         {/* 드롭 가이드 오버레이 */}
         {isEditMode && isDropActive && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-100/60 dark:bg-blue-900/30 border-2 border-dashed border-blue-400 rounded-xl">
+          <div className={`absolute inset-0 z-10 flex items-center justify-center bg-blue-100/60 dark:bg-blue-900/30 border-2 border-dashed border-blue-400 ${roundedClass}`}>
             <div className="text-blue-700 dark:text-blue-200 text-sm font-medium">여기로 이미지를 드롭해서 업로드</div>
           </div>
         )}
@@ -690,11 +656,11 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
           </div>
         )}
 
-        <div className="w-full h-full flex items-center justify-center">
+        <div className={`absolute inset-0 ${roundedClass} ${borderClass} ${shadowClass} overflow-hidden`}>
           <img
             src={currentItem.src}
             alt={currentItem.caption || '사진'}
-            className={`max-w-full max-h-full object-contain object-center ${roundedClass} ${borderClass} ${shadowClass} transition-all duration-300 ${!state.muteGestures ? 'cursor-pointer' : ''}`}
+            className={`absolute inset-0 w-full h-full ${objectFitClass} object-center block transition-transform duration-300 ${!state.muteGestures ? 'cursor-pointer' : ''}`}
             loading="lazy"
             onError={(e) => {
               console.error('이미지 로드 실패:', currentItem.src);
@@ -714,7 +680,7 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
 
         {/* 캡션 (하단) */}
         {state.showCaption && currentItem.caption && (
-          <div className={`absolute bottom-0 left-0 right-0 bg-black/60 text-white ${isCompact ? 'text-[10px] px-1.5 py-1' : 'text-xs px-3 py-2'} rounded-b-xl`}>
+          <div className={`absolute bottom-0 left-0 right-0 bg-black/60 text-white ${isCompact ? 'text-[10px] px-1.5 py-1' : 'text-xs px-3 py-2'}`}>
             <p className="truncate">{currentItem.caption}</p>
           </div>
         )}
@@ -736,30 +702,6 @@ export const ImageWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =
             <span className="text-gray-500 dark:text-[var(--muted-foreground)]">
               {state.items.length}장
             </span>
-            {state.items.length > 0 && (
-              <div className="ml-auto flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    fileActionRef.current = 'add';
-                    fileInputRef.current?.click();
-                  }}
-                  className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                >
-                  <Plus className="w-3 h-3 inline mr-1" />
-                  추가
-                </button>
-                <button
-                  onClick={() => {
-                    fileActionRef.current = 'replace';
-                    fileInputRef.current?.click();
-                  }}
-                  className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-900 transition-colors"
-                  title="현재 사진 교체"
-                >
-                  교체
-                </button>
-              </div>
-            )}
           </div>
 
           {/* 설정 패널 (축소: 모드/자동재생만 유지) */}

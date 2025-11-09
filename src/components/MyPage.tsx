@@ -3146,18 +3146,6 @@ export function MyPage() {
             
             {isEditMode && (
               <div className="flex items-center gap-1 opacity-100 transition-opacity">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0 hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    editWidget(originalWidget.id);
-                  }}
-                  title="위젯 설정"
-                >
-                  <Settings className="w-3.5 h-3.5 text-gray-500" />
-                </Button>
                 {/* 사이즈 선택기 - 특정 위젯들은 제한된 크기만 허용 */}
                 <SizePicker
                   value={originalWidget.gridSize || { w: 1, h: 1 }}
@@ -3609,10 +3597,10 @@ export function MyPage() {
 
       case 'countdown':
         return (
-          <div className="p-4 text-center">
-            <div className="bg-red-100 rounded-lg p-4">
-              <div className="text-2xl font-bold text-red-600 mb-1">D-7</div>
-              <p className="text-xs text-red-600">{widget.content.message}</p>
+          <div className="p-2 text-center">
+            <div className="bg-red-100 rounded-lg p-3">
+              <div className="text-xl font-bold text-red-600 mb-1">D-7</div>
+              <p className="text-[11px] text-red-600">{widget.content.message}</p>
             </div>
           </div>
         );

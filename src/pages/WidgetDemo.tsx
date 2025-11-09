@@ -91,7 +91,7 @@ export function WidgetDemo() {
           </div>
         </div>
 
-        <WidgetGrid columns={3} gap={6}>
+        <WidgetGrid columns={3} gap={24}>
           {widgets.map(widget => (
             <WidgetWrapper
               key={widget.id}

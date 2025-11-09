@@ -205,6 +205,50 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
+  const layoutVariant = useMemo(() => {
+    const { gridSize } = widget;
+    const w = gridSize?.w ?? 1;
+    const h = gridSize?.h ?? 1;
+    if (w === 1 && h <= 3) {
+      return 'compact';
+    }
+    return 'default';
+  }, [widget]);
+
+  const typography = useMemo(
+    () =>
+      layoutVariant === 'compact'
+        ? {
+            rootPadding: 'p-1.5',
+            cardPadding: 'px-2.5 py-1.5',
+            flag: 'text-sm',
+            code: 'text-xs',
+            rate: 'text-sm',
+            currency: 'text-[10px]',
+            change: 'text-[11px]',
+            watchButton: 'text-[11px] px-2 py-0.5',
+            deleteButton: 'text-[11px]',
+            actionGap: 'gap-2',
+            listGap: 'space-y-1.5',
+            addButtonHeight: 'h-6 text-[11px]'
+          }
+        : {
+            rootPadding: 'p-2',
+            cardPadding: 'px-3 py-2',
+            flag: 'text-base',
+            code: 'text-sm',
+            rate: 'text-base',
+            currency: 'text-xs',
+            change: 'text-xs',
+            watchButton: 'text-xs px-2 py-1',
+            deleteButton: 'text-xs',
+            actionGap: 'gap-3',
+            listGap: 'space-y-2',
+            addButtonHeight: 'h-7 text-xs'
+          },
+    [layoutVariant]
+  );
+
   const filteredAndSortedRates = useMemo(() => {
     return [...state.rates];
   }, [state.rates]);
@@ -255,10 +299,9 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
   const availableCurrencies: string[] = ['USD', 'EUR', 'JPY', 'GBP', 'CNY', 'AUD', 'CAD', 'CHF', 'SGD'];
 
   return (
-    <div className="p-2 h-full flex flex-col">
-
+    <div className={`${typography.rootPadding} h-full flex flex-col`}>
       {/* 환율 목록 - 미니멀 리스트 (국기 · 통화코드 · 굵은 가격 · 등락) */}
-      <div className="flex-1 overflow-y-auto space-y-1">
+      <div className={`flex-1 overflow-y-auto ${typography.listGap}`}>
         {filteredAndSortedRates.slice(0, 5).map(rate => {
           const isUp = (rate.changePercent || 0) >= 0;
           const code = rate.fromCurrency;
@@ -270,33 +313,37 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
               onDragStart={(e) => startDrag(e, rate.id)}
               onDragOver={(e) => overDrag(e, rate.id)}
               onDrop={(e) => dropDrag(e, rate.id)}
-              className={`bg-white dark:bg-gray-800/80 rounded-xl px-3 py-2 border border-gray-200 dark:border-gray-700 ${dragOverId === rate.id ? 'ring-2 ring-blue-400' : ''}`}
+              className={`bg-white dark:bg-gray-800/80 rounded-xl ${typography.cardPadding} border border-gray-200 dark:border-gray-700 ${dragOverId === rate.id ? 'ring-2 ring-blue-400' : ''}`}
             >
-              <div className="flex items-center justify-between">
+              <div className={`flex items-center justify-between ${typography.actionGap}`}>
                 <div className="flex items-center gap-2">
-                  <span className="text-base leading-none">{flag}</span>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{code}</span>
+                  <span className={`${typography.flag} leading-none`}>{flag}</span>
+                  <span className={`${typography.code} font-semibold text-gray-900 dark:text-gray-100`}>{code}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-gray-100">
-                    {formatFxRate(rate.rate, rate.fromCurrency, rate.toCurrency)}<span className="text-sm font-semibold ml-0.5">원</span>
+                <div className="flex items-center gap-2.5">
+                  <div className={`${typography.rate} font-extrabold tracking-tight text-gray-900 dark:text-gray-100`}>
+                    {formatFxRate(rate.rate, rate.fromCurrency, rate.toCurrency)}
+                    <span className={`${typography.currency} font-semibold ml-0.5`}>원</span>
                   </div>
-                  <div className={`flex items-center gap-1 text-sm font-semibold ${isUp ? 'text-red-600' : 'text-blue-600'}`}>
-                    <span className={`inline-block w-0 h-0 border-l-4 border-r-4 ${isUp ? 'border-t-0 border-b-6 border-b-red-600' : 'border-b-0 border-t-6 border-t-blue-600'}`} style={{ borderLeftColor: 'transparent', borderRightColor: 'transparent' }} />
+                  <div className={`flex items-center gap-1 ${typography.change} font-semibold ${isUp ? 'text-red-600' : 'text-blue-600'}`}>
+                    <span
+                      className={`inline-block w-0 h-0 border-l-4 border-r-4 ${isUp ? 'border-t-0 border-b-6 border-b-red-600' : 'border-b-0 border-t-6 border-t-blue-600'}`}
+                      style={{ borderLeftColor: 'transparent', borderRightColor: 'transparent' }}
+                    />
                     <span>{Math.abs(rate.changePercent || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
               
               {isEditMode && (
-                <div className="flex justify-between items-center mt-1">
+                <div className="mt-1 flex items-center justify-between">
                   <div className="flex gap-1">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleWatch(rate.id);
                       }}
-                      className={`text-xs px-2 py-1 rounded ${
+                      className={`${typography.watchButton} rounded ${
                         rate.isWatched 
                           ? 'bg-blue-100 text-blue-700' 
                           : 'bg-gray-100 text-gray-600 hover:bg-blue-50'
@@ -310,7 +357,7 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
                       e.stopPropagation();
                       deleteExchangeRate(rate.id);
                     }}
-                    className="text-red-500 hover:text-red-700 text-xs"
+                    className={`text-red-500 hover:text-red-700 ${typography.deleteButton}`}
                   >
                     삭제
                   </button>
@@ -328,7 +375,7 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
             <Button
               size="sm"
               variant="outline"
-              className="w-full h-5 text-xs"
+              className={`w-full ${typography.addButtonHeight}`}
               onClick={() => setState(prev => ({ ...prev, showAddForm: true }))}
             >
               <Plus className="w-3 h-3 mr-1" />

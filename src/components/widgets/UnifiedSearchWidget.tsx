@@ -1,6 +1,14 @@
 // 통합검색 위젯 V2 - 탭형 검색박스, 키보드 단축키, 자동완성, 엔진 재정렬
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronDown, Search as SearchIcon, X, Pin, PinOff, ArrowUpDown, Settings } from 'lucide-react';
+import {
+  Search as SearchIcon,
+  X,
+  Pin,
+  Settings,
+  Plus,
+  PenSquare,
+  Trash2
+} from 'lucide-react';
 import { WidgetProps as HelperWidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
 import { WidgetShell, WidgetProps as ShellWidgetProps } from './WidgetShell';
 
@@ -8,24 +16,35 @@ import { WidgetShell, WidgetProps as ShellWidgetProps } from './WidgetShell';
 export interface SearchEngine {
   id: string;
   name: string;
-  url: string;
-  icon: string;
-  color: string;
-  buildUrl?: (q: string) => string; // 커스텀 URL 빌더
+  url?: string;
+  icon?: string;
+  color?: string;
+  iconUrl?: string;
+  type?: 'plain' | 'builder';
+  buildUrlTemplate?: string;
+  buildUrl?: (q: string, engine: SearchEngine) => string;
+  placeholder?: string;
+  meta?: Record<string, any>;
+  _userDefined?: boolean;
 }
 
-const SEARCH_ENGINES: SearchEngine[] = [
-  { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=', icon: 'G', color: '#4285F4' },
-  { id: 'naver', name: 'Naver', url: 'https://search.naver.com/search.naver?query=', icon: 'N', color: '#03C75A' },
-  { id: 'daum', name: 'Daum', url: 'https://search.daum.net/search?q=', icon: 'D', color: '#FF5722' },
-  { 
-    id: 'law', 
-    name: '법제처', 
-    url: 'https://www.law.go.kr/LSW/totalSearch.do?query=',
-    icon: '법', 
-    color: '#4A90E2'
-  }
+type EngineDictionary = Record<string, Omit<SearchEngine, 'buildUrl'>>;
+
+const BUILTIN_ENGINES: Omit<SearchEngine, 'buildUrl'>[] = [
+  { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=', icon: 'G', color: '#4285F4', placeholder: 'Google 검색' },
+  { id: 'naver', name: 'Naver', url: 'https://search.naver.com/search.naver?query=', icon: 'N', color: '#03C75A', placeholder: '네이버 검색' },
+  { id: 'daum', name: 'Daum', url: 'https://search.daum.net/search?q=', icon: 'D', color: '#FF5722', placeholder: '다음 검색' },
+  { id: 'youtube', name: 'YouTube', url: 'https://www.youtube.com/results?search_query=', icon: 'YT', color: '#FF0000', placeholder: 'YouTube 검색' }
 ];
+
+function createEngineDictionary(engines: Omit<SearchEngine, 'buildUrl'>[]): EngineDictionary {
+  return engines.reduce((acc, engine) => {
+    acc[engine.id] = { ...engine };
+    return acc;
+  }, {} as EngineDictionary);
+}
+
+const BUILTIN_ENGINE_MAP = createEngineDictionary(BUILTIN_ENGINES);
 
 // 상태 인터페이스 V2
 interface UnifiedSearchStateV2 {
@@ -42,7 +61,7 @@ const DEFAULT_STATE_V2: UnifiedSearchStateV2 = {
   selectedEngine: 'google',
   searchQuery: '',
   recent: {},
-  order: SEARCH_ENGINES.map(e => e.id),
+  order: Object.keys(BUILTIN_ENGINE_MAP),
   pinned: [],
   openInNewTab: true,
   searchCounts: {}
@@ -62,6 +81,119 @@ function migrateToV2(saved: any): UnifiedSearchStateV2 {
     };
   }
   return DEFAULT_STATE_V2;
+}
+
+interface UnifiedSearchStateV3 extends Omit<UnifiedSearchStateV2, 'order'> {
+  engines: EngineDictionary;
+  customOrder: string[];
+}
+
+const DEFAULT_STATE_V3: UnifiedSearchStateV3 = {
+  selectedEngine: 'google',
+  searchQuery: '',
+  recent: {},
+  pinned: [],
+  openInNewTab: true,
+  searchCounts: {},
+  engines: createEngineDictionary(BUILTIN_ENGINES),
+  customOrder: Object.keys(BUILTIN_ENGINE_MAP)
+};
+
+const DEFAULT_ENGINE_COLOR = '#2563eb';
+
+function hexToRgba(hex: string, alpha: number): string {
+  const normalized = hex.replace('#', '');
+  const bigint = parseInt(normalized.length === 3
+    ? normalized.split('').map((char) => char + char).join('')
+    : normalized, 16);
+  // eslint-disable-next-line no-bitwise
+  const r = (bigint >> 16) & 255;
+  // eslint-disable-next-line no-bitwise
+  const g = (bigint >> 8) & 255;
+  // eslint-disable-next-line no-bitwise
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function isValidHttpUrl(url: string) {
+  return /^https?:\/\//i.test(url.trim());
+}
+
+function resolveEngine(engine: Omit<SearchEngine, 'buildUrl'>): SearchEngine {
+  const color = engine.color || DEFAULT_ENGINE_COLOR;
+  const base: SearchEngine = {
+    ...engine,
+    color
+  };
+
+  if (base.type === 'builder') {
+    if (base.id === 'opgg') {
+      base.buildUrl = (q: string) => {
+        const mode = base.meta?.mode === 'champion' ? 'champion' : 'summoner';
+        if (mode === 'champion') {
+          return `https://www.op.gg/champions?query=${encodeURIComponent(q)}`;
+        }
+        return `https://www.op.gg/summoners/kr/${encodeURIComponent(q)}`;
+      };
+    } else if (base.buildUrlTemplate) {
+      base.buildUrl = (q: string) => base.buildUrlTemplate!.replace('{q}', encodeURIComponent(q));
+    }
+  }
+
+  if (!base.icon && base.name) {
+    base.icon = base.name.slice(0, 2);
+  }
+
+  return base;
+}
+
+function migrateToV3(saved: any): UnifiedSearchStateV3 {
+  const legacy = migrateToV2(saved);
+  const persistedEngines = saved?.engines && typeof saved.engines === 'object' ? saved.engines as EngineDictionary : undefined;
+  const mergedEngines: EngineDictionary = createEngineDictionary(BUILTIN_ENGINES);
+
+  if (persistedEngines) {
+    Object.entries(persistedEngines).forEach(([id, engine]) => {
+      if (!engine || typeof engine !== 'object') return;
+      const isUserDefined = Boolean((engine as SearchEngine)._userDefined);
+      const isBuiltin = Boolean(BUILTIN_ENGINE_MAP[id]);
+      if (isUserDefined || !isBuiltin) {
+        mergedEngines[id] = { ...engine };
+      }
+    });
+  }
+
+  const existingIds = Object.keys(mergedEngines);
+  const orderSource: string[] = Array.isArray(saved?.customOrder)
+    ? saved.customOrder
+    : Array.isArray(legacy.order)
+      ? legacy.order
+      : DEFAULT_STATE_V3.customOrder;
+
+  const sanitizedOrder = [
+    ...new Set(orderSource.filter((id) => existingIds.includes(id)))
+  ];
+
+  const filledOrder = sanitizedOrder.length > 0 ? [...sanitizedOrder] : [];
+  existingIds.forEach((id) => {
+    if (!filledOrder.includes(id)) {
+      filledOrder.push(id);
+    }
+  });
+
+  const pinned = (legacy.pinned || []).filter((id) => existingIds.includes(id));
+  const selectedEngine = existingIds.includes(legacy.selectedEngine) ? legacy.selectedEngine : (filledOrder[0] || existingIds[0] || 'google');
+
+  return {
+    selectedEngine,
+    searchQuery: legacy.searchQuery,
+    recent: legacy.recent,
+    pinned,
+    openInNewTab: legacy.openInNewTab,
+    searchCounts: legacy.searchCounts,
+    engines: mergedEngines,
+    customOrder: filledOrder
+  };
 }
 
 // 서제스트 훅 - 로컬 기반, 외부 API 확장 가능
@@ -133,7 +265,7 @@ interface UnifiedSearchWidgetProps extends HelperWidgetProps {
 
 export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = 'm' }: UnifiedSearchWidgetProps) => {
   const savedData = readLocal(widget.id, null);
-  const [state, setState] = useState<UnifiedSearchStateV2>(() => migrateToV2(savedData));
+  const [state, setState] = useState<UnifiedSearchStateV3>(() => migrateToV3(savedData));
   
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -141,24 +273,62 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [inputError, setInputError] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1); // 방향키로 선택된 항목 인덱스
+  const [engineModal, setEngineModal] = useState<{ mode: 'create' | 'edit'; engineId?: string } | null>(null);
+  const [engineForm, setEngineForm] = useState<Partial<Omit<SearchEngine, 'buildUrl'>>>({
+    id: '',
+    name: '',
+    type: 'plain',
+    url: 'https://',
+    color: DEFAULT_ENGINE_COLOR,
+    _userDefined: true
+  });
+  const [engineFormErrors, setEngineFormErrors] = useState<Record<string, string>>({});
   
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const suggestionItemsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // 엔진 순서 정규화
-  const orderedEngines = useMemo(() => {
-    const pinnedEngines = state.pinned.map(id => SEARCH_ENGINES.find(e => e.id === id)).filter(Boolean) as SearchEngine[];
-    const unpinnedIds = state.order.filter(id => !state.pinned.includes(id));
-    const unpinnedEngines = unpinnedIds.map(id => SEARCH_ENGINES.find(e => e.id === id)).filter(Boolean) as SearchEngine[];
-    return [...pinnedEngines, ...unpinnedEngines];
-  }, [state.order, state.pinned]);
+  const resolvedEnginesMap = useMemo(() => {
+    const engines: Record<string, SearchEngine> = {};
+    Object.entries(state.engines || {}).forEach(([id, engine]) => {
+      engines[id] = resolveEngine(engine);
+    });
+    return engines;
+  }, [state.engines]);
 
-  const selectedEngineData = useMemo(() => 
-    SEARCH_ENGINES.find(e => e.id === state.selectedEngine) || SEARCH_ENGINES[0],
-    [state.selectedEngine]
-  );
+  const availableEngineIds = useMemo(() => Object.keys(resolvedEnginesMap), [resolvedEnginesMap]);
+
+  const orderedEngines = useMemo(() => {
+    const pinnedIds = state.pinned.filter((id) => resolvedEnginesMap[id]);
+    const baseOrder = (state.customOrder || []).filter((id) => resolvedEnginesMap[id]);
+    const remaining = baseOrder.filter((id) => !pinnedIds.includes(id));
+
+    availableEngineIds.forEach((id) => {
+      if (!pinnedIds.includes(id) && !remaining.includes(id)) {
+        remaining.push(id);
+      }
+    });
+
+    const orderedIds = [...pinnedIds, ...remaining];
+    return orderedIds.map((id) => resolvedEnginesMap[id]).filter(Boolean);
+  }, [availableEngineIds, resolvedEnginesMap, state.customOrder, state.pinned]);
+
+  const selectedEngineData = useMemo(() => {
+    const current = resolvedEnginesMap[state.selectedEngine];
+    if (current) return current;
+    return orderedEngines[0] || resolveEngine(BUILTIN_ENGINE_MAP['google']);
+  }, [resolvedEnginesMap, state.selectedEngine, orderedEngines]);
+
+  useEffect(() => {
+    if (!resolvedEnginesMap[state.selectedEngine] && orderedEngines.length > 0) {
+      const fallback = orderedEngines[0].id;
+      setState((prev) => {
+        if (prev.selectedEngine === fallback) return prev;
+        return { ...prev, selectedEngine: fallback };
+      });
+    }
+  }, [orderedEngines, resolvedEnginesMap, state.selectedEngine]);
 
   const recentQueries = useMemo(() => 
     state.recent[state.selectedEngine] || [],
@@ -198,11 +368,243 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
 
   // URL 빌드
   const buildSearchUrl = useCallback((engine: SearchEngine, query: string): string => {
-    if (engine.buildUrl) {
-      return engine.buildUrl(query);
+    if (engine.type === 'builder') {
+      if (engine.buildUrl) {
+        return engine.buildUrl(query, engine);
+      }
+      if (engine.buildUrlTemplate) {
+        return engine.buildUrlTemplate.replace('{q}', encodeURIComponent(query));
+      }
     }
-    return engine.url + encodeURIComponent(query);
+
+    if (engine.buildUrl) {
+      return engine.buildUrl(query, engine);
+    }
+
+    if (engine.url) {
+      return `${engine.url}${encodeURIComponent(query)}`;
+    }
+
+    if (engine.buildUrlTemplate) {
+      return engine.buildUrlTemplate.replace('{q}', encodeURIComponent(query));
+    }
+
+    // fallback to Google search in case of invalid configuration
+    return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
   }, []);
+
+  const closeEngineModal = useCallback(() => {
+    setEngineModal(null);
+    setEngineFormErrors({});
+  }, []);
+
+  const openCreateEngine = useCallback(() => {
+    setEngineModal({ mode: 'create' });
+    setEngineForm({
+      id: '',
+      name: '',
+      type: 'plain',
+      url: 'https://',
+      icon: '',
+      color: DEFAULT_ENGINE_COLOR,
+      iconUrl: '',
+      placeholder: '',
+      buildUrlTemplate: 'https://example.com/search?q={q}',
+      _userDefined: true
+    });
+    setEngineFormErrors({});
+  }, []);
+
+  const openEditEngine = useCallback((engineId: string) => {
+    const engine = state.engines[engineId];
+    if (!engine) return;
+    setEngineModal({ mode: 'edit', engineId });
+    setEngineForm({
+      ...engine,
+      meta: engine.meta ? { ...engine.meta } : undefined
+    });
+    setEngineFormErrors({});
+  }, [state.engines]);
+
+  const handleEngineFormChange = useCallback((key: keyof Omit<SearchEngine, 'buildUrl'>, value: any) => {
+    setEngineForm(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    setEngineFormErrors(prev => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key as string];
+      return next;
+    });
+  }, []);
+
+  const handleEngineMetaChange = useCallback((key: string, value: any) => {
+    setEngineForm(prev => ({
+      ...prev,
+      meta: {
+        ...(prev.meta || {}),
+        [key]: value
+      }
+    }));
+  }, []);
+
+  const handleEngineSave = useCallback(() => {
+    if (!engineModal) return;
+    setEngineFormErrors({});
+    const errors: Record<string, string> = {};
+    const name = engineForm.name?.trim() || '';
+    const id = (engineModal.mode === 'create' ? engineForm.id : engineModal.engineId) ?? engineForm.id ?? '';
+    const trimmedId = (id || '').trim();
+    const type = engineForm.type || 'plain';
+
+    if (!name) {
+      errors.name = '이름을 입력하세요.';
+    }
+
+    if (engineModal.mode === 'create') {
+      if (!trimmedId) {
+        errors.id = 'ID를 입력하세요.';
+      } else if (!/^[a-z0-9_-]+$/.test(trimmedId)) {
+        errors.id = 'ID는 소문자, 숫자, -, _만 사용할 수 있습니다.';
+      } else if (state.engines[trimmedId]) {
+        errors.id = '이미 존재하는 ID입니다.';
+      }
+    }
+
+    if (engineModal.mode === 'edit' && !trimmedId) {
+      errors.id = 'ID를 확인할 수 없습니다.';
+    }
+
+    if (type === 'plain') {
+      const url = engineForm.url?.trim() || '';
+      if (!url) {
+        errors.url = '검색 URL을 입력하세요.';
+      } else if (!isValidHttpUrl(url)) {
+        errors.url = 'https://로 시작하는 URL을 입력하세요.';
+      }
+    } else if (type === 'builder') {
+      const template = engineForm.buildUrlTemplate?.trim() || '';
+      if (!template) {
+        errors.buildUrlTemplate = 'URL 템플릿을 입력하세요.';
+      } else if (!template.includes('{q}')) {
+        errors.buildUrlTemplate = '{q} 토큰을 포함해야 합니다.';
+      } else if (!isValidHttpUrl(template.replace('{q}', 'test'))) {
+        errors.buildUrlTemplate = 'https://로 시작하는 URL 템플릿을 입력하세요.';
+      }
+    }
+
+    if (engineForm.iconUrl && !isValidHttpUrl(engineForm.iconUrl)) {
+      errors.iconUrl = '아이콘 URL은 https://로 시작해야 합니다.';
+    }
+
+    if (engineForm.color && !/^#([0-9a-f]{3}){1,2}$/i.test(engineForm.color.trim())) {
+      errors.color = '컬러는 HEX 형식이어야 합니다.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setEngineFormErrors(errors);
+      return;
+    }
+
+    const finalId = engineModal.mode === 'create' ? trimmedId : (engineModal.engineId || trimmedId);
+    const engineToSave: Omit<SearchEngine, 'buildUrl'> = {
+      id: finalId,
+      name,
+      type,
+      color: (engineForm.color?.trim() || DEFAULT_ENGINE_COLOR),
+      icon: engineForm.icon?.trim() || name.slice(0, 2),
+      iconUrl: engineForm.iconUrl?.trim() || undefined,
+      placeholder: engineForm.placeholder?.trim() || undefined,
+      meta: engineForm.meta ? { ...engineForm.meta } : undefined,
+      _userDefined: engineForm._userDefined ?? engineModal.mode === 'create'
+    };
+
+    if (type === 'plain') {
+      engineToSave.url = engineForm.url?.trim();
+      engineToSave.buildUrlTemplate = undefined;
+    } else {
+      engineToSave.buildUrlTemplate = engineForm.buildUrlTemplate?.trim();
+      engineToSave.url = undefined;
+    }
+
+    setState(prev => {
+      const nextEngines = { ...prev.engines, [finalId]: engineToSave };
+      const baseOrder = prev.customOrder || [];
+      let nextOrder = baseOrder.filter(idItem => idItem !== finalId);
+
+      if (engineModal.mode === 'edit') {
+        const originalIndex = baseOrder.indexOf(finalId);
+        if (originalIndex >= 0) {
+          nextOrder.splice(originalIndex, 0, finalId);
+        } else {
+          nextOrder.push(finalId);
+        }
+      } else {
+        nextOrder.push(finalId);
+      }
+
+      const prevPinned = prev.pinned.includes(finalId) ? prev.pinned : prev.pinned;
+
+      const nextPinned = prevPinned.filter(idItem => nextEngines[idItem]).slice(0, 5);
+
+      const nextSelectedEngine = prev.selectedEngine || finalId;
+
+      return {
+        ...prev,
+        engines: nextEngines,
+        customOrder: nextOrder,
+        pinned: nextPinned,
+        selectedEngine: nextEngines[nextSelectedEngine] ? nextSelectedEngine : finalId
+      };
+    });
+
+    showToast(engineModal.mode === 'create' ? '검색 엔진이 추가되었습니다.' : '검색 엔진이 업데이트되었습니다.', 'success');
+    closeEngineModal();
+  }, [engineModal, engineForm, closeEngineModal, state.engines]);
+
+  const handleDeleteEngine = useCallback((engineId: string) => {
+    if (!resolvedEnginesMap[engineId]) return;
+    if (Object.keys(state.engines).length <= 1) {
+      showToast('최소 1개 이상의 검색 엔진이 필요합니다.', 'error');
+      return;
+    }
+    if (!window.confirm('해당 검색 엔진을 삭제할까요? 최근 기록과 핀 정보가 함께 삭제됩니다.')) {
+      return;
+    }
+
+    setState(prev => {
+      const { [engineId]: _, ...restEngines } = prev.engines;
+      const nextOrder = prev.customOrder.filter(id => id !== engineId);
+      const nextPinned = prev.pinned.filter(id => id !== engineId);
+      const nextRecent = { ...prev.recent };
+      delete nextRecent[engineId];
+
+      const nextCounts = { ...(prev.searchCounts || {}) };
+      Object.keys(nextCounts).forEach(key => {
+        if (key.startsWith(`${engineId}::`)) {
+          delete nextCounts[key];
+        }
+      });
+
+      let nextSelectedEngine = prev.selectedEngine;
+      if (nextSelectedEngine === engineId) {
+        nextSelectedEngine = nextOrder[0] || Object.keys(restEngines)[0] || 'google';
+      }
+
+      return {
+        ...prev,
+        engines: restEngines,
+        customOrder: nextOrder,
+        pinned: nextPinned,
+        recent: nextRecent,
+        searchCounts: nextCounts,
+        selectedEngine: nextSelectedEngine
+      };
+    });
+
+    showToast('검색 엔진이 삭제되었습니다.', 'success');
+  }, [resolvedEnginesMap, state.engines]);
 
   // 검색 실행
   const handleSearch = useCallback((e?: React.FormEvent, inNewTab?: boolean) => {
@@ -258,6 +660,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
   // 엔진 핀 토글
   const togglePin = useCallback((engineId: string) => {
     setState(prev => {
+      if (!prev.engines[engineId]) return prev;
       const isPinned = prev.pinned.includes(engineId);
       const newPinned = isPinned
         ? prev.pinned.filter(id => id !== engineId)
@@ -270,17 +673,25 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
 
   // 엔진 순서 변경
   const moveEngine = useCallback((engineId: string, targetIndex: number) => {
+    const orderedIds = orderedEngines.map(engine => engine.id);
+    if (!orderedIds.includes(engineId)) return;
+
+    const filtered = orderedIds.filter(id => id !== engineId);
+    const safeIndex = Math.max(0, Math.min(targetIndex, filtered.length));
+    filtered.splice(safeIndex, 0, engineId);
+
     setState(prev => {
-      const currentIndex = prev.order.indexOf(engineId);
-      if (currentIndex === -1) return prev;
-      
-      const newOrder = [...prev.order];
-      newOrder.splice(currentIndex, 1);
-      newOrder.splice(targetIndex, 0, engineId);
-      
-      return { ...prev, order: newOrder };
+      const pinnedSet = new Set(prev.pinned);
+      const nextPinned = filtered.filter(id => pinnedSet.has(id));
+      const nextNonPinned = filtered.filter(id => !pinnedSet.has(id));
+      return {
+        ...prev,
+        pinned: nextPinned,
+        customOrder: [...nextPinned, ...nextNonPinned]
+      };
     });
-  }, []);
+  }, [orderedEngines]);
+      
 
   // 최근 검색어 삭제
   const removeRecentQuery = useCallback((query: string, e: React.MouseEvent) => {
@@ -396,9 +807,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
   const handleDragOver = useCallback((index: number) => (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    if (!isDragging.current) {
-      setDragOverIndex(index);
-    }
+    setDragOverIndex(index);
   }, []);
 
   const handleDragEnd = useCallback(() => {
@@ -424,13 +833,14 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
   const isCompact = size === 's';
 
   return (
-    <WidgetShell
-      variant="bare"
-      icon={<SearchIcon className="w-4 h-4 text-gray-600" aria-hidden="true" />}
-      title={widget.title || '통합검색'}
-      size={size}
-      contentClassName="w-full h-full flex flex-col min-h-0 p-0"
-    >
+    <>
+      <WidgetShell
+        variant="bare"
+        icon={<SearchIcon className="w-4 h-4 text-gray-600" aria-hidden="true" />}
+        title={widget.title || '통합검색'}
+        size={size}
+        contentClassName="w-full h-full flex flex-col min-h-0 p-0"
+      >
       <div className={`${isCompact ? 'p-2' : 'p-2.5'} h-full flex flex-col min-h-0`}>
       {/* 탭 영역 */}
       <div className="mb-2">
@@ -441,44 +851,69 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
         >
           {/* 수평 스크롤 제거: flex-wrap으로 행 바꿈 */}
           
-          {orderedEngines.map((engine, index) => (
-            <button
-              key={engine.id}
-              role="tab"
-              aria-selected={state.selectedEngine === engine.id}
-              aria-controls={`search-input-${engine.id}`}
-              draggable
-              onDragStart={handleDragStart(engine.id)}
-              onDragOver={handleDragOver(index)}
-              onDragEnd={handleDragEnd}
-              onDrop={handleDrop(index)}
-              onClick={() => selectEngine(engine.id)}
-              className={`
-                flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap
-                transition-all cursor-pointer relative border
-                ${state.selectedEngine === engine.id
-                  ? 'text-gray-900 dark:text-gray-100 border-blue-500 bg-blue-50 dark:bg-gray-700'
-                  : 'text-gray-700 dark:text-gray-300 border-gray-300 hover:border-gray-400'
-                }
-                ${draggedEngine === engine.id ? 'opacity-60' : ''}
-              `}
-              style={{
-                // 강조는 상자 테두리로 처리
-              }}
-            >
-              <span className="truncate">{engine.name}</span>
-              {state.pinned.includes(engine.id) && (
-                <Pin className="w-3 h-3 text-gray-400" />
-              )}
-            </button>
-          ))}
+          {orderedEngines.map((engine, index) => {
+            const isActive = state.selectedEngine === engine.id;
+            const color = engine.color || DEFAULT_ENGINE_COLOR;
+            const activeBg = hexToRgba(color, 0.14);
+            const inactiveBorder = hexToRgba(color, 0.35);
+            const isDragTarget = dragOverIndex === index && draggedEngine && draggedEngine !== engine.id;
+
+            return (
+              <button
+                key={engine.id}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`search-input-${engine.id}`}
+                draggable={orderedEngines.length > 1}
+                onDragStart={handleDragStart(engine.id)}
+                onDragOver={handleDragOver(index)}
+                onDragEnd={handleDragEnd}
+                onDrop={handleDrop(index)}
+                onClick={() => selectEngine(engine.id)}
+                className={`
+                  flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap
+                  transition-all cursor-pointer relative border
+                  ${draggedEngine === engine.id ? 'opacity-60' : ''}
+                `}
+                style={{
+                  borderColor: isDragTarget ? '#94a3b8' : (isActive ? color : inactiveBorder),
+                  backgroundColor: isActive ? activeBg : isDragTarget ? hexToRgba('#94a3b8', 0.2) : undefined,
+                  color: isActive ? color : undefined,
+                  outline: isDragTarget ? `2px dashed ${inactiveBorder}` : undefined
+                }}
+              >
+                {engine.iconUrl ? (
+                  <img
+                    src={engine.iconUrl}
+                    alt=""
+                    className="w-4 h-4 rounded-sm object-contain"
+                    draggable={false}
+                  />
+                ) : (
+                  <span
+                    className="w-4 h-4 flex items-center justify-center rounded-sm text-[10px] font-semibold text-white"
+                    style={{ backgroundColor: color }}
+                  >
+                    {engine.icon || engine.name.slice(0, 2)}
+                  </span>
+                )}
+                <span className="truncate">{engine.name}</span>
+                {state.pinned.includes(engine.id) && (
+                  <Pin className="w-3 h-3 opacity-70" strokeWidth={1.5} />
+                )}
+              </button>
+            );
+          })}
         </div>
             </div>
 
       {/* 검색 폼 */}
       <form onSubmit={(e) => handleSearch(e, undefined)} className="flex-1 flex flex-col">
         <div className="relative w-full">
-          <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full shadow-sm transition-shadow focus-within:ring-2 focus-within:ring-blue-500 px-2 py-1">
+          <div
+            className="flex items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus-within:border-transparent rounded-full shadow-sm transition-shadow focus-within:ring-2 px-2 py-1"
+            style={{ '--tw-ring-color': selectedEngineData.color || DEFAULT_ENGINE_COLOR } as React.CSSProperties}
+          >
             {/* 검색 아이콘 */}
             <SearchIcon className="w-4 h-4 text-gray-400 ml-1 flex-shrink-0" />
             
@@ -541,7 +976,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                   setSelectedIndex(-1);
                 }
               }}
-              placeholder={`${selectedEngineData.name} 검색`}
+              placeholder={selectedEngineData.placeholder || `${selectedEngineData.name} 검색`}
               className="flex-1 px-2 py-0.5 text-sm border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
               aria-label={`${selectedEngineData.name}에서 검색하기`}
             aria-invalid={inputError ? 'true' : 'false'}
@@ -549,7 +984,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
             />
             {/* 스크린리더 안내 */}
             <span className="sr-only">
-              ${selectedEngineData.name} 검색. 키보드 단축키: '/' 입력창 포커스, Ctrl+좌우 엔진 전환, Alt+숫자 즉시 전환
+              {`${selectedEngineData.name} 검색. 키보드 단축키: '/' 입력창 포커스, Ctrl+좌우 엔진 전환, Alt+숫자 즉시 전환`}
             </span>
             
             {/* 입력 지우기 */}
@@ -750,7 +1185,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
               <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">고정 엔진</div>
                 <div className="space-y-1">
-                  {SEARCH_ENGINES.map(engine => (
+                  {orderedEngines.map(engine => (
                     <label key={engine.id} className="flex items-center gap-2 text-sm cursor-pointer">
                       <input
                         type="checkbox"
@@ -760,10 +1195,88 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                         className="rounded"
                       />
                       <span className="flex-1">{engine.name}</span>
-                      <span style={{ color: engine.color }}>{engine.icon}</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs text-white" style={{ backgroundColor: engine.color || DEFAULT_ENGINE_COLOR }}>
+                        {engine.icon || engine.name.slice(0, 2)}
+                      </span>
                     </label>
                   ))}
                 </div>
+              </div>
+
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  <span>엔진 관리</span>
+                  <button
+                    type="button"
+                    onClick={openCreateEngine}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <Plus className="w-3 h-3" />
+                    추가
+                  </button>
+                </div>
+                <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                  {orderedEngines.map(engine => (
+                    <div
+                      key={engine.id}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 text-xs bg-white dark:bg-gray-900"
+                    >
+                      {engine.iconUrl ? (
+                        <img
+                          src={engine.iconUrl}
+                          alt=""
+                          className="w-4 h-4 rounded-sm object-cover flex-shrink-0"
+                          draggable={false}
+                        />
+                      ) : (
+                        <span
+                          className="w-4 h-4 flex items-center justify-center rounded-sm text-[10px] font-semibold text-white flex-shrink-0"
+                          style={{ backgroundColor: engine.color || DEFAULT_ENGINE_COLOR }}
+                        >
+                          {engine.icon || engine.name.slice(0, 2)}
+                        </span>
+                      )}
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold truncate">{engine.name}</span>
+                          {engine._userDefined && (
+                            <span className="px-1 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-200">User</span>
+                          )}
+                          {state.pinned.includes(engine.id) && (
+                            <Pin className="w-3 h-3 text-blue-500" strokeWidth={1.5} />
+                          )}
+                        </div>
+                        <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+                          {engine.type === 'builder' ? 'Builder' : 'Plain'} · ID: {engine.id}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditEngine(engine.id)}
+                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                          aria-label="엔진 편집"
+                        >
+                          <PenSquare className="w-3.5 h-3.5 text-gray-500" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteEngine(engine.id)}
+                          className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/40"
+                          aria-label="엔진 삭제"
+                          disabled={!engine._userDefined && Object.keys(state.engines).length <= BUILTIN_ENGINES.length}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-[10px] text-gray-400 dark:text-gray-500">
+                  엔진 ID는 고유해야 하며, Builder 타입은 URL 템플릿에 <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{q}'}</code> 토큰을 포함해야 합니다.
+                </p>
               </div>
             </div>
           </div>
@@ -775,6 +1288,220 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
         </div>
       </form>
       </div>
-    </WidgetShell>
+      </WidgetShell>
+
+      {engineModal && (
+        <div className="fixed inset-0 z-[999] bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 py-6">
+          <div className="w-full max-w-lg bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                {engineModal.mode === 'create' ? '검색 엔진 추가' : '검색 엔진 편집'}
+              </h3>
+              <button
+                type="button"
+                onClick={closeEngineModal}
+                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                aria-label="엔진 관리 닫기"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  엔진 이름
+                </label>
+                <input
+                  type="text"
+                  value={engineForm.name ?? ''}
+                  onChange={(e) => handleEngineFormChange('name', e.target.value)}
+                  className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="예: Wikipedia"
+                />
+                {engineFormErrors.name && (
+                  <p className="mt-1 text-[11px] text-red-500">{engineFormErrors.name}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    엔진 ID (slug)
+                  </label>
+                  <input
+                    type="text"
+                    value={engineForm.id ?? ''}
+                    onChange={(e) => handleEngineFormChange('id', e.target.value.toLowerCase())}
+                    className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+                    placeholder="예: wiki"
+                    disabled={engineModal.mode === 'edit'}
+                  />
+                  {engineFormErrors.id && (
+                    <p className="mt-1 text-[11px] text-red-500">{engineFormErrors.id}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    타입
+                  </label>
+                  <select
+                    value={engineForm.type || 'plain'}
+                    onChange={(e) => {
+                      const value = e.target.value as 'plain' | 'builder';
+                      setEngineForm(prev => ({
+                        ...prev,
+                        type: value,
+                        ...(value === 'builder' && !prev.buildUrlTemplate
+                          ? { buildUrlTemplate: 'https://example.com/search?q={q}' }
+                          : {}),
+                        ...(value === 'plain' && !prev.url ? { url: 'https://', buildUrlTemplate: prev.buildUrlTemplate } : {})
+                      }));
+                    }}
+                    className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="plain">기본 검색 (URL + 질의)</option>
+                    <option value="builder">커스텀 URL 템플릿</option>
+                  </select>
+                </div>
+              </div>
+
+              {(engineForm.type || 'plain') === 'plain' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    검색 URL (검색어가 뒤에 붙습니다)
+                  </label>
+                  <input
+                    type="text"
+                    value={engineForm.url ?? ''}
+                    onChange={(e) => handleEngineFormChange('url', e.target.value)}
+                    className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://example.com/search?q="
+                  />
+                  {engineFormErrors.url && (
+                    <p className="mt-1 text-[11px] text-red-500">{engineFormErrors.url}</p>
+                  )}
+                </div>
+              )}
+
+              {(engineForm.type || 'plain') === 'builder' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    URL 템플릿 ({'{q}'} 자리에 검색어가 들어갑니다)
+                  </label>
+                  <input
+                    type="text"
+                    value={engineForm.buildUrlTemplate ?? ''}
+                    onChange={(e) => handleEngineFormChange('buildUrlTemplate', e.target.value)}
+                    className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://example.com/search?query={q}"
+                  />
+                  {engineFormErrors.buildUrlTemplate && (
+                    <p className="mt-1 text-[11px] text-red-500">{engineFormErrors.buildUrlTemplate}</p>
+                  )}
+                </div>
+              )}
+
+              {(engineForm.id === 'opgg' || engineModal.engineId === 'opgg') && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    OP.GG 검색 모드
+                  </label>
+                  <select
+                    value={(engineForm.meta?.mode as string) || 'summoner'}
+                    onChange={(e) => handleEngineMetaChange('mode', e.target.value)}
+                    className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="summoner">소환사 검색</option>
+                    <option value="champion">챔피언 검색</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">아이콘 텍스트</label>
+                  <input
+                    type="text"
+                    value={engineForm.icon ?? ''}
+                    onChange={(e) => handleEngineFormChange('icon', e.target.value)}
+                    className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="예: W"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">아이콘 URL</label>
+                  <input
+                    type="text"
+                    value={engineForm.iconUrl ?? ''}
+                    onChange={(e) => handleEngineFormChange('iconUrl', e.target.value)}
+                    className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://example.com/favicon.ico"
+                  />
+                  {engineFormErrors.iconUrl && (
+                    <p className="mt-1 text-[11px] text-red-500">{engineFormErrors.iconUrl}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">플레이스홀더 문구</label>
+                <input
+                  type="text"
+                  value={engineForm.placeholder ?? ''}
+                  onChange={(e) => handleEngineFormChange('placeholder', e.target.value)}
+                  className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="예: Wikipedia 검색"
+                />
+              </div>
+
+              <div className="grid grid-cols-[auto_1fr] gap-3 items-center">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={engineForm.color || DEFAULT_ENGINE_COLOR}
+                    onChange={(e) => handleEngineFormChange('color', e.target.value)}
+                    className="h-9 w-9 rounded border border-gray-300 dark:border-gray-700 p-0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    브랜드 컬러 (HEX)
+                  </label>
+                  <input
+                    type="text"
+                    value={engineForm.color ?? ''}
+                    onChange={(e) => handleEngineFormChange('color', e.target.value)}
+                    className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="#2563EB"
+                  />
+                  {engineFormErrors.color && (
+                    <p className="mt-1 text-[11px] text-red-500">{engineFormErrors.color}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeEngineModal}
+                className="px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleEngineSave}
+                className="px-3 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                disabled={engineModal.mode === 'create' && !(engineForm.id && engineForm.name)}
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

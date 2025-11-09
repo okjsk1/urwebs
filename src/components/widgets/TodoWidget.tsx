@@ -17,6 +17,7 @@ interface TodoItem {
     interval: number;
     nextOccurrence?: string;
   };
+  order: number;
 }
 
 interface TodoState {
@@ -25,7 +26,7 @@ interface TodoState {
   showAddForm: boolean;
   editingItem: string | null;
   filter: 'all' | 'active' | 'completed';
-  sortBy: 'created' | 'alphabetical' | 'priority' | 'dueDate';
+  sortBy: 'manual' | 'created' | 'alphabetical' | 'priority' | 'dueDate';
   showCompleted: boolean;
   draggedItem: string | null;
   draggedOverItem: string | null;
@@ -36,20 +37,23 @@ const DEFAULT_TODOS: TodoItem[] = [
     id: '1',
     text: '프로젝트 기획서 작성',
     completed: false,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    order: 0
   },
   {
     id: '2',
     text: '팀 미팅 준비',
     completed: false,
-    createdAt: new Date(Date.now() - 86400000).toISOString()
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    order: 1
   },
   {
     id: '3',
     text: '사무용품 주문',
     completed: true,
     createdAt: new Date(Date.now() - 172800000).toISOString(),
-    completedAt: new Date().toISOString()
+    completedAt: new Date().toISOString(),
+    order: 2
   }
 ];
 
@@ -61,7 +65,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
       showAddForm: false,
       editingItem: null,
       filter: 'all' as const,
-      sortBy: 'created' as const,
+      sortBy: 'manual' as const,
       showCompleted: true,
       draggedItem: null,
       draggedOverItem: null
@@ -70,8 +74,16 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
     if (!saved.items || !Array.isArray(saved.items)) {
       saved.items = DEFAULT_TODOS;
     }
+    saved.items = saved.items.map((item: any, index: number) => ({
+      ...item,
+      order: typeof item.order === 'number' ? item.order : index
+    }));
     return saved;
   });
+
+  useEffect(() => {
+    persistOrLocal(widget.id, state, updateWidget);
+  }, [widget.id, state, updateWidget]);
 
   // 상태 저장 (수동으로만 호출)
   const saveState = useCallback(() => {
@@ -90,7 +102,8 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
       id: Date.now().toString(),
       text: newItem.trim(),
       completed: false,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      order: (state.items?.reduce((max, item) => Math.max(max, item.order ?? 0), -1) ?? -1) + 1
     };
 
     setState(prev => ({
@@ -137,7 +150,8 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
           repeat: {
             ...item.repeat,
             nextOccurrence: nextDate.toISOString()
-          }
+          },
+          order: prev.items.length
         };
         
         return {
@@ -169,7 +183,9 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
   const deleteTodo = useCallback((id: string) => {
     setState(prev => ({
       ...prev,
-      items: prev.items.filter(item => item.id !== id),
+      items: prev.items
+        .filter(item => item.id !== id)
+        .map((item, index) => ({ ...item, order: index })),
       editingItem: prev.editingItem === id ? null : prev.editingItem
     }));
     saveState();
@@ -178,23 +194,27 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
 
   // 드래그 앤 드롭 함수들
   const handleDragStart = useCallback((e: React.DragEvent, itemId: string) => {
+    if (!(isEditMode || state.sortBy === 'manual')) return;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', itemId);
     setState(prev => ({ ...prev, draggedItem: itemId }));
-  }, []);
+  }, [isEditMode, state.sortBy]);
 
   const handleDragOver = useCallback((e: React.DragEvent, itemId: string) => {
+    if (!(isEditMode || state.sortBy === 'manual')) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setState(prev => ({ ...prev, draggedOverItem: itemId }));
-  }, []);
+  }, [isEditMode, state.sortBy]);
 
   const handleDragLeave = useCallback(() => {
+    if (!(isEditMode || state.sortBy === 'manual')) return;
     setState(prev => ({ ...prev, draggedOverItem: null }));
-  }, []);
+  }, [isEditMode, state.sortBy]);
 
   const handleDrop = useCallback((e: React.DragEvent, targetItemId: string) => {
     e.preventDefault();
+    if (!(isEditMode || state.sortBy === 'manual')) return;
     const draggedItemId = e.dataTransfer.getData('text/plain');
     
     if (draggedItemId === targetItemId) {
@@ -214,20 +234,26 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
       // 항목 제거 후 새 위치에 삽입
       const [draggedItem] = items.splice(draggedIndex, 1);
       items.splice(targetIndex, 0, draggedItem);
-      
+
+      const reordered = items.map((item, index) => ({
+        ...item,
+        order: index
+      }));
+
       return { 
         ...prev, 
-        items, 
+        items: reordered, 
         draggedItem: null, 
         draggedOverItem: null 
       };
     });
     saveState();
-  }, [saveState]);
+  }, [isEditMode, state.sortBy, saveState]);
 
   const handleDragEnd = useCallback(() => {
+    if (!(isEditMode || state.sortBy === 'manual')) return;
     setState(prev => ({ ...prev, draggedItem: null, draggedOverItem: null }));
-  }, []);
+  }, [isEditMode, state.sortBy]);
 
   const updateTodo = useCallback((id: string, updates: Partial<TodoItem>) => {
     setState(prev => ({
@@ -268,6 +294,8 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
     // 정렬
     return filtered.sort((a, b) => {
       switch (state.sortBy) {
+        case 'manual':
+          return (a.order ?? 0) - (b.order ?? 0);
         case 'alphabetical':
           return a.text.localeCompare(b.text);
         case 'priority':
@@ -293,13 +321,15 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
   // 진행률/통계 계산 제거 (요청에 따라 UI 비표시)
   const completionStats = useMemo(() => ({ total: 0, completed: 0, remaining: 0, percentage: 0 }), []);
 
+  const canDrag = isEditMode || state.sortBy === 'manual';
+
   return (
-    <div className="p-3 h-full flex flex-col">
+    <div className="p-2 h-full flex flex-col">
       {/* 진행률 표시 제거됨 */}
 
       {/* 편집 모드에서만 표시되는 필터 및 정렬 */}
       {isEditMode && (
-        <div className="mb-3 space-y-2 shrink-0">
+        <div className="mb-2 space-y-1.5 shrink-0">
           <div className="flex gap-1">
             {[
               { key: 'all', label: '전체' },
@@ -310,7 +340,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
                 key={filter.key}
                 size="sm"
                 variant={state.filter === filter.key ? 'default' : 'outline'}
-                className="flex-1 h-6 text-xs"
+                className="flex-1 h-5 text-[11px]"
                 onClick={() => setState(prev => ({ ...prev, filter: filter.key as any }))}
               >
                 {filter.label}
@@ -318,12 +348,13 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">정렬:</span>
+            <span className="text-[11px] text-gray-500">정렬:</span>
             <select
               value={state.sortBy}
               onChange={(e) => setState(prev => ({ ...prev, sortBy: e.target.value as any }))}
-              className="flex-1 text-xs px-2 py-1 border rounded bg-white dark:bg-[var(--input-background)]"
+              className="flex-1 text-[11px] px-2 py-1 border rounded bg-white dark:bg-[var(--input-background)]"
             >
+              <option value="manual">사용자 순서</option>
               <option value="created">생성일</option>
               <option value="alphabetical">이름순</option>
               <option value="priority">우선순위</option>
@@ -334,24 +365,24 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
       )}
 
       {/* 할일 목록 */}
-      <div className="flex-1 space-y-2 overflow-y-auto">
+      <div className="flex-1 space-y-1.5 overflow-y-auto">
         {filteredAndSortedItems.length === 0 ? (
-          <div className="text-center text-gray-500 text-xs py-4">
-            <div className="text-2xl mb-2">📝</div>
+          <div className="text-center text-gray-500 text-[11px] py-4">
+            <div className="text-xl mb-1.5">📝</div>
             <div>할일이 없습니다</div>
           </div>
         ) : (
           filteredAndSortedItems.map(item => (
             <div 
               key={item.id} 
-              className={`p-2 rounded-lg border transition-all ${
+              className={`p-1.5 rounded-lg border transition-all ${
                 item.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200 hover:border-blue-300'
               } ${
                 state.draggedItem === item.id ? 'opacity-50' : ''
               } ${
                 state.draggedOverItem === item.id ? 'border-blue-400 bg-blue-50' : ''
               }`}
-              draggable={isEditMode}
+              draggable={canDrag}
               onDragStart={(e) => {
                 e.stopPropagation(); // 위젯 드래그와 충돌 방지
                 handleDragStart(e, item.id);
@@ -374,7 +405,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
               }}
             >
               <div className="flex items-center gap-2">
-                {isEditMode && (
+                {canDrag && (
                   <div className="cursor-move text-gray-400 hover:text-gray-600">
                     <GripVertical className="w-4 h-4" />
                   </div>
@@ -393,7 +424,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
                 </button>
                 
                 <div className="flex-1 min-w-0">
-                  <div className={`text-sm font-medium ${item.completed ? 'line-through text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
+                  <div className={`text-xs font-medium ${item.completed ? 'line-through text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
                     {state.editingItem === item.id ? (
                       <input
                         type="text"
@@ -408,7 +439,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
                             updateTodo(item.id, { text: (e.target as HTMLInputElement).value.trim() });
                           }
                         }}
-                        className="w-full text-sm px-2 py-1 border border-gray-300 rounded"
+                        className="w-full text-xs px-2 py-1 border border-gray-300 rounded"
                         autoFocus
                       />
                     ) : (
@@ -479,7 +510,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
             <Button
               size="sm"
               variant="outline"
-              className="w-full h-6 text-xs"
+              className="w-full h-5 text-[11px]"
               onClick={() => setState(prev => ({ ...prev, showAddForm: true }))}
             >
               <Plus className="w-3 h-3 mr-1" />
@@ -505,7 +536,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
               <div className="flex gap-1">
                 <Button
                   size="sm"
-                  className="flex-1 h-6 text-xs"
+                  className="flex-1 h-5 text-[11px]"
                   onClick={addTodo}
                 >
                   추가
@@ -513,7 +544,7 @@ export const TodoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) =>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex-1 h-6 text-xs"
+                  className="flex-1 h-5 text-[11px]"
                   onClick={() => setState(prev => ({ 
                     ...prev, 
                     showAddForm: false, 
