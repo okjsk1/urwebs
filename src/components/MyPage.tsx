@@ -5042,7 +5042,7 @@ export function MyPage() {
             }}
             showAddButton={true}
             userId={currentUser?.uid || 'guest'}
-            collisionStrategy="prevent"
+            collisionStrategy="push"
             responsiveCells={responsiveCellHeights}
             layoutPreset={isEditMode ? ((new URLSearchParams(window.location.search)).get('preset') as any) || 'masonry' : undefined}
             magnetThresholdRows={Number((new URLSearchParams(window.location.search)).get('magnet')) || 1}
