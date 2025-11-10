@@ -58,6 +58,7 @@ export interface Page {
   widgets: Widget[];
   createdAt: number;
   updatedAt?: number;
+  pageNumber?: number;
   isActive?: boolean;
   customUrl?: string; // 사용자 정의 URL
   urlId?: string; // Firebase에서 사용하는 URL ID

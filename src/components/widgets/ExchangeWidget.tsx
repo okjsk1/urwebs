@@ -87,7 +87,7 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
       sortBy: 'change',
       sortOrder: 'desc',
       showOnlyWatched: false,
-      refreshInterval: 60000,
+      refreshInterval: 600000,
       lastRefresh: Date.now(),
       baseCurrency: 'KRW',
       status: 'live' as const,
@@ -96,6 +96,9 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
     // 저장된 데이터에 status가 없으면 기본값 설정
     if (!saved.status) {
       saved.status = 'live';
+    }
+    if (!saved.refreshInterval || saved.refreshInterval < 600000) {
+      saved.refreshInterval = 600000;
     }
     // 기본 정렬: USD, JPY 우선
     saved.rates = (saved.rates || []).sort((a: any, b: any) => {
@@ -131,7 +134,7 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
   }, []);
 
   const fetchFxRate = useCallback(async (from: string, to: string): Promise<number> => {
-    const url = `https://api.exchangerate.host/convert?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    const url = `https://api.exchangerate.host/convert?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&_=${Date.now()}`;
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`환율 API 응답 오류: ${response.status}`);
@@ -290,7 +293,7 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
     if (!state.refreshInterval || state.refreshInterval < 15000) return;
     const timer = setInterval(() => {
       refreshRates();
-    }, state.refreshInterval);
+    }, Math.max(state.refreshInterval, 600000));
     return () => clearInterval(timer);
   }, [state.refreshInterval, refreshRates]);
 
@@ -298,15 +301,23 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
+  const gridSize = useMemo(() => {
+    const size = (widget as any)?.gridSize;
+    if (size?.w && size?.h) return size;
+    const fallback = (widget as any)?.size;
+    if (fallback?.w && fallback?.h) return fallback;
+    return { w: 1, h: 1 };
+  }, [widget]);
+
   const layoutVariant = useMemo(() => {
-    const gridSize = (widget as any)?.gridSize;
-    const w = gridSize?.w ?? 1;
-    const h = gridSize?.h ?? 1;
-    if (w === 1 && h <= 3) {
+    if (gridSize.w === 1 && gridSize.h === 1) {
+      return 'micro';
+    }
+    if (gridSize.w === 1 && gridSize.h <= 3) {
       return 'compact';
     }
     return 'default';
-  }, [widget]);
+  }, [gridSize]);
 
   const typography = useMemo(
     () =>
@@ -342,25 +353,151 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
     [layoutVariant]
   );
 
-const filteredAndSortedRates = useMemo(() => {
-  return [...state.rates];
-}, [state.rates]);
+  const filteredAndSortedRates = useMemo(() => {
+    return [...state.rates];
+  }, [state.rates]);
 
-const KOREAN_CURRENCY: Record<string, string> = {
-  KRW: '원화',
-  USD: '달러',
-  JPY: '엔화',
-  EUR: '유로화',
-  GBP: '파운드화',
-  CNY: '위안화',
-  AUD: '호주달러',
-  CAD: '캐나다달러',
-  CHF: '스위스프랑',
-  SGD: '싱가포르달러',
-  HKD: '홍콩달러',
-};
+  const prioritizedRates = useMemo(() => {
+    const usd = state.rates.find(
+      (rate) => rate.fromCurrency === 'USD' && rate.toCurrency === 'KRW'
+    );
+    const jpy = state.rates.find(
+      (rate) => rate.fromCurrency === 'JPY' && rate.toCurrency === 'KRW'
+    );
+    const unique: ExchangeRate[] = [];
+    [usd, jpy, ...state.rates].forEach((rate) => {
+      if (rate && !unique.some((item) => item.id === rate.id)) {
+        unique.push(rate);
+      }
+    });
+    return unique.slice(0, 2);
+  }, [state.rates]);
 
-const getKoName = (code?: string) => (code && KOREAN_CURRENCY[code]) || code || '';
+  const displayRates = useMemo(() => {
+    if (layoutVariant === 'micro') {
+      return prioritizedRates;
+    }
+    if (layoutVariant === 'compact') {
+      return filteredAndSortedRates.slice(0, 4);
+    }
+    return filteredAndSortedRates.slice(0, 5);
+  }, [layoutVariant, prioritizedRates, filteredAndSortedRates]);
+
+  const KOREAN_CURRENCY: Record<string, string> = {
+    KRW: '원화',
+    USD: '달러',
+    JPY: '엔화',
+    EUR: '유로화',
+    GBP: '파운드화',
+    CNY: '위안화',
+    AUD: '호주달러',
+    CAD: '캐나다달러',
+    CHF: '스위스프랑',
+    SGD: '싱가포르달러',
+    HKD: '홍콩달러',
+  };
+
+  const getKoName = (code?: string) => (code && KOREAN_CURRENCY[code]) || code || '';
+
+  const formatUpdatedTime = (timestamp?: number) => {
+    if (!timestamp) return '-';
+    try {
+      return new Date(timestamp).toLocaleTimeString('ko-KR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '-';
+    }
+  };
+
+  if (layoutVariant === 'micro') {
+    const statusBadgeClass =
+      state.status === 'live'
+        ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300'
+        : state.status === 'loading'
+        ? 'bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-300'
+        : state.status === 'stale'
+        ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300'
+        : state.status === 'error'
+        ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300'
+        : 'bg-slate-100 text-slate-500 dark:bg-slate-900/40 dark:text-slate-400';
+
+    const statusLabel =
+      state.status === 'live'
+        ? '실시간'
+        : state.status === 'loading'
+        ? '갱신 중'
+        : state.status === 'stale'
+        ? '지연'
+        : state.status === 'error'
+        ? '오류'
+        : '대기';
+
+    return (
+      <div className="h-full rounded-xl bg-gradient-to-br from-slate-50/90 via-white to-slate-100/80 dark:from-slate-900/80 dark:via-slate-900/60 dark:to-slate-900/40 p-2 flex flex-col">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-200">주요 환율</span>
+          <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${statusBadgeClass}`}>
+            {statusLabel}
+          </span>
+        </div>
+        <div className="flex-1 flex flex-col justify-center gap-1.5">
+          {displayRates.length > 0 ? (
+            displayRates.map((rate) => {
+              const isUp = (rate.changePercent || 0) >= 0;
+              const accentClass =
+                rate.fromCurrency === 'USD'
+                  ? 'border-sky-200/70 bg-white/90 dark:bg-slate-900/70 dark:border-sky-800/50'
+                  : rate.fromCurrency === 'JPY'
+                  ? 'border-indigo-200/70 bg-white/90 dark:bg-slate-900/70 dark:border-indigo-800/50'
+                  : 'border-slate-200/70 bg-white/90 dark:bg-slate-900/70 dark:border-slate-800/50';
+              return (
+                <div
+                  key={rate.id}
+                  className={`flex items-center justify-between gap-3 rounded-lg border px-2 py-1.5 shadow-sm ${accentClass}`}
+                >
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-medium text-slate-500 dark:text-slate-300">
+                      {getKoName(rate.fromCurrency)} / {getKoName(rate.toCurrency)}
+                    </div>
+                    <div className="mt-0.5 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+                      {formatFxRate(rate.rate, rate.fromCurrency, rate.toCurrency)}
+                      <span className="ml-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
+                        {rate.toCurrency === 'KRW' ? '원' : getKoName(rate.toCurrency)}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    className={`text-[10px] font-semibold ${
+                      isUp
+                        ? 'text-rose-500 dark:text-rose-300'
+                        : 'text-emerald-500 dark:text-emerald-300'
+                    }`}
+                  >
+                    {isUp ? '▲' : '▼'} {Math.abs(rate.changePercent || 0).toFixed(2)}%
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-[10px] text-slate-400 dark:text-slate-500 text-center">
+              USD/KRW와 JPY/KRW 환율을 추가하면 자동으로 표시됩니다.
+            </div>
+          )}
+        </div>
+        <div className="mt-1 pt-1 flex items-center justify-between text-[9px] text-slate-400 dark:text-slate-500 border-t border-slate-200/70 dark:border-slate-800/60">
+          <span>기준 통화: {state.baseCurrency}</span>
+          <span>업데이트 {formatUpdatedTime(displayRates[0]?.lastUpdate || state.lastRefresh)}</span>
+        </div>
+        {isEditMode && displayRates.length < 2 && (
+          <div className="mt-1 text-[9px] text-amber-500 dark:text-amber-300">
+            편집 모드에서 USD/KRW, JPY/KRW 환율을 추가해 주세요.
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const startDrag = (e: React.DragEvent, id: string) => {
     if (!isEditMode) return;
@@ -411,7 +548,7 @@ const getKoName = (code?: string) => (code && KOREAN_CURRENCY[code]) || code || 
     <div className={`${typography.rootPadding} h-full flex flex-col`}>
       {/* 환율 목록 */}
       <ul className={`flex-1 overflow-y-auto ${typography.listGap}`}>
-        {filteredAndSortedRates.slice(0, 5).map((rate) => {
+        {displayRates.map((rate) => {
           const koPairLabel = `${getKoName(rate.fromCurrency)}/${getKoName(rate.toCurrency)}`;
           const isUp = (rate.changePercent || 0) >= 0;
           return (

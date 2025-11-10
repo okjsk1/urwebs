@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { FileText } from 'lucide-react';
 import { WidgetShell, WidgetProps, WidgetSize } from './WidgetShell';
 import { uiPalette, typeScale } from '../../constants/uiTheme';
@@ -38,9 +38,23 @@ export function QuickNoteWidget({ id, title, size = 's', onRemove, onResize, onP
     persistOrLocal(widgetId, state, updateWidget);
   }, [widgetId, state, updateWidget]);
 
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const adjustTextareaHeight = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, []);
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [adjustTextareaHeight, state.text]);
+
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const nextText = e.target.value;
     setState(prev => ({ ...prev, text: nextText }));
+    requestAnimationFrame(adjustTextareaHeight);
     if (size === 's') {
       const lines = nextText.split('\n').length;
       if (lines > 5) {
@@ -58,10 +72,9 @@ export function QuickNoteWidget({ id, title, size = 's', onRemove, onResize, onP
     }
   };
 
-  const rows = size === 's' ? 5 : getRows(size);
-  const overflowY = state.text.trim().length > 0 ? 'auto' : 'hidden';
+  const rows = size === 's' ? 3 : getRows(size);
   const textareaClassName = `
-    w-full h-full min-h-0 border-0 resize-none focus:outline-none bg-transparent
+    w-full border-0 resize-none focus:outline-none bg-transparent
     ${typeScale.md} ${uiPalette.textStrong} placeholder:${uiPalette.textMuted} leading-snug
     ${size === 's' ? 'p-2' : 'p-3'}
   `.replace(/\s+/g, ' ').trim();
@@ -78,10 +91,11 @@ export function QuickNoteWidget({ id, title, size = 's', onRemove, onResize, onP
     >
       <div className="h-full flex flex-col">
         <textarea
+          ref={textareaRef}
           value={state.text}
           onChange={handleTextChange}
           className={textareaClassName}
-          style={{ textAlign: 'left', verticalAlign: 'top', overflowY }}
+          style={{ textAlign: 'left', verticalAlign: 'top', overflow: 'hidden' }}
           rows={rows}
           aria-label="빠른 메모 내용"
           placeholder="메모를 작성하세요..."

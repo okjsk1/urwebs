@@ -252,10 +252,10 @@ export function MyPage() {
           
           // 첫 번째 페이지 제목도 업데이트
           setPages(prevPages => {
-            const updatedPages = [...prevPages];
-            if (updatedPages[0]) {
-              updatedPages[0].title = newTitle;
-            }
+            const updatedPages = reindexPages(prevPages.map((page, index) => 
+              index === 0 ? { ...page, title: newTitle } : page
+            ));
+            persistPagesToStorage(updatedPages);
             return updatedPages;
           });
         }
@@ -397,10 +397,12 @@ export function MyPage() {
           const parsedPages = JSON.parse(guestPages);
           if (parsedPages && parsedPages.length > 0) {
             console.log('→ 비로그인 사용자: 저장된 페이지 로드');
-            setPages(parsedPages);
-            setCurrentPageId(parsedPages[0].id);
-            setPageTitle(parsedPages[0].title);
-            setWidgets(parsedPages[0].widgets || []);
+            const normalizedPages = reindexPages(parsedPages);
+            setPages(normalizedPages);
+            setCurrentPageId(normalizedPages[0].id);
+            setPageTitle(normalizedPages[0].title);
+            setWidgets(normalizedPages[0].widgets || []);
+            persistPagesToStorage(normalizedPages);
             localStorage.setItem(userVisitKey, 'true');
             return;
           }
@@ -416,13 +418,14 @@ export function MyPage() {
         title: '새 페이지',
         widgets: [],
         createdAt: new Date().toISOString(),
-        isActive: true
+        isActive: true,
+        pageNumber: 1
       };
       setPages([emptyPage]);
       setCurrentPageId(emptyPage.id);
       setPageTitle(emptyPage.title);
       setWidgets([]);
-      localStorage.setItem('myPages', JSON.stringify([emptyPage]));
+      persistPagesToStorage([emptyPage]);
       localStorage.setItem(userVisitKey, 'true');
       return;
     }
@@ -536,7 +539,7 @@ export function MyPage() {
                 const data = doc.data();
                 return !data.isDeleted; // 삭제되지 않은 페이지만 필터링
               })
-              .map(doc => {
+              .map((doc, index) => {
                 const data = doc.data();
                 // Firebase에서 가져온 데이터를 localStorage 형식으로 변환
                 const parseGridSize = (gs: any) => {
@@ -564,12 +567,22 @@ export function MyPage() {
                     content: w.content || {}
                   })),
                   createdAt: data.createdAt?.seconds ? data.createdAt.seconds * 1000 : Date.now(),
+                  pageNumber: typeof data.pageNumber === 'number' ? data.pageNumber : index + 1,
                   isActive: !data.isDeleted,
                   customUrl: data.urlId?.replace(currentUser.email?.split('@')[0] + '_', '') || undefined,
                   urlId: data.urlId || undefined
                 };
               })
-              .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); // 생성 시간순 정렬
+              .sort((a, b) => {
+                if (a.pageNumber != null && b.pageNumber != null && a.pageNumber !== b.pageNumber) {
+                  return a.pageNumber - b.pageNumber;
+                }
+                if (a.pageNumber != null && b.pageNumber == null) return -1;
+                if (a.pageNumber == null && b.pageNumber != null) return 1;
+                return (a.createdAt || 0) - (b.createdAt || 0);
+              }); // 페이지 번호 우선 정렬
+            
+            const orderedPages = reindexPages(firebasePages);
             
             // 공개 설정 및 배경 설정도 Firebase에서 가져오기 (첫 번째 페이지의 설정 사용)
             if (firebasePages.length > 0) {
@@ -594,20 +607,20 @@ export function MyPage() {
             }
             
             // localStorage에 동기화
-            localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(firebasePages));
+            localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(orderedPages));
             
             // 페이지 데이터 설정
-            setPages(firebasePages);
+            setPages(orderedPages);
             
             // URL에서 페이지 찾기
-            let targetPage = firebasePages[0];
+            let targetPage = orderedPages[0];
             if (pageId) {
               const pageIndex = parseInt(pageId.split('_')[1]) - 1;
-              if (pageIndex >= 0 && pageIndex < firebasePages.length) {
-                targetPage = firebasePages[pageIndex];
+              if (pageIndex >= 0 && pageIndex < orderedPages.length) {
+                targetPage = orderedPages[pageIndex];
               }
             } else {
-              targetPage = firebasePages.find((p: any) => p.isActive) || firebasePages[0];
+              targetPage = orderedPages.find((p: any) => p.isActive) || orderedPages[0];
             }
             
             if (targetPage) {
@@ -626,7 +639,7 @@ export function MyPage() {
               }
               
               // URL 업데이트
-              const pageIndex = firebasePages.findIndex((p: any) => p.id === targetPage.id);
+              const pageIndex = orderedPages.findIndex((p: any) => p.id === targetPage.id);
               const userPrefix = currentUser.email?.split('@')[0] || 'user';
               const expectedUrl = `${userPrefix}_${pageIndex + 1}`;
               if (!pageId || pageId !== expectedUrl) {
@@ -672,18 +685,20 @@ export function MyPage() {
         if (savedPagesData) {
           try {
             const loadedPages = JSON.parse(savedPagesData);
-            setPages(loadedPages);
+            const normalizedPages = reindexPages(loadedPages);
+            setPages(normalizedPages);
+            persistPagesToStorage(normalizedPages);
             
             // URL에서 페이지 찾기 (okjsk1_2 형식)
-            let targetPage = loadedPages[0];
+            let targetPage = normalizedPages[0];
             if (pageId) {
               const pageIndex = parseInt(pageId.split('_')[1]) - 1;
-              if (pageIndex >= 0 && pageIndex < loadedPages.length) {
-                targetPage = loadedPages[pageIndex];
+              if (pageIndex >= 0 && pageIndex < normalizedPages.length) {
+                targetPage = normalizedPages[pageIndex];
               }
             } else {
               // URL 파라미터가 없으면 활성 페이지 찾기
-              targetPage = loadedPages.find((p: any) => p.isActive) || loadedPages[0];
+              targetPage = normalizedPages.find((p: any) => p.isActive) || normalizedPages[0];
             }
             
             if (targetPage) {
@@ -692,7 +707,7 @@ export function MyPage() {
               setWidgets(targetPage.widgets || []);
               
               // URL 업데이트 (URL이 없거나 다른 경우)
-              const pageIndex = loadedPages.findIndex((p: any) => p.id === targetPage.id);
+              const pageIndex = normalizedPages.findIndex((p: any) => p.id === targetPage.id);
               const userPrefix = currentUser.email?.split('@')[0] || 'user';
               const expectedUrl = `${userPrefix}_${pageIndex + 1}`;
               if (!pageId || pageId !== expectedUrl) {
@@ -714,14 +729,15 @@ export function MyPage() {
             title: '나만의 페이지',
             widgets: [],
             createdAt: Date.now(),
-            isActive: true
+            isActive: true,
+            pageNumber: 1
           };
-          const defaultPages = [defaultPage];
+          const defaultPages = reindexPages([defaultPage]);
           setPages(defaultPages);
           setCurrentPageId(defaultPage.id);
           setPageTitle(defaultPage.title);
           setWidgets([]);
-          localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(defaultPages));
+          persistPagesToStorage(defaultPages);
         }
       } else {
         // 비로그인 사용자의 페이지 불러오기
@@ -741,10 +757,12 @@ export function MyPage() {
         if (guestPagesData) {
           try {
             const loadedPages = JSON.parse(guestPagesData);
-            setPages(loadedPages);
+            const normalizedPages = reindexPages(loadedPages);
+            setPages(normalizedPages);
+            persistPagesToStorage(normalizedPages);
             
             // 활성 페이지 찾기
-            const activePage = loadedPages.find((p: any) => p.isActive) || loadedPages[0];
+            const activePage = normalizedPages.find((p: any) => p.isActive) || normalizedPages[0];
             if (activePage) {
               setCurrentPageId(activePage.id);
               setPageTitle(activePage.title);
@@ -924,6 +942,12 @@ export function MyPage() {
     }
   };
 
+  const reindexPages = (pagesToIndex: Page[]): Page[] =>
+    pagesToIndex.map((page, index) => ({
+      ...page,
+      pageNumber: index + 1,
+    }));
+
   const cloneBackgroundSettings = () => ({
     ...backgroundSettings,
     gradient: { ...backgroundSettings.gradient },
@@ -946,7 +970,7 @@ export function MyPage() {
   const createPageEntry = (title: string) => {
     const newPageId = `page${Date.now()}`;
     const newBackground = cloneBackgroundSettings();
-    const newPage: Page = {
+    const baseNewPage: Page = {
       id: newPageId,
       title,
       widgets: [],
@@ -955,10 +979,14 @@ export function MyPage() {
       backgroundSettings: newBackground
     };
 
+    let newPageWithIndex: Page = { ...baseNewPage, pageNumber: pages.length + 1 };
+
     setPages(prev => {
-      const updated = prev.map(page => ({ ...page, isActive: false })).concat(newPage);
-      persistPagesToStorage(updated);
-      return updated;
+      const deactivated = prev.map(page => ({ ...page, isActive: false }));
+      const nextPages = reindexPages([...deactivated, baseNewPage]);
+      newPageWithIndex = nextPages[nextPages.length - 1];
+      persistPagesToStorage(nextPages);
+      return nextPages;
     });
 
     setCurrentPageId(newPageId);
@@ -966,7 +994,7 @@ export function MyPage() {
     setWidgets([]);
     setBackgroundSettings(newBackground);
 
-    return { id: newPageId, page: newPage };
+    return { id: newPageId, page: newPageWithIndex };
   };
 
   const createNewPage = () => {
@@ -1034,16 +1062,8 @@ export function MyPage() {
     // 복원: 활성화 상태로 추가
     const restored = { ...entry.page, isActive: true };
     setPages(prev => {
-      const updated = prev.map(p => ({ ...p, isActive: false })).concat(restored);
-      try {
-        if (currentUser) {
-          localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updated));
-        } else {
-          localStorage.setItem('myPages', JSON.stringify(updated));
-        }
-      } catch {
-        // ignore storage errors
-      }
+      const updated = reindexPages(prev.map(p => ({ ...p, isActive: false })).concat(restored));
+      persistPagesToStorage(updated);
       return updated;
     });
     setCurrentPageId(restored.id);
@@ -1145,17 +1165,15 @@ export function MyPage() {
       };
       
       // 페이지 목록 업데이트
-      const updatedPages = pages.map(page => ({ ...page, isActive: false })).concat(newPage);
+      const updatedPages = reindexPages(pages.map(page => ({ ...page, isActive: false })).concat(newPage));
       setPages(updatedPages);
       setCurrentPageId(newPageId);
       setPageTitle(newPage.title);
       setWidgets(positionedWidgets);
       
       // localStorage에 즉시 저장
-      if (currentUser) {
-        localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
-        console.log('최신 템플릿으로 페이지 생성 및 저장 완료:', newPage);
-      }
+      persistPagesToStorage(updatedPages);
+      console.log('최신 템플릿으로 페이지 생성 및 저장 완료:', newPage);
       
       setShowTemplateModal(false);
       setShowPageManager(false);
@@ -1204,17 +1222,15 @@ export function MyPage() {
     };
     
     // 페이지 목록 업데이트
-    const updatedPages = pages.map(page => ({ ...page, isActive: false })).concat(newPage);
+    const updatedPages = reindexPages(pages.map(page => ({ ...page, isActive: false })).concat(newPage));
     setPages(updatedPages);
     setCurrentPageId(newPageId);
     setPageTitle(newPage.title);
     setWidgets(positionedWidgets);
     
     // localStorage에 즉시 저장
-    if (currentUser) {
-      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
-      console.log('로컬 템플릿으로 페이지 생성 및 저장 완료:', newPage);
-    }
+    persistPagesToStorage(updatedPages);
+    console.log('로컬 템플릿으로 페이지 생성 및 저장 완료:', newPage);
     
     setShowTemplateModal(false);
     setShowPageManager(false);
@@ -1269,7 +1285,7 @@ export function MyPage() {
     // 휴지통으로 이동
     const target = pages.find(p => p.id === pageId);
     if (target) movePageToTrash(target);
-    const remainingPages = pages.filter(page => page.id !== pageId);
+    const remainingPages = reindexPages(pages.filter(page => page.id !== pageId));
     setPages(remainingPages);
     // 삭제된 페이지가 현재 페이지였다면 첫 번째 페이지로 전환
     if (currentPageId === pageId && remainingPages.length > 0) {
@@ -1279,12 +1295,7 @@ export function MyPage() {
       setWidgets(firstPage.widgets);
     }
 
-    // localStorage에 즉시 저장
-    if (currentUser) {
-      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(remainingPages));
-    } else {
-      localStorage.setItem('myPages', JSON.stringify(remainingPages));
-    }
+    persistPagesToStorage(remainingPages);
 
     // Firestore에 soft delete 표시 및 삭제된 페이지의 Firebase 문서 찾아서 업데이트
     try {
@@ -1375,15 +1386,16 @@ export function MyPage() {
     const currentIndex = pages.findIndex(page => page.id === pageId);
     if (currentIndex <= 0) return; // 첫 번째 페이지는 위로 이동 불가
     
-    const newPages = [...pages];
-    [newPages[currentIndex - 1], newPages[currentIndex]] = [newPages[currentIndex], newPages[currentIndex - 1]];
-    setPages(newPages);
+    const swappedPages = [...pages];
+    [swappedPages[currentIndex - 1], swappedPages[currentIndex]] = [swappedPages[currentIndex], swappedPages[currentIndex - 1]];
+    const reordered = reindexPages(swappedPages);
     
-    // localStorage에 즉시 저장
+    setPages(reordered);
+    persistPagesToStorage(reordered);
     if (currentUser) {
-      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(newPages));
-    } else {
-      localStorage.setItem('myPages', JSON.stringify(newPages));
+      syncAllPagesToFirebase(reordered).catch(error => {
+        console.error('페이지 순서 동기화 실패:', error);
+      });
     }
   };
 
@@ -1392,15 +1404,16 @@ export function MyPage() {
     const currentIndex = pages.findIndex(page => page.id === pageId);
     if (currentIndex >= pages.length - 1) return; // 마지막 페이지는 아래로 이동 불가
     
-    const newPages = [...pages];
-    [newPages[currentIndex], newPages[currentIndex + 1]] = [newPages[currentIndex + 1], newPages[currentIndex]];
-    setPages(newPages);
+    const swappedPages = [...pages];
+    [swappedPages[currentIndex], swappedPages[currentIndex + 1]] = [swappedPages[currentIndex + 1], swappedPages[currentIndex]];
+    const reordered = reindexPages(swappedPages);
     
-    // localStorage에 즉시 저장
+    setPages(reordered);
+    persistPagesToStorage(reordered);
     if (currentUser) {
-      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(newPages));
-    } else {
-      localStorage.setItem('myPages', JSON.stringify(newPages));
+      syncAllPagesToFirebase(reordered).catch(error => {
+        console.error('페이지 순서 동기화 실패:', error);
+      });
     }
   };
 
@@ -1958,7 +1971,7 @@ export function MyPage() {
   };
 
   // 모든 페이지를 Firebase에 동기화하는 헬퍼 함수
-  const syncAllPagesToFirebase = async (pagesToSync: Page[]) => {
+  async function syncAllPagesToFirebase(pagesToSync: Page[]) {
     if (!currentUser || pagesToSync.length === 0) return;
     
     try {
@@ -2026,7 +2039,7 @@ export function MyPage() {
     } catch (error) {
       console.error('Firebase 동기화 실패:', error);
     }
-  };
+  }
 
   // 페이지 저장
   const savePage = useCallback(async () => {
@@ -2070,7 +2083,7 @@ export function MyPage() {
       updatedPages = [...pages, newPage];
       targetPageId = newPageId;
       setCurrentPageId(newPageId);
-      setPages(updatedPages);
+      updatedPages = reindexPages(updatedPages);
       console.log('새 페이지 생성:', newPageId);
     } else {
       // 기존 페이지 업데이트
@@ -2085,6 +2098,7 @@ export function MyPage() {
         }
         return page;
       });
+      updatedPages = reindexPages(updatedPages);
     }
     
     setPages(updatedPages);
@@ -2332,9 +2346,8 @@ export function MyPage() {
     if (widgets.length === 0) return;
     
     const timer = setTimeout(() => {
-      const updated = pages.map(p => p.id === currentPageId ? { ...p, title: pageTitle, widgets } : p);
-      const key = currentUser ? `myPages_${currentUser.id}` : 'myPages';
-      localStorage.setItem(key, JSON.stringify(updated));
+      const updated = reindexPages(pages.map(p => p.id === currentPageId ? { ...p, title: pageTitle, widgets } : p));
+      persistPagesToStorage(updated);
       setPages(updated);
     }, 800);
     return () => clearTimeout(timer);
@@ -2380,6 +2393,45 @@ export function MyPage() {
     // 타겟 위젯 업데이트
     persistOrLocal(targetWidgetId, { ...targetState, bookmarks: updatedTargetBookmarks }, updateWidget);
   }, [updateWidget]);
+
+  const handleRenameWidget = (widgetId: string) => {
+    const widget = widgets.find(w => w.id === widgetId);
+    if (!widget || widget.type !== 'bookmark') {
+      return;
+    }
+
+    const defaultTitle =
+      widget.title?.trim() ||
+      allWidgets.find(w => w.type === widget.type)?.name ||
+      '위젯';
+
+    const newTitle = window.prompt('폴더 이름을 입력하세요.', defaultTitle);
+    if (newTitle === null) return;
+
+    const trimmed = newTitle.trim();
+    if (!trimmed) {
+      setToast({ type: 'error', msg: '폴더 이름은 비워둘 수 없어요.' });
+      return;
+    }
+
+    updateWidget(widgetId, { title: trimmed });
+    setPages(prev => {
+      const updated = reindexPages(
+        prev.map(page =>
+          page.id === currentPageId
+            ? {
+                ...page,
+                widgets: page.widgets.map(w =>
+                  w.id === widgetId ? { ...w, title: trimmed } : w
+                ),
+              }
+            : page
+        )
+      );
+      persistPagesToStorage(updated);
+      return updated;
+    });
+  };
 
   // 위젯 선택
   const selectWidget = (id: string) => {
@@ -3201,6 +3253,20 @@ export function MyPage() {
                   }}
                   widgetType={originalWidget.type}
                 />
+                {originalWidget.type === 'bookmark' && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRenameWidget(originalWidget.id);
+                    }}
+                    title="이름 수정"
+                  >
+                    <Edit className="w-3 h-3 text-gray-600 dark:text-gray-300" />
+                  </Button>
+                )}
                 <Button 
                   size="sm" 
                   variant="ghost" 
@@ -3219,7 +3285,7 @@ export function MyPage() {
 
           {/* 위젯 콘텐츠 - 스크롤 가능 */}
           <div 
-            className="flex-1 bg-transparent overflow-y-auto"
+            className={`flex-1 bg-transparent ${originalWidget.type === 'quicknote' ? 'overflow-visible' : 'overflow-y-auto'}`}
             onMouseDown={(e) => {
               // 위젯 본문에서는 드래그 완전 방지
               e.stopPropagation();
@@ -4110,11 +4176,10 @@ export function MyPage() {
                           localStorage.setItem('isTitleManuallyEdited', 'true');
                           // 현재 페이지의 제목도 업데이트
                           setPages(prevPages => {
-                            const updatedPages = [...prevPages];
-                            const currentPageIndex = updatedPages.findIndex(p => p.id === currentPageId);
-                            if (currentPageIndex !== -1) {
-                              updatedPages[currentPageIndex].title = tempTitle;
-                            }
+                            const updatedPages = reindexPages(prevPages.map(page => 
+                              page.id === currentPageId ? { ...page, title: tempTitle } : page
+                            ));
+                            persistPagesToStorage(updatedPages);
                             return updatedPages;
                           });
                         } else if (e.key === 'Escape') {
@@ -4129,11 +4194,10 @@ export function MyPage() {
                         localStorage.setItem('isTitleManuallyEdited', 'true');
                         // 현재 페이지의 제목도 업데이트
                         setPages(prevPages => {
-                          const updatedPages = [...prevPages];
-                          const currentPageIndex = updatedPages.findIndex(p => p.id === currentPageId);
-                          if (currentPageIndex !== -1) {
-                            updatedPages[currentPageIndex].title = tempTitle;
-                          }
+                          const updatedPages = reindexPages(prevPages.map(page => 
+                            page.id === currentPageId ? { ...page, title: tempTitle } : page
+                          ));
+                          persistPagesToStorage(updatedPages);
                           return updatedPages;
                         });
                       }}
@@ -5286,7 +5350,7 @@ export function MyPage() {
                 <Button
                   onClick={async () => {
                     // 배경 설정을 현재 페이지에 저장
-                    const updatedPages = pages.map(page => {
+                    const updatedPages = reindexPages(pages.map(page => {
                       if (page.id === currentPageId) {
                         return {
                           ...page,
@@ -5294,15 +5358,14 @@ export function MyPage() {
                         };
                       }
                       return page;
-                    });
+                    }));
                     setPages(updatedPages);
                     
                     // localStorage에 저장
+                    persistPagesToStorage(updatedPages);
                     if (currentUser) {
-                      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
                       localStorage.setItem(`backgroundSettings_${currentUser.id}`, JSON.stringify(backgroundSettings));
                     } else {
-                      localStorage.setItem('myPages', JSON.stringify(updatedPages));
                       localStorage.setItem('backgroundSettings_guest', JSON.stringify(backgroundSettings));
                     }
                     

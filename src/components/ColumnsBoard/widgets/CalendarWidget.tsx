@@ -221,73 +221,78 @@ export function CalendarWidget({
     switch (size) {
       case '1x1':
         return {
-          container: "p-0 overflow-hidden",
-          wrapper: "px-1.5 py-1 gap-1",
+          container: "pt-0 pb-1 px-0 overflow-hidden",
+          wrapper: "px-1.5 py-0.5 gap-1",
           header: "mb-0 pb-0 h-[16px]",
-          monthText: "text-[9px] font-semibold leading-none",
+          monthText: "text-[8px] font-semibold leading-none",
           navButton: "p-0",
           navIcon: "w-2.5 h-2.5",
           todayButton: "px-0.5 py-0 text-[7px] leading-tight",
-          weekdayHeader: "text-[6px] py-0 leading-none h-[10px]",
-          dateCell: "h-[10px] text-[6px] leading-none",
-          todayText: "text-[6px] leading-tight",
-          legend: "text-[6px] gap-1 mt-0.5 leading-tight"
+          weekdayHeader: "text-[5.5px] py-0 leading-none h-[10px]",
+          dateCell: "h-[9px] text-[5.5px] leading-none",
+          todayText: "text-[5.5px] leading-tight",
+          legend: "text-[5.5px] gap-1 mt-0.5 leading-tight",
+          rowHeight: "14px"
         };
       case '1x2':
         return {
-          container: "px-1.5 py-1.5",
-          wrapper: "gap-1.25",
-          header: "mb-1 pb-1.5",
-          monthText: "text-[13px] font-semibold",
+          container: "px-1.25 pt-0.75 pb-1",
+          wrapper: "gap-1",
+          header: "mb-0 pb-0.75",
+          monthText: "text-[11px] font-semibold",
           navButton: "p-0.5",
-          navIcon: "w-3 h-3",
-          todayButton: "px-1.25 py-0.5 text-[10px]",
-          weekdayHeader: "text-[10px] py-0.5",
-          dateCell: "min-h-[18px] text-[10px]",
-          todayText: "text-[10px]",
-          legend: "text-[10px] gap-1.5 mt-1"
+          navIcon: "w-2.5 h-2.5",
+          todayButton: "px-1 py-0.5 text-[9px]",
+          weekdayHeader: "text-[8px] py-0.5 leading-none",
+          dateCell: "min-h-[14px] text-[8px] leading-tight",
+          todayText: "text-[8px]",
+          legend: "text-[8px] gap-1 mt-0.5",
+          rowHeight: "28px"
         };
       case '2x2':
         return {
-          container: "p-3",
+          container: "pt-2 pb-3 px-3",
           wrapper: "gap-3",
-          header: "mb-2 pb-2",
-          monthText: "text-xl font-bold",
+          header: "mb-1.5 pb-1.5",
+          monthText: "text-lg font-bold",
           navButton: "p-1",
           navIcon: "w-5 h-5",
-          todayButton: "px-2 py-1 text-sm",
-          weekdayHeader: "text-base py-1",
-          dateCell: "min-h-[36px] text-base",
-          todayText: "text-sm",
-          legend: "text-sm gap-3 mt-2"
+          todayButton: "px-2 py-1 text-[13px]",
+          weekdayHeader: "text-sm py-1",
+          dateCell: "min-h-[32px] text-sm",
+          todayText: "text-[13px]",
+          legend: "text-[13px] gap-3 mt-2",
+          rowHeight: "42px"
         };
       case '4x4':
         return {
-          container: "p-4",
-          wrapper: "gap-3",
-          header: "mb-3 pb-3",
-          monthText: "text-lg font-bold",
+          container: "pt-3 pb-4 px-4",
+          wrapper: "gap-4",
+          header: "mb-2.5 pb-2.5",
+          monthText: "text-base font-bold",
           navButton: "p-2",
           navIcon: "w-5 h-5",
-          todayButton: "px-3 py-2 text-sm",
-          weekdayHeader: "text-sm py-2",
-          dateCell: "min-h-[40px] text-sm",
-          todayText: "text-sm",
-          legend: "text-sm gap-4 mt-3"
+          todayButton: "px-3 py-2 text-[13px]",
+          weekdayHeader: "text-[13px] py-2",
+          dateCell: "min-h-[36px] text-[13px]",
+          todayText: "text-[13px]",
+          legend: "text-[13px] gap-4 mt-3",
+          rowHeight: "52px"
         };
       default:
         return {
-          container: "p-2",
+          container: "pt-1.5 pb-2 px-2",
           wrapper: "gap-2",
-          header: "mb-2 pb-2",
-          monthText: "text-sm font-bold",
+          header: "mb-1.5 pb-1.5",
+          monthText: "text-[13px] font-bold",
           navButton: "p-1",
           navIcon: "w-4 h-4",
-          todayButton: "px-2 py-1 text-xs",
-          weekdayHeader: "text-xs py-1",
-          dateCell: "min-h-[24px] text-xs",
-          todayText: "text-xs",
-          legend: "text-xs gap-3 mt-2"
+          todayButton: "px-2 py-1 text-[11px]",
+          weekdayHeader: "text-[11px] py-1",
+          dateCell: "min-h-[24px] text-[11px]",
+          todayText: "text-[11px]",
+          legend: "text-[11px] gap-3 mt-2",
+          rowHeight: "34px"
         };
     }
   };
@@ -365,13 +370,17 @@ export function CalendarWidget({
   const calendarContent = (
     <>
       {/* 헤더 */}
-      <div className={`flex items-center justify-between ${styles.header} ${size === '1x1' ? 'border-b border-gray-200 dark:border-gray-700' : 'border-b border-gray-200 dark:border-gray-700'}`}>
+      <div
+        className={`flex items-center justify-between ${styles.header} ${size === '1x1' ? 'border-b border-gray-200 dark:border-gray-700' : 'border-b border-gray-200 dark:border-gray-700'}`}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className={`flex ${size === '1x1' ? 'gap-0' : 'gap-1'}`}>
           <button
             onClick={goPrevMonth}
             className={`${styles.navButton} hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors`}
             aria-label="이전 달"
             type="button"
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <ChevronLeft className={`${styles.navIcon} text-gray-600 dark:text-gray-300`} />
           </button>
@@ -380,6 +389,7 @@ export function CalendarWidget({
             className={`${styles.navButton} hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors`}
             aria-label="다음 달"
             type="button"
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <ChevronRight className={`${styles.navIcon} text-gray-600 dark:text-gray-300`} />
           </button>
@@ -395,6 +405,7 @@ export function CalendarWidget({
             onClick={goToday}
             className={`${styles.todayButton} rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800`}
             type="button"
+            onMouseDown={(e) => e.stopPropagation()}
           >
             오늘
           </button>
@@ -402,7 +413,7 @@ export function CalendarWidget({
       </div>
 
       {/* 요일 헤더 */}
-      <div className={`grid grid-cols-7 ${size === '1x1' ? 'gap-0 mb-0' : 'gap-0.5 mb-1'} ${size === '1x1' ? 'flex-shrink-0' : ''}`} role="row">
+      <div className={`grid grid-cols-7 ${size === '1x1' ? 'gap-0 mb-0' : 'gap-0.5 mb-1'} ${size === '1x1' ? 'flex-shrink-0' : ''} ${styles.weekdayHeader?.includes('text-[5.5px]') ? 'text-[5.5px]' : ''}`} role="row">
         {weekdayOrder.map((label, i) => (
           <div
             key={label}
@@ -420,7 +431,10 @@ export function CalendarWidget({
       </div>
 
       {/* 날짜 그리드 (6주 고정) */}
-      <div className={`grid grid-cols-7 ${size === '1x1' ? 'gap-0' : 'gap-0.5'} ${size === '1x1' ? 'flex-1 min-h-0' : 'flex-1'}`} style={size === '1x1' ? { gridTemplateRows: 'repeat(6, 1fr)' } : undefined}>
+      <div
+        className={`grid grid-cols-7 ${size === '1x1' ? 'gap-0' : 'gap-0.5'} ${size === '1x1' ? 'flex-1 min-h-0' : 'flex-1'}`}
+        style={styles.rowHeight ? { gridTemplateRows: `repeat(6, ${styles.rowHeight})` } : undefined}
+      >
         {grid.map(({ date, inCurrentMonth }, idx) => {
           const weekendIndex = (idx % 7); // 0~6
           const isTodayCell = isSameDay(date, today);
