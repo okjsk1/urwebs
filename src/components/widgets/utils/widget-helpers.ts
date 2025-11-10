@@ -22,6 +22,7 @@ export const EDITABLE_WIDGET_TYPES = [
   'stock',             // 주식 위젯 - 관심 종목 설정
   'memo',              // 메모 위젯 - 메모 편집
   'quicknote',         // 빠른 메모 위젯 - 메모 편집
+  'table',             // 표 위젯 - 행/열 편집
   'links',             // 링크 위젯 - 링크 관리
   'news',              // 뉴스 위젯 - 카테고리 설정
   'music',             // 음악 위젯 - 플레이리스트 설정

@@ -18,6 +18,7 @@ export { TimerWidget } from './TimerWidget';
 export { DdayWidget } from './DdayWidget';
 export { QuoteWidget } from './QuoteWidget';
 export { QuickNoteWidget } from './QuickNoteWidget';
+export { TableWidget } from './TableWidget';
 
 // 검색 위젯들
 export { GoogleSearchWidget } from './GoogleSearchWidget';

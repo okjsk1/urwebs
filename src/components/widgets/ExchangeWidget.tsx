@@ -107,6 +107,19 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
     return saved;
   });
 
+  const stateRef = React.useRef(state);
+  const isMountedRef = React.useRef(true);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // 상태 저장
   useEffect(() => {
     persistOrLocal(widget.id, state, updateWidget);
@@ -116,6 +129,72 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
   useEffect(() => {
     addToWidgetCollection('exchange');
   }, []);
+
+  const fetchFxRate = useCallback(async (from: string, to: string): Promise<number> => {
+    const url = `https://api.exchangerate.host/convert?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`환율 API 응답 오류: ${response.status}`);
+    }
+    const data = await response.json();
+    if (typeof data?.result !== 'number') {
+      throw new Error('환율 데이터를 파싱할 수 없습니다.');
+    }
+    return data.result;
+  }, []);
+
+  const refreshRates = useCallback(async () => {
+    const snapshot = stateRef.current;
+    if (!snapshot || snapshot.rates.length === 0) {
+      return;
+    }
+
+    setState(prev => ({
+      ...prev,
+      status: prev.status === 'error' ? 'error' : 'loading'
+    }));
+
+    try {
+      const now = Date.now();
+      const updatedRates = await Promise.all(
+        snapshot.rates.map(async (item) => {
+          try {
+            const latest = await fetchFxRate(item.fromCurrency, item.toCurrency);
+            const change = latest - item.rate;
+            const changePercent = item.rate !== 0 ? (change / item.rate) * 100 : 0;
+            return {
+              ...item,
+              rate: latest,
+              change,
+              changePercent,
+              lastUpdate: now
+            };
+          } catch (error) {
+            console.warn(`환율 업데이트 실패 (${item.fromCurrency}/${item.toCurrency}):`, error);
+            return {
+              ...item,
+              lastUpdate: item.lastUpdate
+            };
+          }
+        })
+      );
+
+      if (!isMountedRef.current) return;
+      setState(prev => ({
+        ...prev,
+        rates: updatedRates,
+        lastRefresh: now,
+        status: 'live'
+      }));
+    } catch (error) {
+      console.error('환율 새로고침 중 오류:', error);
+      if (!isMountedRef.current) return;
+      setState(prev => ({
+        ...prev,
+        status: prev.status === 'error' ? 'error' : 'stale'
+      }));
+    }
+  }, [fetchFxRate]);
 
   const addExchangeRate = useCallback(() => {
     const { fromCurrency, toCurrency, rate } = state.newRate;
@@ -130,7 +209,7 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
       return;
     }
 
-    const duplicate = state.rates.find(r => 
+    const duplicate = stateRef.current.rates.find(r => 
       r.fromCurrency === fromCurrency && r.toCurrency === toCurrency
     );
     if (duplicate) {
@@ -150,14 +229,21 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
       alertEnabled: false
     };
 
+    const nextRates = [...stateRef.current.rates, newRate];
+    stateRef.current = {
+      ...stateRef.current,
+      rates: nextRates
+    };
+
     setState(prev => ({
       ...prev,
-      rates: [...prev.rates, newRate],
+      rates: nextRates,
       newRate: {},
       showAddForm: false
     }));
     showToast('환율이 추가되었습니다', 'success');
-  }, [state.newRate, state.rates]);
+    refreshRates();
+  }, [state.newRate, refreshRates]);
 
   const updateExchangeRate = useCallback((id: string, updates: Partial<ExchangeRate>) => {
     setState(prev => ({
@@ -195,6 +281,18 @@ export const ExchangeWidget = ({ widget, isEditMode, updateWidget }: WidgetProps
       )
     }));
   }, []);
+
+  useEffect(() => {
+    refreshRates();
+  }, [refreshRates]);
+
+  useEffect(() => {
+    if (!state.refreshInterval || state.refreshInterval < 15000) return;
+    const timer = setInterval(() => {
+      refreshRates();
+    }, state.refreshInterval);
+    return () => clearInterval(timer);
+  }, [state.refreshInterval, refreshRates]);
 
   // 드래그 정렬 전용 상태
   const [draggingId, setDraggingId] = useState<string | null>(null);

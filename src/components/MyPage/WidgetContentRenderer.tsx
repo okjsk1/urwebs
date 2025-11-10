@@ -26,6 +26,7 @@ const ImageWidget = lazy(() => import('../widgets/ImageWidget').then(m => ({ def
 const TimerWidget = lazy(() => import('../widgets').then(m => ({ default: m.TimerWidget })));
 const DdayWidget = lazy(() => import('../widgets').then(m => ({ default: m.DdayWidget })));
 const CalendarWidget = lazy(() => import('../ColumnsBoard/widgets/CalendarWidget').then(m => ({ default: m.CalendarWidget })));
+const TableWidget = lazy(() => import('../widgets/TableWidget').then(m => ({ default: m.TableWidget })));
 
 const widgetSkeleton = (
   <div className="w-full h-full animate-pulse rounded-xl bg-gray-100 dark:bg-gray-700/40" />
@@ -190,7 +191,10 @@ export function WidgetContentRenderer({
       case 'unified_search':
         return (
           <Suspense fallback={widgetSkeleton}>
-            <UnifiedSearchWidget {...commonProps} />
+            <UnifiedSearchWidget
+              {...commonProps}
+              size={widget.gridSize?.h === 1 ? 's' : widget.gridSize?.h === 2 ? 'm' : 'l'}
+            />
           </Suspense>
         );
       case 'qr_code':
@@ -215,13 +219,19 @@ export function WidgetContentRenderer({
             <GoogleAdWidget {...commonProps} />
           </Suspense>
         );
+      case 'table':
+        return (
+          <Suspense fallback={widgetSkeleton}>
+            <TableWidget {...commonProps} />
+          </Suspense>
+        );
       case 'quote':
         return (
           <Suspense fallback={widgetSkeleton}>
             <QuoteWidget
               id={widget.id}
               title={widget.title || '영감 명언'}
-              size="s"
+              size={widget.gridSize?.w === 2 ? 'm' : 's'}
               onRemove={() => {}}
               onResize={() => {}}
               onPin={() => {}}

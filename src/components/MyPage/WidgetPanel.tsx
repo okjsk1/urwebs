@@ -250,6 +250,38 @@ export function WidgetPanel({ isOpen, onClose, onAddWidget }: WidgetPanelProps) 
             </div>
           </WidgetCard>
         );
+      case 'table':
+        return (
+          <WidgetCard
+            widget={widgetData as any}
+            isEditMode={false}
+            onDelete={() => {}}
+            compact={true}
+            showHeader={true}
+            headerVariant="compact"
+          >
+            <div className="text-[10px] space-y-1.5" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              <div className="text-gray-400">간단한 표</div>
+              <div className="rounded border border-gray-200 overflow-hidden">
+                <div className="grid grid-cols-3 divide-x divide-gray-200 bg-gray-50">
+                  {['항목','월','화'].map((col, idx) => (
+                    <div key={idx} className="px-1.5 py-1 font-semibold text-gray-700">{col}</div>
+                  ))}
+                </div>
+                {[
+                  ['회의','10:00','14:00'],
+                  ['보고서','-','13:00']
+                ].map((row, idx) => (
+                  <div key={idx} className="grid grid-cols-3 divide-x divide-gray-200 text-gray-700">
+                    {row.map((cell, cellIdx) => (
+                      <div key={cellIdx} className="px-1.5 py-1 bg-white">{cell || '-'}</div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </WidgetCard>
+        );
       case 'calendar':
         return (
           <WidgetCard

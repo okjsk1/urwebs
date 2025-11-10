@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { 
   Search, Cloud, CheckSquare, Calendar, DollarSign, Bookmark, BookOpen, Globe,
   Timer, Quote, FileText, TrendingUp, BarChart3, Mic, Camera, Zap,
-  Heart, Star, Target, Clock, Bell, Mail, QrCode, Link, Palette
+  Heart, Star, Target, Clock, Bell, Mail, QrCode, Link, Palette, Table
 } from 'lucide-react';
 import { WidgetCard } from '../ColumnsBoard/WidgetCard';
 import { TodoWidget } from '../widgets/TodoWidget';
@@ -24,6 +24,7 @@ import { QRCodeWidget } from '../widgets/QRCodeWidget';
 import { DdayWidget } from '../widgets/DdayWidget';
 import { FrequentSitesWidget } from '../widgets/FrequentSitesWidget';
 import { ImageWidget } from '../widgets/ImageWidget';
+import { TableWidget } from '../widgets/TableWidget';
 import clsx from 'clsx';
 
 interface RailItem {
@@ -61,7 +62,8 @@ export function AutoRail() {
     { id: '16', title: 'QR 코드', tag: '도구', icon: QrCode, color: 'bg-slate-100 text-slate-600', description: 'QR 코드 생성', widgetType: 'qrcode' },
     { id: '17', title: 'D-Day', tag: '일정', icon: Target, color: 'bg-rose-100 text-rose-600', description: '기념일/마감일 관리', widgetType: 'dday' },
     { id: '18', title: '자주가는 사이트', tag: '추천', icon: Link, color: 'bg-amber-100 text-amber-600', description: '방문 횟수 기반 추천', widgetType: 'frequent_sites' },
-    { id: '19', title: '사진 프레임', tag: '사진', icon: Camera, color: 'bg-fuchsia-100 text-fuchsia-600', description: '개인 사진 표시', widgetType: 'image' }
+    { id: '19', title: '사진 프레임', tag: '사진', icon: Camera, color: 'bg-fuchsia-100 text-fuchsia-600', description: '개인 사진 표시', widgetType: 'image' },
+    { id: '20', title: '표 메모', tag: '정리', icon: Table, color: 'bg-slate-100 text-slate-600', description: '엑셀처럼 행/열을 구성하는 표', widgetType: 'table' }
   ];
 
   // 위젯 렌더링 함수 (작은 크기로 직접 렌더링)
@@ -113,6 +115,8 @@ export function AutoRail() {
         return <FrequentSitesWidget {...commonProps} />;
       case 'image':
         return <ImageWidget {...commonProps} />;
+      case 'table':
+        return <TableWidget {...commonProps} />;
       default:
         return null;
     }

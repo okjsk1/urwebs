@@ -141,7 +141,10 @@ export function SizePicker({
   const getPresetsForWidget = (type?: string) => {
     switch (type) {
       case 'quote': // 영감명언 위젯 - 2x1만 허용
-        return [{ label: '2x1', w: 2, h: 1 }];
+        return [
+          { label: '1x1', w: 1, h: 1 },
+          { label: '2x1', w: 2, h: 1 }
+        ];
       case 'google_search':
       case 'naver_search':
       // 검색 위젯들 - 1x1, 2x1만 허용
@@ -224,6 +227,19 @@ export function SizePicker({
           { label: '1x1', w: 1, h: 1 },
           { label: '1x2', w: 1, h: 2 },
           { label: '1x3', w: 1, h: 3 }
+        ];
+      case 'table': // 표 위젯 - 최소 2칸 너비 추천
+        return [
+          { label: '2x2', w: 2, h: 2 },
+          { label: '2x3', w: 2, h: 3 },
+          { label: '3x2', w: 3, h: 2 },
+          { label: '3x3', w: 3, h: 3 }
+        ];
+      case 'timer': // 타이머 위젯 - 1x1, 1x2, 2x2만 지원
+        return [
+          { label: '1x1', w: 1, h: 1 },
+          { label: '1x2', w: 1, h: 2 },
+          { label: '2x2', w: 2, h: 2 }
         ];
       case 'calendar': // 캘린더 위젯 - 1x1, 1x2 허용
         return [

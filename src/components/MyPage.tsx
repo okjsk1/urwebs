@@ -912,11 +912,69 @@ export function MyPage() {
     }
   };
 
-  const createNewPage = () => {
-    // 항상 빈 캔버스로 바로 시작 (템플릿 선택 모달 제거)
+  const persistPagesToStorage = (pagesToPersist: Page[]) => {
+    try {
+      if (currentUser) {
+        localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(pagesToPersist));
+      } else {
+        localStorage.setItem('myPages', JSON.stringify(pagesToPersist));
+      }
+    } catch (error) {
+      console.warn('페이지 저장에 실패했습니다:', error);
+    }
+  };
+
+  const cloneBackgroundSettings = () => ({
+    ...backgroundSettings,
+    gradient: { ...backgroundSettings.gradient },
+  });
+
+  const generateUniquePageTitle = (baseTitle: string) => {
+    const existingTitles = new Set(pages.map(page => page.title));
+    if (!existingTitles.has(baseTitle)) {
+      return baseTitle;
+    }
+    let counter = 2;
+    let candidate = `${baseTitle} (${counter})`;
+    while (existingTitles.has(candidate)) {
+      counter += 1;
+      candidate = `${baseTitle} (${counter})`;
+    }
+    return candidate;
+  };
+
+  const createPageEntry = (title: string) => {
+    const newPageId = `page${Date.now()}`;
+    const newBackground = cloneBackgroundSettings();
+    const newPage: Page = {
+      id: newPageId,
+      title,
+      widgets: [],
+      createdAt: Date.now(),
+      isActive: true,
+      backgroundSettings: newBackground
+    };
+
+    setPages(prev => {
+      const updated = prev.map(page => ({ ...page, isActive: false })).concat(newPage);
+      persistPagesToStorage(updated);
+      return updated;
+    });
+
+    setCurrentPageId(newPageId);
+    setPageTitle(title);
     setWidgets([]);
-    setPageTitle('새 페이지');
+    setBackgroundSettings(newBackground);
+
+    return { id: newPageId, page: newPage };
+  };
+
+  const createNewPage = () => {
+    const baseTitle = '새 페이지';
+    const newTitle = generateUniquePageTitle(baseTitle);
+    createPageEntry(newTitle);
     setShowTemplateModal(false);
+    setShowPageManager(true);
   };
 
   // 휴지통 (삭제된 페이지 7일 보관)
@@ -999,33 +1057,10 @@ export function MyPage() {
 
   // 툴바에서 바로 새 페이지를 추가하고 페이지 관리 열기
   const addAndManageNewPage = () => {
-    const newPageId = `page${Date.now()}`;
     const userId = currentUser?.email?.split('@')[0] || 'User';
-    const pageCount = pages.length + 1;
-    const pageTitle = pageCount === 1 
-      ? `${userId}님의 페이지`
-      : `${userId}님의 페이지 (${pageCount})`;
-
-    const newPage = {
-      id: newPageId,
-      title: pageTitle,
-      widgets: [],
-      createdAt: new Date().toISOString(),
-      isActive: true
-    } as any;
-
-    const updatedPages = pages.map(p => ({ ...p, isActive: false })).concat(newPage);
-    setPages(updatedPages);
-    setCurrentPageId(newPageId);
-    setPageTitle(pageTitle);
-    setWidgets([]);
-
-    if (currentUser) {
-      localStorage.setItem(`myPages_${currentUser.id}`, JSON.stringify(updatedPages));
-    } else {
-      localStorage.setItem('myPages', JSON.stringify(updatedPages));
-    }
-
+    const baseTitle = `${userId}님의 페이지`;
+    const newTitle = generateUniquePageTitle(baseTitle);
+    createPageEntry(newTitle);
     setShowPageManager(true);
   };
 
@@ -1702,6 +1737,11 @@ export function MyPage() {
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
+    } else if (type === 'table') {
+      widgetSize = '2x2';
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
     } else if (type === 'calendar') {
       // 캘린더 위젯은 1x1, 1x2 허용 (기본 1x1)
       widgetSize = (size === '1x2') ? '1x2' : '1x1';
@@ -1728,6 +1768,12 @@ export function MyPage() {
     } else if (type === 'dday') {
       // D-Day 위젯은 1x1, 1x2 허용
       widgetSize = (size === '1x2') ? '1x2' : '1x1';
+      const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
+      width = dimensions.width;
+      height = dimensions.height;
+    } else if (type === 'quote') {
+      // 영감 명언 위젯은 1x1, 2x1 허용
+      widgetSize = (size === '2x1') ? '2x1' : '1x1';
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -3041,13 +3087,15 @@ export function MyPage() {
       } else if (widget.type === 'dday') {
         gridSize = { w: 1, h: 1 }; // D-Day 위젯 기본 1x1 (1x1, 1x2 허용)
       } else if (widget.type === 'quote') {
-        gridSize = { w: 2, h: 1 }; // 영감명언 위젯은 2x1 고정 (고정)
+        gridSize = { w: 1, h: 1 }; // 영감명언 위젯 기본 1x1 (1x1, 2x1 허용)
       } else if (widget.type === 'economic_calendar') {
         gridSize = { w: 2, h: 2 }; // 경제캘린더 위젯은 2x2
       } else if (widget.type === 'exchange') {
         gridSize = { w: 1, h: 2 }; // 환율 위젯은 1x2 (1칸 너비만)
       } else if (widget.type === 'quicknote') {
         gridSize = { w: 1, h: 1 }; // 빠른메모는 기본 1x1 (1x1, 1x2, 1x3 가능)
+      } else if (widget.type === 'table') {
+        gridSize = { w: 2, h: 2 }; // 표 위젯은 기본 2x2
       } else if (widget.type === 'law_search') {
         gridSize = { w: 1, h: 1 }; // 법제처 검색 위젯은 기본 1x1 (1x1, 2x1 가능)
       } else if (widget.type === 'news') {
@@ -3198,7 +3246,7 @@ export function MyPage() {
       'bookmark', 'weather', 'todo', 'crypto', 'stock_alert', 'economic_calendar',
       'english_words', 'exchange', 'news', 'google_search', 'naver_search',
       'law_search', 'unified_search', 'qr_code', 'frequent_sites', 'google_ad',
-      'quote', 'contact', 'quicknote', 'image'
+      'quote', 'contact', 'quicknote', 'table', 'image'
     ];
     
     if (commonWidgets.includes(widget.type)) {

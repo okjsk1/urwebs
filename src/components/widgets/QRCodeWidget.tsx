@@ -15,8 +15,8 @@ export const QRCodeWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
       try {
         const currentUrl = window.location.href;
         const options = {
-          width: 120,
-          margin: 1,
+          width: 104,
+          margin: 0.5,
           color: {
             dark: '#000000',
             light: '#FFFFFF'
@@ -59,18 +59,18 @@ export const QRCodeWidget: React.FC<WidgetProps> = ({ widget, isEditMode, update
   return (
     <div className="h-full flex items-center justify-center p-2">
       {qrCodeDataUrl ? (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <img 
             src={qrCodeDataUrl} 
             alt="QR Code" 
-            className="border border-gray-200 dark:border-gray-700 rounded"
+            className="border border-gray-200 dark:border-gray-700 rounded max-w-[104px]"
           />
           <canvas ref={canvasRef} className="hidden" />
           
           {/* 다운로드 버튼 - 세로로 */}
           <Button
             size="sm"
-            className="h-[120px] w-7 px-1 flex flex-col items-center justify-center gap-0.5"
+            className="h-[104px] w-7 px-1 flex flex-col items-center justify-center gap-0.5"
             onClick={downloadQRCode}
           >
             <Download className="w-2.5 h-2.5" />

@@ -363,18 +363,30 @@ export function TimerWidget({
     if (core.running) {
       // 일시정지
       const now = Date.now();
+      const display = calculateDisplayTime();
       setCore(prev => ({
         ...prev,
         accumulatedMs: prev.accumulatedMs + (prev.startEpoch ? now - prev.startEpoch : 0),
         startEpoch: null,
-        running: false
+        running: false,
+        targetMs: prev.mode === 'countdown'
+          ? now + Math.max(0, display.remainingMs)
+          : prev.targetMs
       }));
       finishedNotifiedRef.current = false;
       trackEvent('timer_pause', {
         mode: core.mode,
         source: 'button',
-        elapsedMs: core.mode === 'stopwatch' ? core.accumulatedMs : undefined,
-        remainingMs: core.mode === 'countdown' ? calculateDisplayTime().remainingMs : undefined
+        elapsedMs: core.mode === 'stopwatch'
+          ? core.accumulatedMs
+          : core.mode === 'pomodoro'
+            ? core.accumulatedMs + (core.startEpoch ? now - core.startEpoch : 0)
+            : undefined,
+        remainingMs: core.mode === 'countdown'
+          ? display.remainingMs
+          : core.mode === 'pomodoro'
+            ? Math.max(0, (core.pomoPhase === 'work' ? core.pomoWorkMin : core.pomoRestMin) * 60000 - (core.accumulatedMs + (core.startEpoch ? now - core.startEpoch : 0)))
+            : undefined
       });
     } else {
       // 시작
@@ -549,27 +561,9 @@ export function TimerWidget({
   
   const getColor = () => {
     if (isStealthMode) {
-      // Stealth 모드: 다운톤 레드 #e24b4b
-      if (displayTime.isExpired || (displayTime.remainingMs <= 5000 && core.mode !== 'stopwatch')) {
-        return { className: '', style: { color: '#e24b4b' } };
-      }
-      if (displayTime.remainingMs <= 15000 && core.mode !== 'stopwatch') {
-        return { className: '', style: { color: '#7488a8' } };
-      }
-      return { className: 'text-gray-900 dark:text-gray-100', style: {} };
+      return { className: '', style: { color: '#0f172a' } };
     }
-    
-    // 기본 색상
-    const color = displayTime.isExpired 
-      ? 'text-red-600 dark:text-red-400'
-      : displayTime.remainingMs <= 5000 && core.mode !== 'stopwatch'
-      ? 'text-red-600 dark:text-red-400'
-      : displayTime.remainingMs <= 15000 && core.mode !== 'stopwatch'
-      ? 'text-orange-500 dark:text-orange-400'
-      : displayTime.remainingMs <= 30000 && core.mode !== 'stopwatch'
-      ? 'text-yellow-500 dark:text-yellow-400'
-      : 'text-gray-900 dark:text-gray-100';
-    return { className: color, style: {} };
+    return { className: 'text-slate-900 dark:text-slate-100', style: {} };
   };
   
   const timerColor = getColor();
@@ -634,7 +628,7 @@ export function TimerWidget({
         {/* 메인 타이머 */}
         <div className={`flex-1 flex flex-col items-center justify-center ${size === 's' ? 'gap-1' : 'gap-3'}`}>
           <div 
-            className={`${size === 's' ? 'text-[24px]' : size === 'm' ? 'text-6xl' : 'text-7xl'} font-mono font-bold tabular-nums leading-none ${timerColor.className} transition-colors duration-200`}
+            className={`${size === 's' ? 'text-[22px]' : size === 'm' ? 'text-5xl' : 'text-6xl'} font-mono font-bold tabular-nums leading-none ${timerColor.className} transition-colors duration-200`}
             style={timerColor.style}
             aria-label={core.mode === 'stopwatch' ? '경과 시간' : '남은 시간'}
           >

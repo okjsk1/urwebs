@@ -18,11 +18,14 @@ export const WIDGET_DEFAULT_SIZES: Record<string, WidgetSize> = {
   'qr_code': '1x1',
   'bookmark': '1x2',
   'quicknote': '1x1',
+  'quote': '1x1',
+  'timer': '1x1',
   'news': '2x2',
   'exchange': '1x1',
   'google_ad': '1x1',
   'law_search': '2x1',
   'image': '1x1',
+  'table': '2x2',
 };
 
 // 위젯 타입별 컬럼 제한 (1칸 너비만 허용하는 위젯들)
@@ -42,6 +45,7 @@ export const WIDGET_ROW_LIMITS: Record<string, number[]> = {
   'google_search': [1],
   'naver_search': [1],
   'calendar': [1, 2, 4], // 1x1, 1x2, 2x2, 4x4 지원
+  'timer': [1, 2],
 };
 
 // 위젯 기본 콘텐츠

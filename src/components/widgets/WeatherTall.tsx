@@ -155,26 +155,26 @@ export function WeatherTall({ state, isEditMode, setState, updateLocation, detec
         ) : cw ? (
           <>
             {/* 현재 날씨 */}
-            <div className="text-center mb-3 shrink-0">
-              <div className="text-2xl mb-1">{cw.icon}</div>
-              <div className={`text-lg font-semibold ${getWeatherColor(cw.condition)}`}>
+            <div className="text-center mb-2 shrink-0">
+              <div className="text-xl mb-0.5">{cw.icon}</div>
+              <div className={`text-base font-semibold ${getWeatherColor(cw.condition)}`}>
                 {formatTemperature(cw.temperature, state.units)}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">{cw.condition}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-500">
+              <div className="text-xs text-gray-600 dark:text-gray-400">{cw.condition}</div>
+              <div className="text-[11px] text-gray-500 dark:text-gray-500">
                 체감 {formatTemperature(cw.feelsLike, state.units)}
               </div>
             </div>
 
             {/* 시간별 예보 */}
             <div className="flex-1 overflow-y-auto min-h-0">
-              <div className="grid grid-cols-4 gap-1">
-                {state.hourlyForecast.filter((_, i) => i % 3 === 0).slice(0, 8).map((hour, index) => (
-                  <div key={index} className="text-center">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="grid grid-cols-3 gap-1.5">
+                {state.hourlyForecast.filter((_, i) => i % 3 === 0).slice(0, 6).map((hour, index) => (
+                  <div key={index} className="text-center py-0.5 rounded bg-gray-50/60 dark:bg-gray-700/40">
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400">
                       {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit' })}
                     </div>
-                    <div className="text-sm">{hour.icon}</div>
+                    <div className="text-sm leading-none">{hour.icon}</div>
                     <div className="text-xs font-semibold text-gray-900 dark:text-gray-100">
                       {formatTemperature(hour.temperature, state.units)}
                     </div>

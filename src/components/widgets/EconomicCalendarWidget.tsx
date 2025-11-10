@@ -1,10 +1,10 @@
 // 경제 캘린더 위젯 - FOMC, CPI 등 주요 경제 지표 발표 일정
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button } from '../ui/button';
 import { Calendar, Clock, Filter, RefreshCw } from 'lucide-react';
 import { getEconomicCalendar, type EconomicEvent } from '../../services/finance/api';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
+import { uiPalette, typeScale } from '../../constants/uiTheme';
 
 interface EconomicCalendarState {
   events: EconomicEvent[];
@@ -138,19 +138,23 @@ export const EconomicCalendarWidget: React.FC<WidgetProps> = ({ widget, isEditMo
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
-      case 'high': return 'bg-red-50 border-red-400 text-red-700';
-      case 'medium': return 'bg-yellow-50 border-yellow-400 text-yellow-700';
-      case 'low': return 'bg-green-50 border-green-400 text-green-700';
-      default: return 'bg-gray-50 border-gray-300 text-gray-700';
+      case 'high':
+        return 'bg-slate-900/10 border-slate-500 text-slate-800 dark:bg-slate-700/40 dark:border-slate-500 dark:text-slate-100';
+      case 'medium':
+        return 'bg-slate-900/8 border-slate-400 text-slate-700 dark:bg-slate-700/30 dark:border-slate-500 dark:text-slate-200';
+      case 'low':
+        return 'bg-slate-900/5 border-slate-300 text-slate-600 dark:bg-slate-700/20 dark:border-slate-600 dark:text-slate-300';
+      default:
+        return 'bg-slate-100 border-slate-300 text-slate-600 dark:bg-slate-800/30 dark:border-slate-700 dark:text-slate-300';
     }
   };
 
   const getImpactBadge = (impact: string) => {
     switch (impact) {
-      case 'high': return '🔴';
-      case 'medium': return '🟡';
-      case 'low': return '🟢';
-      default: return '⚪';
+      case 'high': return '●';
+      case 'medium': return '◐';
+      case 'low': return '○';
+      default: return '•';
     }
   };
 
@@ -160,9 +164,9 @@ export const EconomicCalendarWidget: React.FC<WidgetProps> = ({ widget, isEditMo
   }, [state.events, TOK.items]);
 
   const metaBaseClass = `${TOK.meta}`;
-  const titleTextClass = `${TOK.title} text-gray-800 leading-tight`;
-  const metaTextClass = `${metaBaseClass} text-gray-600 leading-snug`;
-  const countdownTextClass = `${metaBaseClass} text-blue-600 leading-snug`;
+  const titleTextClass = `${TOK.title} ${uiPalette.textStrong} leading-tight`;
+  const metaTextClass = `${metaBaseClass} ${uiPalette.textMuted} leading-snug`;
+  const countdownTextClass = `${metaBaseClass} ${uiPalette.textMuted} leading-snug`;
   const cardPaddingClass = TOK.pad;
   const badgeGapClass = TOK.gap;
   const hiddenCount = Math.max(0, state.events.length - eventsToDisplay.length);
@@ -173,7 +177,7 @@ export const EconomicCalendarWidget: React.FC<WidgetProps> = ({ widget, isEditMo
       {/* 헤더 */}
       <div className={`flex items-center justify-between ${TOK.headerPad} shrink-0 relative`}>
         <div className={`flex items-center ${badgeGapClass}`}>
-          <Calendar className={`${variantKey === '1x1' ? 'w-3 h-3' : 'w-4 h-4'} text-blue-600`} />
+          <Calendar className={`${variantKey === '1x1' ? 'w-3 h-3' : 'w-4 h-4'} text-slate-500 dark:text-slate-300`} />
           <h4 className={titleTextClass}>경제 캘린더</h4>
         </div>
         {TOK.showFilters ? (
@@ -343,7 +347,7 @@ export const EconomicCalendarWidget: React.FC<WidgetProps> = ({ widget, isEditMo
       <div className={`text-gray-500 text-center border-t border-gray-200 shrink-0 ${TOK.meta} mt-2 pt-2`}>
         {state.events.length}개 이벤트 예정
         {hiddenCount > 0 && (
-          <span className="ml-1 text-blue-500">
+          <span className={`ml-1 ${uiPalette.textMuted}`}>
             +{hiddenCount}건
           </span>
         )}

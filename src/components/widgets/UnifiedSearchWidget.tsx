@@ -1,16 +1,9 @@
 // 통합검색 위젯 V2 - 탭형 검색박스, 키보드 단축키, 자동완성, 엔진 재정렬
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import {
-  Search as SearchIcon,
-  X,
-  Pin,
-  Settings,
-  Plus,
-  PenSquare,
-  Trash2
-} from 'lucide-react';
+import { Search as SearchIcon, X, Pin, Settings, Plus, PenSquare, Trash2 } from 'lucide-react';
 import { WidgetProps as HelperWidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
 import { WidgetShell, WidgetProps as ShellWidgetProps } from './WidgetShell';
+import { uiPalette, typeScale } from '../../constants/uiTheme';
 
 // 엔진 인터페이스 확장
 export interface SearchEngine {
@@ -849,23 +842,30 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
 
   // 컴팩트 모드
   const isCompact = size === 's';
+  const isLarge = size === 'l';
+  const containerPadding = isLarge ? 'p-3' : isCompact ? 'p-1.5' : 'p-2.5';
+  const tabsMargin = isCompact ? 'mb-1' : 'mb-2';
+  const tabGap = isCompact ? 'gap-0.5' : 'gap-1';
+  const tabPadding = isCompact ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs';
+  const inputPadding = isCompact ? 'px-1.5 py-0.5' : 'px-2 py-1';
+  const inputTextClass = isCompact ? 'text-[13px]' : 'text-sm';
 
   return (
     <>
       <WidgetShell
         variant="bare"
-        icon={<SearchIcon className="w-4 h-4 text-gray-600" aria-hidden="true" />}
+        icon={<SearchIcon className={`w-4 h-4 ${uiPalette.textMuted}`} aria-hidden="true" />}
         title={widget.title || '통합검색'}
         size={size}
         contentClassName="w-full h-full flex flex-col min-h-0 p-0"
       >
-      <div className={`${isCompact ? 'p-2' : 'p-2.5'} h-full flex flex-col min-h-0`}>
+      <div className={`${containerPadding} h-full flex flex-col min-h-0`}>
       {/* 탭 영역 */}
-      <div className="mb-2">
+      <div className={tabsMargin}>
         <div 
           role="tablist" 
           aria-label="검색 엔진 선택"
-          className="flex gap-1 flex-wrap pb-2 overflow-x-hidden"
+          className={`flex ${tabGap} flex-wrap pb-2 overflow-x-hidden`}
         >
           {/* 수평 스크롤 제거: flex-wrap으로 행 바꿈 */}
           
@@ -889,9 +889,9 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                 onDrop={handleDrop(index)}
                 onClick={() => selectEngine(engine.id)}
                 className={`
-                  flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap
+                  flex items-center gap-1.5 rounded-md font-medium whitespace-nowrap
                   transition-all cursor-pointer relative border
-                  ${draggedEngine === engine.id ? 'opacity-60' : ''}
+                  ${tabPadding} ${draggedEngine === engine.id ? 'opacity-60' : ''}
                 `}
                 style={{
                   borderColor: isDragTarget ? '#94a3b8' : (isActive ? color : inactiveBorder),
@@ -929,11 +929,11 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
       <form onSubmit={(e) => handleSearch(e, undefined)} className="flex-1 flex flex-col">
         <div className="relative w-full">
           <div
-            className="flex items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus-within:border-transparent rounded-full shadow-sm transition-shadow focus-within:ring-2 px-2 py-1"
+            className={`flex items-center focus-within:border-transparent rounded-full shadow-sm transition-shadow focus-within:ring-2 ${uiPalette.surface} ${uiPalette.border} ${inputPadding}`}
             style={{ '--tw-ring-color': selectedEngineData.color || DEFAULT_ENGINE_COLOR } as React.CSSProperties}
           >
             {/* 검색 아이콘 */}
-            <SearchIcon className="w-4 h-4 text-gray-400 ml-1 flex-shrink-0" />
+            <SearchIcon className="w-4 h-4 text-slate-400 ml-1 flex-shrink-0" />
             
             {/* 입력 필드 */}
             <input
@@ -995,7 +995,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                 }
               }}
               placeholder={selectedEngineData.placeholder || `${selectedEngineData.name} 검색`}
-              className="flex-1 px-2 py-0.5 text-sm border-none outline-none bg-transparent placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100"
+              className={`flex-1 px-2 py-0.5 border-none outline-none bg-transparent placeholder:text-slate-400 ${inputTextClass} ${uiPalette.textStrong}`}
               aria-label={`${selectedEngineData.name}에서 검색하기`}
             aria-invalid={inputError ? 'true' : 'false'}
             aria-describedby={inputError ? `search-error-${widget.id}` : undefined}
@@ -1010,10 +1010,10 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
               <button
                 type="button"
                 onClick={() => setState(prev => ({ ...prev, searchQuery: '' }))}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full mr-1"
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full mr-1"
                 aria-label="입력 지우기"
               >
-                <X className="w-4 h-4 text-gray-400" />
+                <X className="w-4 h-4 text-slate-400" />
               </button>
             )}
 
@@ -1021,24 +1021,24 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
             <button
               type="button"
               onClick={() => setShowSettings(!showSettings)}
-              className="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full mr-1 transition-colors"
+              className="p-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full mr-1 transition-colors"
               aria-label="설정"
             >
-              <Settings className="w-3.5 h-3.5 text-gray-500" />
+              <Settings className="w-3.5 h-3.5 text-slate-500" />
             </button>
             
             {/* 검색 버튼 */}
             <button
               type="submit"
-              className="p-0.5 rounded-r-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-0.5 rounded-r-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               aria-label="검색 실행"
             >
-              <SearchIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <SearchIcon className="w-4 h-4 text-slate-600 dark:text-slate-300" />
             </button>
           </div>
         {/* 에러 메시지 (접근성) */}
         {inputError && (
-          <div id={`search-error-${widget.id}`} role="alert" aria-live="polite" className="mt-1 text-xs text-red-500">
+          <div id={`search-error-${widget.id}`} role="alert" aria-live="polite" className={`mt-1 ${typeScale.xs} text-rose-500`}>
             {inputError}
           </div>
         )}
@@ -1047,7 +1047,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
           {showSuggestions && (suggestions.length > 0 || recentQueries.length > 0) && (
             <div
               ref={suggestionsRef}
-              className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-30 max-h-80 overflow-y-auto"
+              className={`absolute top-full left-0 right-0 mt-1 ${uiPalette.surface} ${uiPalette.border} rounded-lg shadow-lg z-30 ${isCompact ? 'max-h-56' : 'max-h-80'} overflow-y-auto`}
               role="listbox"
               aria-label="검색 제안"
             >
@@ -1055,11 +1055,11 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
               {recentQueries.length > 0 && (
                 <div className="p-2">
                   <div className="flex items-center justify-between px-2 py-1 mb-1">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">최근 검색어</span>
+                    <span className={`${typeScale.xs} font-medium ${uiPalette.textMuted}`}>최근 검색어</span>
                     <button
                       type="button"
                       onClick={clearRecentQueries}
-                      className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      className={`${typeScale.xs} ${uiPalette.textFaint} hover:text-slate-600 dark:hover:text-slate-300`}
                     >
                       전체 삭제
                     </button>
@@ -1077,10 +1077,10 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                           handleSearch(undefined, state.openInNewTab);
                         }}
                         onMouseEnter={() => setSelectedIndex(itemIndex)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm text-left ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded ${typeScale.sm} text-left ${
                           isSelected 
-                            ? 'bg-blue-50 dark:bg-blue-900/20' 
-                            : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                            ? 'bg-slate-100 dark:bg-slate-800/60' 
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-700'
                         }`}
                         role="option"
                         aria-selected={isSelected}
@@ -1089,10 +1089,10 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                         <button
                           type="button"
                           onClick={(e) => removeRecentQuery(query, e)}
-                          className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
                           aria-label="삭제"
                         >
-                          <X className="w-3 h-3 text-gray-400" />
+                          <X className="w-3 h-3 text-slate-400" />
                         </button>
                       </button>
                     );
@@ -1104,7 +1104,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
               {state.searchCounts && Object.keys(state.searchCounts).length > 0 && (
                 <div className="border-t border-gray-200 dark:border-gray-600 p-2">
                   <div className="px-2 py-1 mb-1">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">인기 검색어</span>
+                    <span className={`${typeScale.xs} font-medium ${uiPalette.textMuted}`}>인기 검색어</span>
                   </div>
                   {Object.entries(state.searchCounts)
                     .filter(([key]) => key.startsWith(`${state.selectedEngine}::`))
@@ -1124,10 +1124,10 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                             handleSearch(undefined, state.openInNewTab);
                           }}
                           onMouseEnter={() => setSelectedIndex(itemIndex)}
-                          className={`w-full px-3 py-2 rounded text-sm text-left ${
+                        className={`w-full px-3 py-2 rounded ${typeScale.sm} text-left ${
                             isSelected 
-                              ? 'bg-blue-50 dark:bg-blue-900/20' 
-                              : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                              ? 'bg-slate-100 dark:bg-slate-800/60' 
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-700'
                           }`}
                           role="option"
                           aria-selected={isSelected}
@@ -1143,7 +1143,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
               {suggestions.length > 0 && (
                 <div className="border-t border-gray-200 dark:border-gray-600 p-2">
                   <div className="px-2 py-1 mb-1">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">제안</span>
+                    <span className={`${typeScale.xs} font-medium ${uiPalette.textMuted}`}>제안</span>
                   </div>
                   {suggestions.map((suggestion, idx) => {
                     const itemIndex = recentQueries.length + 
@@ -1162,10 +1162,10 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                           handleSearch(undefined, state.openInNewTab);
                         }}
                         onMouseEnter={() => setSelectedIndex(itemIndex)}
-                        className={`w-full px-3 py-2 rounded text-sm text-left ${
+                        className={`w-full px-3 py-2 rounded ${typeScale.sm} text-left ${
                           isSelected 
-                            ? 'bg-blue-50 dark:bg-blue-900/20' 
-                            : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                            ? 'bg-slate-100 dark:bg-slate-800/60' 
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-700'
                         }`}
                         role="option"
                         aria-selected={isSelected}
@@ -1178,7 +1178,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
               )}
 
               {suggestionsLoading && (
-                <div className="p-3 text-center text-xs text-gray-400">제안 불러오는 중...</div>
+                <div className={`p-3 text-center ${typeScale.xs} ${uiPalette.textMuted}`}>제안 불러오는 중...</div>
               )}
             </div>
           )}
@@ -1186,7 +1186,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
 
         {/* 설정 패널 */}
         {showSettings && (
-          <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 z-40">
+          <div className={`absolute bottom-full left-0 right-0 mb-2 ${uiPalette.surface} ${uiPalette.border} rounded-lg shadow-lg p-3 z-40`}>
             <div className="space-y-2">
               {/* 새 탭 열기 토글 */}
               <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -1200,8 +1200,8 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
               </label>
 
               {/* 엔진 고정 */}
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">고정 엔진</div>
+              <div className={`pt-2 ${uiPalette.divider}`}>
+                <div className={`${typeScale.xs} font-medium ${uiPalette.textMuted} mb-2`}>고정 엔진</div>
                 <div className="space-y-1">
                   {orderedEngines.map(engine => (
                     <label key={engine.id} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -1221,8 +1221,8 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
-                <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+              <div className={`pt-2 ${uiPalette.divider}`}>
+                <div className={`flex items-center justify-between ${typeScale.xs} font-medium ${uiPalette.textMuted} mb-2`}>
                   <span>엔진 관리</span>
                   <button
                     type="button"
@@ -1237,7 +1237,7 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
                   {orderedEngines.map(engine => (
                     <div
                       key={engine.id}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 text-xs bg-white dark:bg-gray-900"
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded border text-xs ${uiPalette.border} ${uiPalette.surface}`}
                     >
                       {engine.iconUrl ? (
                         <img
@@ -1300,10 +1300,12 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
           </div>
         )}
 
-        {/* 도움말 - 항상 작게 표시하여 2x1에서도 보이도록 */}
-        <div className="mt-1 text-[10px] leading-3 text-gray-400 dark:text-gray-500 text-center">
-          Alt+1~9 전환 · Shift+Enter 현재 탭
-        </div>
+        {/* 도움말 - 컴팩트 외 크기에서만 표시 */}
+        {!isCompact && (
+          <div className={`mt-1 ${typeScale.caption} ${uiPalette.textFaint} text-center`}>
+            Alt+1~9 전환 · Shift+Enter 현재 탭
+          </div>
+        )}
       </form>
       </div>
       </WidgetShell>

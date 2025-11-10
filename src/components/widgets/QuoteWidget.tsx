@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Quote } from 'lucide-react';
 import { WidgetShell, WidgetProps } from './WidgetShell';
 import { usePersist } from '../../hooks/usePersist';
+import { uiPalette, typeScale } from '../../constants/uiTheme';
 
 interface QuoteState {
   currentQuote: { text: string; author: string } | null;
@@ -53,22 +54,29 @@ export function QuoteWidget({
     }
   }, [state.currentQuote]);
 
+  const isWide = size === 'm' || size === 'l';
+  const containerPadding = isWide ? 'p-3' : 'p-2';
+  const textSpacing = isWide ? 'gap-3' : 'gap-2';
+  const quoteTextClass = isWide ? `${typeScale.md} leading-relaxed` : `${typeScale.sm} leading-snug`;
+  const authorTextClass = isWide ? `${typeScale.sm}` : `${typeScale.xs}`;
+  const buttonSizeClass = isWide ? 'mt-4' : 'mt-3';
+
   const content = (
-    <div className="flex h-full flex-col items-center justify-center p-2 text-center">
+    <div className={`flex h-full flex-col items-center justify-center ${containerPadding} ${textSpacing} text-center`}>
       {state.currentQuote ? (
         <>
-          <p className="mb-2 line-clamp-3 text-sm font-medium text-gray-800">
+          <p className={`line-clamp-3 font-medium ${quoteTextClass} ${uiPalette.textStrong}`}>
             "{state.currentQuote.text}"
           </p>
-          <p className="text-xs text-gray-500">- {state.currentQuote.author}</p>
+          <p className={`${authorTextClass} ${uiPalette.textMuted}`}>- {state.currentQuote.author}</p>
         </>
       ) : (
-        <p className="text-sm text-gray-500">명언을 불러오는 중...</p>
+        <p className={`${typeScale.sm} ${uiPalette.textMuted}`}>명언을 불러오는 중...</p>
       )}
       <button
         onClick={fetchNewQuote}
         aria-label="새 명언 불러오기"
-        className="mt-3 rounded-md p-1 text-xs text-indigo-600 transition hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+        className={`${buttonSizeClass} rounded-md px-2 py-1 ${typeScale.xs} ${uiPalette.accentSoft} transition focus:outline-none focus:ring-2 focus:ring-sky-200/60`}
       >
         새 명언
       </button>
@@ -81,7 +89,7 @@ export function QuoteWidget({
 
   return (
     <WidgetShell
-      icon={<Quote className="w-4 h-4 text-gray-600" aria-hidden="true" />}
+      icon={<Quote className={`w-4 h-4 ${uiPalette.textMuted}`} aria-hidden="true" />}
       title={title || '영감 명언'}
       size={size ?? 's'}
       onRemove={onRemove ? () => onRemove(id) : undefined}

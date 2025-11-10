@@ -131,6 +131,7 @@ export function WidgetsTab() {
       'quicknote': '📝',
       'quote': '💬',
       'english_words': '📚',
+      'table': '📋',
       'qr': '📱',
       'rss': '📡'
     };

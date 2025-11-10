@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Plus, Trash2, RefreshCw, TrendingUp, TrendingDown, Grid as GridIcon, List, Wifi, WifiOff } from 'lucide-react';
 import { Sparkline } from '../ui/Sparkline';
 import { WidgetProps, persistOrLocal, readLocal, showToast } from './utils/widget-helpers';
+import { uiPalette, typeScale } from '../../constants/uiTheme';
 import {
   getSymbolInfo,
   subscribePrices,
@@ -134,6 +135,23 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
     });
   }, [state.symbols, state.quotes]);
 
+  const rawGridSize = (widget as any)?.gridSize ?? (widget as any)?.size;
+  let gridWidth = 1;
+  let gridHeight = 2;
+  if (rawGridSize && typeof rawGridSize === 'object') {
+    gridWidth = Number(rawGridSize.w) || 1;
+    gridHeight = Number(rawGridSize.h) || 2;
+  } else if (typeof rawGridSize === 'string') {
+    const [w, h] = rawGridSize.split('x').map(Number);
+    gridWidth = w || 1;
+    gridHeight = h || 2;
+  }
+  const isCompactTall = gridWidth === 1 && gridHeight === 2;
+  const containerPadding = isCompactTall ? 'p-1.5' : 'p-2';
+  const cardPadding = isCompactTall ? 'p-1.5' : 'p-2';
+  const priceTextClass = isCompactTall ? typeScale.sm : typeScale.md;
+  const sparklineWidth = isCompactTall ? 36 : 40;
+
   const symbols = state.symbols;
   const exchange = state.exchange;
   const currency = state.currency;
@@ -184,7 +202,7 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
   }, [symbols, exchange, currency, intervalMs]);
 
   return (
-    <div className="p-2 h-full flex flex-col">
+    <div className={`${containerPadding} h-full flex flex-col`}>
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-2 shrink-0">
         <div className="flex items-center gap-1">
@@ -253,13 +271,13 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
       )}
 
       {/* 코인 목록 */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pr-0.5">
         {sortedSymbols.length === 0 ? (
-          <div className="text-center text-gray-500 text-xs py-4">
+          <div className={`text-center ${uiPalette.textMuted} ${typeScale.xs} py-4`}>
             추가된 코인이 없습니다
           </div>
         ) : (
-          <div className={state.view === 'grid' ? 'grid grid-cols-2 gap-1' : 'space-y-1'}>
+          <div className={state.view === 'grid' ? 'grid grid-cols-2 gap-1' : 'space-y-1.5'}>
             {sortedSymbols.map(symbol => {
               const quote = state.quotes[symbol];
               const hist = state.history[symbol] || [];
@@ -268,27 +286,27 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
               return (
                 <div
                   key={symbol}
-                  className="relative p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors group"
+                  className={`relative ${cardPadding} ${uiPalette.surfaceMuted} rounded hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors group`}
                 >
                   {/* 심볼 & 가격 */}
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex-1">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs font-bold text-gray-800">{symbol}</span>
-                        <span className="text-xs text-gray-500">{info.name}</span>
+                        <span className={`${typeScale.sm} font-semibold ${uiPalette.textStrong}`}>{symbol}</span>
+                        <span className={`${typeScale.xs} ${uiPalette.textMuted}`}>{info.name}</span>
                       </div>
                       {quote ? (
                         <>
-                          <div className="text-sm font-bold text-gray-900">
+                          <div className={`font-semibold ${uiPalette.textStrong} ${priceTextClass}`}>
                             {formatPrice(quote.price, state.currency)}
                           </div>
-                          <div className={`text-xs font-medium ${quote.changePct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <div className={`${typeScale.xs} font-medium ${quote.changePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                             {quote.changePct >= 0 ? <TrendingUp className="w-3 h-3 inline mr-0.5" /> : <TrendingDown className="w-3 h-3 inline mr-0.5" />}
                             {formatChangePct(quote.changePct)}
                           </div>
                         </>
                       ) : (
-                        <div className="text-xs text-gray-400">로딩중...</div>
+                        <div className={`${typeScale.xs} ${uiPalette.textFaint}`}>로딩중...</div>
                       )}
                     </div>
                     
@@ -297,7 +315,7 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
                       <div className="ml-2">
                         <Sparkline 
                           data={hist} 
-                          width={40} 
+                          width={sparklineWidth} 
                           height={20} 
                           color={quote && quote.changePct >= 0 ? '#16a34a' : '#dc2626'}
                           className="opacity-70"
@@ -324,7 +342,7 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
       </div>
 
       {/* 하단 정보 */}
-      <div className="text-xs text-gray-500 text-center mt-2 pt-2 border-t border-gray-200 shrink-0">
+      <div className={`${typeScale.xs} ${uiPalette.textMuted} text-center mt-1.5 pt-1.5 ${uiPalette.divider} shrink-0`}>
         <div className="flex items-center justify-center gap-2">
           <span>마지막 업데이트: {new Date(state.lastUpdate).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
           <span>•</span>

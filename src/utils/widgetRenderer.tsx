@@ -19,7 +19,8 @@ import {
   LawSearchWidget,
   QuoteWidget,
   QuickNoteWidget,
-  ImageWidget
+  ImageWidget,
+  TableWidget
 } from '../components/widgets';
 import { CalendarWidget } from '../components/ColumnsBoard/widgets/CalendarWidget';
 
@@ -78,6 +79,8 @@ export function renderWidget(widget: Widget): React.ReactNode {
         return <QuickNoteWidget {...commonProps} />;
       case 'image':
         return <ImageWidget {...commonProps} />;
+      case 'table':
+        return <TableWidget {...commonProps} />;
       default:
         return (
           <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">
