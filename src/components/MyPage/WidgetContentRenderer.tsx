@@ -230,7 +230,7 @@ export function WidgetContentRenderer({
           <Suspense fallback={widgetSkeleton}>
             <QuoteWidget
               id={widget.id}
-              title={widget.title || '영감 명언'}
+              title={widget.title || '오늘의 명언'}
               size={widget.gridSize?.w === 2 ? 'm' : 's'}
               onRemove={() => {}}
               onResize={() => {}}

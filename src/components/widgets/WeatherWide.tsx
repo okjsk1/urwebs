@@ -164,35 +164,38 @@ export function WeatherWide({ state, isEditMode, setState, updateLocation, detec
             {/* 상세 정보 (중앙/오른쪽) - height가 1일 때도 표시 */}
             <div className="flex-1 flex items-center gap-2">
               {height === 1 ? (
-                // 2x1, 3x1일 때는 한 줄로 습도, 풍속, 시간별 예보 표시
-                <>
-                  <div className="flex items-center gap-1 text-xs">
-                    <Droplets className="w-3 h-3 text-blue-500" />
+                // 2x1, 3x1일 때는 한 줄(또는 두 줄)로 간략 정보 표시
+                <div className="flex flex-wrap items-center gap-2 w-full">
+                  <div className="flex items-center gap-1 text-[11px] leading-tight">
+                    <Droplets className="w-3 h-3 text-blue-500 flex-shrink-0" />
                     <span className="font-medium text-gray-900 dark:text-gray-100">
                       {formatHumidity(cw.humidity)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs">
-                    <Wind className="w-3 h-3 text-gray-500" />
+                  <div className="flex items-center gap-1 text-[11px] leading-tight">
+                    <Wind className="w-3 h-3 text-gray-500 flex-shrink-0" />
                     <span className="font-medium text-gray-900 dark:text-gray-100">
                       {formatWindSpeed(cw.windSpeed, state.units)}
                     </span>
                   </div>
                   {/* 시간별 예보 (간략) */}
-                  <div className="flex items-center gap-2 ml-auto">
-                    {state.hourlyForecast.filter((_, i) => i % 3 === 0).slice(0, width === 2 ? 4 : 6).map((hour, index) => (
-                      <div key={index} className="text-center">
-                        <div className="text-[8px] text-gray-500 dark:text-gray-400">
-                          {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit' })}
+                  <div className="flex items-center gap-1 ml-auto text-[10px] leading-tight">
+                    {state.hourlyForecast
+                      .filter((_, i) => i % 3 === 0)
+                      .slice(0, width === 2 ? 3 : 5)
+                      .map((hour, index) => (
+                        <div key={index} className="text-center min-w-[42px]">
+                          <div className="text-[9px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                            {new Date(hour.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit' })}
+                          </div>
+                          <div className="text-base leading-none">{hour.icon}</div>
+                          <div className="text-[10px] font-semibold text-gray-900 dark:text-gray-100">
+                            {formatTemperature(hour.temperature, state.units)}
+                          </div>
                         </div>
-                        <div className="text-lg">{hour.icon}</div>
-                        <div className="text-[9px] font-semibold text-gray-900 dark:text-gray-100">
-                          {formatTemperature(hour.temperature, state.units)}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
-                </>
+                </div>
               ) : (
                 // height >= 2일 때는 기존 레이아웃
                 <>

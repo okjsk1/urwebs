@@ -1732,8 +1732,8 @@ export function MyPage() {
       width = dimensions.width;
       height = dimensions.height;
     } else if (type === 'quicknote') {
-      // 빠른메모 위젯은 1x1, 1x2, 1x3 크기 가능
-      widgetSize = (size === '1x1' || size === '1x2' || size === '1x3') ? size : '1x1';
+      // 빠른메모 위젯 기본 1x1, 텍스트가 많아지면 자동 확장
+      widgetSize = (size === '1x2') ? '1x2' : '1x1';
       const dimensions = getWidgetDimensions(widgetSize, subCellWidth, cellHeight, spacing);
       width = dimensions.width;
       height = dimensions.height;
@@ -3093,7 +3093,7 @@ export function MyPage() {
       } else if (widget.type === 'exchange') {
         gridSize = { w: 1, h: 2 }; // 환율 위젯은 1x2 (1칸 너비만)
       } else if (widget.type === 'quicknote') {
-        gridSize = { w: 1, h: 1 }; // 빠른메모는 기본 1x1 (1x1, 1x2, 1x3 가능)
+        gridSize = { w: 1, h: 1 }; // 빠른메모는 기본 1x1
       } else if (widget.type === 'table') {
         gridSize = { w: 2, h: 2 }; // 표 위젯은 기본 2x2
       } else if (widget.type === 'law_search') {

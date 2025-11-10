@@ -55,17 +55,22 @@ export function QuoteWidget({
   }, [state.currentQuote]);
 
   const isWide = size === 'm' || size === 'l';
-  const containerPadding = isWide ? 'p-3' : 'p-2';
-  const textSpacing = isWide ? 'gap-3' : 'gap-2';
-  const quoteTextClass = isWide ? `${typeScale.md} leading-relaxed` : `${typeScale.sm} leading-snug`;
+  const isSmall = size === 's';
+  const containerPadding = isWide ? 'p-3' : isSmall ? 'p-1.5' : 'p-2';
+  const textSpacing = isWide ? 'gap-3' : isSmall ? 'gap-1.5' : 'gap-2';
+  const quoteTextClass = isWide
+    ? `${typeScale.md} leading-relaxed`
+    : isSmall
+      ? `${typeScale.sm} leading-snug line-clamp-2`
+      : `${typeScale.sm} leading-snug`;
   const authorTextClass = isWide ? `${typeScale.sm}` : `${typeScale.xs}`;
-  const buttonSizeClass = isWide ? 'mt-4' : 'mt-3';
+  const buttonSizeClass = isWide ? 'mt-4' : isSmall ? 'mt-2' : 'mt-3';
 
   const content = (
-    <div className={`flex h-full flex-col items-center justify-center ${containerPadding} ${textSpacing} text-center`}>
+    <div className={`flex h-full flex-col items-center justify-center ${containerPadding} ${textSpacing} text-center min-h-0`}>
       {state.currentQuote ? (
         <>
-          <p className={`line-clamp-3 font-medium ${quoteTextClass} ${uiPalette.textStrong}`}>
+          <p className={`font-medium ${quoteTextClass} ${uiPalette.textStrong}`}>
             "{state.currentQuote.text}"
           </p>
           <p className={`${authorTextClass} ${uiPalette.textMuted}`}>- {state.currentQuote.author}</p>
@@ -76,7 +81,7 @@ export function QuoteWidget({
       <button
         onClick={fetchNewQuote}
         aria-label="새 명언 불러오기"
-        className={`${buttonSizeClass} rounded-md px-2 py-1 ${typeScale.xs} ${uiPalette.accentSoft} transition focus:outline-none focus:ring-2 focus:ring-sky-200/60`}
+        className={`${buttonSizeClass} rounded-md ${isSmall ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1'} ${typeScale.xs} ${uiPalette.accentSoft} transition focus:outline-none focus:ring-2 focus:ring-sky-200/60`}
       >
         새 명언
       </button>
@@ -90,7 +95,7 @@ export function QuoteWidget({
   return (
     <WidgetShell
       icon={<Quote className={`w-4 h-4 ${uiPalette.textMuted}`} aria-hidden="true" />}
-      title={title || '영감 명언'}
+      title={title || '오늘의 명언'}
       size={size ?? 's'}
       onRemove={onRemove ? () => onRemove(id) : undefined}
       onResize={onResize ? (newSize) => onResize(id, newSize) : undefined}

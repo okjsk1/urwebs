@@ -51,6 +51,8 @@ export const BookmarkWidget: React.FC<WidgetProps & {
 }> = ({ widget, isEditMode, updateWidget, onBookmarkCountChange, onMoveBookmarkToWidget, allWidgets }) => {
   const lastBookmarkCountRef = useRef<number>(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameDraft, setRenameDraft] = useState<string>(widget.title || '');
   const [state, setState] = useState<BookmarkState>(() => {
     const saved = readLocal(widget.id, {
       bookmarks: DEFAULT_BOOKMARKS,
@@ -113,6 +115,27 @@ export const BookmarkWidget: React.FC<WidgetProps & {
       }));
     }
   }, []);
+
+  useEffect(() => {
+    setRenameDraft(widget.title || '');
+  }, [widget.title]);
+
+  const handleRenameConfirm = useCallback(() => {
+    if (!updateWidget) return;
+    const nextTitle = renameDraft.trim();
+    if (!nextTitle) {
+      showToast('폴더 이름을 입력하세요', 'error');
+      return;
+    }
+    updateWidget(widget.id, { ...widget, title: nextTitle });
+    setIsRenaming(false);
+    showToast('폴더 이름이 변경되었습니다', 'success');
+  }, [renameDraft, updateWidget, widget]);
+
+  const handleRenameCancel = useCallback(() => {
+    setRenameDraft(widget.title || '');
+    setIsRenaming(false);
+  }, [widget.title]);
 
   // URL 입력 시 자동 이름 추천 (입력 중에도 동기 반영)
   useEffect(() => {
@@ -518,16 +541,60 @@ export const BookmarkWidget: React.FC<WidgetProps & {
       }}
       onDrop={handleExternalDrop}
     >
-      {/* 위젯 타이틀 편집 (편집모드에서 표시) */}
+      {/* 제목 편집 */}
       {isEditMode && updateWidget && (
-        <div className="px-2.5 pt-2">
-          <input
-            type="text"
-            defaultValue={widget.title || ''}
-            placeholder="위젯 제목"
-            onBlur={(e) => updateWidget(widget.id, { ...widget, title: e.target.value })}
-            className="w-full text-sm px-2 py-1 border border-gray-300 dark:border-[var(--border)] rounded bg-white dark:bg-[var(--input-background)] text-gray-900 dark:text-[var(--foreground)]"
-          />
+        <div className="px-2.5 pt-2 pb-1">
+          {isRenaming ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={renameDraft}
+                onChange={(e) => setRenameDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleRenameConfirm();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleRenameCancel();
+                  }
+                }}
+                autoFocus
+                className="flex-1 text-sm px-2 py-1 border border-gray-300 dark:border-[var(--border)] rounded bg-white dark:bg-[var(--input-background)] text-gray-900 dark:text-[var(--foreground)]"
+                placeholder="폴더 이름"
+              />
+              <button
+                onClick={handleRenameConfirm}
+                className="w-8 h-8 flex items-center justify-center rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+                aria-label="폴더 이름 저장"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleRenameCancel}
+                className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-200 transition-colors"
+                aria-label="폴더 이름 편집 취소"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                {widget.title || '새 폴더'}
+              </span>
+              <button
+                onClick={() => {
+                  setRenameDraft(widget.title || '');
+                  setIsRenaming(true);
+                }}
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <Edit className="w-3 h-3" />
+                이름 수정
+              </button>
+            </div>
+          )}
         </div>
       )}
       {/* 태그 필터 */}

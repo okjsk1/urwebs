@@ -21,3 +21,4 @@ export const typeScale = {
   caption: 'text-[10px] leading-tight',
 };
 
+

@@ -236,16 +236,16 @@ export function CalendarWidget({
       case '1x2':
         return {
           container: "px-1.5 py-1.5",
-          wrapper: "gap-1.5",
-          header: "mb-1.5 pb-1.5",
-          monthText: "text-sm font-semibold",
+          wrapper: "gap-1.25",
+          header: "mb-1 pb-1.5",
+          monthText: "text-[13px] font-semibold",
           navButton: "p-0.5",
-          navIcon: "w-3.5 h-3.5",
-          todayButton: "px-1.5 py-0.5 text-[11px]",
-          weekdayHeader: "text-[11px] py-0.5",
-          dateCell: "min-h-[20px] text-[11px]",
-          todayText: "text-[11px]",
-          legend: "text-[11px] gap-2 mt-1.5"
+          navIcon: "w-3 h-3",
+          todayButton: "px-1.25 py-0.5 text-[10px]",
+          weekdayHeader: "text-[10px] py-0.5",
+          dateCell: "min-h-[18px] text-[10px]",
+          todayText: "text-[10px]",
+          legend: "text-[10px] gap-1.5 mt-1"
         };
       case '2x2':
         return {

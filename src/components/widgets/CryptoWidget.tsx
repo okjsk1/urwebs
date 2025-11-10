@@ -147,15 +147,24 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
     gridHeight = h || 2;
   }
   const isCompactTall = gridWidth === 1 && gridHeight === 2;
-  const containerPadding = isCompactTall ? 'p-1.5' : 'p-2';
-  const cardPadding = isCompactTall ? 'p-1.5' : 'p-2';
-  const priceTextClass = isCompactTall ? typeScale.sm : typeScale.md;
-  const sparklineWidth = isCompactTall ? 36 : 40;
+  const isCompactWide = gridWidth >= 2 && gridHeight === 2;
+  const containerPadding = gridHeight <= 2 ? 'p-1.5' : 'p-2';
+  const cardPadding = gridHeight <= 2 ? 'p-1.5' : 'p-2.5';
+  const priceTextClass = gridHeight <= 2 ? typeScale.sm : typeScale.md;
+  const sparklineWidth = gridHeight <= 2 ? 32 : 40;
+  const infoSpacingClass = gridHeight <= 2 ? 'mb-0.5' : 'mb-1';
+  const sparklineMarginClass = gridHeight <= 2 ? 'ml-1.5' : 'ml-2';
 
   const symbols = state.symbols;
   const exchange = state.exchange;
   const currency = state.currency;
   const intervalMs = state.intervalMs;
+  const maxVisible = gridHeight === 1
+    ? (gridWidth >= 2 ? 3 : 2)
+    : gridHeight === 2
+      ? (gridWidth >= 2 ? 3 : 3)
+      : sortedSymbols.length;
+  const listOverflowClass = gridHeight <= 2 ? 'overflow-hidden' : 'overflow-y-auto';
 
   useEffect(() => {
     const validSymbols = symbols.filter(isSupportedSymbol);
@@ -204,15 +213,15 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
   return (
     <div className={`${containerPadding} h-full flex flex-col`}>
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-2 shrink-0">
-        <div className="flex items-center gap-1">
-          <span className="text-lg">₿</span>
+      <div className="flex items-center justify-between mb-1.5 shrink-0">
+        <div className="flex items-center gap-0.5">
+          <span className="text-base leading-none">₿</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 text-[11px] leading-none">
           {isEditMode && (
             <button
               onClick={() => setState(prev => ({ ...prev, showAddForm: !prev.showAddForm }))}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="p-0.5 hover:bg-gray-100 rounded"
               title="심볼 추가"
             >
               <Plus className="w-3 h-3 text-green-600" />
@@ -220,19 +229,19 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
           )}
           <button
             onClick={() => setState(prev => ({ ...prev, currency: prev.currency === 'USD' ? 'KRW' : 'USD' }))}
-            className="px-2 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+            className="px-1.5 py-0.5 bg-gray-100 hover:bg-gray-200 rounded"
             title="통화 전환"
           >
             {state.currency}
           </button>
           <button
             onClick={() => setState(prev => ({ ...prev, exchange: prev.exchange === 'upbit' ? 'binance' : 'upbit' }))}
-            className="px-2 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+            className="px-1.5 py-0.5 bg-gray-100 hover:bg-gray-200 rounded capitalize"
             title="거래소 전환"
           >
             {state.exchange}
           </button>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {state.status === 'live' ? (
               <Wifi className="w-3 h-3 text-green-600" title="실시간 연결" />
             ) : state.status === 'error' ? (
@@ -243,7 +252,7 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
           </div>
           <button
             onClick={() => setState(prev => ({ ...prev, view: prev.view === 'list' ? 'grid' : 'list' }))}
-            className="p-1 hover:bg-gray-100 rounded"
+            className="p-0.5 hover:bg-gray-100 rounded"
             title="보기 전환"
           >
             {state.view === 'list' ? <GridIcon className="w-3 h-3" /> : <List className="w-3 h-3" />}
@@ -271,14 +280,14 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
       )}
 
       {/* 코인 목록 */}
-      <div className="flex-1 overflow-y-auto pr-0.5">
+      <div className={`flex-1 ${listOverflowClass} pr-0.5`}>
         {sortedSymbols.length === 0 ? (
           <div className={`text-center ${uiPalette.textMuted} ${typeScale.xs} py-4`}>
             추가된 코인이 없습니다
           </div>
         ) : (
-          <div className={state.view === 'grid' ? 'grid grid-cols-2 gap-1' : 'space-y-1.5'}>
-            {sortedSymbols.map(symbol => {
+          <div className={state.view === 'grid' ? 'grid grid-cols-2 gap-1' : (gridHeight <= 2 ? 'space-y-1' : 'space-y-1.5')}>
+            {sortedSymbols.slice(0, maxVisible).map(symbol => {
               const quote = state.quotes[symbol];
               const hist = state.history[symbol] || [];
               const info = isSupportedSymbol(symbol) ? getSymbolInfo(symbol) : { name: symbol, icon: symbol };
@@ -289,7 +298,7 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
                   className={`relative ${cardPadding} ${uiPalette.surfaceMuted} rounded hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors group`}
                 >
                   {/* 심볼 & 가격 */}
-                  <div className="flex items-start justify-between mb-1">
+                  <div className={`flex items-start justify-between ${infoSpacingClass}`}>
                     <div className="flex-1">
                       <div className="flex items-center gap-1">
                         <span className={`${typeScale.sm} font-semibold ${uiPalette.textStrong}`}>{symbol}</span>
@@ -312,11 +321,11 @@ export const CryptoWidget = ({ widget, isEditMode, updateWidget }: WidgetProps) 
                     
                     {/* 스파크라인 */}
                     {hist.length > 1 && (
-                      <div className="ml-2">
+                      <div className={sparklineMarginClass}>
                         <Sparkline 
                           data={hist} 
                           width={sparklineWidth} 
-                          height={20} 
+                          height={gridHeight <= 2 ? 16 : 20} 
                           color={quote && quote.changePct >= 0 ? '#16a34a' : '#dc2626'}
                           className="opacity-70"
                         />

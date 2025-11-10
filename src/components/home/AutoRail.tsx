@@ -53,7 +53,7 @@ export function AutoRail() {
     { id: '7', title: '영어 단어', tag: '학습', icon: BookOpen, color: 'bg-indigo-100 text-indigo-600', description: '영어 단어 학습 도구', widgetType: 'english_words' },
     { id: '8', title: '뉴스 피드', tag: '뉴스', icon: Globe, color: 'bg-orange-100 text-orange-600', description: '최신 뉴스 및 관심사', widgetType: 'news' },
     { id: '9', title: '타이머', tag: '생산성', icon: Timer, color: 'bg-emerald-100 text-emerald-600', description: '카운트다운/스톱워치', widgetType: 'timer' },
-    { id: '10', title: '영감 명언', tag: '영감', icon: Quote, color: 'bg-pink-100 text-pink-600', description: '영감을 주는 명언', widgetType: 'quote' },
+    { id: '10', title: '오늘의 명언', tag: '영감', icon: Quote, color: 'bg-pink-100 text-pink-600', description: '영감을 주는 명언', widgetType: 'quote' },
     { id: '11', title: '빠른 메모', tag: '메모', icon: FileText, color: 'bg-gray-100 text-gray-600', description: '즉석 메모 작성', widgetType: 'quicknote' },
     { id: '12', title: '암호화폐', tag: '투자', icon: TrendingUp, color: 'bg-cyan-100 text-cyan-600', description: '실시간 코인 시세', widgetType: 'crypto' },
     { id: '13', title: '경제 캘린더', tag: '경제', icon: BarChart3, color: 'bg-teal-100 text-teal-600', description: '경제 지표 일정', widgetType: 'economic_calendar' },

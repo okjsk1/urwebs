@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { FileText } from 'lucide-react';
 import { WidgetShell, WidgetProps, WidgetSize } from './WidgetShell';
+import { uiPalette, typeScale } from '../../constants/uiTheme';
 import { readLocal, persistOrLocal } from './utils/widget-helpers';
 
 interface QuickNoteState {
@@ -38,8 +39,15 @@ export function QuickNoteWidget({ id, title, size = 's', onRemove, onResize, onP
   }, [widgetId, state, updateWidget]);
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setState(prev => ({ ...prev, text: e.target.value }));
-  }, []);
+    const nextText = e.target.value;
+    setState(prev => ({ ...prev, text: nextText }));
+    if (size === 's') {
+      const lines = nextText.split('\n').length;
+      if (lines > 5) {
+        onResize?.(id, 'm');
+      }
+    }
+  }, [size, onResize, id]);
 
   const getRows = (currentSize: WidgetSize) => {
     switch (currentSize) {
@@ -49,6 +57,14 @@ export function QuickNoteWidget({ id, title, size = 's', onRemove, onResize, onP
       default: return 6;
     }
   };
+
+  const rows = size === 's' ? 5 : getRows(size);
+  const overflowY = state.text.trim().length > 0 ? 'auto' : 'hidden';
+  const textareaClassName = `
+    w-full h-full min-h-0 border-0 resize-none focus:outline-none bg-transparent
+    ${typeScale.md} ${uiPalette.textStrong} placeholder:${uiPalette.textMuted} leading-snug
+    ${size === 's' ? 'p-2' : 'p-3'}
+  `.replace(/\s+/g, ' ').trim();
 
   return (
     <WidgetShell
@@ -60,15 +76,17 @@ export function QuickNoteWidget({ id, title, size = 's', onRemove, onResize, onP
       onPin={() => onPin?.(id)}
       variant="bare"
     >
-      <textarea
-        value={state.text}
-        onChange={handleTextChange}
-        className="w-full h-full min-h-0 text-sm border-0 resize-none focus:outline-none bg-transparent text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 overflow-y-auto"
-        style={{ textAlign: 'left', verticalAlign: 'top' }}
-        rows={getRows(size)}
-        aria-label="빠른 메모 내용"
-        placeholder="메모를 작성하세요..."
-      />
+      <div className="h-full flex flex-col">
+        <textarea
+          value={state.text}
+          onChange={handleTextChange}
+          className={textareaClassName}
+          style={{ textAlign: 'left', verticalAlign: 'top', overflowY }}
+          rows={rows}
+          aria-label="빠른 메모 내용"
+          placeholder="메모를 작성하세요..."
+        />
+      </div>
     </WidgetShell>
   );
 }

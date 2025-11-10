@@ -849,6 +849,8 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
   const tabPadding = isCompact ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs';
   const inputPadding = isCompact ? 'px-1.5 py-0.5' : 'px-2 py-1';
   const inputTextClass = isCompact ? 'text-[13px]' : 'text-sm';
+  const helperTextClass = isCompact ? 'mt-0.5 text-[10px]' : `mt-1 ${typeScale.caption}`;
+  const helperText = 'Alt+1~9 전환 · Shift+Enter 현재 탭';
 
   return (
     <>
@@ -1300,12 +1302,10 @@ export const UnifiedSearchWidget = ({ widget, isEditMode, updateWidget, size = '
           </div>
         )}
 
-        {/* 도움말 - 컴팩트 외 크기에서만 표시 */}
-        {!isCompact && (
-          <div className={`mt-1 ${typeScale.caption} ${uiPalette.textFaint} text-center`}>
-            Alt+1~9 전환 · Shift+Enter 현재 탭
-          </div>
-        )}
+        {/* 단축키 안내 */}
+        <div className={`${helperTextClass} ${uiPalette.textFaint} text-center`}>
+          {helperText}
+        </div>
       </form>
       </div>
       </WidgetShell>

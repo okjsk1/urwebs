@@ -15,7 +15,7 @@ export const widgetCategories: Record<string, WidgetCategory> = {
       { type: 'quicknote', name: '빠른 메모', icon: FileText, description: '즉석 메모 작성' },
       { type: 'calendar', name: '캘린더', icon: Calendar, description: '일정 관리 및 계획' },
       { type: 'table', name: '표 메모', icon: Table, description: '행과 열을 자유롭게 구성하는 간단한 표' },
-      { type: 'quote', name: '영감 명언', icon: Quote, description: '영감을 주는 명언' },
+      { type: 'quote', name: '오늘의 명언', icon: Quote, description: '영감을 주는 명언' },
       { type: 'english_words', name: '영어 단어 학습', icon: BookOpen, description: '영어 단어 학습 도구' },
       { type: 'timer', name: '타이머', icon: Timer, description: '카운트다운/스톱워치/포모도로' },
       { type: 'dday', name: 'D-Day', icon: CalendarDays, description: '기념일/마감일 관리' },
